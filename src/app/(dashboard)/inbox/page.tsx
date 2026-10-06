@@ -3,13 +3,16 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { Conversation, Message, Contact, ConversationStatus } from "@/types";
+import type { Conversation, Message, Contact } from "@/types";
 import { useRealtime } from "@/hooks/use-realtime";
 import { ConversationList } from "@/components/inbox/conversation-list";
-import { MessageThread } from "@/components/inbox/message-thread";
+import { MessageThread, type ConversationPatch } from "@/components/inbox/message-thread";
 import { ContactSidebar } from "@/components/inbox/contact-sidebar";
-import { toast } from "sonner";
+import Link from "next/link";
 import { WifiOff } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useI18n } from "@/i18n/client";
+import { useInboxDirectory } from "@/components/inbox/use-inbox-directory";
 import { cn } from "@/lib/utils";
 
 export default function InboxPage() {
@@ -21,15 +24,16 @@ export default function InboxPage() {
    * automatically instead of showing the empty center panel.
    */
   const deepLinkConvId = searchParams.get("c");
+  const { user } = useAuth();
+  const { t } = useI18n();
+  // Channels, AI agents and members of the workspace — loaded once.
+  const directory = useInboxDirectory();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] =
     useState<Conversation | null>(null);
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [whatsappConnected, setWhatsappConnected] = useState<boolean | null>(
-    null
-  );
   /**
    * Bumped whenever we want children (ConversationList, MessageThread)
    * to refetch from the DB — used as a safety net against missed
@@ -121,30 +125,9 @@ export default function InboxPage() {
     }
   }, []);
 
-  // Check WhatsApp connection status on mount
-  useEffect(() => {
-    const checkConnection = async () => {
-      const supabase = createClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const user = session?.user;
-
-      if (!user) return;
-
-      // Table is `whatsapp_config` (singular) — the previous "whatsapp_configs"
-      // query always returned no rows, so the banner always showed "not connected".
-      const { data } = await supabase
-        .from("whatsapp_config")
-        .select("status")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      setWhatsappConnected(data?.status === "connected");
-    };
-
-    checkConnection();
-  }, []);
+  // Banner when the workspace has no connected channel at all.
+  const noConnectedChannel =
+    directory.loaded && !directory.channels.some((c) => c.status === "connected");
 
   // Handle realtime message events
   const handleMessageEvent = useCallback(
@@ -204,6 +187,11 @@ export default function InboxPage() {
         setMessages((prev) =>
           prev.map((m) => (m.id === newMsg.id ? { ...m, ...newMsg } : m))
         );
+      }
+
+      if (event.eventType === "DELETE" && event.old?.id) {
+        const oldId = event.old.id;
+        setMessages((prev) => prev.filter((m) => m.id !== oldId));
       }
     },
     [activeConversation, hydrateConversation]
@@ -456,37 +444,27 @@ export default function InboxPage() {
     []
   );
 
-  const handleStatusChange = useCallback(
-    (conversationId: string, status: ConversationStatus) => {
+  const handleRemoveMessage = useCallback((id: string) => {
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+  }, []);
+
+  // Status / assignment / AI-pause changes confirmed by the server. The
+  // realtime UPDATE carries the same values to teammates' inboxes.
+  const handleConversationPatch = useCallback(
+    (conversationId: string, patch: ConversationPatch) => {
       setConversations((prev) =>
-        prev.map((c) => (c.id === conversationId ? { ...c, status } : c))
+        prev.map((c) => (c.id === conversationId ? { ...c, ...patch } : c))
       );
-      if (activeConversation?.id === conversationId) {
-        setActiveConversation((prev) => (prev ? { ...prev, status } : prev));
-      }
+      setActiveConversation((prev) =>
+        prev && prev.id === conversationId ? { ...prev, ...patch } : prev
+      );
     },
-    [activeConversation]
+    []
   );
 
-  const handleAssignChange = useCallback(
-    (conversationId: string, assignedAgentId: string | null) => {
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === conversationId
-            ? { ...c, assigned_agent_id: assignedAgentId ?? undefined }
-            : c
-        )
-      );
-      if (activeConversation?.id === conversationId) {
-        setActiveConversation((prev) =>
-          prev
-            ? { ...prev, assigned_agent_id: assignedAgentId ?? undefined }
-            : prev
-        );
-      }
-    },
-    [activeConversation]
-  );
+  const activeChannel = activeConversation?.channel_id
+    ? (directory.channelsById.get(activeConversation.channel_id) ?? null)
+    : null;
 
   // On mobile (<lg) we show a SINGLE pane — either the list or the
   // thread — rather than cramming both side-by-side. Selecting a
@@ -499,11 +477,14 @@ export default function InboxPage() {
     <div className="-m-4 flex h-[calc(100vh-3.5rem)] flex-col overflow-hidden sm:-m-6">
       {/* WhatsApp connection banner — in the flex column, not absolute,
           so it pushes the panels down instead of overlapping them. */}
-      {whatsappConnected === false && (
+      {noConnectedChannel && (
         <div className="flex shrink-0 items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2">
           <WifiOff className="h-4 w-4 text-amber-400" />
           <p className="text-xs text-amber-400">
-            WhatsApp® is not connected. Go to Settings to connect your account.
+            {t("inbox.banner.noChannels")}{" "}
+            <Link href="/channels" className="font-medium underline underline-offset-2 hover:text-amber-300">
+              {t("inbox.banner.goToSettings")}
+            </Link>
           </p>
         </div>
       )}
@@ -524,6 +505,10 @@ export default function InboxPage() {
             conversations={conversations}
             onConversationsLoaded={handleConversationsLoaded}
             resyncToken={resyncToken}
+            channels={directory.channels}
+            channelsById={directory.channelsById}
+            membersByUserId={directory.membersByUserId}
+            currentUserId={user?.id ?? null}
           />
         </div>
 
@@ -533,7 +518,7 @@ export default function InboxPage() {
             (shows its own empty-state if no thread is picked yet). */}
         <div
           className={cn(
-            "flex h-full flex-1 lg:flex",
+            "flex h-full min-w-0 flex-1 lg:flex",
             hasActiveConv ? "flex" : "hidden lg:flex",
           )}
         >
@@ -544,8 +529,11 @@ export default function InboxPage() {
             onMessagesLoaded={handleMessagesLoaded}
             onNewMessage={handleNewMessage}
             onUpdateMessage={handleUpdateMessage}
-            onStatusChange={handleStatusChange}
-            onAssignChange={handleAssignChange}
+            onRemoveMessage={handleRemoveMessage}
+            onConversationPatch={handleConversationPatch}
+            channel={activeChannel}
+            agentsById={directory.agentsById}
+            members={directory.members}
             onBack={handleCloseConversation}
             resyncToken={resyncToken}
             onRefresh={handleManualRefresh}
@@ -553,7 +541,7 @@ export default function InboxPage() {
         </div>
 
         {/* Right panel: Contact sidebar — desktop only. */}
-        <div className="hidden lg:block">
+        <div className="hidden shrink-0 lg:block">
           <ContactSidebar contact={activeContact} />
         </div>
       </div>

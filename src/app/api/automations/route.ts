@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { requireWorkspace } from '@/lib/workspace/context'
 import { supabaseAdmin } from '@/lib/automations/admin-client'
 import { getTemplate } from '@/lib/automations/templates'
 import { insertSteps, type BuilderStepInput } from '@/lib/automations/steps-tree'
@@ -9,26 +9,23 @@ import {
 } from '@/lib/automations/validate'
 
 export async function GET() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireWorkspace()
+  if (!guard.ok) return guard.response
+  const { supabase, workspace } = guard.ctx
 
   const { data, error } = await supabase
     .from('automations')
     .select('*')
+    .eq('workspace_id', workspace.id)
     .order('created_at', { ascending: false })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ automations: data ?? [] })
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireWorkspace('admin')
+  if (!guard.ok) return guard.response
+  const { user, workspace } = guard.ctx
 
   const body = await request.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
@@ -82,6 +79,7 @@ export async function POST(request: Request) {
   const { data: automation, error: insertErr } = await admin
     .from('automations')
     .insert({
+      workspace_id: workspace.id,
       user_id: user.id,
       name: effectiveName,
       description: effectiveDescription ?? null,
@@ -100,7 +98,7 @@ export async function POST(request: Request) {
   }
 
   if (effectiveSteps && effectiveSteps.length > 0) {
-    const err = await insertSteps(automation.id, effectiveSteps)
+    const err = await insertSteps(automation.id, workspace.id, effectiveSteps)
     if (err) return NextResponse.json({ error: err }, { status: 500 })
   }
 

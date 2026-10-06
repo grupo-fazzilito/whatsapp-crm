@@ -1,85 +1,95 @@
 "use client";
 
-import { useState } from "react";
-import { Settings, Shield, Bell, Key, Save, Eye, EyeOff } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Settings, Shield, Bell, Users, Save, Loader2 } from "lucide-react";
 import { AdminShell } from "../admin-shell";
+import { AiProvidersCard } from "./ai-providers-card";
+import { useI18n } from "@/i18n/client";
 
 const inputCls = "w-full rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors";
 const labelCls = "block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5";
 
 export default function AdminSettingsPage() {
+  const { t } = useI18n();
+  const [general, setGeneral] = useState({ agency_name: "", support_email: "" });
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [showPass, setShowPass] = useState(false);
-  const [form, setForm] = useState({
-    adminEmail: "admin@agency.com",
-    adminPassword: "",
-    agencyName: "ChatNexGen Technologies",
-    supportEmail: "chatnexgen@gmail.com",
-    notifyNewClient: true,
-    notifyChurn: true,
-    notifyTrial: false,
-  });
+  const [error, setError] = useState<string | null>(null);
 
-  const set = (k: string, v: string | boolean) => setForm(p => ({ ...p, [k]: v }));
+  useEffect(() => {
+    fetch("/api/admin/settings/general", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((d: { agency_name?: string; support_email?: string }) => setGeneral({ agency_name: d.agency_name ?? "", support_email: d.support_email ?? "" }));
+  }, []);
+
+  const saveGeneral = async () => {
+    setSaving(true);
+    setError(null);
+    const res = await fetch("/api/admin/settings/general", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(general),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      setError((await res.json().catch(() => ({}))).error ?? t("common.error"));
+      return;
+    }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
 
   return (
     <AdminShell>
-      <div className="space-y-6 max-w-2xl">
+      <div className="space-y-6 max-w-3xl">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Settings className="size-6 text-emerald-400" /> Settings
+            <Settings className="size-6 text-emerald-400" aria-hidden /> {t("admin.settings.title")}
           </h1>
-          <p className="mt-1 text-sm text-slate-400">Configure admin panel preferences and credentials.</p>
+          <p className="mt-1 text-sm text-slate-400">{t("admin.settings.subtitle")}</p>
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 space-y-4">
-          <p className="text-sm font-bold text-white flex items-center gap-2"><Shield className="size-4 text-emerald-400" /> Agency Details</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className={labelCls}>Agency Name</label><input value={form.agencyName} onChange={e=>set("agencyName",e.target.value)} className={inputCls}/></div>
-            <div><label className={labelCls}>Support Email</label><input type="email" value={form.supportEmail} onChange={e=>set("supportEmail",e.target.value)} className={inputCls}/></div>
-          </div>
-        </div>
+        <AiProvidersCard />
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 space-y-4">
-          <p className="text-sm font-bold text-white flex items-center gap-2"><Key className="size-4 text-emerald-400" /> Admin Credentials</p>
+        <section className="rounded-xl border border-slate-800 bg-slate-900 p-6 space-y-4" aria-labelledby="agency-title">
+          <h2 id="agency-title" className="text-sm font-bold text-white flex items-center gap-2">
+            <Shield className="size-4 text-emerald-400" aria-hidden /> {t("admin.settings.agencyTitle")}
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className={labelCls}>Admin Email</label><input type="email" value={form.adminEmail} onChange={e=>set("adminEmail",e.target.value)} className={inputCls}/></div>
-            <div><label className={labelCls}>New Password</label>
-              <div className="relative">
-                <input type={showPass?"text":"password"} value={form.adminPassword} onChange={e=>set("adminPassword",e.target.value)} placeholder="Leave blank to keep current" className={inputCls+" pr-10"}/>
-                <button type="button" onClick={()=>setShowPass(v=>!v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
-                  {showPass?<EyeOff className="size-4"/>:<Eye className="size-4"/>}
-                </button>
-              </div>
+            <div>
+              <label htmlFor="agency-name" className={labelCls}>{t("admin.settings.agencyName")}</label>
+              <input id="agency-name" value={general.agency_name} onChange={(e) => setGeneral((g) => ({ ...g, agency_name: e.target.value }))} className={inputCls} />
+            </div>
+            <div>
+              <label htmlFor="support-email" className={labelCls}>{t("admin.settings.supportEmail")}</label>
+              <input id="support-email" type="email" value={general.support_email} onChange={(e) => setGeneral((g) => ({ ...g, support_email: e.target.value }))} className={inputCls} />
             </div>
           </div>
-          <p className="text-xs text-slate-500">Set via env vars <code className="text-emerald-400">SUPER_ADMIN_USERNAME</code> and <code className="text-emerald-400">SUPER_ADMIN_PASSWORD</code>.</p>
-        </div>
+          {error && <p role="alert" className="text-xs text-red-300">{error}</p>}
+          <button
+            type="button"
+            onClick={saveGeneral}
+            disabled={saving}
+            className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            {saved ? t("admin.settings.saved") : t("admin.settings.save")}
+          </button>
+        </section>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 space-y-4">
-          <p className="text-sm font-bold text-white flex items-center gap-2"><Bell className="size-4 text-emerald-400" /> Notifications</p>
-          {[
-            { key: "notifyNewClient", label: "New client signup",     sub: "Alert when a new client is added" },
-            { key: "notifyChurn",     label: "Client churn alert",    sub: "Alert when a client goes inactive" },
-            { key: "notifyTrial",     label: "Trial expiry reminder", sub: "Alert 2 days before trial ends" },
-          ].map(n => (
-            <div key={n.key} className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white">{n.label}</p>
-                <p className="text-xs text-slate-500">{n.sub}</p>
-              </div>
-              <button onClick={()=>set(n.key,!form[n.key as keyof typeof form])}
-                className={`relative w-10 h-6 rounded-full transition-colors ${form[n.key as keyof typeof form]?"bg-emerald-600":"bg-slate-700"}`}>
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${form[n.key as keyof typeof form]?"translate-x-4":"translate-x-0"}`}/>
-              </button>
-            </div>
-          ))}
-        </div>
+        <section className="rounded-xl border border-slate-800 bg-slate-900 p-6 space-y-2" aria-labelledby="admins-title">
+          <h2 id="admins-title" className="text-sm font-bold text-white flex items-center gap-2">
+            <Users className="size-4 text-emerald-400" aria-hidden /> {t("admin.settings.adminsTitle")}
+          </h2>
+          <p className="text-xs text-slate-400">{t("admin.settings.adminsBody")}</p>
+        </section>
 
-        <button onClick={()=>{setSaved(true);setTimeout(()=>setSaved(false),2500);}}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors">
-          <Save className="size-4"/>{saved?"Saved!":"Save Settings"}
-        </button>
+        <section className="rounded-xl border border-slate-800 bg-slate-900 p-6 opacity-60" aria-labelledby="notif-title">
+          <h2 id="notif-title" className="text-sm font-bold text-white flex items-center gap-2">
+            <Bell className="size-4 text-emerald-400" aria-hidden /> {t("admin.settings.notificationsTitle")}
+            <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[10px] font-medium text-slate-400">{t("admin.settings.comingSoon")}</span>
+          </h2>
+        </section>
       </div>
     </AdminShell>
   );

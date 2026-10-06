@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useWorkspace } from "@/hooks/use-workspace";
 import type { Message, Conversation } from "@/types";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -26,6 +27,8 @@ export function useRealtime({
 }: UseRealtimeOptions) {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const { workspace } = useWorkspace();
+  const workspaceId = workspace?.id;
 
   // Store latest callbacks in refs to avoid re-subscribing when the
   // parent re-renders with fresh closures. Assigned inside an effect
@@ -40,15 +43,18 @@ export function useRealtime({
   });
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !workspaceId) return;
 
     const supabase = createClient();
+    // Realtime doesn't carry the x-workspace-id header, so scope each
+    // subscription to the active workspace explicitly.
+    const filter = `workspace_id=eq.${workspaceId}`;
 
     const channel = supabase
-      .channel(channelName)
+      .channel(`${channelName}:${workspaceId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "messages" },
+        { event: "*", schema: "public", table: "messages", filter },
         (payload) => {
           onMessageRef.current?.({
             eventType: payload.eventType as RealtimeEvent<Message>["eventType"],
@@ -59,7 +65,7 @@ export function useRealtime({
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "conversations" },
+        { event: "*", schema: "public", table: "conversations", filter },
         (payload) => {
           onConversationRef.current?.({
             eventType: payload.eventType as RealtimeEvent<Conversation>["eventType"],
@@ -79,7 +85,7 @@ export function useRealtime({
       channelRef.current = null;
       setIsConnected(false);
     };
-  }, [channelName, enabled]);
+  }, [channelName, enabled, workspaceId]);
 
   const unsubscribe = useCallback(() => {
     if (channelRef.current) {

@@ -240,19 +240,8 @@ export function ContactDetailView({
     if (!contactId || !newNote.trim()) return;
     setSavingNote(true);
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user) {
-      toast.error('Not authenticated');
-      setSavingNote(false);
-      return;
-    }
-
     const { error } = await supabase.from('contact_notes').insert({
       contact_id: contactId,
-      user_id: user.id,
       note_text: newNote.trim(),
     });
 

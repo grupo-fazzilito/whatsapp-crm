@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
+import { acceptInvitation, findPendingInvitation } from "@/lib/workspace/invitations";
 
 // Server-side admin client to bypass RLS and create users
 function adminClient() {
@@ -155,9 +156,15 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "register") {
-      const { code, fullName, password, businessName, businessType } = body;
+      const { code, fullName, password, businessName, businessType, country, currency, timezone, locale, invite } = body;
 
-      if (!code || !fullName || !password || !businessName || !businessType) {
+      // Invited users join an existing workspace and skip business details.
+      const invitation = invite ? await findPendingInvitation(String(invite)) : null;
+      if (invite && (!invitation || invitation.email.toLowerCase() !== String(email).toLowerCase())) {
+        return NextResponse.json({ error: "Invitation not found or expired" }, { status: 400 });
+      }
+
+      if (!code || !fullName || !password || (!invitation && (!businessName || !businessType))) {
         return NextResponse.json({ error: "Missing required registration parameters" }, { status: 400 });
       }
 
@@ -199,11 +206,19 @@ export async function POST(req: NextRequest) {
         email,
         password,
         email_confirm: true,
-        user_metadata: {
-          full_name: fullName,
-          business_name: businessName,
-          business_type: businessType,
-        },
+        // handle_new_user() (migration 021) creates the profile and, unless
+        // `invite` is set, the workspace with this user as owner.
+        user_metadata: invitation
+          ? { full_name: fullName, invite: true, locale }
+          : {
+              full_name: fullName,
+              business_name: businessName,
+              business_type: businessType,
+              country,
+              currency,
+              timezone,
+              locale,
+            },
       });
 
       if (createErr) {
@@ -212,6 +227,10 @@ export async function POST(req: NextRequest) {
           { error: `Registration failed: ${createErr.message}` },
           { status: 500 }
         );
+      }
+
+      if (invitation && newUser.user) {
+        await acceptInvitation(invitation, newUser.user.id);
       }
 
       // 4. Clear the OTP code

@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     await resumePendingExecution({
       id: row.id as string,
       automation_id: row.automation_id as string,
-      user_id: row.user_id as string,
+      workspace_id: row.workspace_id as string,
       contact_id: (row.contact_id as string | null) ?? null,
       log_id: (row.log_id as string | null) ?? null,
       parent_step_id: (row.parent_step_id as string | null) ?? null,

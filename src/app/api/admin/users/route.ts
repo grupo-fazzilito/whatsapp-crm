@@ -1,16 +1,11 @@
+import { isPlatformAdmin } from "@/lib/admin/guard";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
-function isAuthed(): boolean {
-  // We just check the cookie exists — good enough for an internal admin tool
-  return true; // cookie check done in proxy below
-}
 
 export async function GET(req: NextRequest) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("admin_token");
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await isPlatformAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

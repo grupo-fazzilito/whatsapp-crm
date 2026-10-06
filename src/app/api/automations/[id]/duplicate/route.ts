@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { requireWorkspace } from '@/lib/workspace/context'
 import { supabaseAdmin } from '@/lib/automations/admin-client'
 
 export async function POST(
@@ -7,18 +7,16 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireWorkspace('admin')
+  if (!guard.ok) return guard.response
+  const { user, workspace } = guard.ctx
 
   const admin = supabaseAdmin()
   const { data: original, error: origErr } = await admin
     .from('automations')
     .select('*')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('workspace_id', workspace.id)
     .maybeSingle()
   if (origErr) return NextResponse.json({ error: origErr.message }, { status: 500 })
   if (!original) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -26,6 +24,7 @@ export async function POST(
   const { data: copy, error: copyErr } = await admin
     .from('automations')
     .insert({
+      workspace_id: workspace.id,
       user_id: user.id,
       name: `${original.name} (Copy)`,
       description: original.description,
@@ -43,6 +42,7 @@ export async function POST(
     .from('automation_steps')
     .select('id, parent_step_id, branch, step_type, step_config, position')
     .eq('automation_id', id)
+    .eq('workspace_id', workspace.id)
     .order('position', { ascending: true })
 
   if (steps && steps.length > 0) {
@@ -57,6 +57,7 @@ export async function POST(
 
     const rows = steps.map((row) => ({
       id: idMap.get(row.id as string)!,
+      workspace_id: workspace.id,
       automation_id: copy.id,
       parent_step_id: row.parent_step_id ? idMap.get(row.parent_step_id as string) : null,
       branch: row.branch,

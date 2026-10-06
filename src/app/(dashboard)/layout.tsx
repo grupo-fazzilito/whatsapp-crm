@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { DashboardShell } from "./dashboard-shell";
+import { I18nProvider } from "@/i18n/client";
+import { getLocale } from "@/i18n/server";
 
 // Server layout whose only job is to declare "do not index" metadata
 // for the authed app. robots.ts already disallows these paths at the
@@ -19,10 +21,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <DashboardShell>{children}</DashboardShell>;
+  const locale = await getLocale();
+  return (
+    <I18nProvider locale={locale}>
+      <DashboardShell>{children}</DashboardShell>
+    </I18nProvider>
+  );
 }

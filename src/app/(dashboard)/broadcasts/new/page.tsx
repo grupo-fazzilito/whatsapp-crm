@@ -82,17 +82,8 @@ export default function NewBroadcastPage() {
       return;
     }
     const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user) {
-      toast.error('Not signed in.');
-      return;
-    }
 
     const { error } = await supabase.from('broadcasts').insert({
-      user_id: user.id,
       name: name.trim(),
       template_name: template.name,
       template_language: template.language ?? 'en_US',

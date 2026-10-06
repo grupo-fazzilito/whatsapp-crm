@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { sendReactionMessage } from '@/lib/whatsapp/meta-api';
-import { decrypt } from '@/lib/whatsapp/encryption';
-import { sanitizePhoneForMeta } from '@/lib/whatsapp/phone-utils';
+import { requireWorkspace } from '@/lib/workspace/context';
+import { sendReaction } from '@/lib/messaging/send';
 import {
   checkRateLimit,
   rateLimitResponse,
@@ -14,22 +12,15 @@ import {
  *
  * Body: { message_id: <internal UUID>, emoji: <single emoji or "" to remove> }
  *
- * Sends the reaction to Meta and mirrors it into `message_reactions`
+ * Sends the reaction through the conversation's channel and mirrors it into `message_reactions`
  * (delete on empty emoji). Customer-side reactions are handled by the
  * webhook — this route only writes `actor_type = 'agent'` rows.
  */
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const guard = await requireWorkspace();
+    if (!guard.ok) return guard.response;
+    const { supabase, user, workspace } = guard.ctx;
 
     const limit = checkRateLimit(`react:${user.id}`, RATE_LIMITS.react);
     if (!limit.success) {
@@ -71,9 +62,9 @@ export async function POST(request: Request) {
 
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
-      .select('id, user_id, contact:contacts(phone)')
+      .select('id')
       .eq('id', targetMessage.conversation_id)
-      .eq('user_id', user.id)
+      .eq('workspace_id', workspace.id)
       .maybeSingle();
 
     if (convError || !conversation) {
@@ -83,45 +74,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const contact = Array.isArray(conversation.contact)
-      ? conversation.contact[0]
-      : conversation.contact;
-    if (!contact?.phone) {
-      return NextResponse.json(
-        { error: 'Contact phone number not found' },
-        { status: 400 },
-      );
-    }
-
-    // WhatsApp config + access token
-    const { data: config, error: configError } = await supabase
-      .from('whatsapp_config')
-      .select('phone_number_id, access_token')
-      .eq('user_id', user.id)
-      .single();
-
-    if (configError || !config) {
-      return NextResponse.json(
-        { error: 'WhatsApp not configured.' },
-        { status: 400 },
-      );
-    }
-
-    const accessToken = decrypt(config.access_token);
-    const sanitizedPhone = sanitizePhoneForMeta(contact.phone);
-
+    // Sent through the conversation's channel (no-op on channels without
+    // reactions); provider errors bubble up as 502.
     try {
-      await sendReactionMessage({
-        phoneNumberId: config.phone_number_id,
-        accessToken,
-        to: sanitizedPhone,
-        targetMessageId: targetMessage.message_id,
+      await sendReaction({
+        workspaceId: workspace.id,
+        conversationId: conversation.id,
+        messageId: targetMessage.id,
         emoji,
       });
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Unknown Meta API error';
-      console.error('[whatsapp/react] Meta send failed:', message);
+        err instanceof Error ? err.message : 'Unknown provider error';
+      console.error('[whatsapp/react] send failed:', message);
       return NextResponse.json(
         { error: `Meta API error: ${message}` },
         { status: 502 },
@@ -149,6 +114,7 @@ export async function POST(request: Request) {
       // lets us swap emoji in a single statement.
       const { error: upsertError } = await supabase.from('message_reactions').upsert(
         {
+          workspace_id: workspace.id,
           message_id: targetMessage.id,
           conversation_id: targetMessage.conversation_id,
           actor_type: 'agent',

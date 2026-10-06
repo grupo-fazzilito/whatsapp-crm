@@ -20,12 +20,17 @@ export const metadata: Metadata = {
 };
 
 import { MarketingThemeProvider } from "@/components/marketing/marketing-theme-provider";
+import { I18nProvider } from "@/i18n/client";
+import { getLocale } from "@/i18n/server";
 
-export default function AuthLayout({ children }: { children: ReactNode }) {
+export default async function AuthLayout({ children }: { children: ReactNode }) {
+  const locale = await getLocale();
   return (
-    <MarketingThemeProvider>
-      {children}
-    </MarketingThemeProvider>
+    <I18nProvider locale={locale}>
+      <MarketingThemeProvider>
+        {children}
+      </MarketingThemeProvider>
+    </I18nProvider>
   );
 }
 

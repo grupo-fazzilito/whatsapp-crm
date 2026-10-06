@@ -54,7 +54,7 @@ export async function GET(request: Request) {
   const { data: runs, error } = await admin
     .from('flow_runs')
     .select(
-      'id, flow_id, user_id, contact_id, last_advanced_at, flows ( fallback_policy )',
+      'id, flow_id, workspace_id, contact_id, last_advanced_at, flows ( fallback_policy )',
     )
     .eq('status', 'active')
 
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
   type Row = {
     id: string
     flow_id: string
-    user_id: string
+    workspace_id: string
     contact_id: string | null
     last_advanced_at: string
     flows: { fallback_policy: unknown } | { fallback_policy: unknown }[] | null
@@ -92,11 +92,13 @@ export async function GET(request: Request) {
         end_reason: 'stale_sweep',
       })
       .eq('id', r.id)
+      .eq('workspace_id', r.workspace_id)
       .eq('status', 'active')
       .select('id')
 
     if (Array.isArray(updated) && updated.length > 0) {
       await admin.from('flow_run_events').insert({
+        workspace_id: r.workspace_id,
         flow_run_id: r.id,
         event_type: 'timeout',
         payload: {

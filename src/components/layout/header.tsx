@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { useT } from "@/i18n/client";
 import { LogOut, Menu, Settings as SettingsIcon, User, Sun, Moon } from "lucide-react";
 import {
   Avatar,
@@ -18,30 +20,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const pageTitles: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/inbox": "Inbox",
-  "/contacts": "Contacts",
-  "/pipelines": "Pipelines",
-  "/broadcasts": "Broadcasts",
-  "/automations": "Automations",
-  "/settings": "Settings",
-  "/healthcare/dashboard": "AI Healthcare Dashboard",
-  "/healthcare/appointments": "Appointments",
-  "/healthcare/setup": "Clinic Setup",
-  "/healthcare/doctors": "Doctors Directory",
-  "/healthcare/services": "Services Offered",
-  "/healthcare/faqs": "Clinic FAQs",
-  "/healthcare/settings": "AI Healthcare Settings",
-  "/healthcare/logs": "WhatsApp AI Logs",
-};
+type Label = ReturnType<typeof useWorkspace>["label"];
+type T = ReturnType<typeof useT>;
 
-function getPageTitle(pathname: string): string {
-  if (pageTitles[pathname]) return pageTitles[pathname];
-  const match = Object.entries(pageTitles).find(([path]) =>
-    pathname.startsWith(path),
-  );
-  return match ? match[1] : "Dashboard";
+// Longest matching prefix wins. Business pages use the industry's nouns.
+function getPageTitle(pathname: string, t: T, label: Label): string {
+  const titles: [string, string][] = [
+    ["/dashboard", t("nav.dashboard")],
+    ["/inbox", t("nav.inbox")],
+    ["/contacts", t("nav.contacts")],
+    ["/pipelines", t("nav.pipelines")],
+    ["/broadcasts", t("nav.broadcasts")],
+    ["/automations", t("nav.automations")],
+    ["/flows", t("nav.flows")],
+    ["/settings", t("nav.settings")],
+    ["/channels", t("channels.navTitle")],
+    ["/agents", t("agents.navTitle")],
+    ["/business/dashboard", t("nav.business")],
+    ["/business/bookings", label("bookingPlural")],
+    ["/business/setup", t("nav.setup")],
+    ["/business/staff", label("staffPlural")],
+    ["/business/services", label("servicePlural")],
+    ["/business/faqs", t("nav.faqs")],
+    ["/business/logs", t("nav.aiLogs")],
+  ];
+  const match = titles
+    .filter(([path]) => pathname === path || pathname.startsWith(`${path}/`))
+    .sort((a, b) => b[0].length - a[0].length)[0];
+  return match ? match[1] : t("nav.dashboard");
 }
 
 interface HeaderProps {
@@ -54,7 +60,9 @@ export function Header({ onOpenSidebar }: HeaderProps) {
   const pathname = usePathname();
   const { profile, signOut } = useAuth();
   const { mode, setMode } = useTheme();
-  const title = getPageTitle(pathname);
+  const t = useT();
+  const { label } = useWorkspace();
+  const title = getPageTitle(pathname, t, label);
 
   const initial =
     profile?.full_name?.charAt(0)?.toUpperCase() ??

@@ -39,12 +39,14 @@ import {
   engineSendText,
 } from "./meta-send";
 import { decideFallback, resolveFallbackPolicy } from "./fallback";
+import type { AiAgentRow } from "@/lib/ai/types";
 import {
   type CollectInputNodeConfig,
   type ConditionNodeConfig,
   type DispatchInboundInput,
   type DispatchInboundResult,
   type FlowNodeRow,
+  type HandoffAiAgentNodeConfig,
   type FlowRow,
   type FlowRunRow,
   type ParsedInbound,
@@ -128,7 +130,17 @@ export function isSuspending(node_type: string): boolean {
 
 /** Nodes that end the run. */
 export function isTerminal(node_type: string): boolean {
-  return node_type === "handoff" || node_type === "end";
+  return (
+    node_type === "handoff" ||
+    node_type === "handoff_ai_agent" ||
+    node_type === "end"
+  );
+}
+
+/** Text the AI agent should answer after a flow hands off to it. */
+export function inboundTextOf(message: ParsedInbound | null | undefined): string {
+  if (!message) return "";
+  return message.kind === "text" ? message.text : message.reply_title;
 }
 
 /**
@@ -170,7 +182,7 @@ type AdminClient = ReturnType<typeof supabaseAdmin>;
 
 async function loadActiveRunForContact(
   db: AdminClient,
-  userId: string,
+  workspaceId: string,
   contactId: string,
 ): Promise<FlowRunRow | null> {
   // The partial unique index `idx_one_active_run_per_contact` makes
@@ -182,7 +194,7 @@ async function loadActiveRunForContact(
   const { data, error } = await db
     .from("flow_runs")
     .select("*")
-    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
     .eq("contact_id", contactId)
     .eq("status", "active")
     .order("started_at", { ascending: false })
@@ -197,12 +209,14 @@ async function loadActiveRunForContact(
 
 async function loadFlow(
   db: AdminClient,
+  workspaceId: string,
   flowId: string,
 ): Promise<FlowRow | null> {
   const { data, error } = await db
     .from("flows")
     .select("*")
     .eq("id", flowId)
+    .eq("workspace_id", workspaceId)
     .maybeSingle();
   if (error) {
     console.error("[flows] loadFlow error:", error.message);
@@ -222,12 +236,14 @@ async function loadFlow(
  */
 async function loadAllNodes(
   db: AdminClient,
+  workspaceId: string,
   flowId: string,
 ): Promise<Map<string, FlowNodeRow>> {
   const { data, error } = await db
     .from("flow_nodes")
     .select("*")
-    .eq("flow_id", flowId);
+    .eq("flow_id", flowId)
+    .eq("workspace_id", workspaceId);
   if (error) {
     console.error("[flows] loadAllNodes error:", error.message);
     return new Map();
@@ -273,13 +289,13 @@ async function logEvent(
  * runs? If yes, the inbound is a duplicate (Meta retry) and we
  * exit without re-advancing.
  *
- * Implementation note: scoped to runs belonging to this user/contact
+ * Implementation note: scoped to runs belonging to this workspace/contact
  * so the lookup is cheap (the index on flow_run_events(flow_run_id,
  * event_type) plus the small set of runs per contact).
  */
 async function isDuplicateInbound(
   db: AdminClient,
-  userId: string,
+  workspaceId: string,
   contactId: string,
   metaMessageId: string,
 ): Promise<boolean> {
@@ -288,7 +304,7 @@ async function isDuplicateInbound(
   const { data: runs } = await db
     .from("flow_runs")
     .select("id")
-    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
     .eq("contact_id", contactId);
   if (!runs?.length) return false;
   const runIds = runs.map((r) => (r as { id: string }).id);
@@ -304,7 +320,7 @@ async function isDuplicateInbound(
 
 async function findEntryFlow(
   db: AdminClient,
-  userId: string,
+  workspaceId: string,
   message: ParsedInbound,
   isFirstInbound: boolean,
 ): Promise<FlowRow | null> {
@@ -312,13 +328,13 @@ async function findEntryFlow(
   // are responses to existing prompts; they never start a new flow.
   if (message.kind !== "text") return null;
 
-  // Pull all active flows for this user. Active set is bounded (the
+  // Pull all active flows for this workspace. Active set is bounded (the
   // builder discourages double-trigger overlap; partial index makes
   // the lookup index-supported).
   const { data: flows, error } = await db
     .from("flows")
     .select("*")
-    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
     .eq("status", "active")
     .order("created_at", { ascending: true });
   if (error || !flows) return null;
@@ -353,7 +369,7 @@ async function sendButtonsAndSuspend(
 ): Promise<{ outcome: "advanced"; node_key: string }> {
   const cfg = node.config as unknown as SendButtonsNodeConfig;
   const { whatsapp_message_id } = await engineSendInteractiveButtons({
-    userId: run.user_id,
+    workspaceId: run.workspace_id,
     conversationId: run.conversation_id!,
     contactId: run.contact_id!,
     bodyText: cfg.text,
@@ -371,6 +387,7 @@ async function sendButtonsAndSuspend(
     .from("messages")
     .select("id")
     .eq("message_id", whatsapp_message_id)
+    .eq("workspace_id", run.workspace_id)
     .maybeSingle();
   await db
     .from("flow_runs")
@@ -388,7 +405,7 @@ async function sendListAndSuspend(
 ): Promise<{ outcome: "advanced"; node_key: string }> {
   const cfg = node.config as unknown as SendListNodeConfig;
   const { whatsapp_message_id } = await engineSendInteractiveList({
-    userId: run.user_id,
+    workspaceId: run.workspace_id,
     conversationId: run.conversation_id!,
     contactId: run.contact_id!,
     bodyText: cfg.text,
@@ -412,6 +429,7 @@ async function sendListAndSuspend(
     .from("messages")
     .select("id")
     .eq("message_id", whatsapp_message_id)
+    .eq("workspace_id", run.workspace_id)
     .maybeSingle();
   await db
     .from("flow_runs")
@@ -437,13 +455,93 @@ async function executeHandoff(
     await db
       .from("conversations")
       .update(convUpdate)
-      .eq("id", run.conversation_id);
+      .eq("id", run.conversation_id)
+      .eq("workspace_id", run.workspace_id);
   }
   await logEvent(db, run.id, "handoff", node.node_key, {
     note: cfg.note ?? null,
     assigned_to: cfg.assign_to ?? null,
   });
   await endRun(db, run.id, "handed_off", "handoff_node");
+}
+
+/**
+ * `handoff_ai_agent`: the conversation now belongs to the agent. Pin it
+ * (conversations.ai_agent_id, AI un-paused), complete the run and let the
+ * agent answer the triggering message right away — the inbound pipeline
+ * skips AI routing when a flow consumed the message.
+ */
+async function executeHandoffAiAgent(
+  db: AdminClient,
+  run: FlowRunRow,
+  node: FlowNodeRow,
+  inbound: ParsedInbound | null,
+): Promise<void> {
+  const cfg = node.config as unknown as HandoffAiAgentNodeConfig;
+  const { data: agent } = cfg.agent_id
+    ? await db
+        .from("ai_agents")
+        .select("*")
+        .eq("id", cfg.agent_id)
+        .eq("workspace_id", run.workspace_id)
+        .maybeSingle()
+    : { data: null };
+  if (!agent || !(agent as { enabled?: boolean }).enabled) {
+    await logEvent(db, run.id, "error", node.node_key, {
+      reason: "ai_agent_unavailable",
+      agent_id: cfg.agent_id ?? null,
+    });
+    await endRun(db, run.id, "failed", "ai_agent_unavailable");
+    return;
+  }
+
+  let channelId: string | null = null;
+  if (run.conversation_id) {
+    const { data: conv } = await db
+      .from("conversations")
+      .update({
+        ai_agent_id: agent.id,
+        ai_paused_until: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", run.conversation_id)
+      .eq("workspace_id", run.workspace_id)
+      .select("channel_id")
+      .maybeSingle();
+    channelId = (conv as { channel_id: string | null } | null)?.channel_id ?? null;
+  }
+  await logEvent(db, run.id, "handoff", node.node_key, {
+    ai_agent_id: agent.id,
+  });
+  await logEvent(db, run.id, "completed", node.node_key);
+  await endRun(db, run.id, "completed", "handoff_ai_agent");
+
+  if (!run.conversation_id || !run.contact_id || !channelId) return;
+  try {
+    // Lazy: the AI engine and channel store are server-only; keeping them
+    // out of the module graph lets engine.test.ts import the pure helpers.
+    const [{ runAgent }, { loadChannel }] = await Promise.all([
+      import("@/lib/ai/engine"),
+      import("@/lib/channels/store"),
+    ]);
+    const channel = await loadChannel(run.workspace_id, channelId);
+    if (!channel) return;
+    await runAgent({
+      workspaceId: run.workspace_id,
+      channel,
+      agent: agent as AiAgentRow,
+      contactId: run.contact_id,
+      conversationId: run.conversation_id,
+      messageText: inboundTextOf(inbound),
+      contextMessageId: inbound?.meta_message_id ?? null,
+      isFirstInboundMessage: true,
+    });
+  } catch (err) {
+    console.error(
+      "[flows] handoff_ai_agent: agent turn failed:",
+      err instanceof Error ? err.message : err,
+    );
+  }
 }
 
 /**
@@ -471,6 +569,7 @@ async function evaluateConditionNode(
     const { count } = await db
       .from("contact_tags")
       .select("contact_id", { count: "exact", head: true })
+      .eq("workspace_id", run.workspace_id)
       .eq("contact_id", run.contact_id!)
       .eq("tag_id", cfg.subject_key);
     // For tags, "present" really is the only meaningful test — the
@@ -488,6 +587,7 @@ async function evaluateConditionNode(
       .from("contacts")
       .select(cfg.subject_key)
       .eq("id", run.contact_id!)
+      .eq("workspace_id", run.workspace_id)
       .maybeSingle();
     const raw = (data as Record<string, unknown> | null)?.[cfg.subject_key];
     subjectValue = typeof raw === "string" && raw.length > 0 ? raw : undefined;
@@ -541,6 +641,8 @@ async function advanceFromNodeKey(
   run: FlowRunRow,
   startNodeKey: string,
   nodes: Map<string, FlowNodeRow>,
+  /** Customer message that woke the run (handed to an AI agent if reached). */
+  inbound: ParsedInbound | null = null,
 ): Promise<{ outcome: "advanced" | "completed" | "handed_off" }> {
   let currentKey: string | null = startNodeKey;
   // Defensive cap — if a flow has a cycle (which the validator
@@ -573,7 +675,7 @@ async function advanceFromNodeKey(
       const cfg = node.config as unknown as SendMessageNodeConfig;
       try {
         const { whatsapp_message_id } = await engineSendText({
-          userId: run.user_id,
+          workspaceId: run.workspace_id,
           conversationId: run.conversation_id!,
           contactId: run.contact_id!,
           text: interpolateVars(cfg.text, run.vars),
@@ -599,7 +701,7 @@ async function advanceFromNodeKey(
       const cfg = node.config as unknown as CollectInputNodeConfig;
       try {
         const { whatsapp_message_id } = await engineSendText({
-          userId: run.user_id,
+          workspaceId: run.workspace_id,
           conversationId: run.conversation_id!,
           contactId: run.contact_id!,
           text: interpolateVars(cfg.prompt_text, run.vars),
@@ -612,6 +714,7 @@ async function advanceFromNodeKey(
           .from("messages")
           .select("id")
           .eq("message_id", whatsapp_message_id)
+          .eq("workspace_id", run.workspace_id)
           .maybeSingle();
         await db
           .from("flow_runs")
@@ -670,13 +773,18 @@ async function advanceFromNodeKey(
           await db
             .from("contact_tags")
             .upsert(
-              { contact_id: run.contact_id!, tag_id: cfg.tag_id },
+              {
+                workspace_id: run.workspace_id,
+                contact_id: run.contact_id!,
+                tag_id: cfg.tag_id,
+              },
               { onConflict: "contact_id,tag_id" },
             );
         } else {
           await db
             .from("contact_tags")
             .delete()
+            .eq("workspace_id", run.workspace_id)
             .eq("contact_id", run.contact_id!)
             .eq("tag_id", cfg.tag_id);
         }
@@ -725,6 +833,10 @@ async function advanceFromNodeKey(
     if (node.node_type === "handoff") {
       await executeHandoff(db, run, node);
       return { outcome: "handed_off" };
+    }
+    if (node.node_type === "handoff_ai_agent") {
+      await executeHandoffAiAgent(db, run, node, inbound);
+      return { outcome: "completed" };
     }
     if (node.node_type === "end") {
       await logEvent(db, run.id, "completed", node.node_key);
@@ -792,7 +904,7 @@ export async function dispatchInboundToFlows(
   try {
     const activeRun = await loadActiveRunForContact(
       db,
-      input.userId,
+      input.workspaceId,
       input.contactId,
     );
 
@@ -802,7 +914,7 @@ export async function dispatchInboundToFlows(
     if (activeRun) {
       const dupe = await isDuplicateInbound(
         db,
-        input.userId,
+        input.workspaceId,
         input.contactId,
         input.message.meta_message_id,
       );
@@ -815,21 +927,25 @@ export async function dispatchInboundToFlows(
       }
       // One SELECT for the whole flow's nodes — advance loop is now
       // in-memory. See loadAllNodes.
-      const nodes = await loadAllNodes(db, activeRun.flow_id);
+      const nodes = await loadAllNodes(
+        db,
+        activeRun.workspace_id,
+        activeRun.flow_id,
+      );
       return handleReplyForActiveRun(db, activeRun, input.message, nodes);
     }
 
     // No active run → look for a flow whose entry trigger matches.
     const flow = await findEntryFlow(
       db,
-      input.userId,
+      input.workspaceId,
       input.message,
       input.isFirstInboundMessage,
     );
     if (!flow || !flow.entry_node_id) {
       return { consumed: false, outcome: "no_match" };
     }
-    const nodes = await loadAllNodes(db, flow.id);
+    const nodes = await loadAllNodes(db, flow.workspace_id, flow.id);
     return startNewRun(db, flow, input, nodes);
   } catch (err) {
     console.error(
@@ -935,7 +1051,7 @@ async function handleReplyForActiveRun(
         .eq("id", run.id);
       if (!error) run.reprompt_count = 0;
     }
-    const outcome = await advanceFromNodeKey(db, run, matched, nodes);
+    const outcome = await advanceFromNodeKey(db, run, matched, nodes, message);
     return {
       consumed: true,
       flow_run_id: run.id,
@@ -945,7 +1061,7 @@ async function handleReplyForActiveRun(
 
   // No match → fallback. Apply the policy.
   const policy = resolveFallbackPolicy(
-    (await loadFlow(db, run.flow_id))?.fallback_policy,
+    (await loadFlow(db, run.workspace_id, run.flow_id))?.fallback_policy,
   );
   const newReprompts = run.reprompt_count + 1;
   await db
@@ -974,7 +1090,7 @@ async function handleReplyForActiveRun(
       const cfg = currentNode.config as unknown as CollectInputNodeConfig;
       try {
         await engineSendText({
-          userId: run.user_id,
+          workspaceId: run.workspace_id,
           conversationId: run.conversation_id!,
           contactId: run.contact_id!,
           text: interpolateVars(cfg.prompt_text, run.vars),
@@ -993,7 +1109,8 @@ async function handleReplyForActiveRun(
       await db
         .from("conversations")
         .update({ status: "pending", updated_at: new Date().toISOString() })
-        .eq("id", run.conversation_id);
+        .eq("id", run.conversation_id)
+        .eq("workspace_id", run.workspace_id);
     }
     await logEvent(db, run.id, "handoff", run.current_node_key, {
       reason: "fallback_exhausted",
@@ -1019,6 +1136,7 @@ async function startNewRun(
     .from("flow_runs")
     .insert({
       flow_id: flow.id,
+      workspace_id: flow.workspace_id,
       user_id: flow.user_id,
       contact_id: input.contactId,
       conversation_id: input.conversationId,
@@ -1059,7 +1177,13 @@ async function startNewRun(
   }
 
   // Run the advance loop starting from the entry node.
-  const outcome = await advanceFromNodeKey(db, run, flow.entry_node_id!, nodes);
+  const outcome = await advanceFromNodeKey(
+    db,
+    run,
+    flow.entry_node_id!,
+    nodes,
+    input.message,
+  );
   return {
     consumed: true,
     flow_run_id: run.id,

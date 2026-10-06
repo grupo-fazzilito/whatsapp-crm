@@ -13,6 +13,9 @@ import { InteractiveGrid } from "@/components/marketing/interactive-grid";
 import { useTheme } from "@/hooks/use-theme";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { PRESETS } from "@/lib/industries";
+import { COUNTRIES, countryDefaults } from "@/lib/workspace/countries";
+import { useI18n } from "@/i18n/client";
 
 type SignupStep = "details" | "otp" | "success";
 
@@ -48,12 +51,9 @@ const stepsList = [
   { step: "success", label: "Done" },
 ];
 
-const businessTypes = [
-  { value: "Healthcare/medical", label: "Healthcare / Medical" },
-  { value: "education", label: "Education" },
-  { value: "hotel/restaurants", label: "Hotel / Restaurants" },
-  { value: "other", label: "Other" },
-];
+// Industry presets drive the workspace's modules, labels and AI persona.
+const businessTypeOptions = (locale: "es" | "en") =>
+  PRESETS.map((p) => ({ value: p.id, label: p.name[locale] }));
 
 export default function SignupPage() {
   const { mode } = useTheme();
@@ -65,6 +65,21 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [businessType, setBusinessType] = useState("");
+  const { locale } = useI18n();
+  const businessTypes = businessTypeOptions(locale);
+  const [country, setCountry] = useState("MX");
+  // Set when arriving from a team invitation (/signup?invite=...&email=...):
+  // the account joins that workspace instead of creating a new one.
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const qs = new URLSearchParams(window.location.search);
+    const invite = qs.get("invite");
+    if (invite) {
+      setInviteToken(invite);
+      setEmail(qs.get("email") ?? "");
+    }
+  }, []);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [password, setPassword] = useState("");
@@ -119,7 +134,7 @@ export default function SignupPage() {
       return;
     }
 
-    if (!businessType) {
+    if (!inviteToken && !businessType) {
       setError("Please select your business type");
       return;
     }
@@ -240,6 +255,11 @@ export default function SignupPage() {
           fullName,
           businessName,
           businessType,
+          country,
+          currency: countryDefaults(country).currency,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || countryDefaults(country).timezone,
+          locale,
+          invite: inviteToken,
           password,
           code,
         }),
@@ -392,12 +412,15 @@ export default function SignupPage() {
                         placeholder="you@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        readOnly={!!inviteToken}
                         required
                         className="h-9.5 border-[var(--m-input-border)] bg-[var(--m-input-bg)] text-xs text-[var(--m-text-primary)] placeholder:text-[var(--m-text-muted)] focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20 px-3 rounded-lg"
                       />
                     </div>
                   </div>
 
+                  {!inviteToken && (
+                  <>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="businessName" className="text-xs font-bold text-[var(--m-text-secondary)]">
@@ -409,7 +432,7 @@ export default function SignupPage() {
                         placeholder="My Company"
                         value={businessName}
                         onChange={(e) => setBusinessName(e.target.value)}
-                        required
+                        required={!inviteToken}
                         className="h-9.5 border-[var(--m-input-border)] bg-[var(--m-input-bg)] text-xs text-[var(--m-text-primary)] placeholder:text-[var(--m-text-muted)] focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20 px-3 rounded-lg"
                       />
                     </div>
@@ -471,6 +494,27 @@ export default function SignupPage() {
                       </div>
                     </div>
                   </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="country" className="text-xs font-bold text-[var(--m-text-secondary)]">
+                      Country
+                    </Label>
+                    <select
+                      id="country"
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                      className="h-9.5 w-full border border-[var(--m-input-border)] bg-[var(--m-input-bg)] text-xs text-[var(--m-text-primary)] rounded-lg px-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    >
+                      {COUNTRIES.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.name[locale]} ({c.currency})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  </>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">

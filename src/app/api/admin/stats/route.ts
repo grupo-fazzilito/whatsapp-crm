@@ -1,24 +1,19 @@
+import { isPlatformAdmin } from "@/lib/admin/guard";
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 async function isAuthed(): Promise<boolean> {
-  const cookieStore = await cookies();
-  return cookieStore.get("admin_session")?.value === "authenticated";
+  return isPlatformAdmin();
 }
 
 export async function GET() {
   if (!(await isAuthed()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const db = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  );
+  const db = supabaseAdmin();
 
   const { data: authData } = await db.auth.admin.listUsers({ perPage: 500 });
   const users = (authData?.users ?? []) as { id: string; created_at?: string; email_confirmed_at?: string }[];
-  const userIds = users.map(u => u.id);
 
   const now = new Date();
   const monthlySignups: { month: string; count: number }[] = [];
@@ -29,7 +24,7 @@ export async function GET() {
     monthlySignups.push({ month: d.toLocaleString("en-US", { month: "short" }), count });
   }
 
-  if (userIds.length === 0) {
+  if (users.length === 0) {
     return NextResponse.json({
       totalUsers: 0, activeUsers: 0, confirmedUsers: 0,
       totalContacts: 0, totalConversations: 0, openConversations: 0,
@@ -37,28 +32,25 @@ export async function GET() {
     });
   }
 
-  const [waConfigs, contacts, conversations] = await Promise.all([
-    db.from("whatsapp_config").select("user_id, status").in("user_id", userIds),
-    db.from("contacts").select("user_id").in("user_id", userIds),
-    db.from("conversations").select("user_id, status").in("user_id", userIds),
+  // Platform-wide totals across every workspace. Counted server-side so
+  // they aren't capped by the API row limit.
+  const [waConnected, contacts, conversations, openConversations] = await Promise.all([
+    db.from("channels").select("id", { count: "exact", head: true }).eq("status", "connected"),
+    db.from("contacts").select("id", { count: "exact", head: true }),
+    db.from("conversations").select("id", { count: "exact", head: true }),
+    db.from("conversations").select("id", { count: "exact", head: true }).eq("status", "open"),
   ]);
 
-  const waMap = new Map(
-    ((waConfigs.data ?? []) as { user_id: string; status: string }[])
-      .map(w => [w.user_id, w.status])
-  );
-
-  const activeCount    = users.filter(u => waMap.get(u.id) === "connected").length;
   const confirmedCount = users.filter(u => !!u.email_confirmed_at).length;
 
   return NextResponse.json({
     totalUsers:         users.length,
-    activeUsers:        activeCount,
+    // Workspaces with a connected WhatsApp integration (one config per workspace)
+    activeUsers:        waConnected.count ?? 0,
     confirmedUsers:     confirmedCount,
-    totalContacts:      (contacts.data ?? []).length,
-    totalConversations: (conversations.data ?? []).length,
-    openConversations:  ((conversations.data ?? []) as { status: string }[])
-                          .filter(c => c.status === "open").length,
+    totalContacts:      contacts.count ?? 0,
+    totalConversations: conversations.count ?? 0,
+    openConversations:  openConversations.count ?? 0,
     monthlySignups,
   });
 }

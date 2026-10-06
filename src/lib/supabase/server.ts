@@ -1,13 +1,21 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { WORKSPACE_COOKIE, WORKSPACE_HEADER, isUuid } from '@/lib/workspace/constants'
 
-export async function createClient() {
+/**
+ * Cookie-authenticated client. Queries are scoped by RLS to the active
+ * workspace (cookie) unless `workspaceId` overrides it.
+ */
+export async function createClient(workspaceId?: string | null) {
   const cookieStore = await cookies()
+  const cookieWs = cookieStore.get(WORKSPACE_COOKIE)?.value
+  const ws = workspaceId ?? (isUuid(cookieWs) ? cookieWs : null)
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      ...(ws ? { global: { headers: { [WORKSPACE_HEADER]: ws } } } : {}),
       cookies: {
         getAll() {
           return cookieStore.getAll()

@@ -1,0 +1,79 @@
+{
+  "agents": {
+    "navTitle": "Agentes IA",
+    "title": "Agentes de IA",
+    "description": "Crea asistentes con su propia personalidad, tono e instrucciones, y asígnalos a tus canales. Ej. «Sofía» para atención y «Leo» para ventas.",
+    "new": "Nuevo agente",
+    "readOnly": "Solo los administradores pueden crear o modificar agentes.",
+    "empty": {
+      "title": "Aún no tienes agentes de IA",
+      "description": "Un agente responde automáticamente a tus clientes con el tono y las reglas que definas, y pasa la conversación a una persona cuando hace falta."
+    },
+    "usedBy": "Atiende en",
+    "notUsed": "Ningún canal todavía.",
+    "assignInChannels": "Asignar en Canales",
+    "edit": "Editar",
+    "view": "Ver",
+    "close": "Cerrar",
+    "saved": "Agente guardado",
+    "created": "Agente «{name}» creado",
+    "deleted": "Agente eliminado",
+    "deleteTitle": "¿Eliminar a «{name}»?",
+    "deleteDescription": "Esta acción no se puede deshacer.",
+    "deleteDescriptionUsed": "Lo usan {count} canal(es); quedarán sin agente y los atenderán solo humanos. Esta acción no se puede deshacer.",
+    "editTitle": "Editar «{name}»",
+    "newTitle": "Nuevo agente de IA",
+    "editorDescription": "Define quién es, cómo habla y qué puede hacer.",
+    "field": {
+      "name": "Nombre",
+      "namePlaceholder": "Ej. Sofía",
+      "enabled": "Activo",
+      "persona": "Personalidad",
+      "personaPlaceholder": "Ej. Sofía, recepcionista amable de la barbería. Usa emojis con moderación y siempre llama al cliente por su nombre.",
+      "tone": "Tono",
+      "language": "Idioma",
+      "instructions": "Instrucciones",
+      "instructionsPlaceholder": "Qué debe hacer y qué no. Ej.:\n- Ofrece siempre el paquete de corte + barba.\n- Nunca prometas descuentos.\n- Si preguntan por precios mayoristas, pasa con un asesor.",
+      "instructionsHelp": "La información del negocio (servicios, horarios, preguntas frecuentes) se agrega automáticamente; aquí escribe las reglas propias de este agente.",
+      "skills": "Habilidades",
+      "greeting": "Mensaje de bienvenida",
+      "greetingPlaceholder": "Ej. ¡Hola! Soy Sofía 😊 ¿En qué te ayudo?",
+      "businessHoursOnly": "Solo en horario de atención",
+      "businessHoursOnlyHelp": "Fuera de horario envía el mensaje de abajo y deja la conversación para tu equipo.",
+      "afterHours": "Mensaje fuera de horario",
+      "afterHoursPlaceholder": "Ej. Ahora estamos cerrados; te respondemos mañana a partir de las 9:00.",
+      "escalation": "Palabras para pasar con una persona",
+      "escalationPlaceholder": "Escribe y presiona Enter o coma",
+      "escalationHelp": "Si el cliente escribe alguna, el agente deja de responder y avisa a tu equipo."
+    },
+    "tone": {
+      "friendly": "Amigable",
+      "professional": "Profesional",
+      "formal": "Formal",
+      "playful": "Divertido",
+      "empathetic": "Empático",
+      "concise": "Conciso"
+    },
+    "language": {
+      "auto": "Automático (el del cliente)",
+      "es": "Español",
+      "en": "Inglés"
+    },
+    "skill": {
+      "faq": "Preguntas frecuentes",
+      "bookings": "Citas y reservas",
+      "catalog": "Catálogo",
+      "orders": "Pedidos",
+      "handover": "Pasar a una persona",
+      "router": "Recepcionista"
+    },
+    "skillHint": {
+      "faq": "Responde con la información y las preguntas frecuentes del negocio.",
+      "bookings": "Consulta disponibilidad, agenda y reprograma citas.",
+      "catalog": "Busca productos y comparte precios y fotos.",
+      "orders": "Toma pedidos y consulta su estado.",
+      "handover": "Transfiere la conversación a tu equipo cuando hace falta.",
+      "router": "Detecta la intención y transfiere al agente indicado."
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "remove": "Remove",
+    "create": "Create",
+    "copy": "Copy",
+    "copied": "Copied",
+    "email": "Email",
+    "name": "Name",
+    "role": "Role",
+    "status": "Status",
+    "actions": "Actions",
+    "error": "Something went wrong",
+    "language": "Language"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "inbox": "Inbox",
+    "contacts": "Contacts",
+    "pipelines": "Pipelines",
+    "broadcasts": "Broadcasts",
+    "automations": "Automations",
+    "flows": "Flows",
+    "settings": "Settings",
+    "business": "Business",
+    "aiAssistant": "AI Assistant",
+    "setup": "Business setup",
+    "faqs": "FAQs",
+    "aiSettings": "AI settings",
+    "aiLogs": "AI logs",
+    "platformAdmin": "Platform admin",
+    "clientsOverview": "Clients",
+    "portfolio": "Portfolio",
+    "profile": "Profile",
+    "signOut": "Sign out"
+  },
+  "workspace": {
+    "switch": "Switch business",
+    "create": "Create business",
+    "createTitle": "New business",
+    "createDescription": "Each business has its own channels, contacts, team and settings.",
+    "name": "Business name",
+    "industry": "Business type",
+    "country": "Country",
+    "currency": "Currency",
+    "timezone": "Time zone",
+    "noWorkspace": "Your account doesn't belong to any business yet."
+  },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "agent": "Agent"
+  },
+  "team": {
+    "tab": "Team",
+    "title": "Team members",
+    "description": "Invite your team to handle conversations together. Agents answer chats; admins can also configure the business.",
+    "invite": "Invite",
+    "inviteEmail": "Their email",
+    "pending": "Pending invitations",
+    "expires": "Expires {date}",
+    "inviteSent": "Invitation sent to {email}",
+    "inviteLink": "SMTP isn't configured. Share this link:",
+    "you": "you",
+    "disabled": "Disabled",
+    "leave": "Leave business",
+    "confirmRemove": "Remove {name} from this business?"
+  },
+  "invite": {
+    "title": "Invitation to {workspace}",
+    "body": "You were invited as {role} with the email {email}.",
+    "accept": "Accept invitation",
+    "signInToAccept": "Sign in as {email} to accept",
+    "createAccount": "Create account",
+    "invalid": "This invitation doesn't exist or has expired.",
+    "wrongAccount": "You're signed in with another account. This invitation is for {email}."
+  }
+}

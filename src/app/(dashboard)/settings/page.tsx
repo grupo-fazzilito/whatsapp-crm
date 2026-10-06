@@ -1,18 +1,23 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Settings, MessageSquare, Tag, User, Palette } from 'lucide-react';
+import { Radio, MessageSquare, Tag, User, Palette, Users, ArrowRight } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { WhatsAppConfig } from '@/components/settings/whatsapp-config';
+import Link from 'next/link';
+import { buttonVariants } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TemplateManager } from '@/components/settings/template-manager';
 import { TagManager } from '@/components/settings/tag-manager';
 import { ProfileForm } from '@/components/settings/profile-form';
 import { PasswordForm } from '@/components/settings/password-form';
 import { SessionsCard } from '@/components/settings/sessions-card';
 import { AppearancePanel } from '@/components/settings/appearance-panel';
+import { TeamManager } from '@/components/settings/team-manager';
+import { useT } from '@/i18n/client';
 
 const TAB_VALUES = [
   'profile',
+  'team',
   'whatsapp',
   'templates',
   'tags',
@@ -27,6 +32,7 @@ function isTabValue(v: string | null): v is TabValue {
 export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useT();
 
   // The URL is the single source of truth for the active tab — no
   // local state, no sync effect. A previous revision duplicated this
@@ -61,11 +67,18 @@ export default function SettingsPage() {
             Profile
           </TabsTrigger>
           <TabsTrigger
+            value="team"
+            className="data-active:bg-white dark:data-active:bg-slate-800 data-active:text-primary text-slate-600 dark:text-slate-400 data-active:shadow-sm transition-all duration-200"
+          >
+            <Users className="size-4" />
+            {t('team.tab')}
+          </TabsTrigger>
+          <TabsTrigger
             value="whatsapp"
             className="data-active:bg-white dark:data-active:bg-slate-800 data-active:text-primary text-slate-600 dark:text-slate-400 data-active:shadow-sm transition-all duration-200"
           >
-            <Settings className="size-4" />
-            WhatsApp Config
+            <Radio className="size-4" />
+            {t('channels.navTitle')}
           </TabsTrigger>
           <TabsTrigger
             value="templates"
@@ -96,8 +109,24 @@ export default function SettingsPage() {
           <SessionsCard />
         </TabsContent>
 
+        <TabsContent value="team">
+          <TeamManager />
+        </TabsContent>
+
+        {/* Kept as 'whatsapp' so old /settings?tab=whatsapp links still land here. */}
         <TabsContent value="whatsapp">
-          <WhatsAppConfig />
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('channels.settingsCard.title')}</CardTitle>
+              <CardDescription>{t('channels.settingsCard.description')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/channels" className={buttonVariants()}>
+                {t('channels.settingsCard.button')}
+                <ArrowRight className="size-4" />
+              </Link>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="templates">

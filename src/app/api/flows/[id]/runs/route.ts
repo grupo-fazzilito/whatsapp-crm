@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { requireWorkspace } from '@/lib/workspace/context'
 
 /**
  * GET /api/flows/[id]/runs
@@ -9,9 +9,8 @@ import { createClient } from '@/lib/supabase/server'
  * page (`/flows/[id]/runs`) to give the owner end-to-end visibility
  * into what the bot did with each customer.
  *
- * RLS does the ownership check (flow_runs has a `user_id` policy);
- * we also gate on the per-account beta flag so the route 404s for
- * non-beta accounts matching the rest of /api/flows.
+ * RLS does the access check (flow_runs is scoped to the active
+ * workspace); we also filter by workspace_id explicitly.
  *
  * Limited to the 50 most recent runs. Pagination can come later;
  * the dashboard surface here is for debugging, not heavy querying.
@@ -22,13 +21,9 @@ export async function GET(
 ) {
   const { id } = await context.params
 
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const guard = await requireWorkspace()
+  if (!guard.ok) return guard.response
+  const { supabase, workspace } = guard.ctx
 
   // Confirm flow exists + caller owns it (RLS does this) before doing
   // the run query — gives us a clean 404 instead of empty array.
@@ -36,6 +31,7 @@ export async function GET(
     .from('flows')
     .select('id, name')
     .eq('id', id)
+    .eq('workspace_id', workspace.id)
     .maybeSingle()
   if (!flow) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -50,6 +46,7 @@ export async function GET(
       'id, status, current_node_key, started_at, last_advanced_at, ended_at, end_reason, vars, reprompt_count, contact:contacts(id, name, phone)',
     )
     .eq('flow_id', id)
+    .eq('workspace_id', workspace.id)
     .order('started_at', { ascending: false })
     .limit(50)
   if (runsErr) {
@@ -69,6 +66,7 @@ export async function GET(
       .from('flow_run_events')
       .select('flow_run_id, event_type, node_key, payload, created_at')
       .in('flow_run_id', runIds)
+      .eq('workspace_id', workspace.id)
       .order('created_at', { ascending: true })
     if (evsErr) {
       // Non-fatal — the page can still show runs without timelines.

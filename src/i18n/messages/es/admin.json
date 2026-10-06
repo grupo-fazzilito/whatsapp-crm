@@ -1,0 +1,42 @@
+{
+  "admin": {
+    "settings": {
+      "title": "Configuración de la plataforma",
+      "subtitle": "Claves y ajustes globales que usan todos los negocios.",
+      "agencyTitle": "Datos de la agencia",
+      "agencyName": "Nombre de la agencia",
+      "supportEmail": "Correo de soporte",
+      "save": "Guardar",
+      "saved": "Guardado",
+      "adminsTitle": "Administradores de la plataforma",
+      "adminsBody": "Los administradores son cuentas normales marcadas como administradores de plataforma. El primero se activa poniendo su correo en la variable PLATFORM_ADMIN_EMAILS; después puedes marcar otros desde la base de datos.",
+      "notificationsTitle": "Notificaciones",
+      "comingSoon": "Próximamente"
+    },
+    "ai": {
+      "title": "Proveedores de IA",
+      "subtitle": "Las claves se guardan cifradas y nunca se vuelven a mostrar. Lo que configures aquí tiene prioridad sobre las variables de entorno (.env).",
+      "orderTitle": "Orden de uso",
+      "orderHelp": "Se intenta el primero con clave; si falla, el siguiente. Un agente con modelo propio usa primero ese proveedor.",
+      "moveUp": "Subir",
+      "moveDown": "Bajar",
+      "statusPanel": "Configurado en el panel",
+      "statusEnv": "Configurado en .env",
+      "statusNone": "Sin configurar",
+      "newKey": "Nueva clave API",
+      "replaceKey": "Reemplazar clave API",
+      "keyPlaceholder": "Pega la clave aquí",
+      "model": "Modelo por defecto",
+      "modelPlaceholder": "Por defecto: {model}",
+      "baseUrl": "URL base (avanzado)",
+      "test": "Probar conexión",
+      "testing": "Probando...",
+      "testOk": "Conexión correcta ({ms} ms)",
+      "testFail": "Falló: {error}",
+      "remove": "Quitar clave del panel",
+      "removeConfirm": "¿Quitar la clave de {provider} guardada en el panel? Si hay una en .env se usará esa.",
+      "getKey": "Obtener clave",
+      "noneConfigured": "No hay ningún proveedor configurado: los agentes de IA no pueden responder."
+    }
+  }
+}

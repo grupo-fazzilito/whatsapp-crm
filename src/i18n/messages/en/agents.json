@@ -1,0 +1,79 @@
+{
+  "agents": {
+    "navTitle": "AI agents",
+    "title": "AI agents",
+    "description": "Create assistants with their own personality, tone and instructions, and assign them to your channels. e.g. \"Sofia\" for customer care and \"Leo\" for sales.",
+    "new": "New agent",
+    "readOnly": "Only admins can create or change agents.",
+    "empty": {
+      "title": "You don't have any AI agents yet",
+      "description": "An agent answers your customers automatically with the tone and rules you define, and hands the conversation to a person when needed."
+    },
+    "usedBy": "Answers on",
+    "notUsed": "No channel yet.",
+    "assignInChannels": "Assign in Channels",
+    "edit": "Edit",
+    "view": "View",
+    "close": "Close",
+    "saved": "Agent saved",
+    "created": "Agent \"{name}\" created",
+    "deleted": "Agent deleted",
+    "deleteTitle": "Delete \"{name}\"?",
+    "deleteDescription": "This can't be undone.",
+    "deleteDescriptionUsed": "{count} channel(s) use it; they'll be left without an agent and handled by humans only. This can't be undone.",
+    "editTitle": "Edit \"{name}\"",
+    "newTitle": "New AI agent",
+    "editorDescription": "Define who it is, how it talks and what it can do.",
+    "field": {
+      "name": "Name",
+      "namePlaceholder": "e.g. Sofia",
+      "enabled": "Enabled",
+      "persona": "Personality",
+      "personaPlaceholder": "e.g. Sofia, the barbershop's friendly receptionist. Uses emojis sparingly and always calls the customer by name.",
+      "tone": "Tone",
+      "language": "Language",
+      "instructions": "Instructions",
+      "instructionsPlaceholder": "What to do and what not to. e.g.:\n- Always offer the haircut + beard bundle.\n- Never promise discounts.\n- Wholesale price questions go to a sales rep.",
+      "instructionsHelp": "Business info (services, hours, FAQs) is added automatically; write this agent's own rules here.",
+      "skills": "Skills",
+      "greeting": "Welcome message",
+      "greetingPlaceholder": "e.g. Hi! I'm Sofia 😊 How can I help?",
+      "businessHoursOnly": "Business hours only",
+      "businessHoursOnlyHelp": "Outside business hours it sends the message below and leaves the conversation to your team.",
+      "afterHours": "After-hours message",
+      "afterHoursPlaceholder": "e.g. We're closed right now; we'll reply tomorrow from 9:00.",
+      "escalation": "Words that hand over to a person",
+      "escalationPlaceholder": "Type and press Enter or comma",
+      "escalationHelp": "If the customer writes any of them, the agent stops replying and notifies your team."
+    },
+    "tone": {
+      "friendly": "Friendly",
+      "professional": "Professional",
+      "formal": "Formal",
+      "playful": "Playful",
+      "empathetic": "Empathetic",
+      "concise": "Concise"
+    },
+    "language": {
+      "auto": "Automatic (customer's language)",
+      "es": "Spanish",
+      "en": "English"
+    },
+    "skill": {
+      "faq": "FAQs",
+      "bookings": "Appointments & bookings",
+      "catalog": "Catalog",
+      "orders": "Orders",
+      "handover": "Hand over to a person",
+      "router": "Receptionist"
+    },
+    "skillHint": {
+      "faq": "Answers with the business info and FAQs.",
+      "bookings": "Checks availability, books and reschedules.",
+      "catalog": "Finds products and shares prices and photos.",
+      "orders": "Takes orders and checks their status.",
+      "handover": "Transfers the conversation to your team when needed.",
+      "router": "Detects the intent and transfers to the right agent."
+    }
+  }
+}

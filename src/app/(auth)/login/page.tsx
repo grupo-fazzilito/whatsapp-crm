@@ -39,7 +39,9 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    // Honor ?next= for same-site paths only (e.g. back to an invitation).
+    const next = new URLSearchParams(window.location.search).get("next");
+    router.push(next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard");
   };
 
   return (

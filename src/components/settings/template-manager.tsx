@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Plus, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { useAuth } from '@/hooks/use-auth';
+import { useWorkspace } from '@/hooks/use-workspace';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -92,7 +92,7 @@ const COMMON_LANGUAGE_CODES = [
 
 export function TemplateManager() {
   const supabase = createClient();
-  const { user, loading: authLoading } = useAuth();
+  const { workspace, loading: workspaceLoading } = useWorkspace();
 
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
@@ -102,23 +102,22 @@ export function TemplateManager() {
   const [form, setForm] = useState<TemplateFormData>(emptyForm);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
+    if (workspaceLoading) return;
+    if (!workspace) {
       setLoading(false);
       return;
     }
-    fetchTemplates(user.id);
+    fetchTemplates();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user?.id]);
+  }, [workspaceLoading, workspace?.id]);
 
-  async function fetchTemplates(userId: string) {
+  async function fetchTemplates() {
     try {
       setLoading(true);
 
       const { data, error } = await supabase
         .from('message_templates')
         .select('*')
-        .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -143,13 +142,13 @@ export function TemplateManager() {
 
     try {
       setSaving(true);
-      if (!user) {
+      if (!workspace) {
         toast.error('Not authenticated');
         return;
       }
 
       const payload = {
-        user_id: user.id,
+        workspace_id: workspace.id,
         name: form.name.trim(),
         category: form.category,
         language: form.language.trim() || 'en_US',
@@ -168,7 +167,7 @@ export function TemplateManager() {
       toast.success('Template created successfully');
       setDialogOpen(false);
       setForm(emptyForm);
-      if (user) await fetchTemplates(user.id);
+      await fetchTemplates();
     } catch (err) {
       console.error('Save error:', err);
       toast.error('Failed to create template');
@@ -184,7 +183,7 @@ export function TemplateManager() {
    * stuck on error #132001 "Template name does not exist".
    */
   async function handleSyncFromMeta() {
-    if (!user) return;
+    if (!workspace) return;
     setSyncing(true);
     try {
       const res = await fetch('/api/whatsapp/templates/sync', {
@@ -216,7 +215,7 @@ export function TemplateManager() {
           'Hit Meta pagination cap — more templates may exist. Contact support if this persists.',
         );
       }
-      await fetchTemplates(user.id);
+      await fetchTemplates();
     } catch (err) {
       console.error('Template sync error:', err);
       toast.error(

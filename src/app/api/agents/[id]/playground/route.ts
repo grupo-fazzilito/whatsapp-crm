@@ -1,0 +1,112 @@
+import { NextResponse } from 'next/server'
+import { requireWorkspace } from '@/lib/workspace/context'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { isUuid } from '@/lib/workspace/constants'
+import { previewAgentTurn } from '@/lib/ai/engine'
+import { LlmUnavailableError, type ChatTurn } from '@/lib/ai/llm'
+import type { AiAgentRow, BookingDraft } from '@/lib/ai/types'
+
+/**
+ * POST /api/agents/[id]/playground — admin.
+ * Body: { turns: [{ role: 'user'|'assistant', content }], draft?: BookingDraft }
+ * One model turn of the saved agent with the real prompt and business
+ * data, without side effects (nothing is sent, booked or stored).
+ * Returns { reply, intent, handover, transferTo, bookingAction, draft, draftLabels }.
+ * 503 { code: 'llm_unavailable' } when no AI provider is configured.
+ */
+
+const MAX_TURNS = 40
+const MAX_CONTENT = 2000
+
+function bad(error: string, status = 400) {
+  return NextResponse.json({ error }, { status })
+}
+
+function parseTurns(raw: unknown): ChatTurn[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null
+  const turns: ChatTurn[] = []
+  for (const t of raw.slice(-MAX_TURNS)) {
+    if (!t || typeof t !== 'object') return null
+    const { role, content } = t as Record<string, unknown>
+    if ((role !== 'user' && role !== 'assistant') || typeof content !== 'string') return null
+    const text = content.trim().slice(0, MAX_CONTENT)
+    if (!text) continue
+    const last = turns[turns.length - 1]
+    // Providers want alternating roles.
+    if (last && last.role === role) last.content += `\n${text}`
+    else turns.push({ role, content: text })
+  }
+  while (turns.length && turns[0].role !== 'user') turns.shift()
+  if (!turns.length || turns[turns.length - 1].role !== 'user') return null
+  return turns
+}
+
+const DRAFT_STRINGS = ['service_id', 'staff_id', 'product_id', 'date', 'time', 'customer_name'] as const
+
+function parseDraft(raw: unknown): BookingDraft {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const src = raw as Record<string, unknown>
+  const draft: BookingDraft = {}
+  for (const k of DRAFT_STRINGS) {
+    if (typeof src[k] === 'string' && (src[k] as string).trim()) draft[k] = (src[k] as string).trim().slice(0, 200)
+  }
+  if (typeof src.party_size === 'number' && src.party_size > 0) draft.party_size = Math.round(src.party_size)
+  if (src.fields && typeof src.fields === 'object' && !Array.isArray(src.fields)) {
+    const fields: Record<string, string | number | null> = {}
+    for (const [k, v] of Object.entries(src.fields as Record<string, unknown>).slice(0, 20)) {
+      if (typeof v === 'string' || typeof v === 'number') fields[k.slice(0, 60)] = typeof v === 'string' ? v.slice(0, 500) : v
+    }
+    draft.fields = fields
+  }
+  return draft
+}
+
+export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
+  const guard = await requireWorkspace('admin')
+  if (!guard.ok) return guard.response
+  const wsId = guard.ctx.workspace.id
+
+  const { id } = await ctx.params
+  if (!isUuid(id)) return bad('Not found', 404)
+
+  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
+  if (!body) return bad('Invalid JSON body')
+  const turns = parseTurns(body.turns)
+  if (!turns) return bad('turns must be a non-empty list of {role, content} ending with a user message')
+  const draft = parseDraft(body.draft)
+
+  const db = supabaseAdmin()
+  const { data: agent } = await db.from('ai_agents').select('*').eq('id', id).eq('workspace_id', wsId).maybeSingle()
+  if (!agent) return bad('Not found', 404)
+
+  try {
+    const result = await previewAgentTurn({ workspaceId: wsId, agent: agent as AiAgentRow, turns, draft, channelType: 'webchat' })
+
+    // Human-readable names for the ids in the draft.
+    const [service, staff] = await Promise.all([
+      result.draft.service_id
+        ? db.from('services').select('name').eq('id', result.draft.service_id).eq('workspace_id', wsId).maybeSingle()
+        : Promise.resolve({ data: null }),
+      result.draft.staff_id
+        ? db.from('staff').select('name').eq('id', result.draft.staff_id).eq('workspace_id', wsId).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ])
+
+    return NextResponse.json({
+      ...result,
+      draftLabels: {
+        service: (service.data as { name?: string } | null)?.name ?? null,
+        staff: (staff.data as { name?: string } | null)?.name ?? null,
+      },
+    })
+  } catch (err) {
+    if (err instanceof LlmUnavailableError) {
+      return NextResponse.json({ error: err.message, code: 'llm_unavailable' }, { status: 503 })
+    }
+    console.error('[agents/playground] preview failed:', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'The model could not answer', code: 'llm_error' },
+      { status: 502 },
+    )
+  }
+}

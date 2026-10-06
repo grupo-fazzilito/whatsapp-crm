@@ -18,7 +18,9 @@ export interface Profile {
 
 export interface Contact {
   id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Created by (nullable since workspaces). */
+  user_id?: string | null;
   phone: string;
   name?: string;
   email?: string;
@@ -30,7 +32,9 @@ export interface Contact {
 
 export interface Tag {
   id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Created by (nullable since workspaces). */
+  user_id?: string | null;
   name: string;
   color: string;
   created_at: string;
@@ -38,13 +42,16 @@ export interface Tag {
 
 export interface ContactTag {
   id: string;
+  workspace_id?: string;
   contact_id: string;
   tag_id: string;
 }
 
 export interface CustomField {
   id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Created by (nullable since workspaces). */
+  user_id?: string | null;
   field_name: string;
   field_type: string;
   field_options?: Record<string, unknown>;
@@ -53,6 +60,7 @@ export interface CustomField {
 
 export interface ContactCustomValue {
   id: string;
+  workspace_id?: string;
   contact_id: string;
   custom_field_id: string;
   value?: string;
@@ -61,7 +69,9 @@ export interface ContactCustomValue {
 export interface ContactNote {
   id: string;
   contact_id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Created by (nullable since workspaces). */
+  user_id?: string | null;
   note_text: string;
   created_at: string;
 }
@@ -70,7 +80,9 @@ export type ConversationStatus = 'open' | 'pending' | 'closed';
 
 export interface Conversation {
   id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Created by (nullable since workspaces). */
+  user_id?: string | null;
   contact_id: string;
   status: ConversationStatus;
   assigned_agent_id?: string;
@@ -80,6 +92,11 @@ export interface Conversation {
   created_at: string;
   updated_at: string;
   contact?: Contact;
+  /** Channel the conversation happens on (channels.id). */
+  channel_id?: string | null;
+  /** The channel's AI agent stays quiet until this moment (null = active). */
+  ai_paused_until?: string | null;
+  ai_state?: Record<string, unknown> | null;
 }
 
 export type SenderType = 'customer' | 'agent' | 'bot';
@@ -92,11 +109,14 @@ export type ContentType =
   | 'location'
   | 'template'
   /** Customer tapped a reply button or list row on a message we sent. */
-  | 'interactive';
+  | 'interactive'
+  | 'sticker'
+  | 'system';
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 
 export interface Message {
   id: string;
+  workspace_id?: string;
   conversation_id: string;
   sender_type: SenderType;
   sender_id?: string;
@@ -115,12 +135,31 @@ export interface Message {
    * cue (renders with a "↩ button reply" affordance).
    */
   interactive_reply_id?: string;
+  /** AI agent that wrote this message (bot messages). */
+  ai_agent_id?: string | null;
+  /**
+   * Free-form extras: `error` on failed sends, `options` / `sections`
+   * on interactive bot messages.
+   */
+  metadata?: Record<string, unknown> | null;
+}
+
+/** One way to reach a contact on a channel (contact_identities). */
+export interface ContactIdentity {
+  id: string;
+  workspace_id: string;
+  contact_id: string;
+  channel_type: 'whatsapp' | 'messenger' | 'instagram' | 'tiktok' | 'webchat';
+  external_id: string;
+  handle?: string | null;
+  created_at?: string;
 }
 
 export type ReactionActor = 'customer' | 'agent';
 
 export interface MessageReaction {
   id: string;
+  workspace_id?: string;
   message_id: string;
   conversation_id: string;
   actor_type: ReactionActor;
@@ -131,7 +170,9 @@ export interface MessageReaction {
 
 export interface WhatsAppConfig {
   id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Created by (nullable since workspaces). */
+  user_id?: string | null;
   phone_number_id: string;
   waba_id?: string;
   access_token: string;
@@ -142,7 +183,9 @@ export interface WhatsAppConfig {
 
 export interface MessageTemplate {
   id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Created by (nullable since workspaces). */
+  user_id?: string | null;
   name: string;
   category: 'Marketing' | 'Utility' | 'Authentication';
   language?: string;
@@ -157,13 +200,16 @@ export interface MessageTemplate {
 
 export interface Pipeline {
   id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Created by (nullable since workspaces). */
+  user_id?: string | null;
   name: string;
   created_at: string;
 }
 
 export interface PipelineStage {
   id: string;
+  workspace_id?: string;
   pipeline_id: string;
   name: string;
   position: number;
@@ -175,7 +221,9 @@ export type DealStatus = 'open' | 'won' | 'lost';
 
 export interface Deal {
   id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Created by (nullable since workspaces). */
+  user_id?: string | null;
   pipeline_id: string;
   stage_id: string;
   /**
@@ -203,7 +251,9 @@ export type RecipientStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'repli
 
 export interface Broadcast {
   id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Created by (nullable since workspaces). */
+  user_id?: string | null;
   name: string;
   template_name: string;
   template_language: string;
@@ -222,6 +272,7 @@ export interface Broadcast {
 
 export interface BroadcastRecipient {
   id: string;
+  workspace_id?: string;
   broadcast_id: string;
   /**
    * Nullable after migration 004 — becomes NULL when the referenced
@@ -367,7 +418,9 @@ export type AutomationStepConfig =
 
 export interface Automation {
   id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Created by (nullable since workspaces). */
+  user_id?: string | null;
   name: string;
   description?: string;
   trigger_type: AutomationTriggerType;
@@ -381,6 +434,7 @@ export interface Automation {
 
 export interface AutomationStep {
   id: string;
+  workspace_id?: string;
   automation_id: string;
   parent_step_id?: string | null;
   branch?: 'yes' | 'no' | null;
@@ -400,7 +454,9 @@ export interface AutomationLogStepResult {
 export interface AutomationLog {
   id: string;
   automation_id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Created by (nullable since workspaces). */
+  user_id?: string | null;
   contact_id: string | null;
   trigger_event: string;
   steps_executed: AutomationLogStepResult[];

@@ -1,0 +1,152 @@
+{
+  "channels": {
+    "navTitle": "Channels",
+    "title": "Channels",
+    "description": "Connect your WhatsApp numbers, Instagram, Messenger and your website chat. Each channel can have its own AI agent.",
+    "connectButton": "Connect channel",
+    "readOnly": "Only admins can connect or change channels.",
+    "empty": {
+      "title": "No channels connected yet",
+      "description": "Connect a WhatsApp number, an Instagram or Messenger account, or add the chat to your website to start receiving messages."
+    },
+    "noAgentsYet": "You don't have any AI agents yet. Create one to answer your channels automatically.",
+    "createAgent": "Create AI agent",
+    "agentUpdated": "Channel agent updated",
+    "saved": "Changes saved",
+    "deleted": "Channel deleted",
+    "deleteTitle": "Delete \"{name}\"?",
+    "deleteDescription": "You'll stop receiving and sending messages on this channel. Past conversations are kept.",
+    "connected": "\"{name}\" connected",
+    "noAgent": "No agent (humans only)",
+    "agentDisabled": "disabled",
+    "agentDisabledHint": "This agent is disabled: the channel is handled by humans only.",
+    "webhookUrl": "Webhook URL (callback URL)",
+    "type": {
+      "whatsapp": "WhatsApp",
+      "instagram": "Instagram",
+      "messenger": "Messenger",
+      "webchat": "Web chat",
+      "tiktok": "TikTok"
+    },
+    "typeHint": {
+      "whatsapp": "A WhatsApp Business number (Cloud API). You can connect several.",
+      "instagram": "Direct messages of a professional Instagram account.",
+      "messenger": "Messages to your Facebook page.",
+      "webchat": "A floating chat for your website.",
+      "tiktok": "Direct messages of your TikTok business account."
+    },
+    "status": {
+      "connected": "Connected",
+      "disconnected": "Paused",
+      "error": "Error"
+    },
+    "card": {
+      "actions": "Channel actions",
+      "edit": "Edit",
+      "editWidget": "Configure widget",
+      "pause": "Pause",
+      "resume": "Resume",
+      "delete": "Delete"
+    },
+    "connect": {
+      "title": "Connect channel",
+      "description": "Choose where you want to talk to your customers.",
+      "titleFor": "Connect {type}",
+      "back": "Back",
+      "submit": "Connect"
+    },
+    "form": {
+      "name": "Name",
+      "purpose": "Purpose",
+      "purposePlaceholder": "e.g. Customer care, Sales, Support",
+      "optional": "Optional",
+      "accessToken": "Access token",
+      "agent": "AI agent"
+    },
+    "purposes": {
+      "attention": "Customer care",
+      "sales": "Sales",
+      "marketing": "Marketing",
+      "support": "Support"
+    },
+    "whatsapp": {
+      "phoneNumberId": "Phone number ID",
+      "wabaId": "WhatsApp Business Account ID (WABA)",
+      "tokenHelp": "Permanent system-user token with whatsapp_business_messaging and whatsapp_business_management permissions.",
+      "verifyToken": "Webhook verify token",
+      "verifyTokenHelp": "Optional. Leave it empty and we'll generate one and show it to you when done.",
+      "webhookHelp": "In Meta for Developers → WhatsApp → Configuration, paste this callback URL and the verify token, then subscribe to the \"messages\" field."
+    },
+    "meta": {
+      "oauthIntro": "Log in with Facebook and pick the pages and Instagram accounts to connect. Instagram must be a professional account linked to a page.",
+      "continueWithFacebook": "Continue with Facebook",
+      "manualInstead": "I'd rather connect manually with a page token",
+      "useOauth": "Connect with Facebook instead",
+      "instagramId": "Instagram account ID",
+      "pageId": "Facebook page ID",
+      "pageIdForIg": "The Facebook page linked to this Instagram account.",
+      "pageToken": "Page access token",
+      "manualHelp": "Set your Meta app webhook (\"page\" and \"instagram\" objects, \"messages\" field) to this URL. We'll subscribe the page automatically.",
+      "pickTitle": "Choose what to connect",
+      "pickDescription": "Select the pages (Messenger) and Instagram accounts you want to handle here.",
+      "expired": "The Facebook session expired or no pages were found. Try again from \"Connect channel\".",
+      "noInstagram": "No professional Instagram account linked.",
+      "connectSelected": "Connect selected",
+      "createdCount": "{count} channel(s) connected",
+      "alreadyHere": "Already connected",
+      "alreadyElsewhere": "Connected in another business",
+      "error": {
+        "denied": "You cancelled the login or didn't grant the required permissions.",
+        "forbidden": "Only admins can connect channels.",
+        "not_configured": "Facebook login isn't configured on this platform. Use the manual connection.",
+        "state": "The request expired or is invalid. Please try again.",
+        "exchange": "We couldn't get access to your pages. Please try again.",
+        "no_pages": "Your Facebook account doesn't manage any page (or you didn't select one).",
+        "too_many": "You selected too many pages. Try again with fewer."
+      }
+    },
+    "tiktok": {
+      "soon": "Coming soon / requires TikTok approval",
+      "businessId": "Business account ID"
+    },
+    "webchat": {
+      "defaultName": "Website chat",
+      "title": "Chat title",
+      "titlePlaceholder": "e.g. How can we help?",
+      "color": "Color",
+      "greeting": "Welcome message",
+      "greetingPlaceholder": "Hi! 👋 Send us a message and we'll reply in minutes.",
+      "position": "Position",
+      "positionRight": "Bottom right",
+      "positionLeft": "Bottom left",
+      "origins": "Allowed websites",
+      "originsHelp": "One per line. Leave empty to allow any website.",
+      "prechat": "Ask before chatting",
+      "prechatHelp": "The visitor fills these in before their first message.",
+      "field": {
+        "name": "Name",
+        "email": "Email",
+        "phone": "Phone"
+      },
+      "snippet": "Code for your website (paste it before </body>)"
+    },
+    "done": {
+      "title": "\"{name}\" is ready",
+      "webchat": "Paste this code on your website to show the chat.",
+      "whatsapp": "Last step: set up the webhook in your Meta app.",
+      "whatsappFields": "In Meta for Developers → WhatsApp → Configuration, paste the URL and the verify token, then subscribe to the \"messages\" field. Save the token: we won't show it again.",
+      "close": "Done"
+    },
+    "edit": {
+      "title": "Edit \"{name}\"",
+      "credentialsHelp": "Saved credentials are never shown. Type a new token only if you want to replace it.",
+      "newToken": "New access token",
+      "newVerifyToken": "New verify token"
+    },
+    "settingsCard": {
+      "title": "WhatsApp and other channels",
+      "description": "WhatsApp numbers, Instagram, Messenger and the web chat are now managed in Channels. You can connect several numbers and give each one its own AI agent.",
+      "button": "Go to Channels"
+    }
+  }
+}

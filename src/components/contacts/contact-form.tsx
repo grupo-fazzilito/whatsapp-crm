@@ -86,12 +86,6 @@ export function ContactForm({
     setSaving(true);
 
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) throw new Error('Not authenticated');
-
       let contactId = contact?.id;
 
       if (isEdit && contactId) {
@@ -110,7 +104,6 @@ export function ContactForm({
         const { data, error } = await supabase
           .from('contacts')
           .insert({
-            user_id: user.id,
             name: name.trim() || null,
             phone: phone.trim(),
             email: email.trim() || null,

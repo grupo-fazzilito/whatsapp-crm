@@ -48,10 +48,21 @@ interface NodeInput {
   config: Record<string, unknown>;
 }
 
+export interface ValidateOptions {
+  /**
+   * Ids of the workspace's enabled AI agents. When given, a
+   * `handoff_ai_agent` node pointing elsewhere is an error; when omitted
+   * (e.g. before the list loads) only presence is checked.
+   */
+  agentIds?: Iterable<string>;
+}
+
 export function validateFlowForActivation(
   flow: FlowInput,
   nodes: NodeInput[],
+  options: ValidateOptions = {},
 ): ValidationIssue[] {
+  const agentIds = options.agentIds ? new Set(options.agentIds) : null;
   const issues: ValidationIssue[] = [];
 
   // ---- name ----
@@ -112,7 +123,7 @@ export function validateFlowForActivation(
 
   // Per-node rules (Meta limits + dead-end + edge resolution).
   for (const n of nodes) {
-    issues.push(...validateNode(n, keys));
+    issues.push(...validateNode(n, keys, agentIds));
   }
 
   // Reachability — every non-orphan node must be reachable from the
@@ -185,6 +196,7 @@ function validateTrigger(
 function validateNode(
   node: NodeInput,
   knownKeys: Set<string>,
+  agentIds: Set<string> | null = null,
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
@@ -642,6 +654,28 @@ function validateNode(
       break;
     }
 
+    case "handoff_ai_agent": {
+      const cfg = node.config as { agent_id?: string };
+      if (!cfg.agent_id?.trim()) {
+        issues.push({
+          severity: "error",
+          scope: "node",
+          node_key: node.node_key,
+          field: "agent_id",
+          message: "Hand-off-to-AI node needs an AI agent.",
+        });
+      } else if (agentIds && !agentIds.has(cfg.agent_id)) {
+        issues.push({
+          severity: "error",
+          scope: "node",
+          node_key: node.node_key,
+          field: "agent_id",
+          message: "The selected AI agent no longer exists or is disabled.",
+        });
+      }
+      break;
+    }
+
     case "handoff":
     case "end":
       // Terminal nodes have no outgoing edges; nothing to validate
@@ -726,6 +760,7 @@ function outgoingEdges(node: NodeInput): string[] {
       return out;
     }
     case "handoff":
+    case "handoff_ai_agent":
     case "end":
     default:
       return [];

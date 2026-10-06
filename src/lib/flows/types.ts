@@ -144,6 +144,16 @@ export interface SetTagNodeConfig {
   next_node_key: string;
 }
 
+/**
+ * Hands the conversation to an AI agent: sets conversations.ai_agent_id,
+ * completes the run and lets the agent answer the triggering message in
+ * the same turn. Terminal — no outgoing edge.
+ */
+export interface HandoffAiAgentNodeConfig {
+  /** ai_agents.id (same workspace, enabled at run time). */
+  agent_id: string;
+}
+
 // Terminal nodes carry no config — they just stop the run.
 export type EndNodeConfig = Record<string, never>;
 
@@ -164,6 +174,7 @@ export type FlowNodeConfig =
   | { node_type: "condition"; config: ConditionNodeConfig }
   | { node_type: "set_tag"; config: SetTagNodeConfig }
   | { node_type: "handoff"; config: HandoffNodeConfig }
+  | { node_type: "handoff_ai_agent"; config: HandoffAiAgentNodeConfig }
   | { node_type: "end"; config: EndNodeConfig };
 
 export type FlowNodeType = FlowNodeConfig["node_type"];
@@ -195,7 +206,9 @@ export type FlowTriggerConfig =
 
 export interface FlowRow {
   id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Creator (nullable since migration 021) — never use for scoping. */
+  user_id: string | null;
   name: string;
   description: string | null;
   status: "draft" | "active" | "archived";
@@ -211,6 +224,7 @@ export interface FlowRow {
 
 export interface FlowNodeRow {
   id: string;
+  workspace_id: string;
   flow_id: string;
   node_key: string;
   node_type: FlowNodeType;
@@ -223,7 +237,9 @@ export interface FlowNodeRow {
 export interface FlowRunRow {
   id: string;
   flow_id: string;
-  user_id: string;
+  workspace_id: string;
+  /** Creator (nullable since migration 021) — never use for scoping. */
+  user_id: string | null;
   contact_id: string | null;
   conversation_id: string | null;
   status:
@@ -292,7 +308,7 @@ export type ParsedInbound =
     };
 
 export interface DispatchInboundInput {
-  userId: string;
+  workspaceId: string;
   contactId: string;
   conversationId: string;
   message: ParsedInbound;

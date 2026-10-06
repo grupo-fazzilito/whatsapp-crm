@@ -15,7 +15,15 @@
  * the same file as small components rather than separate modules.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -46,6 +54,7 @@ import {
   GitFork,
   Tag,
   Zap,
+  Bot,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -67,6 +76,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/i18n/client";
 import {
   validateFlowForActivation,
   type ValidationIssue,
@@ -93,6 +104,7 @@ type NodeType =
   | "condition"
   | "set_tag"
   | "handoff"
+  | "handoff_ai_agent"
   | "end";
 
 interface BuilderNode {
@@ -156,8 +168,22 @@ const NODE_META: Record<
     icon: UserPlus,
     color: "text-amber-400",
   },
+  handoff_ai_agent: {
+    label: "Hand off to AI agent",
+    icon: Bot,
+    color: "text-violet-400",
+  },
   end: { label: "End", icon: Flag, color: "text-slate-400" },
 };
+
+// AI agents of the workspace, for the handoff_ai_agent node (null while
+// loading). Context keeps the deep card/form tree free of extra props.
+interface FlowAgent {
+  id: string;
+  name: string;
+  enabled: boolean;
+}
+const FlowAgentsContext = createContext<FlowAgent[] | null>(null);
 
 // ============================================================
 // Helpers
@@ -189,7 +215,10 @@ function truncate(s: string, max = 80): string {
   return clean.slice(0, max - 1) + "…";
 }
 
-function summarizeNode(node: BuilderNode): string | null {
+function summarizeNode(
+  node: BuilderNode,
+  agents: FlowAgent[] | null = null,
+): string | null {
   const cfg = node.config;
   switch (node.node_type) {
     case "start":
@@ -280,6 +309,12 @@ function summarizeNode(node: BuilderNode): string | null {
       const note = typeof cfg.note === "string" ? cfg.note : "";
       return note.length > 0 ? truncate(note) : null;
     }
+    case "handoff_ai_agent": {
+      const id = typeof cfg.agent_id === "string" ? cfg.agent_id : "";
+      if (!id) return null;
+      const agent = agents?.find((a) => a.id === id);
+      return `→ ${agent?.name ?? id.slice(0, 8) + "…"}`;
+    }
   }
 }
 
@@ -326,6 +361,8 @@ function defaultConfigFor(type: NodeType): Record<string, unknown> {
       return { mode: "add", tag_id: "", next_node_key: "" };
     case "handoff":
       return { note: "" };
+    case "handoff_ai_agent":
+      return { agent_id: "" };
     case "end":
       return {};
   }
@@ -429,6 +466,22 @@ export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
 
+  // AI agents for handoff_ai_agent nodes (picker + validation).
+  const [agents, setAgents] = useState<FlowAgent[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void createClient()
+      .from("ai_agents")
+      .select("id, name, enabled")
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        if (!cancelled) setAgents((data as FlowAgent[] | null) ?? []);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // handleSaveRef is assigned after handleSave is defined (below).
   const handleSaveRef = useRef<(() => void) | null>(null);
 
@@ -443,8 +496,11 @@ export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
           entry_node_id: state.entry_node_id,
         },
         state.nodes,
+        agents
+          ? { agentIds: agents.filter((a) => a.enabled).map((a) => a.id) }
+          : {},
       ),
-    [state],
+    [state, agents],
   );
   const blockers = issues.filter((i) => i.severity === "error");
   const canActivate = blockers.length === 0;
@@ -801,6 +857,7 @@ export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
 
   // ---- Render ----
   return (
+    <FlowAgentsContext.Provider value={agents}>
     <div className="mx-auto flex h-full max-w-4xl flex-col gap-6 p-6">
       <Header
         state={state}
@@ -912,6 +969,7 @@ export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
         <ValidationPanel issues={issues} onJump={jumpToNode} />
       </div>
     </div>
+    </FlowAgentsContext.Provider>
   );
 }
 
@@ -1250,7 +1308,8 @@ function NodeCard({
 }) {
   const meta = NODE_META[node.node_type];
   const hasError = issues.some((i) => i.severity === "error");
-  const preview = summarizeNode(node);
+  const flowAgents = useContext(FlowAgentsContext);
+  const preview = summarizeNode(node, flowAgents);
   return (
     <div
       ref={cardRef}
@@ -1514,6 +1573,13 @@ function NodeConfigForm({
           value={(cfg as { note?: string }).note ?? ""}
           onChange={(v) => onUpdateConfig({ note: v })}
           rows={2}
+        />
+      )}
+
+      {node.node_type === "handoff_ai_agent" && (
+        <HandoffAiAgentForm
+          agentId={(cfg as { agent_id?: string }).agent_id ?? ""}
+          onChange={(v) => onUpdateConfig({ agent_id: v })}
         />
       )}
 
@@ -2208,6 +2274,64 @@ function SetTagForm({
 
 // ---- Smaller field components ----
 
+function HandoffAiAgentForm({
+  agentId,
+  onChange,
+}: {
+  agentId: string;
+  onChange: (v: string) => void;
+}) {
+  const t = useT();
+  const agents = useContext(FlowAgentsContext);
+  const selected = agents?.find((a) => a.id === agentId);
+  return (
+    <div className="flex flex-col gap-2">
+      <div>
+        <label className="mb-1 block text-xs text-slate-400">
+          {t("routing.flowNode.agent")}
+        </label>
+        {agents === null ? (
+          <p className="flex items-center gap-1.5 text-xs text-slate-500">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            {t("routing.flowNode.loading")}
+          </p>
+        ) : agents.length === 0 ? (
+          <p className="text-xs text-amber-400">
+            {t("routing.flowNode.noAgents")}{" "}
+            <a href="/agents" className="underline underline-offset-2">
+              {t("routing.flowNode.createAgent")}
+            </a>
+          </p>
+        ) : (
+          <Select
+            value={agentId || "__none__"}
+            onValueChange={(v) => onChange(!v || v === "__none__" ? "" : v)}
+          >
+            <SelectTrigger className="bg-slate-800">
+              <SelectValue placeholder={t("routing.flowNode.pickAgent")}>
+                {selected
+                  ? selected.name
+                  : agentId
+                    ? t("routing.flowNode.missingAgent")
+                    : t("routing.flowNode.pickAgent")}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {agents.map((a) => (
+                <SelectItem key={a.id} value={a.id} disabled={!a.enabled}>
+                  {a.name}
+                  {a.enabled ? "" : ` (${t("routing.flowNode.disabled")})`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+      <p className="text-[11px] text-slate-500">{t("routing.flowNode.help")}</p>
+    </div>
+  );
+}
+
 function TextRow({
   label,
   value,
@@ -2334,6 +2458,7 @@ function InsertBetweenButton({
     "condition",
     "set_tag",
     "handoff",
+    "handoff_ai_agent",
     "end",
   ];
   return (
@@ -2388,6 +2513,7 @@ const NODE_DESCRIPTIONS: Record<NodeType, string> = {
   condition: "Branch based on a variable or tag",
   set_tag: "Add or remove a contact tag",
   handoff: "Transfer to a human agent",
+  handoff_ai_agent: "Let an AI agent take over the conversation",
   end: "End the flow",
 };
 
@@ -2396,7 +2522,7 @@ function AddNodeButton({ onAdd }: { onAdd: (type: NodeType) => void }) {
     { label: "Flow control", types: ["start", "condition", "end"] },
     { label: "Messages", types: ["send_message", "send_buttons", "send_list"] },
     { label: "Data", types: ["collect_input", "set_tag"] },
-    { label: "Actions", types: ["handoff"] },
+    { label: "Actions", types: ["handoff", "handoff_ai_agent"] },
   ];
   return (
     <DropdownMenu>

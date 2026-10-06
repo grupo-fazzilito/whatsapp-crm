@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
 import { useTheme } from "@/hooks/use-theme";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { useT } from "@/i18n/client";
+import { WorkspaceSwitcher } from "./workspace-switcher";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -19,15 +22,16 @@ import {
   User,
   X,
   Activity,
-  Stethoscope,
-  HeartPulse,
-  BriefcaseMedical,
+  Store,
+  UserRound,
+  BriefcaseBusiness,
   FileQuestion,
-  Brain,
   History,
   Calendar,
   Shield,
   Briefcase,
+  Radio,
+  Bot,
 } from "lucide-react";
 import {
   Avatar,
@@ -44,6 +48,7 @@ import {
 
 interface NavItem {
   href: string;
+  /** i18n key, or a ready label for industry nouns. */
   label: string;
   icon: typeof LayoutDashboard;
   /**
@@ -54,27 +59,18 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/inbox", label: "Inbox", icon: MessageSquare },
-  { href: "/contacts", label: "Contacts", icon: Users },
-  { href: "/pipelines", label: "Pipelines", icon: GitBranch },
-  { href: "/automations", label: "Automations", icon: Zap },
-  { href: "/flows", label: "Flows", icon: Workflow },
-];
-
-const healthcareNavItems: NavItem[] = [
-  { href: "/healthcare/dashboard", label: "Dashboard", icon: Activity },
-  { href: "/healthcare/appointments", label: "Appointments", icon: Calendar },
-  { href: "/healthcare/setup", label: "Clinic Setup", icon: Stethoscope },
-  { href: "/healthcare/doctors", label: "Doctors", icon: HeartPulse },
-  { href: "/healthcare/services", label: "Services", icon: BriefcaseMedical },
-  { href: "/healthcare/faqs", label: "FAQs", icon: FileQuestion },
-  { href: "/healthcare/settings", label: "AI Settings", icon: Brain },
-  { href: "/healthcare/logs", label: "WhatsApp AI Logs", icon: History },
+  { href: "/dashboard", label: "nav.dashboard", icon: LayoutDashboard },
+  { href: "/inbox", label: "nav.inbox", icon: MessageSquare },
+  { href: "/contacts", label: "nav.contacts", icon: Users },
+  { href: "/pipelines", label: "nav.pipelines", icon: GitBranch },
+  { href: "/automations", label: "nav.automations", icon: Zap },
+  { href: "/flows", label: "nav.flows", icon: Workflow },
+  { href: "/channels", label: "channels.navTitle", icon: Radio },
+  { href: "/agents", label: "agents.navTitle", icon: Bot },
 ];
 
 const bottomNavItems = [
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/settings", label: "nav.settings", icon: Settings },
 ];
 
 interface SidebarProps {
@@ -86,6 +82,20 @@ interface SidebarProps {
 export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { profile, signOut } = useAuth();
+  const { modules, label, can } = useWorkspace();
+  const t = useT();
+
+  // Business section: only the modules this workspace's industry uses,
+  // named with the industry's own nouns (Doctors, Barbers, Teachers...).
+  const businessNavItems: NavItem[] = [
+    { href: "/business/dashboard", label: t("nav.dashboard"), icon: Activity },
+    ...(modules.bookings ? [{ href: "/business/bookings", label: label("bookingPlural"), icon: Calendar }] : []),
+    ...(can("admin") ? [{ href: "/business/setup", label: t("nav.setup"), icon: Store }] : []),
+    ...(modules.staff ? [{ href: "/business/staff", label: label("staffPlural"), icon: UserRound }] : []),
+    ...(modules.services ? [{ href: "/business/services", label: label("servicePlural"), icon: BriefcaseBusiness }] : []),
+    { href: "/business/faqs", label: t("nav.faqs"), icon: FileQuestion },
+    { href: "/business/logs", label: t("nav.aiLogs"), icon: History },
+  ];
   const totalUnread = useTotalUnread();
   const { mode } = useTheme();
   const isLight = mode === "light";
@@ -164,6 +174,9 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
         {/* Main navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <div className="mb-4">
+            <WorkspaceSwitcher />
+          </div>
           <ul className="flex flex-col gap-1">
             {navItems.map((item) => {
               const isActive =
@@ -186,7 +199,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     )}
                   >
                     <item.icon className="h-4 w-4" />
-                    <span className="flex-1">{item.label}</span>
+                    <span className="flex-1">{t(item.label)}</span>
                     {item.beta && (
                       <span
                         aria-label="Beta feature"
@@ -213,11 +226,11 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           <div className="my-4 border-t border-sidebar-border" />
 
           <div className="px-3 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
-            AI Healthcare
+            {t("nav.business")}
           </div>
 
           <ul className="flex flex-col gap-1 mb-4">
-            {healthcareNavItems.map((item) => {
+            {businessNavItems.map((item) => {
               const isActive = pathname.startsWith(item.href);
 
               return (
@@ -239,25 +252,25 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             })}
           </ul>
 
-          {profile?.role === "admin" && (
+          {profile?.is_platform_admin && (
             <>
               <div className="my-4 border-t border-sidebar-border" />
               <div className="px-3 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
-                Admin Panel
+                {t("nav.platformAdmin")}
               </div>
               <ul className="flex flex-col gap-1">
                 <li>
                   <Link
-                    href="/admin"
+                    href="/admin-panel"
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
-                      pathname === "/admin"
+                      pathname === "/admin-panel"
                         ? "bg-primary/10 text-primary"
                         : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     )}
                   >
                     <Shield className="h-4 w-4" />
-                    <span className="flex-1">Clients Overview</span>
+                    <span className="flex-1">{t("nav.clientsOverview")}</span>
                   </Link>
                 </li>
                 <li>
@@ -271,7 +284,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     )}
                   >
                     <Briefcase className="h-4 w-4" />
-                    <span className="flex-1">Portfolio Showcase</span>
+                    <span className="flex-1">{t("nav.portfolio")}</span>
                   </Link>
                 </li>
               </ul>
@@ -295,7 +308,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     )}
                   >
                     <item.icon className="h-4 w-4" />
-                    {item.label}
+                    {t(item.label)}
                   </Link>
                 </li>
               );
@@ -345,19 +358,19 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 }
               >
                 <User className="size-4" />
-                Profile
+                {t("nav.profile")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 render={
                   <Link
-                    href="/settings?tab=whatsapp"
+                    href="/settings?tab=team"
                     onClick={onClose}
                     className="text-foreground focus:bg-accent focus:text-foreground"
                   />
                 }
               >
                 <Settings className="size-4" />
-                Settings
+                {t("nav.settings")}
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border" />
               <DropdownMenuItem
@@ -365,7 +378,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 className="text-foreground focus:bg-accent focus:text-foreground"
               >
                 <LogOut className="size-4" />
-                Sign out
+                {t("nav.signOut")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

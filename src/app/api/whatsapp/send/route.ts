@@ -1,35 +1,34 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { sendTextMessage, sendTemplateMessage } from '@/lib/whatsapp/meta-api'
-import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
-import { supabaseAdmin } from '@/lib/flows/admin-client'
-import {
-  sanitizePhoneForMeta,
-  isValidE164,
-  phoneVariants,
-  isRecipientNotAllowedError,
-} from '@/lib/whatsapp/phone-utils'
+import { requireWorkspace } from '@/lib/workspace/context'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { sendMessage } from '@/lib/messaging/send'
+import type { OutboundContent } from '@/lib/channels'
 import {
   checkRateLimit,
   rateLimitResponse,
   RATE_LIMITS,
 } from '@/lib/rate-limit'
 
+const MEDIA_TYPES = ['image', 'video', 'audio', 'document'] as const
+type MediaType = (typeof MEDIA_TYPES)[number]
+
+/** How long the AI agent stays quiet after a human replies. */
+const HUMAN_TAKEOVER_MS = 12 * 60 * 60 * 1000
+
+/**
+ * Agent reply from the inbox. Goes out through the conversation's channel
+ * (WhatsApp, Messenger, Instagram, web chat...) via sendMessage().
+ *
+ * Body: { conversation_id, message_type: 'text'|'template'|'image'|'video'|
+ * 'audio'|'document', content_text?, media_url?, template_name?,
+ * template_params?, template_language?, reply_to_message_id? }
+ * → { success, message_id, whatsapp_message_id }
+ */
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    const guard = await requireWorkspace()
+    if (!guard.ok) return guard.response
+    const { supabase, user, workspace } = guard.ctx
 
     // Per-user rate limit. Bucket key is scoped to this route so
     // `/broadcast` has an independent budget.
@@ -46,6 +45,7 @@ export async function POST(request: Request) {
       media_url,
       template_name,
       template_params,
+      template_language,
       reply_to_message_id,
     } = body
 
@@ -56,26 +56,62 @@ export async function POST(request: Request) {
       )
     }
 
-    if (message_type === 'text' && !content_text) {
-      return NextResponse.json(
-        { error: 'content_text is required for text messages' },
-        { status: 400 }
-      )
+    let content: OutboundContent
+    if (message_type === 'text') {
+      if (!content_text) {
+        return NextResponse.json(
+          { error: 'content_text is required for text messages' },
+          { status: 400 }
+        )
+      }
+      content = { type: 'text', text: content_text }
+    } else if (message_type === 'template') {
+      if (!template_name) {
+        return NextResponse.json(
+          { error: 'template_name is required for template messages' },
+          { status: 400 }
+        )
+      }
+      let language: string | undefined = template_language || undefined
+      if (!language) {
+        const { data: tpl } = await supabase
+          .from('message_templates')
+          .select('language')
+          .eq('workspace_id', workspace.id)
+          .eq('name', template_name)
+          .limit(1)
+          .maybeSingle()
+        language = tpl?.language || undefined
+      }
+      content = {
+        type: 'template',
+        templateName: template_name,
+        language,
+        params: Array.isArray(template_params) ? template_params.map(String) : [],
+      }
+    } else if ((MEDIA_TYPES as readonly string[]).includes(message_type)) {
+      if (!media_url) {
+        return NextResponse.json(
+          { error: 'media_url is required for media messages' },
+          { status: 400 }
+        )
+      }
+      content = {
+        type: 'media',
+        mediaType: message_type as MediaType,
+        url: media_url,
+        caption: content_text || undefined,
+      }
+    } else {
+      return NextResponse.json({ error: `Unsupported message_type: ${message_type}` }, { status: 400 })
     }
 
-    if (message_type === 'template' && !template_name) {
-      return NextResponse.json(
-        { error: 'template_name is required for template messages' },
-        { status: 400 }
-      )
-    }
-
-    // Fetch conversation and contact
+    // Conversation must be visible to the caller (RLS + explicit scope).
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
-      .select('*, contact:contacts(*)')
+      .select('id, contact_id')
       .eq('id', conversation_id)
-      .eq('user_id', user.id)
+      .eq('workspace_id', workspace.id)
       .single()
 
     if (convError || !conversation) {
@@ -85,68 +121,12 @@ export async function POST(request: Request) {
       )
     }
 
-    const contact = conversation.contact
-    if (!contact?.phone) {
-      return NextResponse.json(
-        { error: 'Contact phone number not found' },
-        { status: 400 }
-      )
-    }
-
-    // Sanitize and validate phone
-    const sanitizedPhone = sanitizePhoneForMeta(contact.phone)
-    if (!isValidE164(sanitizedPhone)) {
-      return NextResponse.json(
-        { error: 'Invalid phone number format' },
-        { status: 400 }
-      )
-    }
-
-    // Fetch and decrypt WhatsApp config
-    const { data: config, error: configError } = await supabase
-      .from('whatsapp_config')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-
-    if (configError || !config) {
-      return NextResponse.json(
-        { error: 'WhatsApp not configured. Please set up your WhatsApp integration first.' },
-        { status: 400 }
-      )
-    }
-
-    const accessToken = decrypt(config.access_token)
-
-    // Self-heal legacy CBC-encrypted tokens. Fire-and-forget: we
-    // return from the send without waiting, so a failed upgrade just
-    // means the next send tries again. The upgrade is idempotent —
-    // concurrent sends both produce valid GCM ciphertexts of the same
-    // plaintext, last write wins.
-    if (isLegacyFormat(config.access_token)) {
-      void supabase
-        .from('whatsapp_config')
-        .update({ access_token: encrypt(accessToken) })
-        .eq('id', config.id)
-        .then(({ error }) => {
-          if (error) {
-            console.warn(
-              '[whatsapp/send] access_token GCM upgrade failed:',
-              error.message,
-            )
-          }
-        })
-    }
-
-    // Resolve the reply target (if any) to its Meta message_id, which is
-    // what `context.message_id` on the outgoing Meta payload needs. The
-    // parent must belong to this same conversation — otherwise a caller
-    // could quote messages they can't see by guessing UUIDs.
-    let contextMessageId: string | undefined
+    // The reply target must belong to this same conversation — otherwise a
+    // caller could quote messages they can't see by guessing UUIDs.
     if (reply_to_message_id) {
       const { data: parent, error: parentError } = await supabase
         .from('messages')
-        .select('message_id, conversation_id')
+        .select('id')
         .eq('id', reply_to_message_id)
         .eq('conversation_id', conversation_id)
         .maybeSingle()
@@ -157,162 +137,60 @@ export async function POST(request: Request) {
           { status: 400 }
         )
       }
-      if (!parent.message_id) {
-        // Parent never reached Meta (still in 'sending' or 'failed') — we
-        // can't quote it on WhatsApp. Send without context rather than
-        // dropping the message entirely.
-        console.warn(
-          '[whatsapp/send] reply target has no Meta message_id; sending without context'
-        )
-      } else {
-        contextMessageId = parent.message_id
-      }
     }
 
-    // Send via Meta API — retry with phone-number variants if Meta rejects
-    // with "recipient not in allowed list" (common in sandbox / when a
-    // number was registered with/without a trunk 0). If an alternate
-    // format succeeds, we persist it back to the contact row so the
-    // next send goes through on the first attempt.
-    let waMessageId = ''
-    let workingPhone = sanitizedPhone
+    const result = await sendMessage({
+      workspaceId: workspace.id,
+      conversationId: conversation_id,
+      content,
+      sender: { type: 'agent', userId: user.id },
+      replyToMessageId: reply_to_message_id || null,
+    })
 
-    const attempt = async (phone: string): Promise<string> => {
-      if (message_type === 'template') {
-        const result = await sendTemplateMessage({
-          phoneNumberId: config.phone_number_id,
-          accessToken,
-          to: phone,
-          templateName: template_name,
-          params: template_params || [],
-          contextMessageId,
-        })
-        return result.messageId
-      }
-      const result = await sendTextMessage({
-        phoneNumberId: config.phone_number_id,
-        accessToken,
-        to: phone,
-        text: content_text,
-        contextMessageId,
-      })
-      return result.messageId
+    const db = supabaseAdmin()
+
+    // Templates: keep the rendered body the inbox showed optimistically
+    // instead of the generic "[Template: name]" preview.
+    if (message_type === 'template' && content_text) {
+      await db
+        .from('messages')
+        .update({ content_text })
+        .eq('id', result.messageId)
+        .eq('workspace_id', workspace.id)
     }
 
-    try {
-      const variants = phoneVariants(sanitizedPhone)
-      let lastError: unknown = null
-
-      for (const variant of variants) {
-        try {
-          waMessageId = await attempt(variant)
-          workingPhone = variant
-          lastError = null
-          break
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err)
-          // Only retry when the failure is specifically that the
-          // recipient isn't in Meta's allowed list. Any other error
-          // (bad token, invalid template, etc.) bubbles up immediately.
-          if (!isRecipientNotAllowedError(message)) {
-            // In development, gracefully fall back to sandbox simulation if it's an Auth Error or Meta API error
-            if (process.env.NODE_ENV === 'development' && (message.includes('Authentication Error') || message.includes('API error'))) {
-              console.warn('[whatsapp/send] Meta API error detected in development. Falling back to sandbox simulation.')
-              waMessageId = `sandbox-msg-fallback-${Date.now()}`
-              workingPhone = variant
-              lastError = null
-              break
-            }
-            throw err
-          }
-          lastError = err
-          console.warn(`[whatsapp/send] variant "${variant}" rejected by Meta, trying next…`)
-        }
-      }
-
-      if (lastError) throw lastError
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown Meta API error'
-      console.error('Meta API send failed for all variants:', message)
-      return NextResponse.json(
-        { error: `Meta API error: ${message}` },
-        { status: 502 }
-      )
+    if (result.status === 'failed') {
+      const error = result.error || 'Send failed'
+      const status = /not connected|not configured|no .* identity|no phone|unsupported/i.test(error) ? 400 : 502
+      return NextResponse.json({ error, message_id: result.messageId }, { status })
     }
 
-    // If a non-original variant succeeded, update the contact so future
-    // sends go straight through. sanitizePhoneForMeta on workingPhone
-    // will yield workingPhone itself, so re-storing preserves it.
-    if (workingPhone !== sanitizedPhone) {
-      console.log(
-        `[whatsapp/send] Auto-corrected contact phone: ${sanitizedPhone} → ${workingPhone}`
-      )
-      await supabase
-        .from('contacts')
-        .update({ phone: workingPhone })
-        .eq('id', contact.id)
-    }
-
-    // Insert message into DB — field names MUST match the messages schema
-    // (see supabase/migrations/001_initial_schema.sql):
-    //   conversation_id, sender_type, content_type, content_text,
-    //   media_url, template_name, message_id, status, created_at
-    const { data: messageRecord, error: msgError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id,
-        sender_type: 'agent',
-        content_type: message_type,
-        content_text: content_text || null,
-        media_url: media_url || null,
-        template_name: template_name || null,
-        message_id: waMessageId,
-        status: 'sent',
-        reply_to_message_id: reply_to_message_id || null,
-      })
-      .select()
-      .single()
-
-    if (msgError) {
-      console.error('Error inserting sent message:', msgError)
-      return NextResponse.json(
-        { error: `Message sent to Meta but failed to save to DB: ${msgError.message}` },
-        { status: 500 }
-      )
-    }
-
-    // Update conversation
-    await supabase
+    // A human replied: keep the AI agent quiet so it doesn't talk over them.
+    const { error: pauseAiErr } = await db
       .from('conversations')
-      .update({
-        last_message_text: content_text || `[${message_type}]`,
-        last_message_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .update({ ai_paused_until: new Date(Date.now() + HUMAN_TAKEOVER_MS).toISOString() })
       .eq('id', conversation_id)
+      .eq('workspace_id', workspace.id)
+    if (pauseAiErr) console.error('[whatsapp/send] ai_paused_until update failed:', pauseAiErr.message)
 
     // Pause any active Flow run for this contact — the agent stepping
-    // in is the strongest "yield, human is here" signal. See PR #2
-    // plan for why we pause (not end): preserves diagnostic state +
-    // lets the agent or the 24h timeout sweep cleanly resolve the
-    // run later. For accounts with no active runs the UPDATE matches
-    // zero rows — cheap and harmless.
+    // in is the strongest "yield, human is here" signal. We pause (not
+    // end) to preserve diagnostic state; the 24h timeout sweep resolves
+    // the run later. With no active runs the UPDATE matches zero rows.
     try {
-      const { error: pauseErr } = await supabaseAdmin()
+      const { error: pauseErr } = await db
         .from('flow_runs')
         .update({
           status: 'paused_by_agent',
           ended_at: new Date().toISOString(),
           end_reason: 'agent_replied',
         })
-        .eq('user_id', user.id)
-        .eq('contact_id', contact.id)
+        .eq('workspace_id', workspace.id)
+        .eq('contact_id', conversation.contact_id)
         .eq('status', 'active')
       if (pauseErr) {
-        // Best-effort — log + continue. The agent's message already
-        // landed at Meta; don't fail the response over a bookkeeping
-        // miss. Worst case: a stale active run gets caught by the
-        // stale-run cron sweep within 24h.
+        // Best-effort — the message already went out; a stale active run
+        // gets caught by the stale-run cron sweep within 24h.
         console.error('[flows] pause-on-agent-send failed:', pauseErr.message)
       }
     } catch (err) {
@@ -324,8 +202,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message_id: messageRecord.id,
-      whatsapp_message_id: waMessageId,
+      message_id: result.messageId,
+      whatsapp_message_id: result.externalId,
     })
   } catch (error) {
     console.error('Error in WhatsApp send POST:', error)

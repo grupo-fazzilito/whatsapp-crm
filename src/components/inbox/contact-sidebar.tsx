@@ -3,7 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import type { Contact, Deal, ContactNote, Tag } from "@/types";
+import type { Contact, Deal, ContactNote, Tag, ContactIdentity } from "@/types";
+import { useI18n } from "@/i18n/client";
+import { es as esLocale, enUS } from "date-fns/locale";
+import { CHANNEL_TYPE_LABELS } from "@/lib/channels/capabilities";
+import { ChannelIcon } from "./channel-badge";
 import {
   Phone,
   Mail,
@@ -14,6 +18,7 @@ import {
   DollarSign,
   StickyNote,
   Plus,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,7 +29,9 @@ interface ContactSidebarProps {
 }
 
 export function ContactSidebar({ contact }: ContactSidebarProps) {
+  const { t, locale } = useI18n();
   const [copied, setCopied] = useState(false);
+  const [identities, setIdentities] = useState<ContactIdentity[]>([]);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [tags, setTags] = useState<(Tag & { contact_tag_id: string })[]>([]);
@@ -36,8 +43,8 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
 
     const supabase = createClient();
 
-    // Fetch deals, notes, and tags in parallel
-    const [dealsRes, notesRes, tagsRes] = await Promise.all([
+    // Fetch deals, notes, tags and channel identities in parallel
+    const [dealsRes, notesRes, tagsRes, identitiesRes] = await Promise.all([
       supabase
         .from("deals")
         .select("*, stage:pipeline_stages(*)")
@@ -52,7 +59,14 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
         .from("contact_tags")
         .select("id, tag_id, tags(*)")
         .eq("contact_id", contact.id),
+      supabase
+        .from("contact_identities")
+        .select("*")
+        .eq("contact_id", contact.id)
+        .order("created_at", { ascending: true }),
     ]);
+
+    setIdentities((identitiesRes.data as ContactIdentity[]) ?? []);
 
     if (dealsRes.data) setDeals(dealsRes.data);
     if (notesRes.data) setNotes(notesRes.data);
@@ -89,16 +103,11 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
     setAddingNote(true);
 
     const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user;
 
     const { data, error } = await supabase
       .from("contact_notes")
       .insert({
         contact_id: contact.id,
-        user_id: user?.id,
         note_text: newNote.trim(),
       })
       .select()
@@ -114,12 +123,12 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
   if (!contact) {
     return (
       <div className="flex h-full w-70 items-center justify-center border-l border-slate-800 bg-slate-900">
-        <p className="text-sm text-slate-500">Select a conversation</p>
+        <p className="text-sm text-slate-500">{t("inbox.sidebar.selectConversation")}</p>
       </div>
     );
   }
 
-  const displayName = contact.name || contact.phone;
+  const displayName = contact.name || contact.phone || t("inbox.thread.customer");
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
@@ -149,6 +158,7 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
 
           {/* Phone */}
           <div className="mt-4 space-y-2">
+            {contact.phone && (
             <button
               onClick={handleCopyPhone}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-800"
@@ -161,6 +171,7 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
                 <Copy className="h-3 w-3 text-slate-600" />
               )}
             </button>
+            )}
 
             {contact.email && (
               <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300">
@@ -170,6 +181,35 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
             )}
           </div>
 
+          {/* Channel identities — the same person across channels */}
+          {identities.length > 0 && (
+            <>
+              <div className="my-4 border-t border-slate-800" />
+              <div>
+                <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-slate-500">
+                  <Link2 className="h-3 w-3" />
+                  {t("inbox.sidebar.channels")}
+                </div>
+                <ul className="mt-2 space-y-1">
+                  {identities.map((idn) => (
+                    <li
+                      key={idn.id}
+                      className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-slate-300"
+                    >
+                      <ChannelIcon type={idn.channel_type} size={18} />
+                      <span className="min-w-0 flex-1 truncate" title={idn.external_id}>
+                        {idn.handle || idn.external_id}
+                      </span>
+                      <span className="shrink-0 text-[10px] text-slate-500">
+                        {CHANNEL_TYPE_LABELS[idn.channel_type]}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+
           {/* Divider */}
           <div className="my-4 border-t border-slate-800" />
 
@@ -177,11 +217,11 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
           <div>
             <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-slate-500">
               <TagIcon className="h-3 w-3" />
-              Tags
+              {t("inbox.sidebar.tags")}
             </div>
             <div className="mt-2 flex flex-wrap gap-1">
               {tags.length === 0 ? (
-                <p className="px-1 text-xs text-slate-600">No tags</p>
+                <p className="px-1 text-xs text-slate-600">{t("inbox.sidebar.noTags")}</p>
               ) : (
                 tags.map((tag) => (
                   <span
@@ -206,11 +246,11 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
           <div>
             <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-slate-500">
               <DollarSign className="h-3 w-3" />
-              Active Deals
+              {t("inbox.sidebar.deals")}
             </div>
             <div className="mt-2 space-y-2">
               {deals.length === 0 ? (
-                <p className="px-1 text-xs text-slate-600">No deals</p>
+                <p className="px-1 text-xs text-slate-600">{t("inbox.sidebar.noDeals")}</p>
               ) : (
                 deals.map((deal) => (
                   <div
@@ -250,14 +290,15 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
           <div>
             <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-slate-500">
               <StickyNote className="h-3 w-3" />
-              Notes
+              {t("inbox.sidebar.notes")}
             </div>
             <div className="mt-2">
               <div className="flex gap-2">
                 <textarea
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Add a note..."
+                  placeholder={t("inbox.sidebar.addNote")}
+                  aria-label={t("inbox.sidebar.addNote")}
                   rows={2}
                   className="flex-1 resize-none rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-primary/50"
                 />
@@ -266,6 +307,7 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
                   className="h-auto bg-primary px-2 hover:bg-primary/90"
                   onClick={handleAddNote}
                   disabled={!newNote.trim() || addingNote}
+                  aria-label={t("inbox.sidebar.saveNote")}
                 >
                   <Plus className="h-3 w-3" />
                 </Button>
@@ -281,7 +323,9 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
                       {note.note_text}
                     </p>
                     <p className="mt-1 text-[10px] text-slate-600">
-                      {format(new Date(note.created_at), "MMM d, yyyy HH:mm")}
+                      {format(new Date(note.created_at), "d MMM yyyy HH:mm", {
+                        locale: locale === "es" ? esLocale : enUS,
+                      })}
                     </p>
                   </div>
                 ))}

@@ -1,0 +1,152 @@
+{
+  "channels": {
+    "navTitle": "Canales",
+    "title": "Canales",
+    "description": "Conecta tus números de WhatsApp, Instagram, Messenger y el chat de tu sitio web. Cada canal puede tener su propio agente de IA.",
+    "connectButton": "Conectar canal",
+    "readOnly": "Solo los administradores pueden conectar o modificar canales.",
+    "empty": {
+      "title": "Aún no hay canales conectados",
+      "description": "Conecta un número de WhatsApp, una cuenta de Instagram o Messenger, o agrega el chat a tu sitio web para empezar a recibir mensajes."
+    },
+    "noAgentsYet": "Todavía no tienes agentes de IA. Crea uno para que atienda tus canales automáticamente.",
+    "createAgent": "Crear agente de IA",
+    "agentUpdated": "Agente del canal actualizado",
+    "saved": "Cambios guardados",
+    "deleted": "Canal eliminado",
+    "deleteTitle": "¿Eliminar «{name}»?",
+    "deleteDescription": "Dejarás de recibir y enviar mensajes por este canal. Las conversaciones anteriores se conservan.",
+    "connected": "«{name}» conectado",
+    "noAgent": "Sin agente (solo humanos)",
+    "agentDisabled": "desactivado",
+    "agentDisabledHint": "Este agente está desactivado: el canal lo atienden solo humanos.",
+    "webhookUrl": "URL del webhook (callback URL)",
+    "type": {
+      "whatsapp": "WhatsApp",
+      "instagram": "Instagram",
+      "messenger": "Messenger",
+      "webchat": "Chat web",
+      "tiktok": "TikTok"
+    },
+    "typeHint": {
+      "whatsapp": "Un número de WhatsApp Business (Cloud API). Puedes conectar varios.",
+      "instagram": "Mensajes directos de una cuenta profesional de Instagram.",
+      "messenger": "Mensajes de tu página de Facebook.",
+      "webchat": "Un chat flotante para tu sitio web.",
+      "tiktok": "Mensajes directos de tu cuenta de empresa de TikTok."
+    },
+    "status": {
+      "connected": "Conectado",
+      "disconnected": "En pausa",
+      "error": "Error"
+    },
+    "card": {
+      "actions": "Acciones del canal",
+      "edit": "Editar",
+      "editWidget": "Configurar widget",
+      "pause": "Pausar",
+      "resume": "Reactivar",
+      "delete": "Eliminar"
+    },
+    "connect": {
+      "title": "Conectar canal",
+      "description": "Elige dónde quieres atender a tus clientes.",
+      "titleFor": "Conectar {type}",
+      "back": "Volver",
+      "submit": "Conectar"
+    },
+    "form": {
+      "name": "Nombre",
+      "purpose": "Propósito",
+      "purposePlaceholder": "Ej. Atención, Ventas, Soporte",
+      "optional": "Opcional",
+      "accessToken": "Token de acceso",
+      "agent": "Agente de IA"
+    },
+    "purposes": {
+      "attention": "Atención",
+      "sales": "Ventas",
+      "marketing": "Marketing",
+      "support": "Soporte"
+    },
+    "whatsapp": {
+      "phoneNumberId": "ID del número de teléfono",
+      "wabaId": "ID de la cuenta de WhatsApp Business (WABA)",
+      "tokenHelp": "Token permanente de un usuario del sistema con los permisos whatsapp_business_messaging y whatsapp_business_management.",
+      "verifyToken": "Token de verificación del webhook",
+      "verifyTokenHelp": "Opcional. Si lo dejas vacío generaremos uno y te lo mostraremos al terminar.",
+      "webhookHelp": "En Meta for Developers → WhatsApp → Configuración, pega esta URL de callback y el token de verificación, y suscríbete al campo «messages»."
+    },
+    "meta": {
+      "oauthIntro": "Inicia sesión con Facebook y elige las páginas y cuentas de Instagram que quieres conectar. Instagram debe ser una cuenta profesional vinculada a una página.",
+      "continueWithFacebook": "Continuar con Facebook",
+      "manualInstead": "Prefiero conectar manualmente con un token de página",
+      "useOauth": "Conectar con Facebook en su lugar",
+      "instagramId": "ID de la cuenta de Instagram",
+      "pageId": "ID de la página de Facebook",
+      "pageIdForIg": "La página de Facebook vinculada a esta cuenta de Instagram.",
+      "pageToken": "Token de acceso de la página",
+      "manualHelp": "Configura el webhook de tu app de Meta (objetos «page» e «instagram», campo «messages») con esta URL. Suscribiremos la página automáticamente.",
+      "pickTitle": "Elige qué conectar",
+      "pickDescription": "Selecciona las páginas (Messenger) y cuentas de Instagram que quieres atender desde aquí.",
+      "expired": "La sesión de Facebook expiró o no se encontraron páginas. Vuelve a intentarlo desde «Conectar canal».",
+      "noInstagram": "Sin cuenta de Instagram profesional vinculada.",
+      "connectSelected": "Conectar seleccionados",
+      "createdCount": "{count} canal(es) conectado(s)",
+      "alreadyHere": "Ya conectado",
+      "alreadyElsewhere": "Conectado en otro negocio",
+      "error": {
+        "denied": "Cancelaste el inicio de sesión o no concediste los permisos necesarios.",
+        "forbidden": "Solo los administradores pueden conectar canales.",
+        "not_configured": "La conexión con Facebook no está configurada en esta plataforma. Usa la conexión manual.",
+        "state": "La solicitud expiró o no es válida. Vuelve a intentarlo.",
+        "exchange": "No pudimos obtener acceso a tus páginas. Vuelve a intentarlo.",
+        "no_pages": "Tu cuenta de Facebook no administra ninguna página (o no la seleccionaste).",
+        "too_many": "Seleccionaste demasiadas páginas. Vuelve a intentarlo eligiendo menos."
+      }
+    },
+    "tiktok": {
+      "soon": "Próximamente / requiere aprobación de TikTok",
+      "businessId": "ID de la cuenta de empresa"
+    },
+    "webchat": {
+      "defaultName": "Chat del sitio web",
+      "title": "Título del chat",
+      "titlePlaceholder": "Ej. ¿En qué te ayudamos?",
+      "color": "Color",
+      "greeting": "Mensaje de bienvenida",
+      "greetingPlaceholder": "¡Hola! 👋 Escríbenos y te respondemos en minutos.",
+      "position": "Posición",
+      "positionRight": "Abajo a la derecha",
+      "positionLeft": "Abajo a la izquierda",
+      "origins": "Sitios permitidos",
+      "originsHelp": "Uno por línea. Déjalo vacío para permitir cualquier sitio.",
+      "prechat": "Datos a pedir antes de chatear",
+      "prechatHelp": "El visitante los llena antes de su primer mensaje.",
+      "field": {
+        "name": "Nombre",
+        "email": "Correo",
+        "phone": "Teléfono"
+      },
+      "snippet": "Código para tu sitio web (pégalo antes de </body>)"
+    },
+    "done": {
+      "title": "«{name}» está listo",
+      "webchat": "Pega este código en tu sitio web para mostrar el chat.",
+      "whatsapp": "Último paso: configura el webhook en tu app de Meta.",
+      "whatsappFields": "En Meta for Developers → WhatsApp → Configuración, pega la URL y el token de verificación, y suscríbete al campo «messages». Guarda el token: no volveremos a mostrarlo.",
+      "close": "Listo"
+    },
+    "edit": {
+      "title": "Editar «{name}»",
+      "credentialsHelp": "Las credenciales guardadas no se muestran. Escribe un token nuevo solo si quieres reemplazarlo.",
+      "newToken": "Nuevo token de acceso",
+      "newVerifyToken": "Nuevo token de verificación"
+    },
+    "settingsCard": {
+      "title": "WhatsApp y demás canales",
+      "description": "Los números de WhatsApp, Instagram, Messenger y el chat web ahora se administran en Canales. Puedes conectar varios números y asignar a cada uno su propio agente de IA.",
+      "button": "Ir a Canales"
+    }
+  }
+}

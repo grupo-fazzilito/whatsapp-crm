@@ -1,49 +1,35 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { requireWorkspace } from '@/lib/workspace/context'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { verifyPhoneNumber } from '@/lib/whatsapp/meta-api'
-import { encrypt, decrypt } from '@/lib/whatsapp/encryption'
+import { defaultChannel, saveChannelSecrets } from '@/lib/channels/store'
+
+/**
+ * LEGACY shim over `channels` for the old single-number WhatsApp settings
+ * form. It operates on the workspace's default WhatsApp channel; new UI
+ * should use /api/channels.
+ */
 
 /**
  * GET /api/whatsapp/config
  *
- * Used by the "Test API Connection" button and by the page to check
- * whether the saved config is healthy. Returns 200 in all non-auth cases
- * so the UI can render an appropriate message rather than show a 500.
+ * Health of the default WhatsApp channel. Returns 200 in all non-auth
+ * cases so the UI can render an appropriate message rather than a 500.
  *
  * Response shape:
- *   { connected: true,  phone_info: {...} }
+ *   { connected: true,  phone_info: {...}, channel_id, phone_number_id, waba_id }
  *   { connected: false, reason: 'no_config',        message: '...' }
  *   { connected: false, reason: 'token_corrupted',  message: '...', needs_reset: true }
  *   { connected: false, reason: 'meta_api_error',   message: '...' }
  */
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const guard = await requireWorkspace()
+    if (!guard.ok) return guard.response
+    const { workspace } = guard.ctx
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: config, error: configError } = await supabase
-      .from('whatsapp_config')
-      .select('phone_number_id, access_token, status')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (configError) {
-      console.error('Error fetching whatsapp_config:', configError)
-      return NextResponse.json(
-        { connected: false, reason: 'db_error', message: 'Failed to fetch configuration' },
-        { status: 200 }
-      )
-    }
-
-    if (!config) {
+    const channel = await defaultChannel(workspace.id, 'whatsapp')
+    if (!channel || (channel.status === 'disconnected' && !channel.secrets.access_token)) {
       return NextResponse.json(
         {
           connected: false,
@@ -54,21 +40,38 @@ export async function GET() {
       )
     }
 
-    // Try to decrypt the stored token with the current ENCRYPTION_KEY.
-    // If this fails, the key changed (or was never consistent across envs).
-    let accessToken: string
-    try {
-      accessToken = decrypt(config.access_token)
-    } catch (err) {
-      console.error('[whatsapp/config GET] Token decryption failed:', err)
+    const ids = {
+      channel_id: channel.id,
+      phone_number_id: channel.external_id,
+      waba_id: typeof channel.settings?.waba_id === 'string' ? channel.settings.waba_id : null,
+    }
+
+    const accessToken = channel.secrets.access_token
+    if (!accessToken) {
+      // loadChannel drops secrets it can't decrypt: if one is stored, the
+      // ENCRYPTION_KEY changed (or differs between environments).
+      const { data: raw } = await supabaseAdmin()
+        .from('channel_secrets')
+        .select('secrets')
+        .eq('channel_id', channel.id)
+        .maybeSingle()
+      const stored = !!(raw?.secrets as Record<string, string> | null)?.access_token
       return NextResponse.json(
-        {
-          connected: false,
-          reason: 'token_corrupted',
-          needs_reset: true,
-          message:
-            'The stored access token cannot be decrypted with the current ENCRYPTION_KEY. This usually means the key changed, or it differs between environments (local vs Hostinger vs Vercel). Click "Reset Configuration" below, then re-save.',
-        },
+        stored
+          ? {
+              ...ids,
+              connected: false,
+              reason: 'token_corrupted',
+              needs_reset: true,
+              message:
+                'The stored access token cannot be decrypted with the current ENCRYPTION_KEY. This usually means the key changed, or it differs between environments. Click "Reset Configuration" below, then re-save.',
+            }
+          : {
+              ...ids,
+              connected: false,
+              reason: 'no_config',
+              message: 'No access token saved for this WhatsApp number. Re-enter it and click Save Configuration.',
+            },
         { status: 200 }
       )
     }
@@ -76,15 +79,16 @@ export async function GET() {
     // Validate credentials against Meta
     try {
       const phoneInfo = await verifyPhoneNumber({
-        phoneNumberId: config.phone_number_id,
+        phoneNumberId: channel.external_id,
         accessToken,
       })
-      return NextResponse.json({ connected: true, phone_info: phoneInfo })
+      return NextResponse.json({ ...ids, connected: true, phone_info: phoneInfo })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown Meta API error'
       console.error('[whatsapp/config GET] Meta API verification failed:', message)
       return NextResponse.json(
         {
+          ...ids,
           connected: false,
           reason: 'meta_api_error',
           message: `Meta API rejected the credentials: ${message}`,
@@ -102,23 +106,18 @@ export async function GET() {
 }
 
 /**
- * POST /api/whatsapp/config
+ * POST /api/whatsapp/config  (admin)
  *
- * Saves or updates the WhatsApp config for the authenticated user.
- * Verifies credentials with Meta first, then encrypts and stores.
+ * Body: { phone_number_id, access_token, waba_id?, verify_token? }
+ * Verifies the credentials with Meta, then creates/updates the default
+ * WhatsApp channel (secrets encrypted in channel_secrets).
+ * → { success, phone_info, channel_id }
  */
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const guard = await requireWorkspace('admin')
+    if (!guard.ok) return guard.response
+    const { workspace } = guard.ctx
 
     const body = await request.json()
     const { phone_number_id, waba_id, access_token, verify_token } = body
@@ -146,15 +145,83 @@ export async function POST(request: Request) {
       )
     }
 
-    // Encrypt sensitive tokens before storing
-    let encryptedAccessToken: string
-    let encryptedVerifyToken: string | null
+    const db = supabaseAdmin()
+
+    // A phone number id belongs to exactly one channel across the platform.
+    const { data: owner } = await db
+      .from('channels')
+      .select('id, workspace_id')
+      .eq('type', 'whatsapp')
+      .eq('external_id', phone_number_id)
+      .maybeSingle()
+    if (owner && owner.workspace_id !== workspace.id) {
+      return NextResponse.json(
+        { error: 'This WhatsApp number is already connected to another workspace.' },
+        { status: 409 }
+      )
+    }
+
+    const existing = owner ? null : await defaultChannel(workspace.id, 'whatsapp')
+    const targetId = owner?.id ?? existing?.id ?? null
+    let previousSettings: Record<string, unknown> = existing?.settings ?? {}
+    if (owner) {
+      const { data } = await db.from('channels').select('settings').eq('id', owner.id).maybeSingle()
+      previousSettings = (data?.settings as Record<string, unknown>) ?? {}
+    }
+
+    const now = new Date().toISOString()
+    const fields = {
+      external_id: phone_number_id,
+      display_handle: phoneInfo.display_phone_number ?? null,
+      status: 'connected' as const,
+      status_detail: null,
+      settings: {
+        ...previousSettings,
+        waba_id: waba_id || null,
+        verified_name: phoneInfo.verified_name ?? null,
+        quality_rating: phoneInfo.quality_rating ?? null,
+      },
+      updated_at: now,
+    }
+
+    let channelId: string
+    if (targetId) {
+      const { error: updateError } = await db
+        .from('channels')
+        .update(fields)
+        .eq('id', targetId)
+        .eq('workspace_id', workspace.id)
+      if (updateError) {
+        console.error('Error updating WhatsApp channel:', updateError)
+        return NextResponse.json({ error: 'Failed to update configuration' }, { status: 500 })
+      }
+      channelId = targetId
+    } else {
+      const { data: created, error: insertError } = await db
+        .from('channels')
+        .insert({
+          ...fields,
+          workspace_id: workspace.id,
+          type: 'whatsapp',
+          name: phoneInfo.verified_name || phoneInfo.display_phone_number || 'WhatsApp',
+        })
+        .select('id')
+        .single()
+      if (insertError || !created) {
+        console.error('Error creating WhatsApp channel:', insertError)
+        return NextResponse.json({ error: 'Failed to save configuration' }, { status: 500 })
+      }
+      channelId = created.id
+    }
+
     try {
-      encryptedAccessToken = encrypt(access_token)
-      encryptedVerifyToken = verify_token ? encrypt(verify_token) : null
+      await saveChannelSecrets(channelId, {
+        access_token,
+        // Blank keeps the stored verify token.
+        verify_token: verify_token || undefined,
+      })
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown encryption error'
-      console.error('Encryption failed:', message)
+      console.error('Saving channel secrets failed:', err instanceof Error ? err.message : err)
       return NextResponse.json(
         {
           error:
@@ -164,57 +231,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Upsert — overwrite any existing (possibly corrupted) config
-    const { data: existing } = await supabase
-      .from('whatsapp_config')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (existing) {
-      const { error: updateError } = await supabase
-        .from('whatsapp_config')
-        .update({
-          phone_number_id,
-          waba_id: waba_id || null,
-          access_token: encryptedAccessToken,
-          verify_token: encryptedVerifyToken,
-          status: 'connected',
-          connected_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id)
-
-      if (updateError) {
-        console.error('Error updating whatsapp_config:', updateError)
-        return NextResponse.json(
-          { error: 'Failed to update configuration' },
-          { status: 500 }
-        )
-      }
-    } else {
-      const { error: insertError } = await supabase
-        .from('whatsapp_config')
-        .insert({
-          user_id: user.id,
-          phone_number_id,
-          waba_id: waba_id || null,
-          access_token: encryptedAccessToken,
-          verify_token: encryptedVerifyToken,
-          status: 'connected',
-          connected_at: new Date().toISOString(),
-        })
-
-      if (insertError) {
-        console.error('Error inserting whatsapp_config:', insertError)
-        return NextResponse.json(
-          { error: 'Failed to save configuration' },
-          { status: 500 }
-        )
-      }
-    }
-
-    return NextResponse.json({ success: true, phone_info: phoneInfo })
+    return NextResponse.json({ success: true, phone_info: phoneInfo, channel_id: channelId })
   } catch (error) {
     console.error('Error in WhatsApp config POST:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -222,37 +239,41 @@ export async function POST(request: Request) {
 }
 
 /**
- * DELETE /api/whatsapp/config
+ * DELETE /api/whatsapp/config  (admin)
  *
- * Removes the authenticated user's WhatsApp configuration row.
- * Used by the "Reset Configuration" button to recover from a corrupted
- * encrypted token (mismatched ENCRYPTION_KEY across environments).
+ * Disconnects the default WhatsApp channel: marks it disconnected and
+ * drops its access token (the row stays so conversations keep their
+ * channel). Used by "Reset Configuration" to recover from a token that
+ * can't be decrypted.
  */
 export async function DELETE() {
   try {
-    const supabase = await createClient()
+    const guard = await requireWorkspace('admin')
+    if (!guard.ok) return guard.response
+    const { workspace } = guard.ctx
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    const channel = await defaultChannel(workspace.id, 'whatsapp')
+    if (!channel) return NextResponse.json({ success: true })
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const { error: updateError } = await supabaseAdmin()
+      .from('channels')
+      .update({
+        status: 'disconnected',
+        status_detail: 'Disconnected from settings',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', channel.id)
+      .eq('workspace_id', workspace.id)
 
-    const { error: deleteError } = await supabase
-      .from('whatsapp_config')
-      .delete()
-      .eq('user_id', user.id)
-
-    if (deleteError) {
-      console.error('Error deleting whatsapp_config:', deleteError)
+    if (updateError) {
+      console.error('Error disconnecting WhatsApp channel:', updateError)
       return NextResponse.json(
         { error: 'Failed to delete configuration' },
         { status: 500 }
       )
     }
+
+    await saveChannelSecrets(channel.id, { access_token: null })
 
     return NextResponse.json({ success: true })
   } catch (error) {

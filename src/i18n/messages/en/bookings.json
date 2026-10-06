@@ -1,0 +1,243 @@
+{
+  "bookings": {
+    "subtitle": "Schedule, confirm and follow up on your {bookings} with {customers}.",
+    "searchPlaceholder": "Search by name, phone, service…",
+    "allStaff": "All {staff}",
+    "unnamed": "No name",
+    "minutes": "{n} min",
+    "people": "{n} people",
+    "view": {
+      "list": "List",
+      "calendar": "Calendar"
+    },
+    "scope": {
+      "label": "Period",
+      "upcoming": "Upcoming",
+      "today": "Today",
+      "past": "Past",
+      "all": "All"
+    },
+    "status": {
+      "all": "All statuses",
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "no_show": "No-show"
+    },
+    "source": {
+      "ai": "Booked by AI",
+      "manual": "Manual"
+    },
+    "fields": {
+      "when": "Date & time",
+      "status": "Status",
+      "messages": "Messages",
+      "actions": "Actions",
+      "source": "Source"
+    },
+    "stats": {
+      "today": "Today",
+      "pending": "{n} pending",
+      "week": "Next 7 days",
+      "cancelRate": "Cancellations",
+      "cancelHint": "Includes no-shows"
+    },
+    "actions": {
+      "create": "Book {booking}",
+      "add": "Book",
+      "view": "View details",
+      "edit": "Edit",
+      "delete": "Delete",
+      "openChat": "Open conversation"
+    },
+    "empty": {
+      "title": "No {bookings} to show",
+      "hint": "Book a new one or change the filters."
+    },
+    "disabled": {
+      "title": "The {bookings} module is turned off",
+      "hint": "Turn it on in the business settings to use the schedule."
+    },
+    "calendar": {
+      "prev": "Previous month",
+      "next": "Next month",
+      "today": "Today",
+      "hint": "Double-click a day to book.",
+      "emptyDay": "No {bookings} on this day"
+    },
+    "delete": {
+      "title": "Delete {booking}",
+      "description": "The record will be permanently deleted. This can't be undone."
+    },
+    "form": {
+      "createTitle": "Book {booking}",
+      "editTitle": "Edit {booking}",
+      "description": "Pick a time: availability comes from your opening hours and what's already booked.",
+      "customerName": "Name",
+      "customerNameHint": "Defaults to the contact's name",
+      "searchCustomer": "Search {customer} by name or phone",
+      "noContacts": "No results.",
+      "newContact": "New contact",
+      "newContactName": "Name",
+      "newContactPhone": "Phone (with country code)",
+      "addContact": "Add",
+      "changeCustomer": "Change contact",
+      "none": "— None —",
+      "choose": "— Choose —",
+      "anyStaff": "Anyone available",
+      "date": "Date",
+      "time": "Time",
+      "duration": "Duration (min)",
+      "partySize": "Party size",
+      "availability": "Available times",
+      "pickDate": "Pick a date to see the times.",
+      "closedDay": "The business is closed that day.",
+      "noSlots": "No free times left that day.",
+      "anyStaffSlots": "Free times of any {staff}; pick one to see only theirs.",
+      "conflict": {
+        "past": "That time has already passed.",
+        "closed": "The business is closed that day.",
+        "taken": "That time isn't available (taken or outside opening hours).",
+        "override": "You can still save it if you agreed on it with the customer."
+      },
+      "notes": "Internal notes",
+      "notify": "Notify the customer",
+      "notifyHint": "Sends the confirmation or change on their conversation channel.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saveAnyway": "Save anyway",
+      "errors": {
+        "customer": "Choose a {customer}.",
+        "when": "Choose a date and time.",
+        "staff": "Choose a {staff}.",
+        "required": "Please fill in: {field}."
+      }
+    },
+    "messagesUi": {
+      "title": "Customer messages",
+      "confirm": "Confirmation",
+      "confirmHint": "Send the confirmation with date and time",
+      "reminder": "Reminder",
+      "reminderHint": "Send a reminder now",
+      "feedback": "Feedback",
+      "feedbackHint": "Ask for a rating of the visit",
+      "followup": "Follow-up",
+      "followupHint": "Post-visit follow-up message"
+    },
+    "toast": {
+      "created": "Booked.",
+      "updated": "Changes saved.",
+      "deleted": "Deleted.",
+      "statusChanged": "Status: {status}",
+      "customerNotified": "The customer was notified.",
+      "notifyFailed": "Couldn't notify the customer: {error}",
+      "messageSkipped": "There's no message for this status.",
+      "sendFailed": "Couldn't send: {error}",
+      "sent": {
+        "confirm": "Confirmation sent.",
+        "reminder": "Reminder sent.",
+        "feedback": "Feedback request sent.",
+        "followup": "Follow-up sent."
+      }
+    },
+    "history": {
+      "noPhone": "No phone",
+      "first": "First visit",
+      "next": "Next",
+      "tabs": {
+        "history": "History ({n})",
+        "intakes": "Intake ({n})",
+        "feedback": "Feedback ({n})"
+      },
+      "empty": "No records.",
+      "noIntakes": "No intake forms.",
+      "noFeedback": "No feedback yet.",
+      "noComment": "No comments.",
+      "rating": "{n} out of 5 stars"
+    },
+    "intake": {
+      "title": "Intake & triage",
+      "add": "Log intake form",
+      "save": "Save",
+      "saved": "Intake saved.",
+      "symptoms": "Symptoms / reason",
+      "allergies": "Allergies",
+      "medications": "Current medication",
+      "history": "Medical history",
+      "runTriage": "AI triage",
+      "triaged": "Triage completed.",
+      "triageFailed": "Triage failed: {error}",
+      "aiAssessment": "AI assessment",
+      "specialist": "Suggested specialty",
+      "escalate": "Urgent: alert the practitioner right away.",
+      "urgency": {
+        "emergency": "Emergency",
+        "urgent": "Urgent",
+        "routine": "Routine",
+        "self_care": "Self-care"
+      }
+    },
+    "messages": {
+      "withStaff": " with {staff}",
+      "serviceSuffix": " for {service}",
+      "partySuffix": " (party of {count})",
+      "confirmation": "✅ Hi{name}! Your {booking}{service}{withStaff}{party} is confirmed for *{date}* at *{time}*.\n\nIf you need to reschedule or cancel, just reply to this message.\n\n— {business}",
+      "reminder": "⏰ Hi{name}! A reminder of your {booking}{service}{withStaff}: *{date}* at *{time}*.\n\nReply to this message to confirm or reschedule.\n\n— {business}",
+      "reminder_24h": "⏰ Hi{name}! A reminder of your {booking}{service}{withStaff}: *{date}* at *{time}*.\n\nIf you need to reschedule or cancel, just reply to this message.\n\n— {business}",
+      "reminder_4h": "🔔 Hi{name}! Your {booking}{withStaff} is at *{time}* (in about 4 hours). See you soon!\n\n— {business}",
+      "reminder_2h": "🔔 Hi{name}! Your {booking}{withStaff} is at *{time}* (in about 2 hours). See you soon!\n\n— {business}",
+      "cancelled": "Hi{name}. Your {booking} on *{date}* at *{time}*{withStaff} has been cancelled.\n\nIf you'd like to reschedule, just reply to this message.\n\n— {business}",
+      "completed": "🙏 Hi{name}! Thanks for visiting *{business}*. We hope everything went well.\n\nIf you have any questions, just reply to this message.",
+      "feedback": "⭐ Hi{name}! How was your {booking}{withStaff}?\n\nYour feedback helps us improve. Reply with a number from 1 to 5:\n5️⃣ Excellent\n4️⃣ Very good\n3️⃣ OK\n2️⃣ Poor\n1️⃣ Very poor\n\nThanks for choosing *{business}*!",
+      "followup": "👋 Hi{name}! It's been a week since your {booking}{withStaff}. How are you doing?\n\nIf you'd like to book again or have any questions, reply to this message and we'll help.\n\n— {business}"
+    },
+    "campaigns": {
+      "reactivation": {
+        "name": "We miss you",
+        "description": "Invite back customers who haven't visited in a while",
+        "body": "👋 Hi {{name}}! We haven't seen you at *{{business_name}}* in a while.\n\n{{offer_text}}\n\nReply to this message and we'll help you book your {{booking}}."
+      },
+      "promotion": {
+        "name": "Promotion",
+        "description": "Announce a limited-time offer",
+        "body": "🎉 *{{title}}*\n\nHi {{name}}! {{details}}\n\n⏳ Valid until {{valid_until}}.\n\nReply to this message to learn more.\n\n— *{{business_name}}*"
+      },
+      "new_service": {
+        "name": "New service",
+        "description": "Introduce a new service",
+        "body": "🆕 *{{service_name}}*\n\nHi {{name}}! {{service_description}}\n\n💰 From {{price}}\n\nReply INFO to learn more, or reply to book your {{booking}}.\n\n— *{{business_name}}*"
+      },
+      "availability": {
+        "name": "Open slots",
+        "description": "Let customers know there are free times to book",
+        "body": "📅 Hi {{name}}! We have open times {{available_dates}}.\n\nReply to this message to book your {{booking}}.\n\n— *{{business_name}}*"
+      },
+      "tip": {
+        "name": "Tip of the week",
+        "description": "Share a useful tip to stay in touch",
+        "body": "💡 *{{tip_title}}*\n\nHi {{name}}! {{tip_content}}\n\nQuestions? Reply anytime.\n\n— *{{business_name}}*"
+      },
+      "vaccination": {
+        "name": "Vaccination drive",
+        "description": "Remind patients about due or upcoming vaccines",
+        "body": "💉 *Vaccination reminder*\n\nHi {{name}}! It's time for your {{vaccine_name}} vaccine.\n\n📅 Available dates: {{available_dates}}\n📍 {{business_address}}\n\nReply VACCINE to book your {{booking}}.\n\n— *{{business_name}}*"
+      },
+      "checkup": {
+        "name": "Annual checkup",
+        "description": "Remind patients about their yearly checkup",
+        "body": "🩺 *Annual checkup*\n\nHi {{name}}! Regular checkups help catch problems early.\n\n{{offer_text}}\n\n📞 Reply CHECKUP or call {{business_phone}} to book.\n\n— *{{business_name}}*"
+      },
+      "seasonal_alert": {
+        "name": "Seasonal alert",
+        "description": "Warn about seasonal health risks",
+        "body": "⚠️ *{{season}} alert*\n\nHi {{name}}! Stay safe this season.\n\n🛡️ Prevention:\n{{prevention_tips}}\n\n🚨 Warning signs:\n{{symptoms_list}}\n\nIf you feel unwell, reply to this message or call {{business_phone}}.\n\n— *{{business_name}}*"
+      },
+      "prescription_refill": {
+        "name": "Prescription refill",
+        "description": "Remind patients to renew a treatment",
+        "body": "💊 *Treatment reminder*\n\nHi {{name}}! Your {{medication_name}} treatment (prescribed {{last_date}}) may be running out.\n\nReply VISIT to book a follow-up {{booking}}.\n\n— *{{business_name}}*"
+      }
+    }
+  }
+}

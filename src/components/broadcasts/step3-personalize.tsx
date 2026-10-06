@@ -38,6 +38,7 @@ const contactFields = [
 
 const SAMPLE_CONTACT: Contact = {
   id: 'sample',
+  workspace_id: '',
   user_id: '',
   name: 'John Doe',
   phone: '+1234567890',

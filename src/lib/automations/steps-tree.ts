@@ -20,6 +20,7 @@ export interface BuilderStepInput {
 
 interface InsertRow {
   id: string
+  workspace_id: string
   automation_id: string
   parent_step_id: string | null
   branch: 'yes' | 'no' | null
@@ -35,6 +36,7 @@ const uid = () =>
 
 export async function replaceSteps(
   automationId: string,
+  workspaceId: string,
   input: BuilderStepInput[],
 ): Promise<string | null> {
   const admin = supabaseAdmin()
@@ -42,12 +44,14 @@ export async function replaceSteps(
     .from('automation_steps')
     .delete()
     .eq('automation_id', automationId)
+    .eq('workspace_id', workspaceId)
   if (delErr) return delErr.message
-  return insertSteps(automationId, input)
+  return insertSteps(automationId, workspaceId, input)
 }
 
 export async function insertSteps(
   automationId: string,
+  workspaceId: string,
   input: BuilderStepInput[],
 ): Promise<string | null> {
   if (!input || input.length === 0) return null
@@ -67,6 +71,7 @@ export async function insertSteps(
       const id = s.id ?? uid()
       rows.push({
         id,
+        workspace_id: workspaceId,
         automation_id: automationId,
         parent_step_id: parentId,
         branch,
@@ -125,11 +130,15 @@ interface DbStep {
   position: number
 }
 
-export async function loadStepsTree(automationId: string): Promise<BuilderStepNode[]> {
+export async function loadStepsTree(
+  automationId: string,
+  workspaceId: string,
+): Promise<BuilderStepNode[]> {
   const { data, error } = await supabaseAdmin()
     .from('automation_steps')
     .select('*')
     .eq('automation_id', automationId)
+    .eq('workspace_id', workspaceId)
     .order('position', { ascending: true })
 
   if (error) throw new Error(error.message)

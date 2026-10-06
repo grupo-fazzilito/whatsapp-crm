@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { requireWorkspace } from '@/lib/workspace/context'
 import { supabaseAdmin } from '@/lib/flows/admin-client'
 import { validateFlowForActivation } from '@/lib/flows/validate'
 
@@ -23,13 +23,9 @@ export async function POST(
 ) {
   const { id } = await context.params
 
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const guard = await requireWorkspace('admin')
+  if (!guard.ok) return guard.response
+  const { supabase, workspace } = guard.ctx
 
   const body = (await request.json().catch(() => null)) as
     | { status?: 'draft' | 'active' | 'archived' }
@@ -42,11 +38,12 @@ export async function POST(
     )
   }
 
-  // Ownership via RLS — caller's client.
+  // Ownership via RLS — caller's client, scoped to the active workspace.
   const { data: existing } = await supabase
     .from('flows')
     .select('id')
     .eq('id', id)
+    .eq('workspace_id', workspace.id)
     .maybeSingle()
   if (!existing) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -56,16 +53,24 @@ export async function POST(
 
   if (status === 'active') {
     // Re-load with the full payload the validator needs.
-    const [{ data: flow }, { data: nodes }] = await Promise.all([
+    const [{ data: flow }, { data: nodes }, { data: agents }] = await Promise.all([
       admin
         .from('flows')
         .select('name, trigger_type, trigger_config, entry_node_id')
         .eq('id', id)
+        .eq('workspace_id', workspace.id)
         .maybeSingle(),
       admin
         .from('flow_nodes')
         .select('node_key, node_type, config')
-        .eq('flow_id', id),
+        .eq('flow_id', id)
+        .eq('workspace_id', workspace.id),
+      // handoff_ai_agent nodes must point at an enabled agent of this workspace.
+      admin
+        .from('ai_agents')
+        .select('id')
+        .eq('workspace_id', workspace.id)
+        .eq('enabled', true),
     ])
     if (!flow) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -82,6 +87,7 @@ export async function POST(
         node_type: string
         config: Record<string, unknown>
       }>,
+      { agentIds: (agents ?? []).map((a: { id: string }) => a.id) },
     )
     const blockers = issues.filter((i) => i.severity === 'error')
     if (blockers.length > 0) {
@@ -99,6 +105,7 @@ export async function POST(
     .from('flows')
     .update({ status, updated_at: new Date().toISOString() })
     .eq('id', id)
+    .eq('workspace_id', workspace.id)
     .select()
     .maybeSingle()
   if (error) {

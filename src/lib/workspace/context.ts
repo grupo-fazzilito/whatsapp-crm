@@ -1,0 +1,89 @@
+import 'server-only'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
+import type { SupabaseClient, User } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { WORKSPACE_COOKIE, hasRole, isUuid, type WorkspaceRole } from './constants'
+import type { Workspace } from './types'
+
+export interface WorkspaceContext {
+  user: User
+  workspace: Workspace
+  role: WorkspaceRole
+  /** Cookie client scoped (RLS) to `workspace`. */
+  supabase: SupabaseClient
+}
+
+export interface Membership {
+  role: WorkspaceRole
+  workspace: Workspace
+}
+
+/** Every active workspace the user belongs to, oldest first. */
+export async function listMemberships(userId: string): Promise<Membership[]> {
+  const { data, error } = await supabaseAdmin()
+    .from('workspace_members')
+    .select('role, created_at, workspace:workspaces(*)')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return (data ?? [])
+    .filter((m) => m.workspace)
+    .map((m) => ({ role: m.role as WorkspaceRole, workspace: m.workspace as unknown as Workspace }))
+}
+
+/**
+ * Resolves the signed-in user and their active workspace (cookie, falling
+ * back to their first membership). Returns null when signed out or when
+ * the user has no workspace at all.
+ */
+export async function getWorkspaceContext(): Promise<WorkspaceContext | null> {
+  const authClient = await createClient(null)
+  const {
+    data: { user },
+  } = await authClient.auth.getUser()
+  if (!user) return null
+
+  const memberships = await listMemberships(user.id)
+  if (memberships.length === 0) return null
+
+  const cookieStore = await cookies()
+  const wanted = cookieStore.get(WORKSPACE_COOKIE)?.value
+  const active =
+    (isUuid(wanted) && memberships.find((m) => m.workspace.id === wanted)) || memberships[0]
+
+  return {
+    user,
+    workspace: active.workspace,
+    role: active.role,
+    supabase: await createClient(active.workspace.id),
+  }
+}
+
+type Guarded =
+  | { ok: true; ctx: WorkspaceContext }
+  | { ok: false; response: NextResponse }
+
+/** Route-handler guard: 401 when signed out, 403 below `minRole`. */
+export async function requireWorkspace(minRole: WorkspaceRole = 'agent'): Promise<Guarded> {
+  const ctx = await getWorkspaceContext()
+  if (!ctx) {
+    return { ok: false, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  }
+  if (!hasRole(ctx.role, minRole)) {
+    return { ok: false, response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
+  }
+  return { ok: true, ctx }
+}
+
+export function workspaceCookieOptions() {
+  return {
+    path: '/',
+    sameSite: 'lax' as const,
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: false,
+    maxAge: 60 * 60 * 24 * 365,
+  }
+}

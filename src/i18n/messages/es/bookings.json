@@ -1,0 +1,243 @@
+{
+  "bookings": {
+    "subtitle": "Agenda, confirma y da seguimiento a tus {bookings} con {customers}.",
+    "searchPlaceholder": "Buscar por nombre, teléfono, servicio…",
+    "allStaff": "Todo el equipo ({staff})",
+    "unnamed": "Sin nombre",
+    "minutes": "{n} min",
+    "people": "{n} personas",
+    "view": {
+      "list": "Lista",
+      "calendar": "Calendario"
+    },
+    "scope": {
+      "label": "Periodo",
+      "upcoming": "Próximas",
+      "today": "Hoy",
+      "past": "Anteriores",
+      "all": "Todas"
+    },
+    "status": {
+      "all": "Todos los estados",
+      "pending": "Pendiente",
+      "confirmed": "Confirmado",
+      "completed": "Completado",
+      "cancelled": "Cancelado",
+      "no_show": "No asistió"
+    },
+    "source": {
+      "ai": "Agendado por IA",
+      "manual": "Manual"
+    },
+    "fields": {
+      "when": "Fecha y hora",
+      "status": "Estado",
+      "messages": "Mensajes",
+      "actions": "Acciones",
+      "source": "Origen"
+    },
+    "stats": {
+      "today": "Hoy",
+      "pending": "{n} por confirmar",
+      "week": "Próximos 7 días",
+      "cancelRate": "Cancelaciones",
+      "cancelHint": "Incluye inasistencias"
+    },
+    "actions": {
+      "create": "Agendar {booking}",
+      "add": "Agendar",
+      "view": "Ver detalle",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "openChat": "Abrir conversación"
+    },
+    "empty": {
+      "title": "No hay {bookings} para mostrar",
+      "hint": "Agenda una nueva o cambia los filtros."
+    },
+    "disabled": {
+      "title": "El módulo de {bookings} está desactivado",
+      "hint": "Actívalo en la configuración del negocio para usar la agenda."
+    },
+    "calendar": {
+      "prev": "Mes anterior",
+      "next": "Mes siguiente",
+      "today": "Hoy",
+      "hint": "Haz doble clic en un día para agendar.",
+      "emptyDay": "Sin {bookings} este día"
+    },
+    "delete": {
+      "title": "Eliminar {booking}",
+      "description": "Se eliminará el registro de forma permanente. Esta acción no se puede deshacer."
+    },
+    "form": {
+      "createTitle": "Agendar {booking}",
+      "editTitle": "Editar {booking}",
+      "description": "Elige el horario: la disponibilidad se calcula con tu horario de atención y lo ya agendado.",
+      "customerName": "Nombre",
+      "customerNameHint": "Por defecto, el nombre del contacto",
+      "searchCustomer": "Buscar {customer} por nombre o teléfono",
+      "noContacts": "Sin resultados.",
+      "newContact": "Nuevo contacto",
+      "newContactName": "Nombre",
+      "newContactPhone": "Teléfono (con código de país)",
+      "addContact": "Agregar",
+      "changeCustomer": "Cambiar contacto",
+      "none": "— Ninguno —",
+      "choose": "— Elegir —",
+      "anyStaff": "Cualquiera disponible",
+      "date": "Fecha",
+      "time": "Hora",
+      "duration": "Duración (min)",
+      "partySize": "Personas",
+      "availability": "Horarios disponibles",
+      "pickDate": "Elige una fecha para ver los horarios.",
+      "closedDay": "El negocio está cerrado ese día.",
+      "noSlots": "No quedan horarios libres ese día.",
+      "anyStaffSlots": "Horarios libres de cualquier {staff}; elige uno para ver solo los suyos.",
+      "conflict": {
+        "past": "Ese horario ya pasó.",
+        "closed": "El negocio está cerrado ese día.",
+        "taken": "Ese horario no está disponible (ocupado o fuera del horario).",
+        "override": "Puedes guardarlo de todos modos si lo acordaste con el cliente."
+      },
+      "notes": "Notas internas",
+      "notify": "Avisar al cliente",
+      "notifyHint": "Envía la confirmación o el cambio por su canal de conversación.",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "saveAnyway": "Guardar de todos modos",
+      "errors": {
+        "customer": "Elige un {customer}.",
+        "when": "Elige fecha y hora.",
+        "staff": "Elige un {staff}.",
+        "required": "Completa: {field}."
+      }
+    },
+    "messagesUi": {
+      "title": "Mensajes al cliente",
+      "confirm": "Confirmación",
+      "confirmHint": "Envía la confirmación con fecha y hora",
+      "reminder": "Recordatorio",
+      "reminderHint": "Envía un recordatorio ahora",
+      "feedback": "Opinión",
+      "feedbackHint": "Pide una calificación de la visita",
+      "followup": "Seguimiento",
+      "followupHint": "Mensaje de seguimiento después de la visita"
+    },
+    "toast": {
+      "created": "Agendado.",
+      "updated": "Cambios guardados.",
+      "deleted": "Eliminado.",
+      "statusChanged": "Estado: {status}",
+      "customerNotified": "Se avisó al cliente.",
+      "notifyFailed": "No se pudo avisar al cliente: {error}",
+      "messageSkipped": "No hay mensaje para este estado.",
+      "sendFailed": "No se pudo enviar: {error}",
+      "sent": {
+        "confirm": "Confirmación enviada.",
+        "reminder": "Recordatorio enviado.",
+        "feedback": "Solicitud de opinión enviada.",
+        "followup": "Seguimiento enviado."
+      }
+    },
+    "history": {
+      "noPhone": "Sin teléfono",
+      "first": "Primera vez",
+      "next": "Próxima",
+      "tabs": {
+        "history": "Historial ({n})",
+        "intakes": "Pre-consulta ({n})",
+        "feedback": "Opiniones ({n})"
+      },
+      "empty": "Sin registros.",
+      "noIntakes": "Sin formularios de pre-consulta.",
+      "noFeedback": "Aún no hay opiniones.",
+      "noComment": "Sin comentarios.",
+      "rating": "{n} de 5 estrellas"
+    },
+    "intake": {
+      "title": "Pre-consulta y triaje",
+      "add": "Registrar pre-consulta",
+      "save": "Guardar",
+      "saved": "Pre-consulta guardada.",
+      "symptoms": "Síntomas / motivo",
+      "allergies": "Alergias",
+      "medications": "Medicamentos actuales",
+      "history": "Antecedentes",
+      "runTriage": "Triaje con IA",
+      "triaged": "Triaje completado.",
+      "triageFailed": "No se pudo hacer el triaje: {error}",
+      "aiAssessment": "Evaluación de la IA",
+      "specialist": "Especialidad sugerida",
+      "escalate": "Urgente: avisar al profesional de inmediato.",
+      "urgency": {
+        "emergency": "Emergencia",
+        "urgent": "Urgente",
+        "routine": "Rutina",
+        "self_care": "Autocuidado"
+      }
+    },
+    "messages": {
+      "withStaff": " con {staff}",
+      "serviceSuffix": " de {service}",
+      "partySuffix": " ({count} personas)",
+      "confirmation": "✅ ¡Hola{name}! Confirmamos tu {booking}{service}{withStaff}{party} para el *{date}* a las *{time}*.\n\nSi necesitas reagendar o cancelar, responde a este mensaje.\n\n— {business}",
+      "reminder": "⏰ ¡Hola{name}! Te recordamos tu {booking}{service}{withStaff}: *{date}* a las *{time}*.\n\nResponde a este mensaje para confirmar o reagendar.\n\n— {business}",
+      "reminder_24h": "⏰ ¡Hola{name}! Te recordamos tu {booking}{service}{withStaff}: *{date}* a las *{time}*.\n\nSi necesitas reagendar o cancelar, responde a este mensaje.\n\n— {business}",
+      "reminder_4h": "🔔 ¡Hola{name}! Tu {booking}{withStaff} es a las *{time}* (en unas 4 horas). ¡Te esperamos!\n\n— {business}",
+      "reminder_2h": "🔔 ¡Hola{name}! Tu {booking}{withStaff} es a las *{time}* (en unas 2 horas). ¡Te esperamos!\n\n— {business}",
+      "cancelled": "Hola{name}. Cancelamos tu {booking} del *{date}* a las *{time}*{withStaff}.\n\nSi quieres reagendar, responde a este mensaje.\n\n— {business}",
+      "completed": "🙏 ¡Hola{name}! Gracias por tu visita a *{business}*. Esperamos que todo haya salido muy bien.\n\nSi tienes alguna pregunta, responde a este mensaje.",
+      "feedback": "⭐ ¡Hola{name}! ¿Cómo te fue en tu {booking}{withStaff}?\n\nTu opinión nos ayuda a mejorar. Responde con un número del 1 al 5:\n5️⃣ Excelente\n4️⃣ Muy bien\n3️⃣ Regular\n2️⃣ Mal\n1️⃣ Muy mal\n\n¡Gracias por elegir *{business}*!",
+      "followup": "👋 ¡Hola{name}! Ha pasado una semana desde tu {booking}{withStaff}. ¿Cómo estás?\n\nSi quieres agendar de nuevo o tienes alguna pregunta, responde a este mensaje y te ayudamos.\n\n— {business}"
+    },
+    "campaigns": {
+      "reactivation": {
+        "name": "Te extrañamos",
+        "description": "Invita a volver a quienes no han venido en un tiempo",
+        "body": "👋 ¡Hola {{name}}! Hace tiempo que no te vemos en *{{business_name}}*.\n\n{{offer_text}}\n\nResponde a este mensaje y te ayudamos a agendar tu {{booking}}."
+      },
+      "promotion": {
+        "name": "Promoción",
+        "description": "Anuncia una oferta por tiempo limitado",
+        "body": "🎉 *{{title}}*\n\n¡Hola {{name}}! {{details}}\n\n⏳ Válido hasta {{valid_until}}.\n\nResponde a este mensaje para más información.\n\n— *{{business_name}}*"
+      },
+      "new_service": {
+        "name": "Nuevo servicio",
+        "description": "Presenta un servicio nuevo",
+        "body": "🆕 *{{service_name}}*\n\n¡Hola {{name}}! {{service_description}}\n\n💰 Desde {{price}}\n\nResponde INFO para saber más o agenda tu {{booking}} respondiendo a este mensaje.\n\n— *{{business_name}}*"
+      },
+      "availability": {
+        "name": "Horarios disponibles",
+        "description": "Avisa que hay lugares libres para agendar",
+        "body": "📅 ¡Hola {{name}}! Tenemos horarios disponibles {{available_dates}}.\n\nResponde a este mensaje para apartar tu {{booking}}.\n\n— *{{business_name}}*"
+      },
+      "tip": {
+        "name": "Consejo de la semana",
+        "description": "Comparte un consejo útil para mantener el contacto",
+        "body": "💡 *{{tip_title}}*\n\n¡Hola {{name}}! {{tip_content}}\n\n¿Dudas? Responde cuando quieras.\n\n— *{{business_name}}*"
+      },
+      "vaccination": {
+        "name": "Campaña de vacunación",
+        "description": "Recuerda vacunas pendientes o próximas",
+        "body": "💉 *Recordatorio de vacunación*\n\n¡Hola {{name}}! Es momento de tu vacuna {{vaccine_name}}.\n\n📅 Fechas disponibles: {{available_dates}}\n📍 {{business_address}}\n\nResponde VACUNA para agendar tu {{booking}}.\n\n— *{{business_name}}*"
+      },
+      "checkup": {
+        "name": "Chequeo anual",
+        "description": "Recuerda el chequeo preventivo anual",
+        "body": "🩺 *Chequeo anual*\n\n¡Hola {{name}}! Los chequeos regulares ayudan a detectar problemas a tiempo.\n\n{{offer_text}}\n\n📞 Responde CHEQUEO o llama al {{business_phone}} para agendar.\n\n— *{{business_name}}*"
+      },
+      "seasonal_alert": {
+        "name": "Alerta de temporada",
+        "description": "Avisa sobre riesgos de salud de temporada",
+        "body": "⚠️ *Alerta de {{season}}*\n\n¡Hola {{name}}! Cuídate en esta temporada.\n\n🛡️ Prevención:\n{{prevention_tips}}\n\n🚨 Síntomas de alerta:\n{{symptoms_list}}\n\nSi te sientes mal, responde a este mensaje o llama al {{business_phone}}.\n\n— *{{business_name}}*"
+      },
+      "prescription_refill": {
+        "name": "Resurtido de receta",
+        "description": "Recuerda renovar un tratamiento",
+        "body": "💊 *Recordatorio de tratamiento*\n\n¡Hola {{name}}! Tu tratamiento con {{medication_name}} (indicado el {{last_date}}) podría estar por terminarse.\n\nResponde CITA para agendar tu {{booking}} de seguimiento.\n\n— *{{business_name}}*"
+      }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web chat demo</title>
+  <style>
+    body { margin: 0; font: 16px/1.6 Georgia, serif; color: #1f2937; background: #fdfaf3; }
+    main { max-width: 720px; margin: 0 auto; padding: 48px 20px; }
+    h1 { font-size: 2rem; margin: 0 0 8px; }
+    code { background: #f1ede1; padding: 2px 6px; border-radius: 4px; }
+    form { display: flex; gap: 8px; flex-wrap: wrap; margin: 24px 0; }
+    input { flex: 1; min-width: 220px; padding: 8px 10px; font: inherit; }
+    button { padding: 8px 14px; font: inherit; cursor: pointer; }
+    .warn { color: #92400e; }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    /* Hostile host CSS: the widget's Shadow DOM must not be affected. */
+    * { letter-spacing: .02em; }
+    button { text-transform: uppercase; }
+    div { line-height: 2.2; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Web chat demo</h1>
+    <p>Test page for the embeddable widget. Pass the channel key in the URL: <code>?key=pk_…</code>. Optional: <code>&amp;lang=en</code>, <code>&amp;src=https://app.example.com</code> (to load the widget from another origin).</p>
+    <form id="f">
+      <label for="k" class="sr">Key</label>
+      <input id="k" name="key" placeholder="pk_…" autocomplete="off">
+      <button>Load</button>
+      <button type="button" id="reset">Forget visitor</button>
+    </form>
+    <p id="status"></p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Cras mattis consectetur purus sit amet fermentum.</p>
+  </main>
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var key = params.get('key');
+      var src = (params.get('src') || '').replace(/\/+$/, '');
+      var status = document.getElementById('status');
+      document.getElementById('k').value = key || '';
+      document.getElementById('reset').onclick = function () {
+        if (key) localStorage.removeItem('cnxwc:' + key);
+        location.reload();
+      };
+      if (!key) {
+        status.className = 'warn';
+        status.textContent = 'No key: add ?key=pk_… to the URL.';
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = (src || '') + '/widget.js';
+      s.async = true;
+      s.setAttribute('data-key', key);
+      if (params.get('lang')) s.setAttribute('data-lang', params.get('lang'));
+      if (params.get('open') === '1') s.setAttribute('data-open', 'true');
+      document.body.appendChild(s);
+      status.textContent = 'Widget loaded from ' + (src || location.origin) + ' with key ' + key;
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "remove": "Quitar",
+    "create": "Crear",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "email": "Correo",
+    "name": "Nombre",
+    "role": "Rol",
+    "status": "Estado",
+    "actions": "Acciones",
+    "error": "Ocurrió un error",
+    "language": "Idioma"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "inbox": "Bandeja",
+    "contacts": "Contactos",
+    "pipelines": "Embudos",
+    "broadcasts": "Difusiones",
+    "automations": "Automatizaciones",
+    "flows": "Flujos",
+    "settings": "Ajustes",
+    "business": "Negocio",
+    "aiAssistant": "Asistente IA",
+    "setup": "Configuración del negocio",
+    "faqs": "Preguntas frecuentes",
+    "aiSettings": "Ajustes de IA",
+    "aiLogs": "Registro de IA",
+    "platformAdmin": "Administración",
+    "clientsOverview": "Clientes",
+    "portfolio": "Portafolio",
+    "profile": "Perfil",
+    "signOut": "Cerrar sesión"
+  },
+  "workspace": {
+    "switch": "Cambiar de negocio",
+    "create": "Crear negocio",
+    "createTitle": "Nuevo negocio",
+    "createDescription": "Cada negocio tiene sus propios canales, contactos, equipo y configuración.",
+    "name": "Nombre del negocio",
+    "industry": "Tipo de negocio",
+    "country": "País",
+    "currency": "Moneda",
+    "timezone": "Zona horaria",
+    "noWorkspace": "Tu cuenta no pertenece a ningún negocio todavía."
+  },
+  "roles": {
+    "owner": "Propietario",
+    "admin": "Administrador",
+    "agent": "Agente"
+  },
+  "team": {
+    "tab": "Equipo",
+    "title": "Miembros del equipo",
+    "description": "Invita a tu equipo para atender conversaciones juntos. Los agentes atienden chats; los administradores además configuran el negocio.",
+    "invite": "Invitar",
+    "inviteEmail": "Correo de la persona",
+    "pending": "Invitaciones pendientes",
+    "expires": "Vence {date}",
+    "inviteSent": "Invitación enviada a {email}",
+    "inviteLink": "No hay SMTP configurado. Comparte este enlace:",
+    "you": "tú",
+    "disabled": "Desactivado",
+    "leave": "Salir del negocio",
+    "confirmRemove": "¿Quitar a {name} del negocio?"
+  },
+  "invite": {
+    "title": "Invitación a {workspace}",
+    "body": "Te invitaron como {role} con el correo {email}.",
+    "accept": "Aceptar invitación",
+    "signInToAccept": "Inicia sesión con {email} para aceptar",
+    "createAccount": "Crear cuenta",
+    "invalid": "Esta invitación no existe o ya venció.",
+    "wrongAccount": "Iniciaste sesión con otra cuenta. Esta invitación es para {email}."
+  }
+}

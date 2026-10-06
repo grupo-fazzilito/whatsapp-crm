@@ -451,3 +451,34 @@ describe("reachableFromEntry", () => {
     expect(set).toEqual(new Set(["a", "b"]));
   });
 });
+
+describe("validateFlowForActivation — handoff_ai_agent", () => {
+  const nodesWith = (agent_id: string) => [
+    { node_key: "start", node_type: "start", config: { next_node_key: "ai" } },
+    { node_key: "ai", node_type: "handoff_ai_agent", config: { agent_id } },
+  ];
+
+  it("accepts a node pointing at a known agent (terminal, no next edge)", () => {
+    expect(
+      validateFlowForActivation(validFlow, nodesWith("ag1"), { agentIds: ["ag1"] }),
+    ).toEqual([]);
+  });
+
+  it("requires an agent", () => {
+    const issues = validateFlowForActivation(validFlow, nodesWith(""));
+    expect(issues).toContainEqual(
+      expect.objectContaining({ severity: "error", node_key: "ai", field: "agent_id" }),
+    );
+  });
+
+  it("rejects an agent that is not in the workspace's enabled list", () => {
+    const issues = validateFlowForActivation(validFlow, nodesWith("gone"), { agentIds: ["ag1"] });
+    expect(issues).toContainEqual(
+      expect.objectContaining({ severity: "error", node_key: "ai", field: "agent_id" }),
+    );
+  });
+
+  it("only checks presence when the agent list is unknown", () => {
+    expect(validateFlowForActivation(validFlow, nodesWith("whatever"))).toEqual([]);
+  });
+});

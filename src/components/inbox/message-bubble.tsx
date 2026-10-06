@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import type { Message, MessageReaction } from "@/types";
 import {
   Clock,
@@ -13,8 +14,13 @@ import {
   LayoutTemplate,
   ImageOff,
   CornerDownLeft,
+  Bot,
+  RotateCw,
+  Info,
+  ArrowRightLeft,
 } from "lucide-react";
 import { format } from "date-fns";
+import { useI18n } from "@/i18n/client";
 import { ReplyQuote } from "./reply-quote";
 import { MessageReactions } from "./message-reactions";
 
@@ -25,6 +31,10 @@ interface MessageBubbleProps {
   reactions?: MessageReaction[];
   currentUserId?: string;
   onToggleReaction?: (emoji: string) => void;
+  /** Name of the AI agent that wrote a bot message. */
+  agentName?: string | null;
+  /** Resend a failed text message. */
+  onRetry?: () => void;
 }
 
 function StatusIcon({ status }: { status: Message["status"] }) {
@@ -44,79 +54,230 @@ function StatusIcon({ status }: { status: Message["status"] }) {
   }
 }
 
+// ── Media URL resolution ────────────────────────────────────────────
+
+/** Media proxied through our API (needs the session cookie). */
+function isProxyUrl(url: string): boolean {
+  return url.startsWith("/api/whatsapp/media/") || url.startsWith("/api/media/");
+}
+
+const ATTACHMENT_SIGN_MARKER = "/storage/v1/object/sign/attachments/";
+
+/** Object path inside the private `attachments` bucket, if `url` points there. */
+function attachmentPath(url: string): string | null {
+  const idx = url.indexOf(ATTACHMENT_SIGN_MARKER);
+  if (idx < 0) return null;
+  const rest = url.slice(idx + ATTACHMENT_SIGN_MARKER.length).split("?")[0];
+  try {
+    return decodeURIComponent(rest);
+  } catch {
+    return rest;
+  }
+}
+
+/**
+ * Resolves a stored media_url into something the browser can render:
+ *  - proxy URLs → authenticated fetch → blob URL
+ *  - signed URLs to our private bucket → freshly re-signed (the one
+ *    sent to the provider expires after an hour)
+ *  - anything else → as is
+ */
+function useMediaSrc(url: string | undefined) {
+  const [state, setState] = useState<{ src: string | null; error: boolean; loading: boolean }>({
+    src: null,
+    error: false,
+    loading: !!url,
+  });
+
+  useEffect(() => {
+    if (!url) return;
+    let cancelled = false;
+    let blobUrl: string | null = null;
+
+    (async () => {
+      try {
+        if (isProxyUrl(url)) {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error("Failed to load media");
+          const blob = await res.blob();
+          blobUrl = URL.createObjectURL(blob);
+          if (cancelled) {
+            URL.revokeObjectURL(blobUrl);
+            return;
+          }
+          setState({ src: blobUrl, error: false, loading: false });
+          return;
+        }
+        const path = attachmentPath(url);
+        if (path) {
+          const { data, error } = await createClient()
+            .storage.from("attachments")
+            .createSignedUrl(path, 3600);
+          if (cancelled) return;
+          if (error || !data?.signedUrl) throw error ?? new Error("sign failed");
+          setState({ src: data.signedUrl, error: false, loading: false });
+          return;
+        }
+        if (!cancelled) setState({ src: url, error: false, loading: false });
+      } catch {
+        if (!cancelled) setState({ src: null, error: true, loading: false });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [url]);
+
+  return state;
+}
+
 function MediaUnavailable({ label }: { label: string }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center gap-2 rounded-lg bg-slate-700/40 px-3 py-2 text-xs text-slate-300">
       <ImageOff className="h-4 w-4 shrink-0 text-slate-500" />
-      <span>{label} unavailable</span>
+      <span>{t("inbox.bubble.unavailable", { label })}</span>
+    </div>
+  );
+}
+
+function MediaLoading() {
+  return (
+    <div className="flex h-40 w-60 items-center justify-center rounded-lg bg-slate-700">
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+    </div>
+  );
+}
+
+function MediaError() {
+  return (
+    <div className="flex h-40 w-60 items-center justify-center rounded-lg bg-slate-700">
+      <ImageOff className="h-8 w-8 text-slate-500" />
     </div>
   );
 }
 
 function MediaImage({ url, alt }: { url: string; alt: string }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [error, setError] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const loadImage = useCallback(async () => {
-    if (!url) return;
-
-    // Proxy URLs need auth fetch to create blob URL
-    if (url.startsWith("/api/whatsapp/media/")) {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Failed to load media");
-        const blob = await res.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        setSrc(blobUrl);
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      setSrc(url);
-      setLoading(false);
-    }
-  }, [url]);
-
-  useEffect(() => {
-    loadImage();
-    return () => {
-      if (src?.startsWith("blob:")) {
-        URL.revokeObjectURL(src);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadImage]);
-
-  if (error) {
-    return (
-      <div className="flex h-40 w-60 items-center justify-center rounded-lg bg-slate-700">
-        <ImageOff className="h-8 w-8 text-slate-500" />
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex h-40 w-60 items-center justify-center rounded-lg bg-slate-700">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
-
+  const { src, error, loading } = useMediaSrc(url);
+  const [broken, setBroken] = useState(false);
+  if (error || broken) return <MediaError />;
+  if (loading || !src) return <MediaLoading />;
   return (
     <img
-      src={src ?? ""}
+      src={src}
       alt={alt}
       className="max-h-64 max-w-60 rounded-lg object-cover"
-      onError={() => setError(true)}
+      onError={() => setBroken(true)}
     />
   );
 }
 
+function MediaVideo({ url }: { url: string }) {
+  const { src, error, loading } = useMediaSrc(url);
+  if (error) return <MediaError />;
+  if (loading || !src) return <MediaLoading />;
+  return <video src={src} controls className="max-h-64 max-w-60 rounded-lg" />;
+}
+
+function MediaAudio({ url }: { url: string }) {
+  const { src, error, loading } = useMediaSrc(url);
+  const { t } = useI18n();
+  if (error) return <MediaUnavailable label={t("inbox.media.audio")} />;
+  if (loading || !src) {
+    return <div className="h-10 w-60 animate-pulse rounded-full bg-slate-700/60" />;
+  }
+  return <audio src={src} controls className="max-w-60" />;
+}
+
+function MediaDocument({ url, label }: { url: string; label: string }) {
+  // Proxy URLs are same-origin, so a plain link carries the session
+  // cookie; only bucket URLs need re-signing.
+  const needsSign = !!attachmentPath(url);
+  const { src } = useMediaSrc(needsSign ? url : undefined);
+  const href = needsSign ? src : url;
+  return (
+    <a
+      href={href ?? undefined}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 rounded-lg bg-slate-700/50 px-3 py-2 text-sm hover:bg-slate-700"
+    >
+      <FileText className="h-5 w-5 shrink-0 text-slate-400" />
+      <span className="truncate">{label}</span>
+    </a>
+  );
+}
+
+// ── Interactive options (bot buttons / lists) ───────────────────────
+
+interface OptionLike {
+  id?: string;
+  title?: string;
+}
+
+function readOptions(metadata: Message["metadata"]): {
+  options: OptionLike[];
+  sections: { title?: string; options: OptionLike[] }[];
+  buttonLabel?: string;
+} {
+  const meta = (metadata ?? {}) as Record<string, unknown>;
+  const options = Array.isArray(meta.options) ? (meta.options as OptionLike[]) : [];
+  const sections = Array.isArray(meta.sections)
+    ? (meta.sections as { title?: string; options?: OptionLike[] }[]).map((s) => ({
+        title: s?.title,
+        options: Array.isArray(s?.options) ? s.options : [],
+      }))
+    : [];
+  const buttonLabel = typeof meta.button_label === "string" ? meta.button_label : undefined;
+  return { options, sections, buttonLabel };
+}
+
+function OptionChips({ options }: { options: OptionLike[] }) {
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1">
+      {options.map((o, i) => (
+        <span
+          key={o.id ?? i}
+          className="rounded-full border border-white/30 bg-black/10 px-2 py-0.5 text-[11px]"
+        >
+          {o.title}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function InteractiveOptions({ message }: { message: Message }) {
+  const { options, sections, buttonLabel } = readOptions(message.metadata);
+  if (options.length === 0 && sections.length === 0) return null;
+  return (
+    <div className="mt-1">
+      {options.length > 0 && <OptionChips options={options} />}
+      {sections.length > 0 && (
+        <div className="mt-1 space-y-1">
+          {buttonLabel && (
+            <p className="text-[10px] font-medium uppercase tracking-wide opacity-70">
+              {buttonLabel}
+            </p>
+          )}
+          {sections.map((s, i) => (
+            <div key={i}>
+              {s.title && <p className="text-[10px] opacity-70">{s.title}</p>}
+              <OptionChips options={s.options} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MessageContent({ message }: { message: Message }) {
+  const { t } = useI18n();
+  const isOutbound = message.sender_type !== "customer";
+
   switch (message.content_type) {
     case "text":
       return (
@@ -126,14 +287,15 @@ function MessageContent({ message }: { message: Message }) {
       );
 
     case "image":
+    case "sticker":
       return (
         <div>
           {message.media_url ? (
-            <MediaImage url={message.media_url} alt="Shared image" />
+            <MediaImage url={message.media_url} alt={t("inbox.media.image")} />
           ) : (
-            <MediaUnavailable label="Image" />
+            <MediaUnavailable label={t("inbox.media.image")} />
           )}
-          {message.content_text && (
+          {message.content_text && message.content_type === "image" && (
             <p className="mt-1 whitespace-pre-wrap break-words text-sm">
               {message.content_text}
             </p>
@@ -145,13 +307,9 @@ function MessageContent({ message }: { message: Message }) {
       return (
         <div>
           {message.media_url ? (
-            <video
-              src={message.media_url}
-              controls
-              className="max-h-64 max-w-60 rounded-lg"
-            />
+            <MediaVideo url={message.media_url} />
           ) : (
-            <MediaUnavailable label="Video" />
+            <MediaUnavailable label={t("inbox.media.video")} />
           )}
           {message.content_text && (
             <p className="mt-1 whitespace-pre-wrap break-words text-sm">
@@ -165,37 +323,25 @@ function MessageContent({ message }: { message: Message }) {
       return (
         <div>
           {message.media_url ? (
-            <audio src={message.media_url} controls className="max-w-60" />
+            <MediaAudio url={message.media_url} />
           ) : (
-            <MediaUnavailable label="Audio" />
+            <MediaUnavailable label={t("inbox.media.audio")} />
           )}
         </div>
       );
 
-    case "document":
-      if (!message.media_url) {
-        return <MediaUnavailable label={message.content_text || "Document"} />;
-      }
-      return (
-        <a
-          href={message.media_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 rounded-lg bg-slate-700/50 px-3 py-2 text-sm hover:bg-slate-700"
-        >
-          <FileText className="h-5 w-5 shrink-0 text-slate-400" />
-          <span className="truncate">
-            {message.content_text || "Document"}
-          </span>
-        </a>
-      );
+    case "document": {
+      const label = message.content_text || t("inbox.media.document");
+      if (!message.media_url) return <MediaUnavailable label={label} />;
+      return <MediaDocument url={message.media_url} label={label} />;
+    }
 
     case "template":
       return (
         <div>
           <span className="mb-1 inline-flex items-center gap-1 rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-medium text-primary">
             <LayoutTemplate className="h-3 w-3" />
-            Template
+            {t("inbox.bubble.template")}
           </span>
           {message.content_text && (
             <p className="mt-1 whitespace-pre-wrap break-words text-sm">
@@ -209,24 +355,31 @@ function MessageContent({ message }: { message: Message }) {
       return (
         <div className="flex items-center gap-2 text-sm">
           <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
-          <span>{message.content_text || "Location shared"}</span>
+          <span>{message.content_text || t("inbox.bubble.location")}</span>
         </div>
       );
 
     case "interactive": {
-      // Customer tapped a reply button or list row on a message the bot
-      // sent. We show the tapped option's title (already in content_text,
-      // set by parseMessageContent in the webhook) with a small affordance
-      // so agents reading the inbox can tell at a glance that this is a
-      // tap rather than the customer typing the same words.
+      // Outbound: the bot's buttons / list — show the text and the
+      // options as read-only chips. Inbound: the customer tapped one.
+      if (isOutbound) {
+        return (
+          <div>
+            <p className="whitespace-pre-wrap break-words text-sm">
+              {message.content_text}
+            </p>
+            <InteractiveOptions message={message} />
+          </div>
+        );
+      }
       return (
         <div className="flex flex-col gap-0.5">
           <span className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">
             <CornerDownLeft className="h-3 w-3" />
-            Button reply
+            {t("inbox.bubble.buttonReply")}
           </span>
           <p className="whitespace-pre-wrap break-words text-sm">
-            {message.content_text || "[Interactive reply]"}
+            {message.content_text || t("inbox.bubble.interactiveReply")}
           </p>
         </div>
       );
@@ -234,9 +387,12 @@ function MessageContent({ message }: { message: Message }) {
 
     default:
       return (
-        <p className="whitespace-pre-wrap break-words text-sm">
-          {message.content_text || "[Unsupported message type]"}
-        </p>
+        <div>
+          <p className="whitespace-pre-wrap break-words text-sm">
+            {message.content_text || t("inbox.bubble.unsupported")}
+          </p>
+          {isOutbound && <InteractiveOptions message={message} />}
+        </div>
       );
   }
 }
@@ -247,9 +403,47 @@ export function MessageBubble({
   reactions,
   currentUserId,
   onToggleReaction,
+  agentName,
+  onRetry,
 }: MessageBubbleProps) {
-  const isAgent = message.sender_type === "agent" || message.sender_type === "bot";
+  const { t } = useI18n();
   const time = format(new Date(message.created_at), "HH:mm");
+
+  // System notes (e.g. "conversation handed to the AI") are centred,
+  // not attributed to either side.
+  if (message.content_type === "system") {
+    const event = (message.metadata as Record<string, unknown> | null | undefined)?.event;
+    if (event === "agent_transfer") {
+      // AI agent → AI agent hand-off: a thin labelled divider.
+      return (
+        <div className="flex items-center gap-2 py-1" role="separator" aria-label={`${t("routing.inbox.transferred")}: ${message.content_text ?? ""}`}>
+          <span className="h-px flex-1 bg-violet-500/25" />
+          <span className="inline-flex max-w-[80%] items-center gap-1.5 rounded-full border border-violet-500/30 bg-slate-900/90 px-2.5 py-0.5 text-[11px] text-violet-300">
+            <ArrowRightLeft className="h-3 w-3 shrink-0" />
+            <span className="truncate">
+              {t("routing.inbox.transferred")}: {message.content_text}
+            </span>
+            <span className="shrink-0 text-[10px] text-slate-500">{time}</span>
+          </span>
+          <span className="h-px flex-1 bg-violet-500/25" />
+        </div>
+      );
+    }
+    return (
+      <div className="flex justify-center">
+        <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 px-3 py-1 text-[11px] text-slate-400">
+          <Info className="h-3 w-3" />
+          {message.content_text}
+        </span>
+      </div>
+    );
+  }
+
+  const isAgent = message.sender_type === "agent" || message.sender_type === "bot";
+  const isBot = message.sender_type === "bot";
+  const failed = message.status === "failed";
+  const meta = (message.metadata ?? {}) as Record<string, unknown>;
+  const errorText = typeof meta.error === "string" ? meta.error : null;
 
   // Row alignment + width cap are owned by <MessageActions> so its hover
   // group matches the bubble's content area, not the full row.
@@ -260,12 +454,21 @@ export function MessageBubble({
         isAgent ? "items-end" : "items-start",
       )}
     >
+      {isBot && (
+        <span className="mb-0.5 inline-flex items-center gap-1 px-1 text-[10px] text-slate-400">
+          <Bot className="h-3 w-3" />
+          {agentName || t("inbox.bubble.aiAgent")}
+        </span>
+      )}
       <div
         className={cn(
           "relative rounded-2xl px-3 py-2",
           isAgent
-            ? "rounded-br-md bg-primary text-primary-foreground"
+            ? isBot
+              ? "rounded-br-md bg-primary/80 text-primary-foreground"
+              : "rounded-br-md bg-primary text-primary-foreground"
             : "rounded-bl-md bg-slate-800 text-slate-100",
+          failed && "ring-1 ring-red-500/70",
         )}
       >
         {reply && (
@@ -282,6 +485,25 @@ export function MessageBubble({
           {isAgent && <StatusIcon status={message.status} />}
         </div>
       </div>
+      {failed && isAgent && (
+        <div className="mt-0.5 flex max-w-full items-center gap-2 px-1 text-[10px] text-red-400">
+          <span className="truncate" title={errorText ?? undefined}>
+            {errorText
+              ? t("inbox.bubble.failedWithReason", { reason: errorText })
+              : t("inbox.bubble.failed")}
+          </span>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex shrink-0 items-center gap-0.5 font-medium text-red-300 underline-offset-2 hover:underline"
+            >
+              <RotateCw className="h-3 w-3" />
+              {t("inbox.bubble.retry")}
+            </button>
+          )}
+        </div>
+      )}
       {reactions && reactions.length > 0 && onToggleReaction && (
         <MessageReactions
           reactions={reactions}

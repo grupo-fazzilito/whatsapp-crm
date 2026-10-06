@@ -1,0 +1,42 @@
+{
+  "admin": {
+    "settings": {
+      "title": "Platform settings",
+      "subtitle": "Global keys and settings used by every business.",
+      "agencyTitle": "Agency details",
+      "agencyName": "Agency name",
+      "supportEmail": "Support email",
+      "save": "Save",
+      "saved": "Saved",
+      "adminsTitle": "Platform admins",
+      "adminsBody": "Admins are regular accounts flagged as platform admins. The first one is enabled by putting its email in the PLATFORM_ADMIN_EMAILS variable; others can then be flagged in the database.",
+      "notificationsTitle": "Notifications",
+      "comingSoon": "Coming soon"
+    },
+    "ai": {
+      "title": "AI providers",
+      "subtitle": "Keys are stored encrypted and never shown again. What you set here takes precedence over environment variables (.env).",
+      "orderTitle": "Order of use",
+      "orderHelp": "The first provider with a key is tried; if it fails, the next one. An agent with its own model uses that provider first.",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "statusPanel": "Set in the panel",
+      "statusEnv": "Set in .env",
+      "statusNone": "Not configured",
+      "newKey": "New API key",
+      "replaceKey": "Replace API key",
+      "keyPlaceholder": "Paste the key here",
+      "model": "Default model",
+      "modelPlaceholder": "Default: {model}",
+      "baseUrl": "Base URL (advanced)",
+      "test": "Test connection",
+      "testing": "Testing...",
+      "testOk": "Connected ({ms} ms)",
+      "testFail": "Failed: {error}",
+      "remove": "Remove panel key",
+      "removeConfirm": "Remove the {provider} key stored in the panel? If .env has one, that will be used.",
+      "getKey": "Get a key",
+      "noneConfigured": "No provider is configured: AI agents can't reply."
+    }
+  }
+}

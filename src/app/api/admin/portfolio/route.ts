@@ -1,23 +1,11 @@
+import { isPlatformAdmin } from "@/lib/admin/guard";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 async function isAuthorized(): Promise<boolean> {
-  // Check Supabase Auth
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) return true;
-  } catch (err) {}
-
-  // Check Super Admin Cookie
-  try {
-    const cookieStore = await cookies();
-    return cookieStore.get("admin_session")?.value === "authenticated";
-  } catch (err) {
-    return false;
-  }
+  return isPlatformAdmin();
 }
 
 function getDatabaseClient() {

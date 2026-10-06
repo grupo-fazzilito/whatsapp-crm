@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useWorkspace } from "@/hooks/use-workspace";
 import type { Pipeline, PipelineStage, Deal } from "@/types";
 import { PipelineBoard } from "@/components/pipelines/pipeline-board";
 import { PipelineSettings } from "@/components/pipelines/pipeline-settings";
@@ -59,6 +60,9 @@ export default function PipelinesPage() {
 
   // Guard against double-seeding (React StrictMode double-effect in dev).
   const seedAttempted = useRef(false);
+  // Pipelines are workspace settings: only admins may create the default one.
+  const { can } = useWorkspace();
+  const canSeed = can("admin");
 
   const loadPipelines = useCallback(async () => {
     const { data, error } = await supabase
@@ -97,15 +101,9 @@ export default function PipelinesPage() {
   );
 
   const seedDefaultPipeline = useCallback(async (): Promise<Pipeline | null> => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user) return null;
-
     const { data: pipeline, error } = await supabase
       .from("pipelines")
-      .insert({ user_id: user.id, name: "Sales Pipeline" })
+      .insert({ name: "Sales Pipeline" })
       .select()
       .single();
 
@@ -132,7 +130,7 @@ export default function PipelinesPage() {
       setLoading(true);
       let list = await loadPipelines();
 
-      if (list.length === 0 && !seedAttempted.current) {
+      if (list.length === 0 && canSeed && !seedAttempted.current) {
         seedAttempted.current = true;
         const seeded = await seedDefaultPipeline();
         if (seeded) list = await loadPipelines();
@@ -152,7 +150,7 @@ export default function PipelinesPage() {
     return () => {
       cancelled = true;
     };
-  }, [loadPipelines, seedDefaultPipeline]);
+  }, [loadPipelines, seedDefaultPipeline, canSeed]);
 
   // Load stages + deals whenever selected pipeline changes.
   // Clearing on no-selection is a legitimate sync with URL/prop
@@ -237,18 +235,9 @@ export default function PipelinesPage() {
     if (!name) return;
     setCreating(true);
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user) {
-      setCreating(false);
-      return;
-    }
-
     const { data: pipeline, error } = await supabase
       .from("pipelines")
-      .insert({ user_id: user.id, name })
+      .insert({ name })
       .select()
       .single();
 

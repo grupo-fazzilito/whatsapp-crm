@@ -1,0 +1,143 @@
+{
+  "inbox": {
+    "banner": {
+      "noChannels": "No hay ningún canal conectado.",
+      "goToSettings": "Conecta uno en Configuración"
+    },
+    "status": {
+      "open": "Abierta",
+      "pending": "Pendiente",
+      "closed": "Cerrada"
+    },
+    "list": {
+      "searchPlaceholder": "Buscar conversaciones...",
+      "empty": "No se encontraron conversaciones",
+      "noMessages": "Sin mensajes todavía",
+      "unknown": "Desconocido",
+      "allChannels": "Todos los canales",
+      "allStatuses": "Todos los estados",
+      "channelFilter": "Filtrar por canal",
+      "assignmentFilter": "Filtrar por asignación",
+      "statusFilter": "Filtrar por estado",
+      "assignment": {
+        "all": "Todas",
+        "mine": "Mías",
+        "unassigned": "Sin asignar"
+      },
+      "assignedTo": "Asignada a {name}"
+    },
+    "thread": {
+      "selectTitle": "Selecciona una conversación",
+      "selectHint": "Elige una conversación de la izquierda para empezar a responder",
+      "back": "Volver a las conversaciones",
+      "refresh": "Actualizar conversación",
+      "status": "Estado",
+      "assign": "Asignar",
+      "assigned": "Asignada",
+      "noTeammates": "No hay compañeros disponibles",
+      "me": "(yo)",
+      "unassign": "Quitar asignación",
+      "noMessages": "Sin mensajes todavía",
+      "noMessagesHint": "Envía una plantilla para iniciar la conversación",
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "you": "Tú",
+      "customer": "Cliente",
+      "sendFailed": "No se pudo enviar: {reason}",
+      "updateFailed": "No se pudo actualizar la conversación: {reason}",
+      "reactionFailed": "No se pudo reaccionar: {reason}",
+      "waitForSend": "Espera a que el mensaje termine de enviarse",
+      "window": {
+        "hoursLeft": "Quedan {n} h",
+        "minutesLeft": "Quedan {n} min",
+        "expired": "Ventana vencida",
+        "noCustomer": "Sin mensajes del cliente"
+      },
+      "ai": {
+        "handledBy": "Atiende: {name}",
+        "pausedUntil": "{name} en pausa hasta las {time} — atiende una persona",
+        "take": "Tomar conversación",
+        "giveBack": "Devolver a la IA",
+        "tookOver": "Tomaste la conversación; la IA queda en pausa 12 h",
+        "handedBack": "La IA vuelve a atender esta conversación"
+      }
+    },
+    "composer": {
+      "placeholder": "Escribe un mensaje... (Shift+Enter para salto de línea)",
+      "placeholderCaption": "Añade un texto (opcional)...",
+      "placeholderExpiredTemplate": "Ventana vencida: usa una plantilla",
+      "placeholderExpiredWait": "Ventana vencida: espera a que el cliente escriba",
+      "windowExpiredTemplate": "La ventana de respuesta de {hours} h venció. Usa una plantilla para volver a contactar.",
+      "windowExpiredWait": "La ventana de respuesta de {hours} h venció; el cliente debe escribir primero.",
+      "templates": "Plantillas",
+      "sendTemplate": "Enviar plantilla",
+      "attach": "Adjuntar archivo",
+      "removeAttachment": "Quitar adjunto",
+      "send": "Enviar",
+      "fileTooLarge": "El archivo supera el máximo de {max}",
+      "fileTypeNotAllowed": "Solo se permiten imágenes, video, audio o PDF",
+      "uploadFailed": "No se pudo subir el archivo: {reason}"
+    },
+    "bubble": {
+      "aiAgent": "Agente IA",
+      "template": "Plantilla",
+      "location": "Ubicación compartida",
+      "buttonReply": "Respuesta de botón",
+      "interactiveReply": "[Respuesta interactiva]",
+      "unsupported": "[Tipo de mensaje no compatible]",
+      "unavailable": "{label} no disponible",
+      "failed": "No se entregó",
+      "failedWithReason": "No se entregó: {reason}",
+      "retry": "Reintentar"
+    },
+    "media": {
+      "image": "Imagen",
+      "video": "Video",
+      "audio": "Audio",
+      "document": "Documento"
+    },
+    "actions": {
+      "react": "Reaccionar",
+      "reactWith": "Reaccionar con {emoji}",
+      "reply": "Responder",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "copyFailed": "No se pudo copiar",
+      "nothingToCopy": "No hay texto para copiar"
+    },
+    "sidebar": {
+      "selectConversation": "Selecciona una conversación",
+      "channels": "Canales",
+      "tags": "Etiquetas",
+      "noTags": "Sin etiquetas",
+      "deals": "Negocios activos",
+      "noDeals": "Sin negocios",
+      "notes": "Notas",
+      "addNote": "Añadir una nota...",
+      "saveNote": "Guardar nota"
+    },
+    "templates": {
+      "title": "Enviar plantilla",
+      "pickHint": "Elige una plantilla aprobada de WhatsApp para enviar a este contacto.",
+      "fillHint": "Completa las variables para generar la plantilla. Meta exige que todas tengan valor.",
+      "empty": "No hay plantillas aprobadas",
+      "emptyHint": "Aprueba una plantilla en el Administrador de WhatsApp de Meta y sincronízala desde Configuración → Plantillas.",
+      "preview": "Vista previa",
+      "variable": "Variable {n}",
+      "valueFor": "Valor para {n}",
+      "back": "Atrás",
+      "send": "Enviar plantilla",
+      "cancel": "Cancelar"
+    },
+    "simulator": {
+      "button": "Simular cliente",
+      "title": "Simulador de mensajes del cliente",
+      "cancel": "Cancelar",
+      "placeholder": "Escribe lo que preguntaría el cliente (p. ej. «¿Cuál es su horario?»)",
+      "send": "Enviar como cliente",
+      "sending": "Simulando...",
+      "success": "Mensaje simulado",
+      "failed": "La simulación falló: {reason}"
+    }
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "inbox": {
+    "banner": {
+      "noChannels": "No channel is connected.",
+      "goToSettings": "Connect one in Settings"
+    },
+    "status": {
+      "open": "Open",
+      "pending": "Pending",
+      "closed": "Closed"
+    },
+    "list": {
+      "searchPlaceholder": "Search conversations...",
+      "empty": "No conversations found",
+      "noMessages": "No messages yet",
+      "unknown": "Unknown",
+      "allChannels": "All channels",
+      "allStatuses": "All statuses",
+      "channelFilter": "Filter by channel",
+      "assignmentFilter": "Filter by assignment",
+      "statusFilter": "Filter by status",
+      "assignment": {
+        "all": "All",
+        "mine": "Mine",
+        "unassigned": "Unassigned"
+      },
+      "assignedTo": "Assigned to {name}"
+    },
+    "thread": {
+      "selectTitle": "Select a conversation",
+      "selectHint": "Choose a conversation from the left to start replying",
+      "back": "Back to conversations",
+      "refresh": "Refresh conversation",
+      "status": "Status",
+      "assign": "Assign",
+      "assigned": "Assigned",
+      "noTeammates": "No teammates available",
+      "me": "(me)",
+      "unassign": "Unassign",
+      "noMessages": "No messages yet",
+      "noMessagesHint": "Send a template to start the conversation",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "you": "You",
+      "customer": "Customer",
+      "sendFailed": "Failed to send: {reason}",
+      "updateFailed": "Could not update the conversation: {reason}",
+      "reactionFailed": "Reaction failed: {reason}",
+      "waitForSend": "Wait for the message to finish sending",
+      "window": {
+        "hoursLeft": "{n}h left",
+        "minutesLeft": "{n}m left",
+        "expired": "Window expired",
+        "noCustomer": "No customer messages"
+      },
+      "ai": {
+        "handledBy": "Handled by: {name}",
+        "pausedUntil": "{name} paused until {time} — a human is handling it",
+        "take": "Take over",
+        "giveBack": "Hand back to AI",
+        "tookOver": "You took over; the AI is paused for 12 h",
+        "handedBack": "The AI is handling this conversation again"
+      }
+    },
+    "composer": {
+      "placeholder": "Type a message... (Shift+Enter for new line)",
+      "placeholderCaption": "Add a caption (optional)...",
+      "placeholderExpiredTemplate": "Window expired: use a template",
+      "placeholderExpiredWait": "Window expired: wait for the customer to write",
+      "windowExpiredTemplate": "The {hours}-hour reply window expired. Use a template to re-engage.",
+      "windowExpiredWait": "The {hours}-hour reply window expired; the customer must write first.",
+      "templates": "Templates",
+      "sendTemplate": "Send template",
+      "attach": "Attach file",
+      "removeAttachment": "Remove attachment",
+      "send": "Send",
+      "fileTooLarge": "The file exceeds the {max} limit",
+      "fileTypeNotAllowed": "Only images, video, audio or PDF are allowed",
+      "uploadFailed": "Could not upload the file: {reason}"
+    },
+    "bubble": {
+      "aiAgent": "AI agent",
+      "template": "Template",
+      "location": "Location shared",
+      "buttonReply": "Button reply",
+      "interactiveReply": "[Interactive reply]",
+      "unsupported": "[Unsupported message type]",
+      "unavailable": "{label} unavailable",
+      "failed": "Not delivered",
+      "failedWithReason": "Not delivered: {reason}",
+      "retry": "Retry"
+    },
+    "media": {
+      "image": "Image",
+      "video": "Video",
+      "audio": "Audio",
+      "document": "Document"
+    },
+    "actions": {
+      "react": "React",
+      "reactWith": "React with {emoji}",
+      "reply": "Reply",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyFailed": "Copy failed",
+      "nothingToCopy": "Nothing to copy"
+    },
+    "sidebar": {
+      "selectConversation": "Select a conversation",
+      "channels": "Channels",
+      "tags": "Tags",
+      "noTags": "No tags",
+      "deals": "Active deals",
+      "noDeals": "No deals",
+      "notes": "Notes",
+      "addNote": "Add a note...",
+      "saveNote": "Save note"
+    },
+    "templates": {
+      "title": "Send template",
+      "pickHint": "Pick an approved WhatsApp template to send to this contact.",
+      "fillHint": "Fill in the placeholders to render this template. Meta requires every variable to be set.",
+      "empty": "No approved templates",
+      "emptyHint": "Approve a template in Meta WhatsApp Manager, then sync it from Settings → Templates.",
+      "preview": "Preview",
+      "variable": "Variable {n}",
+      "valueFor": "Value for {n}",
+      "back": "Back",
+      "send": "Send template",
+      "cancel": "Cancel"
+    },
+    "simulator": {
+      "button": "Simulate customer",
+      "title": "Customer message simulator",
+      "cancel": "Cancel",
+      "placeholder": "Type what the customer would ask (e.g. 'What are your hours?')",
+      "send": "Send as customer",
+      "sending": "Simulating...",
+      "success": "Message simulated",
+      "failed": "Simulation failed: {reason}"
+    }
+  }
+}

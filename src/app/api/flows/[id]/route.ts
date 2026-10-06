@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { requireWorkspace } from '@/lib/workspace/context'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/flows/admin-client'
 
 /**
@@ -12,39 +13,41 @@ import { supabaseAdmin } from '@/lib/flows/admin-client'
  * DELETE /api/flows/[id] — hard delete (RLS+CASCADE clean up nodes,
  *                          runs, events).
  *
- * All three require a signed-in caller who owns the flow. Flows is in
+ * All three require a member of the flow's workspace (PUT/DELETE need
+ * the admin role). Flows is in
  * soft-GA — the beta gate that previously 404'd non-beta accounts is
  * gone; the "Beta" label in the UI is the only remaining signal.
  */
 
 async function requireOwnership(
   flowId: string,
+  minRole: 'agent' | 'admin' = 'agent',
 ): Promise<
   | {
       ok: true
-      userId: string
-      supabase: Awaited<ReturnType<typeof createClient>>
+      workspaceId: string
+      supabase: SupabaseClient
     }
-  | { ok: false; status: number; body: { error: string } }
+  | { ok: false; response: NextResponse }
 > {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    return { ok: false, status: 401, body: { error: 'Unauthorized' } }
-  }
-  // RLS scopes this to the caller — a flow owned by another user
+  const guard = await requireWorkspace(minRole)
+  if (!guard.ok) return guard
+  const { supabase, workspace } = guard.ctx
+  // Scoped to the active workspace — a flow from another workspace
   // returns null (404 below).
   const { data: flow } = await supabase
     .from('flows')
     .select('id')
     .eq('id', flowId)
+    .eq('workspace_id', workspace.id)
     .maybeSingle()
   if (!flow) {
-    return { ok: false, status: 404, body: { error: 'Not found' } }
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Not found' }, { status: 404 }),
+    }
   }
-  return { ok: true, userId: user.id, supabase }
+  return { ok: true, workspaceId: workspace.id, supabase }
 }
 
 export async function GET(
@@ -53,7 +56,7 @@ export async function GET(
 ) {
   const { id } = await context.params
   const guard = await requireOwnership(id)
-  if (!guard.ok) return NextResponse.json(guard.body, { status: guard.status })
+  if (!guard.ok) return guard.response
   const { supabase } = guard
 
   const [{ data: flow }, { data: nodes }] = await Promise.all([
@@ -91,8 +94,9 @@ export async function PUT(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params
-  const guard = await requireOwnership(id)
-  if (!guard.ok) return NextResponse.json(guard.body, { status: guard.status })
+  const guard = await requireOwnership(id, 'admin')
+  if (!guard.ok) return guard.response
+  const { workspaceId } = guard
 
   const body = (await request.json().catch(() => null)) as PutBody | null
   if (!body) {
@@ -128,6 +132,7 @@ export async function PUT(
     .from('flows')
     .update(flowPatch)
     .eq('id', id)
+    .eq('workspace_id', workspaceId)
   if (updErr) {
     return NextResponse.json({ error: updErr.message }, { status: 500 })
   }
@@ -139,12 +144,14 @@ export async function PUT(
       .from('flow_nodes')
       .delete()
       .eq('flow_id', id)
+      .eq('workspace_id', workspaceId)
     if (delErr) {
       return NextResponse.json({ error: delErr.message }, { status: 500 })
     }
     if (body.nodes.length > 0) {
       const { error: insErr } = await admin.from('flow_nodes').insert(
         body.nodes.map((n) => ({
+          workspace_id: workspaceId,
           flow_id: id,
           node_key: n.node_key,
           node_type: n.node_type,
@@ -162,11 +169,17 @@ export async function PUT(
   // Re-fetch and return the new state — the editor uses the response
   // to reconcile its local form state.
   const [{ data: flow }, { data: nodes }] = await Promise.all([
-    admin.from('flows').select('*').eq('id', id).maybeSingle(),
+    admin
+      .from('flows')
+      .select('*')
+      .eq('id', id)
+      .eq('workspace_id', workspaceId)
+      .maybeSingle(),
     admin
       .from('flow_nodes')
       .select('*')
       .eq('flow_id', id)
+      .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: true }),
   ])
   return NextResponse.json({ flow, nodes: nodes ?? [] })
@@ -177,15 +190,19 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params
-  const guard = await requireOwnership(id)
-  if (!guard.ok) return NextResponse.json(guard.body, { status: guard.status })
+  const guard = await requireOwnership(id, 'admin')
+  if (!guard.ok) return guard.response
 
   // CASCADE on flow_nodes / flow_runs / flow_run_events handles the
   // children. Active runs end abruptly — there's no graceful "drain"
   // mechanism in v1, but that's intentional: deleting a flow is a
   // deliberate destructive action and the partial unique index will
   // free up the contact for new triggers immediately.
-  const { error } = await supabaseAdmin().from('flows').delete().eq('id', id)
+  const { error } = await supabaseAdmin()
+    .from('flows')
+    .delete()
+    .eq('id', id)
+    .eq('workspace_id', guard.workspaceId)
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

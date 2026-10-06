@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { WorkspaceProvider, useWorkspace } from "@/hooks/use-workspace";
+import { useT } from "@/i18n/client";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 
@@ -12,6 +14,8 @@ import { Header } from "@/components/layout/header";
 
 function DashboardShellInner({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const { workspace, loading: wsLoading, missing } = useWorkspace();
+  const t = useT();
   const router = useRouter();
 
   // Sidebar drawer state — only used on mobile. On lg+ the sidebar is
@@ -25,18 +29,26 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router]);
 
-  if (loading) {
+  if (loading || (user && wsLoading)) {
     return (
       <div className="flex h-screen items-center justify-center bg-background text-foreground animate-fade-in">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         </div>
       </div>
     );
   }
 
   if (!user) return null;
+
+  if (missing || !workspace) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background p-6 text-center text-foreground">
+        <p className="max-w-sm text-sm text-muted-foreground">{t("workspace.noWorkspace")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
@@ -57,7 +69,9 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <DashboardShellInner>{children}</DashboardShellInner>
+      <WorkspaceProvider>
+        <DashboardShellInner>{children}</DashboardShellInner>
+      </WorkspaceProvider>
     </AuthProvider>
   );
 }

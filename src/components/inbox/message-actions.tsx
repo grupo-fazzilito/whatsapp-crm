@@ -10,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { Message } from "@/types";
+import { useI18n } from "@/i18n/client";
 
 // WhatsApp's own quick-reaction bar starts with these six. Picking the same
 // set keeps the affordance familiar without pulling in a 300KB emoji library.
@@ -19,6 +20,8 @@ interface MessageActionsProps {
   message: Message;
   onReply: () => void;
   onReact: (emoji: string) => void;
+  /** Hide the emoji picker on channels without reactions. Default true. */
+  canReact?: boolean;
   children: ReactNode;
 }
 
@@ -31,8 +34,10 @@ export function MessageActions({
   message,
   onReply,
   onReact,
+  canReact = true,
   children,
 }: MessageActionsProps) {
+  const { t } = useI18n();
   // Touch devices have no hover. Long-press fires `contextmenu`; we capture
   // it, suppress the native menu, and pin the toolbar open until the user
   // interacts elsewhere.
@@ -50,14 +55,14 @@ export function MessageActions({
   const handleCopy = async () => {
     const text = message.content_text ?? "";
     if (!text) {
-      toast.error("Nothing to copy");
+      toast.error(t("inbox.actions.nothingToCopy"));
       return;
     }
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Copied");
+      toast.success(t("inbox.actions.copied"));
     } catch {
-      toast.error("Copy failed");
+      toast.error(t("inbox.actions.copyFailed"));
     }
     setTouchOpen(false);
   };
@@ -96,10 +101,11 @@ export function MessageActions({
           isAgent ? "right-3" : "left-3",
         )}
       >
+        {canReact && (
         <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
           <PopoverTrigger
             className="flex h-5 w-5 items-center justify-center rounded-full text-slate-300 hover:bg-slate-700 hover:text-white"
-            aria-label="React"
+            aria-label={t("inbox.actions.react")}
           >
             <SmilePlus className="h-3.5 w-3.5" />
           </PopoverTrigger>
@@ -113,18 +119,19 @@ export function MessageActions({
                 type="button"
                 onClick={() => handlePickEmoji(e)}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-lg leading-none transition-transform hover:scale-125 hover:bg-slate-700"
-                aria-label={`React with ${e}`}
+                aria-label={t("inbox.actions.reactWith", { emoji: e })}
               >
                 {e}
               </button>
             ))}
           </PopoverContent>
         </Popover>
+        )}
         <button
           type="button"
           onClick={handleReply}
           className="flex h-5 w-5 items-center justify-center rounded-full text-slate-300 hover:bg-slate-700 hover:text-white"
-          aria-label="Reply"
+          aria-label={t("inbox.actions.reply")}
         >
           <CornerUpLeft className="h-3.5 w-3.5" />
         </button>
@@ -132,7 +139,7 @@ export function MessageActions({
           type="button"
           onClick={handleCopy}
           className="flex h-5 w-5 items-center justify-center rounded-full text-slate-300 hover:bg-slate-700 hover:text-white"
-          aria-label="Copy"
+          aria-label={t("inbox.actions.copy")}
         >
           <Copy className="h-3.5 w-3.5" />
         </button>

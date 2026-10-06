@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useWorkspace } from "@/hooks/use-workspace";
 import type { Conversation } from "@/types";
 
 /**
@@ -18,13 +19,16 @@ export function useTotalUnread(): number {
   // Keep a live local mirror of {id: unread_count} so INSERT/UPDATE/DELETE
   // events can adjust the total in O(1) without refetching.
   const countsRef = useRef<Map<string, number>>(new Map());
+  const { workspace } = useWorkspace();
+  const workspaceId = workspace?.id;
 
   useEffect(() => {
+    if (!workspaceId) return;
     const supabase = createClient();
     let cancelled = false;
 
-    // Initial load. RLS scopes this to the signed-in user automatically —
-    // no explicit user_id filter needed here.
+    // Initial load. RLS + the x-workspace-id header scope this to the
+    // active workspace automatically.
     (async () => {
       const { data, error } = await supabase
         .from("conversations")
@@ -43,10 +47,15 @@ export function useTotalUnread(): number {
     })();
 
     const channel = supabase
-      .channel("total-unread-realtime")
+      .channel(`total-unread-realtime:${workspaceId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "conversations" },
+        {
+          event: "*",
+          schema: "public",
+          table: "conversations",
+          filter: `workspace_id=eq.${workspaceId}`,
+        },
         (payload) => {
           const map = countsRef.current;
           if (payload.eventType === "DELETE") {
@@ -68,7 +77,7 @@ export function useTotalUnread(): number {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [workspaceId]);
 
   return total;
 }

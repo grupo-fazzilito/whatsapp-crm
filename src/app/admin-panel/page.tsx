@@ -43,8 +43,8 @@ export default function AdminOverviewPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/admin/stats").then(r => r.json()),
-      fetch("/api/admin/clients").then(r => r.json()),
+      fetch("/api/admin/stats").then(r => r.ok ? r.json() : null),
+      fetch("/api/admin/clients").then(r => r.ok ? r.json() : { clients: [] }),
     ]).then(([s, c]) => {
       setStats(s);
       setClients((c.clients ?? []).slice(0, 8));

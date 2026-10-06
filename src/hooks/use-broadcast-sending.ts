@@ -305,14 +305,6 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
   ): Promise<Contact[]> {
     if (csvRows.length === 0) return [];
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user) {
-      throw new Error('You are not signed in.');
-    }
-
     // De-duplicate by phone within the CSV (users can paste duplicates).
     const uniqueByPhone = new Map<string, { phone: string; name?: string }>();
     for (const row of csvRows) {
@@ -324,7 +316,6 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
     const { data: existing, error: lookupErr } = await supabase
       .from('contacts')
       .select('*')
-      .eq('user_id', user.id)
       .in('phone', phones);
     if (lookupErr) {
       throw new Error(`Failed to look up CSV contacts: ${lookupErr.message}`);
@@ -340,7 +331,6 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
     const missing = phones
       .filter((p) => !byPhone.has(p))
       .map((phone) => ({
-        user_id: user.id,
         phone,
         name: uniqueByPhone.get(phone)?.name ?? null,
       }));
@@ -406,19 +396,6 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
     const supabase = createClient();
 
     try {
-      // ── Step 0: Resolve current user ──────────────────────────────
-      // broadcasts.user_id is NOT NULL + guarded by RLS
-      // (auth.uid() = user_id). Without this, the INSERT below was
-      // silently failing with 23502 / 42501 — the wizard would
-      // no-op with no feedback.
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) {
-        throw new Error('You are not signed in.');
-      }
-
       // ── Step 1: Resolve audience contacts ─────────────────────────
       setProgress(5);
       const contacts = await resolveAudience(payload.audience);
@@ -432,7 +409,6 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
       const { data: broadcast, error: broadcastError } = await supabase
         .from('broadcasts')
         .insert({
-          user_id: user.id,
           name: payload.name,
           template_name: payload.template.name,
           template_language: payload.template.language ?? 'en_US',

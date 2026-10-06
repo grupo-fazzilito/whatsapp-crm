@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { sendTemplateMessage } from '@/lib/whatsapp/meta-api'
-import { decrypt } from '@/lib/whatsapp/encryption'
+import { requireWorkspace } from '@/lib/workspace/context'
+import { sanitizePhoneForMeta, isValidE164 } from '@/lib/whatsapp/phone-utils'
+import { defaultChannel, loadChannel } from '@/lib/channels/store'
+import { sendMessage } from '@/lib/messaging/send'
 import {
-  sanitizePhoneForMeta,
-  isValidE164,
-  phoneVariants,
-  isRecipientNotAllowedError,
-} from '@/lib/whatsapp/phone-utils'
+  findOrCreateContactByPhone,
+  findOrCreateConversationOnChannel,
+} from '@/lib/messaging/conversations'
 import {
   checkRateLimit,
   rateLimitResponse,
@@ -27,7 +26,7 @@ interface BroadcastResult {
  *   NEW (preferred — supports per-recipient variable substitution):
  *     {
  *       recipients: Array<{ phone: string; params: string[] }>,
- *       template_name, template_language
+ *       template_name, template_language, channel_id?
  *     }
  *
  *   LEGACY (all phones receive the same params — kept so existing
@@ -42,6 +41,11 @@ interface BroadcastResult {
  * sending hook was forced to ship every batch with `templateParams[0]`
  * — meaning every recipient got contact-0's personalization. The new
  * shape is what actually fixes that.
+ *
+ * `channel_id` (optional) picks the WhatsApp channel to send from;
+ * defaults to the workspace's default WhatsApp channel. Each recipient
+ * gets a contact + conversation on that channel and the template goes
+ * out through sendMessage(), so it also shows up in the inbox.
  */
 interface NewRecipient {
   phone: string
@@ -51,16 +55,10 @@ interface NewRecipient {
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Broadcasts are admin-only (RLS on broadcasts requires admin to write).
+    const guard = await requireWorkspace('admin')
+    if (!guard.ok) return guard.response
+    const { user, workspace } = guard.ctx
 
     // Per-user broadcast budget. Note: this limits how often a user
     // can *start* a campaign, not how many messages go out inside
@@ -77,6 +75,7 @@ export async function POST(request: Request) {
       template_name,
       template_language,
       template_params,
+      channel_id,
     } = body
 
     // Normalize to a list of {phone, params} regardless of shape.
@@ -108,13 +107,11 @@ export async function POST(request: Request) {
       )
     }
 
-    const { data: config, error: configError } = await supabase
-      .from('whatsapp_config')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
+    const channel = channel_id
+      ? await loadChannel(workspace.id, channel_id)
+      : await defaultChannel(workspace.id, 'whatsapp')
 
-    if (configError || !config) {
+    if (!channel || channel.type !== 'whatsapp') {
       return NextResponse.json(
         {
           error:
@@ -123,8 +120,6 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
-
-    const accessToken = decrypt(config.access_token)
 
     const results: BroadcastResult[] = []
     let sentCount = 0
@@ -143,54 +138,41 @@ export async function POST(request: Request) {
         continue
       }
 
-      // Retry with phone variants on "not in allowed list" so numbers
-      // that differ only in a trunk-prefix 0 still reach recipients.
-      const variants = phoneVariants(sanitized)
-      let sentMessageId: string | null = null
-      let lastError: string | null = null
+      try {
+        const contactId = await findOrCreateContactByPhone(workspace.id, sanitized)
+        const conversationId = contactId
+          ? await findOrCreateConversationOnChannel(channel, contactId)
+          : null
+        if (!conversationId) throw new Error('Could not create a conversation for this recipient')
 
-      for (const variant of variants) {
-        try {
-          const result = await sendTemplateMessage({
-            phoneNumberId: config.phone_number_id,
-            accessToken,
-            to: variant,
+        const result = await sendMessage({
+          workspaceId: workspace.id,
+          conversationId,
+          content: {
+            type: 'template',
             templateName: template_name,
             language: template_language || 'en_US',
             params: recipient.params,
             components: recipient.components,
-          })
-          sentMessageId = result.messageId
-          lastError = null
-          break
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error'
-          if (!isRecipientNotAllowedError(errorMessage)) {
-            lastError = errorMessage
-            break
-          }
-          lastError = errorMessage
-          // retry with next variant
-        }
-      }
+          },
+          sender: { type: 'agent', userId: user.id },
+          metadata: { source: 'broadcast' },
+        })
 
-      if (sentMessageId) {
+        if (result.status === 'failed') throw new Error(result.error || 'Send failed')
         results.push({
           phone: recipient.phone,
           status: 'sent',
-          whatsapp_message_id: sentMessageId,
+          whatsapp_message_id: result.externalId ?? undefined,
         })
         sentCount++
-      } else {
-        console.error(
-          `Failed to send broadcast to ${recipient.phone}:`,
-          lastError
-        )
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        console.error(`Failed to send broadcast to ${recipient.phone}:`, errorMessage)
         results.push({
           phone: recipient.phone,
           status: 'failed',
-          error: lastError || 'Unknown error',
+          error: errorMessage,
         })
         failedCount++
       }

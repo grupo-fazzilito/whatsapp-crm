@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { decrypt } from '@/lib/whatsapp/encryption'
+import { requireWorkspace } from '@/lib/workspace/context'
+import { defaultChannel, loadChannel } from '@/lib/channels/store'
 
 /**
  * Sync message templates from Meta → local message_templates table.
@@ -14,7 +14,7 @@ import { decrypt } from '@/lib/whatsapp/encryption'
  *   different language code than what we stored locally.
  *
  *   This route pulls the source of truth (Meta's approved templates)
- *   and upserts them into the local catalog by (user_id, name, language).
+ *   and upserts them into the local catalog by (workspace_id, name, language).
  *   After a sync, every local template row is guaranteed to match
  *   something Meta will actually accept on send.
  *
@@ -28,6 +28,10 @@ import { decrypt } from '@/lib/whatsapp/encryption'
  *   - Locally-created templates (no Meta counterpart) are NOT deleted —
  *     they remain visible so the user can notice drift and clean up
  *     manually.
+ *
+ * Body (optional): { channel_id } — the WhatsApp channel whose WABA to
+ * sync (token from its secrets, WABA id from channels.settings.waba_id).
+ * Defaults to the workspace's default WhatsApp channel.
  */
 
 const META_API_VERSION = 'v21.0'
@@ -84,27 +88,20 @@ function normalizeStatus(
   }
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
+    // message_templates writes are admin-only under RLS.
+    const guard = await requireWorkspace('admin')
+    if (!guard.ok) return guard.response
+    const { supabase, workspace } = guard.ctx
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    const reqBody = (await request.json().catch(() => ({}))) as { channel_id?: string }
+    const channel = reqBody.channel_id
+      ? await loadChannel(workspace.id, reqBody.channel_id)
+      : await defaultChannel(workspace.id, 'whatsapp')
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // whatsapp_config holds waba_id + encrypted access_token.
-    const { data: config, error: configError } = await supabase
-      .from('whatsapp_config')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-
-    if (configError || !config) {
+    const accessToken = channel?.secrets.access_token
+    if (!channel || channel.type !== 'whatsapp' || !accessToken) {
       return NextResponse.json(
         {
           error:
@@ -114,7 +111,8 @@ export async function POST() {
       )
     }
 
-    if (!config.waba_id) {
+    const wabaId = typeof channel.settings?.waba_id === 'string' ? channel.settings.waba_id : ''
+    if (!wabaId) {
       return NextResponse.json(
         {
           error:
@@ -124,8 +122,6 @@ export async function POST() {
       )
     }
 
-    const accessToken = decrypt(config.access_token)
-
     // Paginate through every template Meta has for this WABA. Meta
     // returns at most 100 per page; `paging.next` is a full URL. Cap
     // at 20 pages (2k templates) as a safety against infinite loops
@@ -133,7 +129,7 @@ export async function POST() {
     const metaTemplates: MetaTemplate[] = []
     let nextUrl:
       | string
-      | null = `${META_API_BASE}/${config.waba_id}/message_templates?limit=100&fields=id,name,language,status,category,components`
+      | null = `${META_API_BASE}/${wabaId}/message_templates?limit=100&fields=id,name,language,status,category,components`
     const PAGE_CAP = 20
     let pageCount = 0
 
@@ -162,8 +158,8 @@ export async function POST() {
       nextUrl = metaBody.paging?.next ?? null
     }
 
-    // For each Meta template: upsert by (user_id, name, language).
-    // No UNIQUE constraint on that triple, so we match manually.
+    // For each Meta template: upsert by (workspace_id, name, language)
+    // (unique since migration 022), tagging the row with the channel.
     let inserted = 0
     let updated = 0
     const errors: { name: string; language: string; message: string }[] = []
@@ -175,7 +171,8 @@ export async function POST() {
       const buttonsComp = (t.components ?? []).find((c) => c.type === 'BUTTONS')
 
       const row = {
-        user_id: user.id,
+        workspace_id: workspace.id,
+        channel_id: channel.id,
         name: t.name,
         category: normalizeCategory(t.category),
         language: t.language,
@@ -191,7 +188,7 @@ export async function POST() {
       const { data: existing, error: lookupErr } = await supabase
         .from('message_templates')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('workspace_id', workspace.id)
         .eq('name', t.name)
         .eq('language', t.language)
         .maybeSingle()

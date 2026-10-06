@@ -1,28 +1,15 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { invalidateClinicCache } from '@/lib/healthcare/clinic-cache'
+import { requireWorkspace } from '@/lib/workspace/context'
+import { invalidateBusinessContext } from '@/lib/ai/context'
 
 /**
- * POST /api/healthcare/invalidate-cache
- *
- * Invalidates the in-memory clinic context cache for the current user.
- * Call this after saving clinic settings, doctors, services, FAQs, or
- * AI settings to ensure the next patient message uses fresh data.
- *
- * Without this, changes would only take effect after the 5-minute
- * cache TTL expires.
+ * POST — drop the cached business context of the active workspace so the
+ * AI agents see business-setup changes (hours, staff, services, FAQs)
+ * immediately instead of after the 1-minute cache TTL.
  */
 export async function POST() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  invalidateClinicCache(user.id)
-
-  return NextResponse.json({ success: true, message: 'Cache invalidated' })
+  const guard = await requireWorkspace()
+  if (!guard.ok) return guard.response
+  invalidateBusinessContext(guard.ctx.workspace.id)
+  return NextResponse.json({ success: true })
 }

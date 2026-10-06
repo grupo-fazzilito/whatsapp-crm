@@ -1,23 +1,23 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { decrypt } from '@/lib/whatsapp/encryption'
-import { processHealthcareAIMessage } from '@/services/ai-healthcare.service'
+import { requireWorkspace } from '@/lib/workspace/context'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { defaultChannel, loadChannel } from '@/lib/channels/store'
+import { ingestMessage } from '@/lib/messaging/ingest'
+import type { InboundEvent } from '@/lib/channels'
+import { normalizePhone } from '@/lib/whatsapp/phone-utils'
 
+/**
+ * Dev tool (inbox simulator): pretends the conversation's customer sent
+ * `messageText` on the conversation's channel and runs it through the
+ * real inbound pipeline (ingestMessage → AI agent → flows → automations).
+ *
+ * Body: { conversationId, messageText } → { success, message_id, aiHandled }
+ */
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    const guard = await requireWorkspace()
+    if (!guard.ok) return guard.response
+    const { supabase, workspace } = guard.ctx
 
     const body = await request.json()
     const { conversationId, messageText } = body
@@ -29,12 +29,11 @@ export async function POST(request: Request) {
       )
     }
 
-    // Fetch conversation and contact
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
-      .select('*, contact:contacts(*)')
+      .select('id, channel_id, contact:contacts(id, name, phone)')
       .eq('id', conversationId)
-      .eq('user_id', user.id)
+      .eq('workspace_id', workspace.id)
       .single()
 
     if (convError || !conversation) {
@@ -44,7 +43,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const contact = conversation.contact
+    const contact = (Array.isArray(conversation.contact) ? conversation.contact[0] : conversation.contact) as
+      | { id: string; name: string | null; phone: string | null }
+      | null
     if (!contact) {
       return NextResponse.json(
         { error: 'Contact not found' },
@@ -52,70 +53,68 @@ export async function POST(request: Request) {
       )
     }
 
-    // 1. Insert patient's simulated message into messages table
-    const simulatedMsgId = `sim-user-${Date.now()}`
-    const { data: messageRecord, error: msgError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        sender_type: 'customer',
-        content_type: 'text',
-        content_text: messageText,
-        message_id: simulatedMsgId,
-        status: 'delivered',
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single()
-
-    if (msgError) {
-      console.error('[Simulate Incoming] Error inserting patient message:', msgError)
-      return NextResponse.json(
-        { error: `Failed to insert simulated message: ${msgError.message}` },
-        { status: 500 }
-      )
+    const db = supabaseAdmin()
+    const channel = conversation.channel_id
+      ? await loadChannel(workspace.id, conversation.channel_id)
+      : await defaultChannel(workspace.id, 'whatsapp')
+    if (!channel) {
+      return NextResponse.json({ error: 'No channel connected for this conversation' }, { status: 400 })
+    }
+    // Legacy conversation without channel: attach it so ingest lands the
+    // message here instead of opening a new conversation.
+    if (!conversation.channel_id) {
+      await db.from('conversations').update({ channel_id: channel.id }).eq('id', conversation.id)
     }
 
-    // 2. Update conversation last message stats
-    await supabase
-      .from('conversations')
-      .update({
-        last_message_text: messageText,
-        last_message_at: new Date().toISOString(),
-        unread_count: (conversation.unread_count || 0) + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', conversationId)
-
-    // 3. Fetch WhatsApp config if available
-    const { data: config } = await supabase
-      .from('whatsapp_config')
-      .select('*')
-      .eq('user_id', user.id)
+    // The customer's id on this channel (identity, or phone on WhatsApp).
+    const { data: identity } = await db
+      .from('contact_identities')
+      .select('external_id, handle')
+      .eq('workspace_id', workspace.id)
+      .eq('contact_id', contact.id)
+      .eq('channel_type', channel.type)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
+    const externalId =
+      identity?.external_id ?? (channel.type === 'whatsapp' && contact.phone ? normalizePhone(contact.phone) : null)
+    if (!externalId) {
+      return NextResponse.json({ error: `Contact has no ${channel.type} identity` }, { status: 400 })
+    }
 
-    const accessToken = config ? decrypt(config.access_token) : 'dummy-token'
-    const phoneNumberId = config ? config.phone_number_id : 'dummy-phone-id'
+    const now = Date.now()
+    const event: Extract<InboundEvent, { kind: 'message' }> = {
+      kind: 'message',
+      channelExternalId: channel.external_id,
+      from: {
+        externalId,
+        name: contact.name,
+        handle: identity?.handle ?? null,
+        phone: channel.type === 'whatsapp' ? contact.phone : null,
+      },
+      externalMessageId: `sim-user-${now}`,
+      timestamp: now,
+      contentType: 'text',
+      text: String(messageText),
+    }
 
-    // 4. Run AI healthcare auto-responder synchronously so we can await the result
-    const aiHandled = await processHealthcareAIMessage({
-      messageText,
-      senderPhone: contact.phone,
-      contactId: contact.id,
-      userId: user.id,
-      conversationId,
-      contextMessageId: simulatedMsgId,
-      accessToken,
-      phoneNumberId,
-    }).catch((err) => {
-      console.error('[Simulate Incoming] processHealthcareAIMessage threw error:', err)
-      return false
-    })
+    const outcome = await ingestMessage(channel, event)
+    if (!outcome?.messageId) {
+      return NextResponse.json({ error: 'Failed to ingest simulated message' }, { status: 500 })
+    }
+
+    // Did the AI agent answer? (a bot message after the simulated one)
+    const { count: botReplies } = await db
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('conversation_id', outcome.conversationId)
+      .eq('sender_type', 'bot')
+      .gte('created_at', new Date(now).toISOString())
 
     return NextResponse.json({
       success: true,
-      message_id: messageRecord.id,
-      aiHandled,
+      message_id: outcome.messageId,
+      aiHandled: (botReplies ?? 0) > 0,
     })
   } catch (error: any) {
     console.error('Error in Simulate Incoming POST:', error)
