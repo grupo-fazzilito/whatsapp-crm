@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/automations/admin-client'
 import { resumePendingExecution } from '@/lib/automations/engine'
 import type { AutomationContext } from '@/lib/automations/engine'
+import { processDueFollowups } from '@/lib/automations/followups'
 
 /**
- * Drain due `automation_pending_executions` rows. Meant to be hit
+ * Drain due `automation_pending_executions` rows, then fire due
+ * follow-up schedules (no_reply trigger, `followup_schedules`). Meant to be hit
  * on a schedule (Vercel Cron / external pinger) — requires a shared
  * secret via the `x-cron-secret` header to match
  * `AUTOMATION_CRON_SECRET`.
@@ -34,10 +36,9 @@ export async function GET(request: Request) {
     .limit(50)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  if (!due || due.length === 0) return NextResponse.json({ processed: 0 })
 
   let processed = 0
-  for (const row of due) {
+  for (const row of due ?? []) {
     const { data: claim } = await admin
       .from('automation_pending_executions')
       .update({ status: 'running' })
@@ -61,5 +62,12 @@ export async function GET(request: Request) {
     processed++
   }
 
-  return NextResponse.json({ processed })
+  let followups: { fired: number; skipped: number } | { error: string }
+  try {
+    followups = await processDueFollowups()
+  } catch (err) {
+    followups = { error: err instanceof Error ? err.message : String(err) }
+  }
+
+  return NextResponse.json({ processed, followups })
 }

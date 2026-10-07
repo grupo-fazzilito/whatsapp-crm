@@ -9,7 +9,9 @@ export type TemplateSlug =
   | 'welcome_message'
   | 'out_of_office'
   | 'lead_qualifier'
-  | 'follow_up_reminder'
+  | 'followup_no_reply_2h'
+  | 'followup_last_call_23h'
+  | 'followup_winback_3d'
   | 'appointment_booking'
 
 export interface TemplateStepSeed {
@@ -106,23 +108,51 @@ export const AUTOMATION_TEMPLATES: Record<TemplateSlug, AutomationTemplateDefini
       },
     ],
   },
-  follow_up_reminder: {
-    slug: 'follow_up_reminder',
-    name: 'Follow-up Reminder',
-    description: 'Send a nudge if a contact has not replied within 24 hours.',
-    trigger_type: 'new_message_received',
-    trigger_config: {},
+  // "Seguimientos": no_reply fires when WE spoke last and the customer
+  // stayed silent for `after`; any customer message cancels it.
+  followup_no_reply_2h: {
+    slug: 'followup_no_reply_2h',
+    name: 'Seguimiento sin respuesta (2 h)',
+    description: 'Si el cliente no responde en 2 horas, le escribimos para retomar la conversación.',
+    trigger_type: 'no_reply',
+    trigger_config: { after: { amount: 2, unit: 'hours' }, channel_ids: [] },
     steps: [
-      {
-        step_type: 'wait',
-        step_config: { amount: 1, unit: 'days' },
-      },
       {
         step_type: 'send_message',
         step_config: {
-          text:
-            "Just circling back — did you have any other questions for us? Happy to help!",
+          text: '¡Hola! 👋 ¿Pudiste revisar lo que te comentamos? Si tienes alguna duda, aquí estoy para ayudarte.',
         },
+      },
+    ],
+  },
+  followup_last_call_23h: {
+    slug: 'followup_last_call_23h',
+    name: 'Último aviso antes de 24 h',
+    description:
+      'A las 23 h sin respuesta, la IA escribe un último mensaje antes de que se cierre la ventana de 24 h de WhatsApp.',
+    trigger_type: 'no_reply',
+    trigger_config: { after: { amount: 23, unit: 'hours' }, channel_ids: [] },
+    steps: [
+      {
+        step_type: 'ai_followup',
+        step_config: {
+          instructions:
+            'Es el último mensaje que podemos enviar antes de que se cierre la conversación. Retoma lo que el cliente necesitaba y pregúntale si quiere continuar.',
+        },
+      },
+    ],
+  },
+  followup_winback_3d: {
+    slug: 'followup_winback_3d',
+    name: 'Recuperar cliente (3 días, plantilla)',
+    description:
+      'Tras 3 días sin respuesta la ventana de 24 h ya está cerrada: enviamos una plantilla aprobada de WhatsApp.',
+    trigger_type: 'no_reply',
+    trigger_config: { after: { amount: 3, unit: 'days' }, channel_ids: [] },
+    steps: [
+      {
+        step_type: 'send_template',
+        step_config: { template_name: '', language: 'es' },
       },
     ],
   },

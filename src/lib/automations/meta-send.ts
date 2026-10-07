@@ -10,11 +10,21 @@ import { supabaseAdmin } from './admin-client'
 // call sites and return shape don't change.
 // ------------------------------------------------------------
 
+/** Extra data about who/what is sending. */
+export interface EngineSendExtra {
+  automationId?: string
+  /** Sent by a follow-up (no_reply) run: never re-arms follow-ups. */
+  followup?: boolean
+  /** Message written by this AI agent (ai_followup). */
+  aiAgentId?: string | null
+}
+
 interface SendTextArgs {
   workspaceId: string
   conversationId: string
   contactId: string
   text: string
+  extra?: EngineSendExtra
 }
 
 interface SendTemplateArgs {
@@ -24,6 +34,7 @@ interface SendTemplateArgs {
   templateName: string
   language?: string
   params?: string[]
+  extra?: EngineSendExtra
 }
 
 export async function engineSendText(args: SendTextArgs): Promise<{ whatsapp_message_id: string }> {
@@ -42,7 +53,7 @@ export async function engineSendTemplate(
 }
 
 async function engineSend(
-  ids: { workspaceId: string; conversationId: string; contactId: string },
+  ids: { workspaceId: string; conversationId: string; contactId: string; extra?: EngineSendExtra },
   content: OutboundContent,
 ): Promise<{ whatsapp_message_id: string }> {
   const db = supabaseAdmin()
@@ -80,8 +91,12 @@ async function engineSend(
     workspaceId: ids.workspaceId,
     conversationId: ids.conversationId,
     content,
-    sender: { type: 'bot' },
-    metadata: { source: 'automation' },
+    sender: { type: 'bot', aiAgentId: ids.extra?.aiAgentId ?? null },
+    metadata: {
+      source: 'automation',
+      ...(ids.extra?.automationId ? { automation_id: ids.extra.automationId } : {}),
+      ...(ids.extra?.followup ? { followup: true } : {}),
+    },
   })
   if (result.status === 'failed') {
     throw new Error(result.error || 'send failed')

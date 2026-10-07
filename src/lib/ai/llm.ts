@@ -1,5 +1,7 @@
 import 'server-only'
-import { getAiConfig, type AiConfig, type AiProvider } from '@/lib/platform/settings'
+import { getAiConfig, getPlatformSetting, type AiConfig, type AiProvider } from '@/lib/platform/settings'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { costUsd, priceFor, type ModelPrice, type TokenUsage } from './pricing'
 
 // JSON-mode chat completion over several providers, tried in order until
 // one answers: Gemini (with a circuit breaker for hard failures),
@@ -22,7 +24,26 @@ export interface LlmRequest {
   model?: string | null
   temperature?: number
   timeoutMs?: number
+  /** When set, the call is recorded in ai_usage (tokens + cost). */
+  meter?: UsageMeter
 }
+
+export interface UsageMeter {
+  workspaceId: string
+  /** reply | playground | import | triage | followup | catalog */
+  purpose: string
+  aiAgentId?: string | null
+  conversationId?: string | null
+  channelId?: string | null
+}
+
+interface ProviderResult {
+  text: string
+  model: string
+  usage: TokenUsage
+}
+
+const noUsage = (): TokenUsage => ({ input: 0, cachedInput: 0, output: 0 })
 
 export class LlmUnavailableError extends Error {}
 
@@ -31,7 +52,7 @@ const BACKUP_GEMINI = 'gemini-2.0-flash'
 const CIRCUIT_MS = 60_000
 let geminiOpenUntil = 0
 
-async function gemini(model: string, req: LlmRequest, key: string): Promise<{ ok: boolean; status: number; text: string }> {
+async function gemini(model: string, req: LlmRequest, key: string): Promise<{ ok: boolean; status: number; text: string; usage: TokenUsage }> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), req.timeoutMs ?? 12_000)
   try {
@@ -50,15 +71,26 @@ async function gemini(model: string, req: LlmRequest, key: string): Promise<{ ok
       }),
     })
     const body = await res.text()
-    if (!res.ok) return { ok: false, status: res.status, text: body }
+    if (!res.ok) return { ok: false, status: res.status, text: body, usage: noUsage() }
     const data = JSON.parse(body)
-    return { ok: true, status: 200, text: data.candidates?.[0]?.content?.parts?.[0]?.text ?? '' }
+    const u = data.usageMetadata ?? {}
+    return {
+      ok: true,
+      status: 200,
+      text: data.candidates?.[0]?.content?.parts?.[0]?.text ?? '',
+      usage: {
+        input: u.promptTokenCount ?? 0,
+        cachedInput: u.cachedContentTokenCount ?? 0,
+        // Thinking tokens are billed as output.
+        output: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0),
+      },
+    }
   } finally {
     clearTimeout(timer)
   }
 }
 
-async function openai(req: LlmRequest, key: string, defaultModel?: string): Promise<string> {
+async function openai(req: LlmRequest, key: string, defaultModel?: string): Promise<ProviderResult> {
   const viaOpenRouter = key.startsWith('sk-or-')
   const url = viaOpenRouter ? 'https://openrouter.ai/api/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions'
   const isOpenAiModel = req.model && /^(gpt|o\d)/.test(req.model)
@@ -90,7 +122,12 @@ async function openai(req: LlmRequest, key: string, defaultModel?: string): Prom
     const data = await res.json()
     const content = data.choices?.[0]?.message?.content
     if (!content) throw new Error('Empty completion')
-    return content
+    const u = data.usage ?? {}
+    return {
+      text: content,
+      model,
+      usage: { input: u.prompt_tokens ?? 0, cachedInput: u.prompt_tokens_details?.cached_tokens ?? 0, output: u.completion_tokens ?? 0 },
+    }
   } finally {
     clearTimeout(timer)
   }
@@ -98,32 +135,57 @@ async function openai(req: LlmRequest, key: string, defaultModel?: string): Prom
 
 // DeepSeek speaks the OpenAI chat-completions protocol. JSON mode needs
 // the word "json" in the prompt, which the system suffix provides.
-async function deepseek(req: LlmRequest, key: string, base: string, defaultModel?: string): Promise<string> {
-  const model = req.model && req.model.startsWith('deepseek') ? req.model : defaultModel || 'deepseek-chat'
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), req.timeoutMs ?? 20_000)
-  try {
-    const res = await fetch(`${base}/chat/completions`, {
-      method: 'POST',
-      signal: ctrl.signal,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model,
-        temperature: req.temperature ?? 0.3,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: `${req.system}\n\nRespond with a single valid json object only.` },
-          ...req.turns,
-        ],
-      }),
-    })
-    if (!res.ok) throw new Error(`DeepSeek ${res.status}: ${await res.text()}`)
-    const data = await res.json()
-    const content = data.choices?.[0]?.message?.content
-    if (!content) throw new Error('Empty completion')
-    return content
-  } finally {
-    clearTimeout(timer)
+async function deepseek(req: LlmRequest, key: string, base: string, defaultModel?: string): Promise<ProviderResult> {
+  const model = req.model && req.model.startsWith('deepseek') ? req.model : defaultModel || 'deepseek-flash'
+  const call = async (jsonMode: boolean): Promise<ProviderResult> => {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), req.timeoutMs ?? 20_000)
+    try {
+      const res = await fetch(`${base}/chat/completions`, {
+        method: 'POST',
+        signal: ctrl.signal,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model,
+          temperature: req.temperature ?? 0.3,
+          max_tokens: 2048,
+          ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+          messages: [
+            {
+              role: 'system',
+              content: `${req.system}\n\nRespond with a single valid json object only${jsonMode ? '' : ' (no prose, no code fences)'}.`,
+            },
+            ...req.turns,
+          ],
+        }),
+      })
+      if (!res.ok) throw new Error(`DeepSeek ${res.status}: ${await res.text()}`)
+      const data = await res.json()
+      const u = data.usage ?? {}
+      return {
+        text: data.choices?.[0]?.message?.content ?? '',
+        model: data.model ?? model,
+        usage: { input: u.prompt_tokens ?? 0, cachedInput: u.prompt_cache_hit_tokens ?? 0, output: u.completion_tokens ?? 0 },
+      }
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+  // DeepSeek's JSON mode occasionally returns empty/whitespace content (a
+  // documented quirk). Retry once without JSON mode; the caller parses
+  // the object out of the text.
+  const first = await call(true)
+  if (first.text.trim()) return first
+  console.warn('[ai] deepseek returned empty JSON-mode content; retrying without json mode')
+  const second = await call(false)
+  if (!second.text.trim()) throw new Error('DeepSeek returned empty content')
+  return {
+    ...second,
+    usage: {
+      input: first.usage.input + second.usage.input,
+      cachedInput: first.usage.cachedInput + second.usage.cachedInput,
+      output: first.usage.output + second.usage.output,
+    },
   }
 }
 
@@ -161,24 +223,60 @@ export async function pingProvider(provider: AiProvider, cfg?: AiConfig): Promis
   )
 }
 
+async function recordUsage(meter: UsageMeter, provider: AiProvider, result: ProviderResult, latencyMs: number) {
+  try {
+    const overrides = await getPlatformSetting<Record<string, ModelPrice>>('ai_pricing')
+    const cost = costUsd(result.usage, priceFor(provider, result.model, overrides))
+    await supabaseAdmin().from('ai_usage').insert({
+      workspace_id: meter.workspaceId,
+      ai_agent_id: meter.aiAgentId ?? null,
+      conversation_id: meter.conversationId ?? null,
+      channel_id: meter.channelId ?? null,
+      purpose: meter.purpose,
+      provider,
+      model: result.model,
+      input_tokens: result.usage.input,
+      cached_input_tokens: result.usage.cachedInput,
+      output_tokens: result.usage.output,
+      cost_usd: cost,
+      latency_ms: latencyMs,
+    })
+  } catch (err) {
+    // Metering must never break a customer reply.
+    console.error('[ai] usage metering failed:', err instanceof Error ? err.message : err)
+  }
+}
+
 /** Returns the raw JSON text from the first provider that answers. */
 export async function completeJson(req: LlmRequest, cfg?: AiConfig): Promise<string> {
   const config = cfg ?? (await getAiConfig())
   const errors: string[] = []
   for (const provider of providerOrder(config, req.model)) {
     const key = config.keys[provider]!
+    const started = Date.now()
     try {
+      let result: ProviderResult
       if (provider === 'gemini') {
         if (Date.now() < geminiOpenUntil && config.order.length > 1) continue
-        const primary = req.model && req.model.startsWith('gemini') ? req.model : config.models.gemini || DEFAULT_GEMINI
-        let r = await gemini(primary, req, key)
-        if (!r.ok && (r.status === 503 || r.status === 429)) r = await gemini(BACKUP_GEMINI, req, key)
-        if (r.ok && r.text) return r.text
-        if (r.status === 404 || /"limit":\s*0/.test(r.text)) geminiOpenUntil = Date.now() + CIRCUIT_MS
-        throw new Error(`Gemini ${r.status}: ${r.text.slice(0, 200)}`)
+        let model = req.model && req.model.startsWith('gemini') ? req.model : config.models.gemini || DEFAULT_GEMINI
+        let r = await gemini(model, req, key)
+        if (!r.ok && (r.status === 503 || r.status === 429)) {
+          model = BACKUP_GEMINI
+          r = await gemini(model, req, key)
+        }
+        if (!r.ok || !r.text) {
+          if (r.status === 404 || /"limit":\s*0/.test(r.text)) geminiOpenUntil = Date.now() + CIRCUIT_MS
+          throw new Error(`Gemini ${r.status}: ${r.text.slice(0, 200)}`)
+        }
+        result = { text: r.text, model, usage: r.usage }
+      } else if (provider === 'deepseek') {
+        result = await deepseek(req, key, config.deepseekBaseUrl, config.models.deepseek)
+      } else {
+        result = await openai(req, key, config.models.openai)
       }
-      if (provider === 'deepseek') return await deepseek(req, key, config.deepseekBaseUrl, config.models.deepseek)
-      return await openai(req, key, config.models.openai)
+      if (req.meter) await recordUsage(req.meter, provider, result, Date.now() - started)
+      if (!result.text.trim()) throw new Error('empty completion')
+      return result.text
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       errors.push(`${provider}: ${msg.slice(0, 200)}`)

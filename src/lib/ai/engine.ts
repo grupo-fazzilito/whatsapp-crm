@@ -9,6 +9,8 @@ import { AGENT_OUTPUT_SCHEMA, buildSystemPrompt, type AgentOutput } from './prom
 import { cancelNextBooking, createBookingFromDraft } from './bookings'
 import { businessWindows } from './slots'
 import { toMinutes, zonedNow } from './time'
+import { getProducts, searchProducts, type CatalogQuery } from '@/lib/catalog/search'
+import { formatMoney, moneyLocale } from '@/lib/workspace/countries'
 import type { AiAgentRow, BookingDraft, ConversationAiState } from './types'
 
 export const HANDOVER_PAUSE_MS = 12 * 60 * 60 * 1000
@@ -26,13 +28,15 @@ type Lang = 'es' | 'en'
 const TEXT: Record<Lang, Record<string, string>> = {
   es: {
     handover: 'Gracias por escribir. Te comunico con una persona del equipo; en breve te responden. 🙏',
-    booked: '✅ ¡Listo! Tu {booking} quedó confirmada para el *{date}* a las *{time}*{extra}.',
+    booked: '✅ ¡Listo! Confirmamos tu {booking} para el *{date}* a las *{time}*{extra}.',
     slotTaken: 'Ese horario ya no está disponible. Opciones para ese día: {alts}. ¿Cuál prefieres?',
     closed: 'Ese día no hay disponibilidad. ¿Te propongo otra fecha?',
     past: 'Esa fecha u hora ya pasó. ¿Qué otro día te acomoda?',
-    cancelled: 'Tu {booking} del *{date}* a las *{time}* quedó cancelada.',
+    cancelled: 'Listo, cancelamos tu {booking} del *{date}* a las *{time}*.',
     noBooking: 'No encontré una reserva próxima a tu nombre. ¿Me compartes la fecha?',
     fallback: 'Disculpa, no pude procesar tu mensaje. Te comunico con una persona del equipo.',
+    missing: 'Para confirmar tu {booking} me falta: {fields}. ¿Me lo compartes?',
+    notConfirmed: 'No pude confirmar tu {booking} con esos datos. ¿Revisamos la fecha y la hora, o prefieres que te comunique con una persona del equipo?',
     with: ' con {staff}',
     for: ' para {service}',
   },
@@ -45,6 +49,8 @@ const TEXT: Record<Lang, Record<string, string>> = {
     cancelled: 'Your {booking} on *{date}* at *{time}* has been cancelled.',
     noBooking: 'I couldn’t find an upcoming booking under your name. Could you share the date?',
     fallback: 'Sorry, I couldn’t process your message. I’m connecting you with a team member.',
+    missing: 'To confirm your {booking} I still need: {fields}. Could you share it?',
+    notConfirmed: 'I couldn’t confirm your {booking} with those details. Shall we review the date and time, or would you like me to connect you with a team member?',
     with: ' with {staff}',
     for: ' for {service}',
   },
@@ -159,13 +165,41 @@ async function history(conversationId: string): Promise<ChatTurn[]> {
     else turns.push({ role, content })
   }
   while (turns.length && turns[0].role !== 'user') turns.shift()
-  return turns
+  return asJsonHistory(turns)
+}
+
+/**
+ * Past assistant turns are sent in the same JSON shape the model must
+ * answer with. With plain-text history some models (DeepSeek) drift into
+ * prose or return empty JSON-mode output after a few exchanges.
+ */
+export function asJsonHistory(turns: ChatTurn[]): ChatTurn[] {
+  return turns.map((t) => {
+    if (t.role !== 'assistant' || t.content.trimStart().startsWith('{')) return t
+    return { role: 'assistant', content: JSON.stringify({ reply: t.content }) }
+  })
+}
+
+/** Last resort when the model answered prose instead of JSON: use it as the reply. */
+export function salvageProse(raw: string): AgentOutput | null {
+  const text = raw.trim().replace(/^```\w*\s*|```$/g, '').trim()
+  if (!text || text.startsWith('{') || text.length > 2000) return null
+  return {
+    reply: text,
+    intent: 'other',
+    language: '',
+    confidence: 0.5,
+    handover: false,
+    transfer_to_agent_id: '',
+    booking_action: 'none',
+    booking: {},
+  }
 }
 
 function mergeDraft(prev: BookingDraft | undefined, out: AgentOutput['booking']): BookingDraft {
   const next: BookingDraft = { ...(prev ?? {}) }
   if (!out) return next
-  for (const k of ['service_id', 'staff_id', 'date', 'time', 'customer_name'] as const) {
+  for (const k of ['service_id', 'staff_id', 'product_id', 'date', 'time', 'customer_name'] as const) {
     const v = out[k]
     if (typeof v === 'string' && v.trim() && v.toLowerCase() !== 'any') next[k] = v.trim()
   }
@@ -250,7 +284,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     .limit(5)
 
   const targets = transferTargets(agent, ctx)
-  const system = buildSystemPrompt({
+  const promptInput = {
     ctx,
     agent,
     transferTargets: targets,
@@ -264,14 +298,44 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     })),
     customerName: contactName,
     channelLabel: CHANNEL_LABEL[input.channel.type] ?? input.channel.type,
-  })
+  }
 
   const turns = await history(input.conversationId)
   if (!turns.length || turns[turns.length - 1].role !== 'user') turns.push({ role: 'user', content: text || '[attachment]' })
 
+  const meter = { workspaceId: input.workspaceId, purpose: 'reply', aiAgentId: agent.id, conversationId: input.conversationId, channelId: input.channel.id }
+  const ask = async (catalogResults?: Parameters<typeof buildSystemPrompt>[0]['catalogResults']) => {
+    const raw = await completeJson({
+      system: buildSystemPrompt({ ...promptInput, catalogResults }),
+      turns,
+      schema: AGENT_OUTPUT_SCHEMA as unknown as Record<string, unknown>,
+      model: agent.model,
+      meter: catalogResults ? { ...meter, purpose: 'catalog' } : meter,
+    })
+    const parsed = parseJsonLoose<AgentOutput>(raw)
+    if (parsed || retried) {
+      if (parsed) return parsed
+      console.warn('[ai] unparseable model output:', raw.slice(0, 2000))
+      return salvageProse(raw)
+    }
+    console.warn('[ai] unparseable model output, retrying once:', raw.slice(0, 500))
+    retried = true
+    return ask(catalogResults)
+  }
+  let retried = false
+
   let out: AgentOutput | null = null
   try {
-    out = parseJsonLoose<AgentOutput>(await completeJson({ system, turns, schema: AGENT_OUTPUT_SCHEMA as unknown as Record<string, unknown>, model: agent.model }))
+    out = await ask()
+    if (process.env.AI_DEBUG) console.log('[ai] catalog in context:', ctx.catalog.total, 'small list:', ctx.catalog.products?.length ?? null, 'skills:', agent.skills.join(','))
+    if (process.env.AI_DEBUG) console.log('[ai] model output:', JSON.stringify(out))
+    // Large catalogs: the model asks for a search, then answers with results.
+    if (out?.catalog_search && hasCatalogQuery(out.catalog_search)) {
+      const q = toCatalogQuery(out.catalog_search)
+      const products = await searchProducts(input.workspaceId, q)
+      out = (await ask({ query: describeQuery(out.catalog_search), products })) ?? out
+      if (process.env.AI_DEBUG) console.log('[ai] model output after catalog search:', JSON.stringify(out))
+    }
   } catch (err) {
     console.error('[ai] completion failed:', err)
   }
@@ -317,12 +381,18 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
 
   // 7) Bookings.
   if (out.booking_action === 'collecting' || out.booking_action === 'confirm' || out.booking_action === 'cancel') {
-    const draft = mergeDraft(state.booking, out.booking)
+    const draft = resolveDraftIds(mergeDraft(state.booking, out.booking), ctx)
     if (!draft.customer_name && contactName && !/^\+?\d+$/.test(contactName)) draft.customer_name = contactName
+
+    // The model sometimes summarizes and forgets to flag the confirmation:
+    // a clear "yes" to a complete booking is a confirmation.
+    if (out.booking_action === 'collecting' && isAffirmative(text) && state.booking && bookingLooksComplete(draft, ctx)) {
+      out.booking_action = 'confirm'
+    }
 
     if (out.booking_action === 'cancel') {
       const cancelled = await cancelNextBooking(input.workspaceId, input.contactId, draft)
-      const msg = cancelled ? fill(T.cancelled, { booking: bookingNoun, date: cancelled.date, time: cancelled.time }) : T.noBooking
+      const msg = cancelled ? fill(T.cancelled, { booking: bookingNoun, date: longDate(cancelled.date, lang, ctx), time: cancelled.time }) : T.noBooking
       await setState(input.conversationId, { ai_state: { ...state, booking: undefined } })
       await reply(input, agent, msg)
       await log(input, agent, msg, 'cancel_booking', out.confidence ?? 1)
@@ -340,17 +410,20 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
       })
       if (result.ok) {
         const extra = [result.serviceName ? fill(T.for, { service: result.serviceName }) : '', result.staffName ? fill(T.with, { staff: result.staffName }) : ''].join('')
-        const msg = fill(T.booked, { booking: bookingNoun, date: draft.date!, time: draft.time!.padStart(5, '0'), extra })
+        const msg = fill(T.booked, { booking: bookingNoun, date: longDate(draft.date!, lang, ctx), time: draft.time!.padStart(5, '0'), extra })
         await setState(input.conversationId, { ai_state: { ...state, booking: undefined } })
         await reply(input, agent, msg)
         await log(input, agent, msg, 'booking', out.confidence ?? 1)
         return true
       }
       // Not bookable: keep what we know (minus the bad time) and explain.
-      let msg = out.reply
+      // Never forward the model's text here: it may claim the booking is done.
+      let msg = fill(T.notConfirmed, { booking: bookingNoun })
       if (result.reason === 'slot_taken') msg = fill(T.slotTaken, { alts: result.alternatives.join(', ') })
       else if (result.reason === 'closed') msg = T.closed
       else if (result.reason === 'past') msg = T.past
+      else if (result.reason === 'missing') msg = fill(T.missing, { booking: bookingNoun, fields: describeMissing(result.missing, lang, ctx) })
+      if (process.env.AI_DEBUG) console.log('[ai] booking not created:', JSON.stringify(result), JSON.stringify(draft))
       const kept = { ...draft, ...(result.reason === 'missing' ? {} : { time: null }) }
       await setState(input.conversationId, { ai_state: { ...state, booking: kept } })
       await reply(input, agent, msg)
@@ -361,10 +434,114 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     await setState(input.conversationId, { ai_state: { ...state, booking: draft } })
   }
 
-  // 8) Plain answer.
+  // 8) Plain answer (+ product photos the model chose to show).
   await reply(input, agent, out.reply, false)
+  await sendProductCards(input, agent, ctx, out.show_product_ids)
   await log(input, agent, out.reply, out.intent ?? 'other', out.confidence ?? 0)
   return true
+}
+
+// \b doesn't work after accented letters ("sí"), so end on space/punctuation.
+const AFFIRMATIVE = /^(s[ií]|si+|claro|ok(ay)?|dale|listo|confirmo|confirmado|perfecto|de acuerdo|va|correcto|yes|yep|sure|confirm(ed)?)(?=$|[\s,.;:!?¡¿])/i
+
+export function isAffirmative(text: string): boolean {
+  return AFFIRMATIVE.test(text.trim().replace(/^[¡!.,\s]+/, ''))
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+
+/** Models sometimes return names instead of ids: map them back. */
+export function resolveDraftIds(draft: BookingDraft, ctx: Pick<BusinessContext, 'services' | 'staff'>): BookingDraft {
+  const out = { ...draft }
+  const pick = <T extends { id: string; name: string }>(value: string | null | undefined, list: T[]) => {
+    if (!value) return value
+    if (UUID_RE.test(value)) return list.some((x) => x.id === value) ? value : null
+    const v = norm(value)
+    return (list.find((x) => norm(x.name) === v) ?? list.find((x) => norm(x.name).includes(v) || v.includes(norm(x.name))))?.id ?? null
+  }
+  out.service_id = pick(draft.service_id, ctx.services) ?? null
+  out.staff_id = pick(draft.staff_id, ctx.staff) ?? null
+  if (out.time) {
+    const m = /^(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?$/i.exec(out.time.trim())
+    if (m) {
+      let h = Number(m[1])
+      const pm = m[3]?.toLowerCase().startsWith('p')
+      if (pm && h < 12) h += 12
+      if (m[3] && !pm && h === 12) h = 0
+      out.time = `${String(h).padStart(2, '0')}:${m[2] ?? '00'}`
+    }
+  }
+  return out
+}
+
+/** "jueves 8 de octubre" / "Thursday, October 8" for a YYYY-MM-DD date. */
+export function longDate(date: string, lang: Lang, ctx: Pick<BusinessContext, 'workspace'>): string {
+  const [y, m, d] = date.split('-').map(Number)
+  if (!y || !m || !d) return date
+  const locale = lang === 'en' ? 'en-US' : `es-${ctx.workspace.country || 'MX'}`
+  try {
+    return new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, d)))
+  } catch {
+    return date
+  }
+}
+
+function bookingLooksComplete(draft: BookingDraft, ctx: BusinessContext): boolean {
+  return !!(draft.date && draft.time && (ctx.services.length === 0 || draft.service_id))
+}
+
+function describeMissing(missing: string[], lang: Lang, ctx: BusinessContext): string {
+  const es: Record<string, string> = { service: 'el servicio', staff: industryLabel(ctx.workspace.industry, 'staff', 'es', ctx.workspace.settings).toLowerCase(), date: 'la fecha', time: 'la hora', customer_name: 'tu nombre', party_size: 'el número de personas', product: 'cuál te interesa' }
+  const en: Record<string, string> = { service: 'the service', staff: industryLabel(ctx.workspace.industry, 'staff', 'en', ctx.workspace.settings).toLowerCase(), date: 'the date', time: 'the time', customer_name: 'your name', party_size: 'the number of people', product: 'which one you want' }
+  const dict = lang === 'en' ? en : es
+  return missing.map((m) => dict[m] ?? m).join(', ')
+}
+
+function hasCatalogQuery(q: NonNullable<AgentOutput['catalog_search']>): boolean {
+  return !!(q.text?.trim() || q.category_id || q.filters?.length || q.min_price || q.max_price)
+}
+
+export function toCatalogQuery(q: NonNullable<AgentOutput['catalog_search']>): CatalogQuery {
+  const filters: Record<string, unknown> = {}
+  for (const f of q.filters ?? []) {
+    if (!f?.key || f.value === undefined || f.value === '') continue
+    const key = f.key.trim().toLowerCase()
+    const num = Number(f.value)
+    filters[key] = /__(min|max)$/.test(key) && Number.isFinite(num) ? num : f.value
+  }
+  return {
+    text: q.text ?? null,
+    categoryId: q.category_id && /^[0-9a-f-]{36}$/i.test(q.category_id) ? q.category_id : null,
+    filters,
+    minPrice: typeof q.min_price === 'number' && q.min_price > 0 ? q.min_price : null,
+    maxPrice: typeof q.max_price === 'number' && q.max_price > 0 ? q.max_price : null,
+    limit: 8,
+  }
+}
+
+function describeQuery(q: NonNullable<AgentOutput['catalog_search']>): string {
+  return [q.text, ...(q.filters ?? []).map((f) => `${f.key}=${f.value}`), q.min_price ? `>=${q.min_price}` : '', q.max_price ? `<=${q.max_price}` : '']
+    .filter(Boolean)
+    .join(', ')
+}
+
+/** Sends up to 3 product photos with name and price as caption. */
+async function sendProductCards(input: RunAgentInput, agent: AiAgentRow, ctx: BusinessContext, ids: string[] | undefined) {
+  const wanted = (ids ?? []).filter((id) => /^[0-9a-f-]{36}$/i.test(id)).slice(0, 3)
+  if (!wanted.length) return
+  const products = await getProducts(input.workspaceId, wanted)
+  for (const p of products) {
+    if (!p.images?.[0]) continue
+    const price = p.price === null ? '' : ` — ${formatMoney(Number(p.price), ctx.workspace.currency, moneyLocale(ctx.workspace))}`
+    await sendMessage({
+      workspaceId: input.workspaceId,
+      conversationId: input.conversationId,
+      content: { type: 'media', mediaType: 'image', url: p.images[0], caption: `*${p.name}*${price}` },
+      sender: { type: 'bot', aiAgentId: agent.id },
+      metadata: { product_id: p.id },
+    })
+  }
 }
 
 export interface PreviewTurnInput {
@@ -382,6 +559,9 @@ export interface PreviewTurnResult {
   transferTo: { id: string; name: string } | null
   bookingAction: string
   draft: BookingDraft
+  /** Catalog search the agent ran before answering, if any. */
+  catalogSearch: string | null
+  showProductIds: string[]
 }
 
 /**
@@ -392,7 +572,7 @@ export async function previewAgentTurn(input: PreviewTurnInput): Promise<Preview
   const ctx = await loadBusinessContext(input.workspaceId, true)
   if (!ctx) throw new Error('Workspace not found')
   const targets = transferTargets(input.agent, ctx)
-  const system = buildSystemPrompt({
+  const promptBase = {
     ctx,
     agent: input.agent,
     transferTargets: targets,
@@ -400,10 +580,25 @@ export async function previewAgentTurn(input: PreviewTurnInput): Promise<Preview
     customerBookings: [],
     customerName: null,
     channelLabel: CHANNEL_LABEL[input.channelType ?? 'webchat'] ?? 'chat',
-  })
-  const out = parseJsonLoose<AgentOutput>(
-    await completeJson({ system, turns: input.turns, schema: AGENT_OUTPUT_SCHEMA as unknown as Record<string, unknown>, model: input.agent.model }),
-  )
+  }
+  const system = buildSystemPrompt(promptBase)
+  const ask = async (catalogResults?: Parameters<typeof buildSystemPrompt>[0]['catalogResults']) =>
+    parseJsonLoose<AgentOutput>(
+      await completeJson({
+        system: catalogResults ? buildSystemPrompt({ ...promptBase, catalogResults }) : system,
+        turns: asJsonHistory(input.turns),
+        schema: AGENT_OUTPUT_SCHEMA as unknown as Record<string, unknown>,
+        model: input.agent.model,
+        meter: { workspaceId: input.workspaceId, purpose: 'playground', aiAgentId: input.agent.id },
+      }),
+    )
+  let out = await ask()
+  let searched: string | null = null
+  if (out?.catalog_search && hasCatalogQuery(out.catalog_search)) {
+    searched = describeQuery(out.catalog_search)
+    const products = await searchProducts(input.workspaceId, toCatalogQuery(out.catalog_search))
+    out = (await ask({ query: searched, products })) ?? out
+  }
   if (!out) throw new Error('The model returned an unreadable answer')
   const target = out.transfer_to_agent_id ? targets.find((a) => a.id === out.transfer_to_agent_id) : undefined
   return {
@@ -413,5 +608,7 @@ export async function previewAgentTurn(input: PreviewTurnInput): Promise<Preview
     transferTo: target ? { id: target.id, name: target.name } : null,
     bookingAction: out.booking_action ?? 'none',
     draft: mergeDraft(input.draft ?? undefined, out.booking),
+    catalogSearch: searched,
+    showProductIds: (out.show_product_ids ?? []).slice(0, 3),
   }
 }

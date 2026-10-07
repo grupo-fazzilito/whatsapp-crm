@@ -307,7 +307,8 @@ export type AutomationTriggerType =
   | 'new_contact_created'
   | 'conversation_assigned'
   | 'tag_added'
-  | 'time_based';
+  | 'time_based'
+  | 'no_reply';
 
 export type AutomationStepType =
   | 'send_message'
@@ -320,7 +321,8 @@ export type AutomationStepType =
   | 'wait'
   | 'condition'
   | 'send_webhook'
-  | 'close_conversation';
+  | 'close_conversation'
+  | 'ai_followup';
 
 export type AutomationLogStatus = 'success' | 'partial' | 'failed';
 
@@ -340,8 +342,22 @@ export interface TimeBasedTriggerConfig {
   timezone?: string;
 }
 
+export type DelayUnit = 'minutes' | 'hours' | 'days';
+
+/** no_reply: we sent a message and the customer has not answered for `after`. */
+export interface NoReplyTriggerConfig {
+  after: { amount: number; unit: DelayUnit };
+  /** Only these channels (empty / missing = all). */
+  channel_ids?: string[];
+  /** Only conversations an AI agent is handling. */
+  only_when_ai?: boolean;
+  /** Only conversations handled by people (AI paused or no agent). */
+  only_when_human?: boolean;
+}
+
 export type AutomationTriggerConfig =
   | Record<string, never>
+  | NoReplyTriggerConfig
   | KeywordMatchTriggerConfig
   | TagTriggerConfig
   | TimeBasedTriggerConfig
@@ -403,8 +419,17 @@ export interface SendWebhookStepConfig {
   body_template?: string;
 }
 
+/** ai_followup: the AI writes a short follow-up from the conversation. */
+export interface AiFollowupStepConfig {
+  /** Defaults to the conversation's agent, then the channel's agent. */
+  agent_id?: string;
+  /** Extra guidance for this follow-up (e.g. "mention the 10% discount"). */
+  instructions?: string;
+}
+
 export type AutomationStepConfig =
   | SendMessageStepConfig
+  | AiFollowupStepConfig
   | SendTemplateStepConfig
   | TagStepConfig
   | AssignConversationStepConfig

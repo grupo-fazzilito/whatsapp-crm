@@ -24,6 +24,7 @@ import {
   Loader2,
   ArrowDown,
   ArrowUp,
+  Sparkles,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -42,6 +43,17 @@ import type {
   KeywordMatchTriggerConfig,
 } from "@/types"
 import { cn } from "@/lib/utils"
+import { useT } from "@/i18n/client"
+import type { Translator } from "@/i18n/translate"
+import {
+  AiFollowupEditor,
+  BuilderDataProvider,
+  FollowupReview,
+  NoReplyConfig,
+  issueText,
+  noReplyDefaults,
+  noReplySummary,
+} from "./followup-config"
 
 // ------------------------------------------------------------
 // Types (builder-local — mirror the flattened rows we POST)
@@ -74,6 +86,8 @@ interface StepMeta {
   icon: typeof Zap
   /** Left-border accent color per spec. */
   border: string
+  /** Translation key (newer steps); preferred over `label`. */
+  i18nKey?: string
 }
 
 const STEP_META: Record<AutomationStepType, StepMeta> = {
@@ -88,10 +102,17 @@ const STEP_META: Record<AutomationStepType, StepMeta> = {
   condition: { label: "Condition (If/Else)", icon: GitBranch, border: "border-l-amber-500" },
   send_webhook: { label: "Send Webhook", icon: Webhook, border: "border-l-primary" },
   close_conversation: { label: "Close Conversation", icon: CircleSlash, border: "border-l-primary" },
+  ai_followup: { label: "AI follow-up", icon: Sparkles, border: "border-l-violet-500", i18nKey: "followups.step.label" },
+}
+
+function stepLabel(type: AutomationStepType, t: Translator): string {
+  const meta = STEP_META[type]
+  return meta.i18nKey ? t(meta.i18nKey) : meta.label
 }
 
 const ADDABLE_STEPS: AutomationStepType[] = [
   "send_message",
+  "ai_followup",
   "send_template",
   "add_tag",
   "remove_tag",
@@ -116,7 +137,19 @@ const TRIGGER_OPTIONS: { value: AutomationTriggerType; label: string; hint: stri
   { value: "conversation_assigned", label: "Conversation Assigned", hint: "When assigned to an agent" },
   { value: "tag_added", label: "Tag Added", hint: "When a tag is added to a contact" },
   { value: "time_based", label: "Time-Based", hint: "On a recurring schedule" },
+  // Label/hint come from i18n (followups.trigger.*).
+  { value: "no_reply", label: "Customer didn't reply", hint: "" },
 ]
+
+function triggerLabel(type: AutomationTriggerType, t: Translator): string {
+  if (type === "no_reply") return t("followups.trigger.label")
+  return TRIGGER_OPTIONS.find((o) => o.value === type)?.label ?? type
+}
+
+function triggerHint(type: AutomationTriggerType, t: Translator): string {
+  if (type === "no_reply") return t("followups.trigger.hint")
+  return TRIGGER_OPTIONS.find((o) => o.value === type)?.hint ?? ""
+}
 
 function cid(): string {
   return (
@@ -150,6 +183,8 @@ function blankConfig(type: AutomationStepType): Record<string, unknown> {
       return { url: "", headers: {}, body_template: "" }
     case "close_conversation":
       return {}
+    case "ai_followup":
+      return { instructions: "" }
     default:
       return {}
   }
@@ -161,6 +196,7 @@ function blankConfig(type: AutomationStepType): Record<string, unknown> {
 
 export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
   const router = useRouter()
+  const t = useT()
   const isEditing = !!initial.id
   const [state, setState] = useState<BuilderInitial>(initial)
   const [saving, setSaving] = useState(false)
@@ -224,10 +260,10 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
         // If the server blocked activation with validation issues,
         // surface the first concrete problem so the user can fix it
         // without opening DevTools for the full array.
-        const firstIssue: { path?: string; message?: string } | undefined =
+        const firstIssue: { path?: string; message?: string; code?: string } | undefined =
           body?.issues?.[0]
         if (firstIssue?.message) {
-          toast.error(firstIssue.message, {
+          toast.error(issueText({ path: firstIssue.path ?? "", message: firstIssue.message, ...firstIssue }, t), {
             description: firstIssue.path ? `at ${firstIssue.path}` : undefined,
           })
         } else {
@@ -235,7 +271,14 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
         }
         return
       }
-      toast.success(isEditing ? "Automation saved" : "Automation created")
+      const warnings: { path: string; message: string; code?: string }[] = body?.warnings ?? []
+      if (warnings.length > 0) {
+        toast.warning(t("followups.toast.savedWithWarnings"), {
+          description: warnings.map((w) => issueText(w, t)).join(" "),
+        })
+      } else {
+        toast.success(isEditing ? "Automation saved" : "Automation created")
+      }
       if (!isEditing && body?.automation?.id) {
         router.replace(`/automations/${body.automation.id}/edit`)
       }
@@ -245,66 +288,73 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-slate-950">
-      {/* Top bar. At sub-sm widths the "Active" label is hidden and the
-          switch moves to the right of the save button, so the name input
-          gets maximum width. */}
-      <header className="flex flex-shrink-0 items-center gap-2 border-b border-slate-800 bg-slate-900/80 px-3 py-3 sm:gap-3 sm:px-4">
-        <button
-          type="button"
-          onClick={() => router.push("/automations")}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
-          aria-label="Back to automations"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <input
-          value={state.name}
-          onChange={(e) => patchTop("name", e.target.value)}
-          placeholder="Untitled automation"
-          className="min-w-0 flex-1 rounded-md bg-transparent px-2 py-1 text-sm font-semibold text-white placeholder:text-slate-500 focus:bg-slate-800 focus:outline-none sm:text-base"
-        />
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <span className="hidden sm:inline">Active</span>
-          <Switch
-            checked={state.is_active}
-            onCheckedChange={(v) => patchTop("is_active", !!v)}
-            aria-label="Active"
+    <BuilderDataProvider>
+      <div className="fixed inset-0 flex flex-col bg-slate-950">
+        {/* Top bar. At sub-sm widths the "Active" label is hidden and the
+            switch moves to the right of the save button, so the name input
+            gets maximum width. */}
+        <header className="flex flex-shrink-0 items-center gap-2 border-b border-slate-800 bg-slate-900/80 px-3 py-3 sm:gap-3 sm:px-4">
+          <button
+            type="button"
+            onClick={() => router.push("/automations")}
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+            aria-label="Back to automations"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <input
+            value={state.name}
+            onChange={(e) => patchTop("name", e.target.value)}
+            placeholder="Untitled automation"
+            className="min-w-0 flex-1 rounded-md bg-transparent px-2 py-1 text-sm font-semibold text-white placeholder:text-slate-500 focus:bg-slate-800 focus:outline-none sm:text-base"
           />
-        </div>
-        <Button
-          onClick={save}
-          disabled={saving}
-          className="bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {isEditing ? "Save" : "Save Draft"}
-        </Button>
-      </header>
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <span className="hidden sm:inline">Active</span>
+            <Switch
+              checked={state.is_active}
+              onCheckedChange={(v) => patchTop("is_active", !!v)}
+              aria-label="Active"
+            />
+          </div>
+          <Button
+            onClick={save}
+            disabled={saving}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {isEditing ? "Save" : "Save Draft"}
+          </Button>
+        </header>
 
-      {/* Canvas */}
-      <div className="relative flex-1 overflow-y-auto">
-        <div className="absolute inset-0 bg-[radial-gradient(circle,#1e293b_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
-        <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-0 px-4 py-10">
-          <TriggerCard
-            type={state.trigger_type}
-            config={state.trigger_config}
-            onTypeChange={(t) => patchTop("trigger_type", t)}
-            onConfigChange={(c) => patchTop("trigger_config", c)}
-          />
-          <StepList
-            steps={state.steps}
-            parentPath={[]}
-            expandedId={expandedId}
-            setExpandedId={setExpandedId}
-            updateStep={updateStep}
-            addStepAt={addStepAt}
-            deleteStepAt={deleteStepAt}
-            moveStepAt={moveStepAt}
-          />
+        {/* Canvas */}
+        <div className="relative flex-1 overflow-y-auto">
+          <div className="absolute inset-0 bg-[radial-gradient(circle,#1e293b_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
+          <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-0 px-4 py-10">
+            <TriggerCard
+              type={state.trigger_type}
+              config={state.trigger_config}
+              onTypeChange={(t) => patchTop("trigger_type", t)}
+              onConfigChange={(c) => patchTop("trigger_config", c)}
+            />
+            <FollowupReview
+              triggerType={state.trigger_type}
+              triggerConfig={state.trigger_config}
+              steps={state.steps}
+            />
+            <StepList
+              steps={state.steps}
+              parentPath={[]}
+              expandedId={expandedId}
+              setExpandedId={setExpandedId}
+              updateStep={updateStep}
+              addStepAt={addStepAt}
+              deleteStepAt={deleteStepAt}
+              moveStepAt={moveStepAt}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </BuilderDataProvider>
   )
 }
 
@@ -324,6 +374,7 @@ function TriggerCard({
   onConfigChange: (c: Record<string, unknown>) => void
 }) {
   const [open, setOpen] = useState(false)
+  const t = useT()
   return (
     // Card width: full on mobile, fixed 320px on sm+. The canvas wrapper
     // (max-w-2xl + px-4) keeps this tidy on tablet/desktop.
@@ -340,8 +391,11 @@ function TriggerCard({
           <div className="min-w-0 flex-1">
             <div className="text-[11px] uppercase tracking-wide text-teal-300">Trigger</div>
             <div className="truncate text-sm font-medium text-white">
-              {TRIGGER_OPTIONS.find((o) => o.value === type)?.label ?? type}
+              {triggerLabel(type, t)}
             </div>
+            {type === "no_reply" && (
+              <div className="truncate text-[11px] text-slate-500">{noReplySummary(config, t)}</div>
+            )}
           </div>
           <ChevronDown
             className={cn("h-4 w-4 text-slate-400 transition-transform", open && "rotate-180")}
@@ -355,17 +409,24 @@ function TriggerCard({
               </label>
               <select
                 value={type}
-                onChange={(e) => onTypeChange(e.target.value as AutomationTriggerType)}
+                onChange={(e) => {
+                  const next = e.target.value as AutomationTriggerType
+                  onTypeChange(next)
+                  if (next === "no_reply") {
+                    const defaults = noReplyDefaults(config)
+                    if (defaults) onConfigChange(defaults)
+                  }
+                }}
                 className="w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-white focus:border-primary focus:outline-none"
               >
                 {TRIGGER_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
-                    {o.label}
+                    {triggerLabel(o.value, t)}
                   </option>
                 ))}
               </select>
               <p className="mt-1 text-[11px] text-slate-500">
-                {TRIGGER_OPTIONS.find((o) => o.value === type)?.hint}
+                {triggerHint(type, t)}
               </p>
             </div>
             {type === "keyword_match" && (
@@ -374,6 +435,7 @@ function TriggerCard({
                 onChange={onConfigChange}
               />
             )}
+            {type === "no_reply" && <NoReplyConfig config={config} onChange={onConfigChange} />}
             {type === "tag_added" && (
               <Input
                 placeholder="Tag id"
@@ -533,6 +595,7 @@ function StepRenderer({
       ? { kind: "root", index }
       : { kind: "branch", parentCid: parentScope.parentCid, branch: parentScope.branch, index },
   ]
+  const t = useT()
   const meta = STEP_META[step.step_type]
   const Icon = meta.icon
   const expanded = props.expandedId === step.cid
@@ -566,8 +629,8 @@ function StepRenderer({
               <div className="text-[11px] uppercase tracking-wide text-slate-400">
                 {isCondition ? "Condition" : step.step_type === "wait" ? "Wait" : "Action"}
               </div>
-              <div className="truncate text-sm font-medium text-white">{meta.label}</div>
-              <div className="truncate text-[11px] text-slate-500">{previewFor(step)}</div>
+              <div className="truncate text-sm font-medium text-white">{stepLabel(step.step_type, t)}</div>
+              <div className="truncate text-[11px] text-slate-500">{previewFor(step, t)}</div>
             </div>
             <ChevronDown
               className={cn("h-4 w-4 text-slate-400 transition-transform", expanded && "rotate-180")}
@@ -679,6 +742,7 @@ function BranchColumn({
 }
 
 function AddButton({ onPick }: { onPick: (t: AutomationStepType) => void }) {
+  const t = useT()
   return (
     <div className="relative flex flex-col items-center">
       <div className="h-4 w-[2px] bg-slate-700" aria-hidden />
@@ -693,12 +757,12 @@ function AddButton({ onPick }: { onPick: (t: AutomationStepType) => void }) {
           align="start"
           className="max-h-80 min-w-56 overflow-y-auto border-slate-700 bg-slate-900"
         >
-          {ADDABLE_STEPS.map((t) => {
-            const Icon = STEP_META[t].icon
+          {ADDABLE_STEPS.map((type) => {
+            const Icon = STEP_META[type].icon
             return (
-              <DropdownMenuItem key={t} onClick={() => onPick(t)}>
+              <DropdownMenuItem key={type} onClick={() => onPick(type)}>
                 <Icon className="h-4 w-4" />
-                {STEP_META[t].label}
+                {stepLabel(type, t)}
               </DropdownMenuItem>
             )
           })}
@@ -933,6 +997,8 @@ function StepEditor({
           </FieldBlock>
         </>
       )
+    case "ai_followup":
+      return <AiFollowupEditor config={cfg} onChange={set} />
     case "close_conversation":
       return (
         <p className="text-xs text-slate-400">
@@ -959,8 +1025,10 @@ function FieldBlock({
   )
 }
 
-function previewFor(step: BuilderStep): string {
+function previewFor(step: BuilderStep, t: Translator): string {
   switch (step.step_type) {
+    case "ai_followup":
+      return (step.step_config.instructions as string) || t("followups.step.previewDefault")
     case "send_message":
       return (step.step_config.text as string) || "no text yet"
     case "send_template":

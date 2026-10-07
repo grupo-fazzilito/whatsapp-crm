@@ -4,8 +4,12 @@ import { supabaseAdmin } from '@/lib/automations/admin-client'
 import { getTemplate } from '@/lib/automations/templates'
 import { insertSteps, type BuilderStepInput } from '@/lib/automations/steps-tree'
 import {
+  partitionIssues,
+  validateChannelRules,
   validateStepsForActivation,
   validateTriggerForActivation,
+  type ChannelRef,
+  type ValidationIssue,
 } from '@/lib/automations/validate'
 
 export async function GET() {
@@ -60,22 +64,30 @@ export async function POST(request: Request) {
   // letting every trigger silently produce a failed log row. Drafts
   // (is_active=false) are allowed to be incomplete so users can save
   // progress mid-build.
+  const admin = supabaseAdmin()
+  let warnings: ValidationIssue[] = []
   if (is_active) {
-    const issues = [
+    const stepsForCheck = (effectiveSteps ?? []) as unknown as { step_type: string; step_config: Record<string, unknown> }[]
+    const { data: channels } = await admin.from('channels').select('id, type').eq('workspace_id', workspace.id)
+    const { errors, warnings: w } = partitionIssues([
       ...validateTriggerForActivation(effectiveTriggerType, effectiveTriggerConfig ?? {}),
-      ...validateStepsForActivation(
-        (effectiveSteps ?? []) as unknown as { step_type: string; step_config: Record<string, unknown> }[],
-      ),
-    ]
-    if (issues.length > 0) {
+      ...validateStepsForActivation(stepsForCheck),
+      ...validateChannelRules({
+        triggerType: effectiveTriggerType,
+        triggerConfig: effectiveTriggerConfig ?? {},
+        steps: stepsForCheck,
+        channels: (channels ?? []) as ChannelRef[],
+      }),
+    ])
+    if (errors.length > 0) {
       return NextResponse.json(
-        { error: 'Cannot activate automation with invalid configuration', issues },
+        { error: 'Cannot activate automation with invalid configuration', issues: errors, warnings: w },
         { status: 400 },
       )
     }
+    warnings = w
   }
 
-  const admin = supabaseAdmin()
   const { data: automation, error: insertErr } = await admin
     .from('automations')
     .insert({
@@ -102,5 +114,5 @@ export async function POST(request: Request) {
     if (err) return NextResponse.json({ error: err }, { status: 500 })
   }
 
-  return NextResponse.json({ automation }, { status: 201 })
+  return NextResponse.json({ automation, warnings }, { status: 201 })
 }

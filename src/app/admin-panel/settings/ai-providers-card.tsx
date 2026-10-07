@@ -30,8 +30,8 @@ const META: Record<Provider, { name: string; defaultModel: string; models: strin
   },
   deepseek: {
     name: "DeepSeek",
-    defaultModel: "deepseek-chat",
-    models: ["deepseek-chat", "deepseek-reasoner"],
+    defaultModel: "deepseek-flash",
+    models: ["deepseek-flash", "deepseek-v4-pro"],
     keyUrl: "https://platform.deepseek.com/api_keys",
   },
   openai: {

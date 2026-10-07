@@ -1,0 +1,58 @@
+{
+  "followups": {
+    "trigger": {
+      "label": "Customer didn't reply",
+      "hint": "Fires when we send a message (agent or bot) and the customer doesn't answer within the set time. If the customer writes, the follow-up is cancelled.",
+      "pill": "No reply",
+      "after": "If no reply within",
+      "amount": "Amount",
+      "unit": "Unit",
+      "units": {
+        "minutes": "minutes",
+        "hours": "hours",
+        "days": "days"
+      },
+      "lastCall": "Last call before the window closes (23 h)",
+      "lastCallHint": "WhatsApp, Instagram and Messenger only allow free-form messages up to 24 h after the customer's last message. After that, only approved WhatsApp templates.",
+      "channels": "Channels",
+      "allChannels": "All channels",
+      "noChannels": "No channels connected yet.",
+      "handler": "Conversations",
+      "handlerAll": "All",
+      "handlerAi": "Only those handled by an AI agent",
+      "handlerHuman": "Only those handled by a person",
+      "summary": "No reply within {amount} {unit}"
+    },
+    "step": {
+      "label": "AI follow-up",
+      "agent": "AI agent",
+      "agentDefault": "The conversation's (or the channel's)",
+      "agentDisabled": "disabled",
+      "instructions": "Instructions (optional)",
+      "instructionsPlaceholder": "E.g. remind them the promotion ends today",
+      "help": "The AI writes a short message from the conversation, with the agent's personality and tone. It is only sent while the messaging window is still open.",
+      "previewDefault": "The AI writes the follow-up"
+    },
+    "issues": {
+      "window_closed": "At this step the customer will have been silent for at least {hours} h: the {channels} messaging window will be closed and the message won't be sent. Use \"Send Template\".",
+      "window_closed_some": "At this step the customer will have been silent for at least {hours} h: on {channels} the window will be closed and the message won't be sent there. Consider a template.",
+      "template_whatsapp_only": "Templates only work on WhatsApp channels.",
+      "template_some_channels": "Templates don't work on {channels}: this step will fail there.",
+      "no_reply_amount": "Set how long to wait (greater than 0).",
+      "no_reply_unit": "Choose minutes, hours or days.",
+      "no_reply_too_long": "The wait can't exceed 30 days.",
+      "no_reply_channels": "The channel list is not valid.",
+      "no_reply_both_filters": "Choose \"only AI\" or \"only people\", not both.",
+      "ai_followup_agent": "The selected agent is not valid.",
+      "ai_followup_instructions_long": "Instructions are too long (max 1000 characters)."
+    },
+    "panel": {
+      "title": "Messaging window check",
+      "error": "Blocks activation",
+      "warning": "Warning"
+    },
+    "toast": {
+      "savedWithWarnings": "Saved with warnings"
+    }
+  }
+}

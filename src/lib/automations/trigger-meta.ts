@@ -2,6 +2,8 @@ import type { AutomationTriggerType } from '@/types'
 
 export interface TriggerMeta {
   label: string
+  /** Translation key (newer triggers); UI prefers it over `label`. */
+  i18nKey?: string
   /** Tailwind classes for the Badge pill on the list row. */
   pillClass: string
 }
@@ -34,6 +36,11 @@ export const TRIGGER_META: Record<AutomationTriggerType, TriggerMeta> = {
   time_based: {
     label: 'Time-Based',
     pillClass: 'border-slate-500/30 bg-slate-500/10 text-slate-300',
+  },
+  no_reply: {
+    label: 'No reply (follow-up)',
+    i18nKey: 'followups.trigger.pill',
+    pillClass: 'border-violet-500/30 bg-violet-500/10 text-violet-300',
   },
 }
 

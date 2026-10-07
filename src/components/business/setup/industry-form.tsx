@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { invalidateAi } from '../shared';
+import { ProductAttributesEditor } from './product-attributes-editor';
 
 const MODULE_KEYS: ModuleKey[] = ['bookings', 'staff', 'services', 'products', 'orders', 'triage'];
 const LABEL_KEYS = [
@@ -257,6 +258,8 @@ export function IndustryForm({ workspace, readOnly }: { workspace: Workspace; re
           </Button>
         </div>
       )}
+
+      {moduleOn('products') && <ProductAttributesEditor workspace={workspace} industry={industry} readOnly={readOnly} />}
     </div>
   );
 }

@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       )
     }
     if (!text.trim()) return NextResponse.json({ error: 'Could not extract any text from the file' }, { status: 400 })
-    const raw = await extract(system, text.slice(0, MAX_TEXT), FAQS_SCHEMA, 'faqs')
+    const raw = await extract(system, text.slice(0, MAX_TEXT), FAQS_SCHEMA, 'faqs', ws.id)
     return NextResponse.json({ faqs: normalizeFaqs(raw), fileName: file.name })
   } catch (err) {
     return importError(err)

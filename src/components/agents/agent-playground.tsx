@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRightLeft, Bot, CalendarCheck, Hand, Loader2, RotateCcw, Send, TriangleAlert } from 'lucide-react';
+import { ArrowRightLeft, Bot, CalendarCheck, Hand, ImageOff, Loader2, RotateCcw, Search, Send, TriangleAlert } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +30,11 @@ interface PreviewResult {
   bookingAction: string;
   draft: Draft;
   draftLabels: { service: string | null; staff: string | null };
+  /** Catalog search the agent ran before answering, if any. */
+  catalogSearch?: string | null;
+  showProductIds?: string[];
+  /** Names and cover photos of showProductIds. */
+  shownProducts?: { id: string; name: string; image: string | null }[];
 }
 
 interface Turn {
@@ -166,8 +171,33 @@ export function AgentPlayground({ agent: initialAgent, onSwitchAgent, onClose }:
                 {turn.content && (
                   <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-muted px-3 py-2 text-sm text-foreground">{turn.content}</div>
                 )}
+                {turn.result?.shownProducts && turn.result.shownProducts.length > 0 && (
+                  <ul className="flex max-w-[85%] flex-wrap gap-2" aria-label={t('catalog.playground.shown')}>
+                    {turn.result.shownProducts.map((p) => (
+                      <li key={p.id} className="w-24 overflow-hidden rounded-lg border border-border bg-background">
+                        <span className="block aspect-square bg-muted">
+                          {p.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={p.image} alt="" className="size-full object-cover" />
+                          ) : (
+                            <span className="flex size-full items-center justify-center text-muted-foreground">
+                              <ImageOff className="size-5" aria-hidden />
+                            </span>
+                          )}
+                        </span>
+                        <span className="line-clamp-2 px-1.5 py-1 text-[11px] text-foreground">{p.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {turn.result && (
                   <div className="flex flex-wrap items-center gap-1.5">
+                    {turn.result.catalogSearch && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2 py-0.5 text-[11px] text-sky-700 dark:text-sky-300">
+                        <Search className="size-3" />
+                        {t('catalog.playground.searched', { query: turn.result.catalogSearch })}
+                      </span>
+                    )}
                     <Badge variant="outline" className="text-[11px]">
                       {t('routing.playground.intent')}: {turn.result.intent}
                     </Badge>

@@ -1,4 +1,5 @@
 import type {
+  AiFollowupStepConfig,
   Automation,
   AutomationLogStepResult,
   AutomationStep,
@@ -16,6 +17,8 @@ import type {
 } from '@/types'
 import { supabaseAdmin } from './admin-client'
 import { engineSendText, engineSendTemplate } from './meta-send'
+import { conversationWindow, loadConversationInfo, type ConversationInfo } from './followups'
+import { supportsTemplates, windowClosedMessage } from './followup-rules'
 
 /** automations rows carry workspace_id since migration 021. */
 type WsAutomation = Automation & { workspace_id: string }
@@ -35,6 +38,12 @@ export interface AutomationContext {
   tag_id?: string
   /** Agent the conversation was assigned to, for conversation_assigned. */
   agent_id?: string
+  /**
+   * Run started by the no_reply trigger ("seguimiento"). Its parked waits
+   * are cancelled when the customer writes, and its sends never re-arm
+   * follow-up schedules.
+   */
+  followup?: boolean
 }
 
 export interface DispatchInput {
@@ -125,6 +134,14 @@ export async function resumePendingExecution(pending: {
     console.error('[automations] resume failed:', err)
     await markPending(pending.id, 'failed')
   }
+}
+
+/**
+ * Run one specific automation now (no trigger matching). Used by the
+ * follow-up cron once a no_reply schedule is due.
+ */
+export async function runAutomationNow(automation: WsAutomation, input: DispatchInput): Promise<void> {
+  await executeAutomation(automation, input)
 }
 
 // ------------------------------------------------------------
@@ -308,13 +325,58 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       const text = interpolate(cfg.text, args)
       if (!text.trim()) throw new Error('send_message has empty text')
       const conversationId = await resolveConversationId(args)
+      await assertWindowOpen(args, conversationId)
       const { whatsapp_message_id } = await engineSendText({
         workspaceId: args.automation.workspace_id,
         conversationId,
         contactId: args.contactId,
         text,
+        extra: sendExtra(args),
       })
       return `sent via Meta (${whatsapp_message_id})`
+    }
+
+    case 'ai_followup': {
+      const cfg = (step.step_config ?? {}) as AiFollowupStepConfig
+      if (!args.contactId) throw new Error('ai_followup needs a contact')
+      const conversationId = await resolveConversationId(args)
+      const info = await assertWindowOpen(args, conversationId)
+      const agentId = cfg.agent_id || info.conversationAgentId || info.channelAgentId
+      if (!agentId) throw new Error('No hay un agente de IA para este seguimiento: elige uno en el paso o asigna uno al canal')
+      const { data: agent } = await db
+        .from('ai_agents')
+        .select('*')
+        .eq('id', agentId)
+        .eq('workspace_id', args.automation.workspace_id)
+        .maybeSingle()
+      if (!agent) throw new Error('El agente de IA del seguimiento ya no existe')
+      // Lazy: the AI layer is server-only and pulls the LLM providers.
+      const { generateFollowup, loadFollowupInput } = await import('@/lib/ai/followup')
+      const { LlmUnavailableError } = await import('@/lib/ai/llm')
+      let text: string
+      try {
+        text = await generateFollowup(
+          await loadFollowupInput({
+            workspaceId: args.automation.workspace_id,
+            conversationId,
+            agent,
+            channelType: info.channelType,
+            channelId: info.channelId,
+            instructions: cfg.instructions ? interpolate(cfg.instructions, args) : null,
+          }),
+        )
+      } catch (err) {
+        if (err instanceof LlmUnavailableError) throw new Error(`IA no disponible: ${err.message}`)
+        throw err
+      }
+      const { whatsapp_message_id } = await engineSendText({
+        workspaceId: args.automation.workspace_id,
+        conversationId,
+        contactId: args.contactId,
+        text,
+        extra: { ...sendExtra(args), aiAgentId: agent.id },
+      })
+      return `AI follow-up sent (${whatsapp_message_id || 'ok'}): ${text.slice(0, 120)}`
     }
 
     case 'send_template': {
@@ -322,6 +384,10 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       if (!args.contactId) throw new Error('send_template needs a contact')
       if (!cfg.template_name) throw new Error('send_template needs template_name')
       const conversationId = await resolveConversationId(args)
+      const convInfo = await loadConversationInfo(args.automation.workspace_id, conversationId)
+      if (convInfo && !supportsTemplates(convInfo.channelType)) {
+        throw new Error('Las plantillas solo funcionan en canales de WhatsApp')
+      }
       // Meta templates use positional {{1}}, {{2}}, … placeholders, so
       // we MUST emit params in strict numeric order. Lexicographic sort
       // of "1", "2", …, "10" yields "1", "10", "2", … which silently
@@ -347,6 +413,7 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
         templateName: cfg.template_name,
         language: cfg.language,
         params,
+        extra: sendExtra(args),
       })
       return `template sent via Meta (${whatsapp_message_id})`
     }
@@ -463,6 +530,24 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
 // ------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------
+
+/** Message metadata for automation sends; follow-up runs are flagged. */
+function sendExtra(args: ExecuteArgs): { automationId: string; followup: boolean } {
+  return { automationId: args.automation.id, followup: args.context.followup === true }
+}
+
+/**
+ * Free-form messages only work inside the channel's reply window (24 h
+ * after the customer's last message on WhatsApp / Instagram / Messenger).
+ * Fail with a clear log instead of hitting the provider.
+ */
+async function assertWindowOpen(args: ExecuteArgs, conversationId: string): Promise<ConversationInfo> {
+  const info = await loadConversationInfo(args.automation.workspace_id, conversationId)
+  if (!info) throw new Error('conversation not found for this workspace')
+  const w = await conversationWindow(info, args.automation.workspace_id)
+  if (!w.open) throw new Error(windowClosedMessage(w.hours))
+  return info
+}
 
 /**
  * Pick the conversation a send-type step should use. Prefer the id the

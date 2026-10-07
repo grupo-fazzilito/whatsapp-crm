@@ -160,6 +160,6 @@ describe('runAgent', () => {
       draft: { date: '2099-01-10', time: '10:30', customer_name: 'Ana' },
     })
     expect((h.db.rows('conversations')[0].ai_state as { booking?: unknown }).booking).toBeUndefined()
-    expect(sentTexts()[0]).toContain('2099-01-10')
+    expect(sentTexts()[0]).toContain('10 de enero')
   })
 })

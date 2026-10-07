@@ -13,7 +13,7 @@ import { Header } from "@/components/layout/header";
 // client components can't export Next's metadata object.
 
 function DashboardShellInner({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
   const { workspace, loading: wsLoading, missing } = useWorkspace();
   const t = useT();
   const router = useRouter();
@@ -28,6 +28,12 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
       router.push("/login");
     }
   }, [user, loading, router]);
+
+  // The platform super-admin has no business of its own: send it to its panel.
+  const isPlatformAdminWithoutWorkspace = !wsLoading && missing && !!profile?.is_platform_admin;
+  useEffect(() => {
+    if (isPlatformAdminWithoutWorkspace) router.replace("/admin-panel");
+  }, [isPlatformAdminWithoutWorkspace, router]);
 
   if (loading || (user && wsLoading)) {
     return (

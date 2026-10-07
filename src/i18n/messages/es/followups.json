@@ -1,0 +1,58 @@
+{
+  "followups": {
+    "trigger": {
+      "label": "El cliente no respondió",
+      "hint": "Se activa cuando enviamos un mensaje (agente o bot) y el cliente no contesta en el tiempo indicado. Si el cliente escribe, el seguimiento se cancela.",
+      "pill": "Sin respuesta",
+      "after": "Si no responde en",
+      "amount": "Cantidad",
+      "unit": "Unidad",
+      "units": {
+        "minutes": "minutos",
+        "hours": "horas",
+        "days": "días"
+      },
+      "lastCall": "Último aviso antes de que cierre la ventana (23 h)",
+      "lastCallHint": "WhatsApp, Instagram y Messenger solo permiten mensajes libres hasta 24 h después del último mensaje del cliente. Después, solo plantillas aprobadas de WhatsApp.",
+      "channels": "Canales",
+      "allChannels": "Todos los canales",
+      "noChannels": "Aún no hay canales conectados.",
+      "handler": "Conversaciones",
+      "handlerAll": "Todas",
+      "handlerAi": "Solo las que atiende un agente de IA",
+      "handlerHuman": "Solo las que atiende una persona",
+      "summary": "Sin respuesta en {amount} {unit}"
+    },
+    "step": {
+      "label": "Seguimiento con IA",
+      "agent": "Agente de IA",
+      "agentDefault": "El de la conversación (o el del canal)",
+      "agentDisabled": "desactivado",
+      "instructions": "Instrucciones (opcional)",
+      "instructionsPlaceholder": "Ej.: recuérdale que la promoción termina hoy",
+      "help": "La IA escribe un mensaje corto a partir de la conversación, con la personalidad y el tono del agente. Solo se envía si la ventana de mensajería sigue abierta.",
+      "previewDefault": "La IA redacta el seguimiento"
+    },
+    "issues": {
+      "window_closed": "En este paso el cliente llevará al menos {hours} h sin escribir: la ventana de mensajería de {channels} estará cerrada y el mensaje no se enviará. Usa «Enviar plantilla».",
+      "window_closed_some": "En este paso el cliente llevará al menos {hours} h sin escribir: en {channels} la ventana estará cerrada y el mensaje no se enviará allí. Considera una plantilla.",
+      "template_whatsapp_only": "Las plantillas solo funcionan en canales de WhatsApp.",
+      "template_some_channels": "Las plantillas no funcionan en {channels}: allí este paso fallará.",
+      "no_reply_amount": "Indica cuánto esperar (mayor que 0).",
+      "no_reply_unit": "Elige minutos, horas o días.",
+      "no_reply_too_long": "La espera no puede superar 30 días.",
+      "no_reply_channels": "La lista de canales no es válida.",
+      "no_reply_both_filters": "Elige «solo IA» o «solo personas», no ambas.",
+      "ai_followup_agent": "El agente seleccionado no es válido.",
+      "ai_followup_instructions_long": "Las instrucciones son demasiado largas (máximo 1000 caracteres)."
+    },
+    "panel": {
+      "title": "Revisión de la ventana de mensajería",
+      "error": "Impide activar",
+      "warning": "Aviso"
+    },
+    "toast": {
+      "savedWithWarnings": "Guardado con avisos"
+    }
+  }
+}

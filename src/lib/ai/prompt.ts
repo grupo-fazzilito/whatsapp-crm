@@ -1,7 +1,8 @@
 import { getPreset, resolveIndustry, industryLabel } from '@/lib/industries'
-import { formatMoney } from '@/lib/workspace/countries'
+import { formatMoney, moneyLocale } from '@/lib/workspace/countries'
 import { freeSlotsForBusiness, freeSlotsForStaff, upcomingDates } from './slots'
 import { weekdayOf, zonedNow } from './time'
+import { productAttributesFor } from '@/lib/catalog/attributes'
 import type { BusinessContext } from './context'
 import type { AiAgentRow, BookingDraft } from './types'
 
@@ -40,8 +41,19 @@ export interface AgentOutput {
     time?: string
     customer_name?: string
     party_size?: number
+    product_id?: string
     fields?: { key: string; value: string }[]
   }
+  /** Ask the system to search the catalog; results come in a second turn. */
+  catalog_search?: {
+    text?: string
+    category_id?: string
+    filters?: { key: string; value: string }[]
+    min_price?: number
+    max_price?: number
+  }
+  /** Products whose photo + price should be sent after the reply (max 3). */
+  show_product_ids?: string[]
 }
 
 /** Gemini responseSchema for AgentOutput. */
@@ -64,12 +76,28 @@ export const AGENT_OUTPUT_SCHEMA = {
         time: { type: 'STRING', description: 'HH:MM 24h' },
         customer_name: { type: 'STRING' },
         party_size: { type: 'NUMBER' },
+        product_id: { type: 'STRING', description: 'Product id (e.g. property to visit)' },
         fields: {
           type: 'ARRAY',
           items: { type: 'OBJECT', properties: { key: { type: 'STRING' }, value: { type: 'STRING' } }, required: ['key', 'value'] },
         },
       },
     },
+    catalog_search: {
+      type: 'OBJECT',
+      description: 'Set ONLY to search the catalog before answering',
+      properties: {
+        text: { type: 'STRING' },
+        category_id: { type: 'STRING' },
+        filters: {
+          type: 'ARRAY',
+          items: { type: 'OBJECT', properties: { key: { type: 'STRING' }, value: { type: 'STRING' } }, required: ['key', 'value'] },
+        },
+        min_price: { type: 'NUMBER' },
+        max_price: { type: 'NUMBER' },
+      },
+    },
+    show_product_ids: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Up to 3 product ids to send with photo' },
   },
   required: ['reply', 'intent', 'language', 'confidence', 'handover', 'transfer_to_agent_id', 'booking_action'],
 } as const
@@ -97,11 +125,13 @@ export interface PromptInput {
   customerBookings: { id: string; booking_date: string; booking_time: string; service_name: string | null; staff_name: string | null }[]
   customerName: string | null
   channelLabel: string
+  /** Results of a catalog search requested in the previous model turn. */
+  catalogResults?: { query: string; products: import('./context').CatalogProduct[] } | null
 }
 
 function money(ctx: BusinessContext, amount: number | null | undefined): string {
   if (amount === null || amount === undefined) return '—'
-  return formatMoney(Number(amount), ctx.workspace.currency, ctx.workspace.locale === 'en' ? 'en-US' : 'es-MX')
+  return formatMoney(Number(amount), ctx.workspace.currency, moneyLocale(ctx.workspace))
 }
 
 function availabilityBlock(input: PromptInput): string {
@@ -171,6 +201,7 @@ export function buildSystemPrompt(input: PromptInput): string {
         ? `Always reply in the language the customer writes in (default ${locale === 'en' ? 'English' : 'Spanish'}).`
         : `Always reply in ${agent.language === 'en' ? 'English' : 'Spanish'}.`,
       'Write short chat messages (WhatsApp style). Use *bold* sparingly. Never invent information that is not in this prompt; if you do not know, say so and offer a human.',
+      'Never promise actions the system cannot do (e.g. notifying the customer later, holding stock, discounts, sending emails); offer a human instead.',
     ]
       .filter(Boolean)
       .join('\n'),
@@ -261,6 +292,8 @@ export function buildSystemPrompt(input: PromptInput): string {
         '- Put customer_name in booking.customer_name; other fields go in booking.fields as {key, value}. party_size goes in booking.party_size.',
         '- Fill booking.* with everything known so far on EVERY turn (ids from the lists, dates YYYY-MM-DD, times HH:MM) and set booking_action="collecting".',
         '- When everything is known, summarize it and ask the customer to confirm. Only when the customer clearly confirms set booking_action="confirm" (the system will validate the slot and send the confirmation itself).',
+        '- NEVER say the booking is confirmed, booked or scheduled yourself: only the system confirms. When you set booking_action="confirm" your reply text is not sent.',
+        '- service_id and staff_id must be the ids in brackets from the lists above, not names.',
         '- To cancel an existing booking set booking_action="cancel" after the customer confirms which one.',
         input.customerBookings.length
           ? `- Customer's upcoming bookings: ${input.customerBookings.map((b) => `${b.booking_date} ${b.booking_time}${b.service_name ? ` ${b.service_name}` : ''}${b.staff_name ? ` with ${b.staff_name}` : ''}`).join('; ')}`
@@ -275,8 +308,49 @@ export function buildSystemPrompt(input: PromptInput): string {
     sections.push('BOOKINGS: you cannot book. If asked, offer to pass the conversation to a human (handover=true).')
   }
 
-  if (skills.has('catalog') || skills.has('orders')) {
-    sections.push(`CATALOG/ORDERS: not available in this chat yet; offer a human for product questions or orders.`)
+  if ((skills.has('catalog') || skills.has('orders')) && modules.products) {
+    const fields = productAttributesFor(ws.industry, ws.settings)
+    const cat = ctx.catalog
+    const catName = (id: string | null) => cat.categories.find((c) => c.id === id)?.name
+    const line = (p: import('./context').CatalogProduct) => {
+      const attrs = Object.entries(p.attributes ?? {})
+        .filter(([, v]) => v !== null && v !== '' && !(Array.isArray(v) && !v.length))
+        .map(([k, v]) => `${k}=${Array.isArray(v) ? v.join('/') : v}`)
+        .join(', ')
+      const stock = p.track_stock ? ((p.stock ?? 0) > 0 ? `stock ${p.stock}` : 'OUT OF STOCK') : ''
+      return `- [${p.id}] ${p.name}: ${p.price === null ? 'price on request' : money(ctx, p.price)}${catName(p.category_id) ? ` | ${catName(p.category_id)}` : ''}${attrs ? ` | ${attrs}` : ''}${stock ? ` | ${stock}` : ''}${p.images?.length ? ' | has photo' : ''}${p.description ? ` — ${p.description.slice(0, 160)}` : ''}`
+    }
+    const lines = [
+      `CATALOG ("${L('productPlural')}", ${cat.total} active):`,
+      cat.categories.length ? `- Categories: ${cat.categories.map((c) => `[${c.id}] ${c.name}`).join('; ')}` : '',
+      fields.length
+        ? `- Searchable attributes: ${fields
+            .map((f) => `${f.key} (${f.type}${f.options ? `: ${f.options.map((o) => o.value).join('|')}` : ''}${f.unit ? `, ${f.unit}` : ''})`)
+            .join('; ')}`
+        : '',
+      '- Only mention products, prices and stock that appear in this prompt. Never invent products. If something is out of stock, say so and suggest alternatives.',
+      '- To show photos, put up to 3 product ids in show_product_ids (only products that "has photo").',
+    ]
+    if (input.catalogResults) {
+      lines.push(
+        `SEARCH RESULTS for "${input.catalogResults.query}":`,
+        input.catalogResults.products.length ? input.catalogResults.products.map(line).join('\n') : '- No products matched. Say so and ask a clarifying question or suggest a broader search.',
+        'Answer now using these results (do NOT set catalog_search again).',
+      )
+    } else if (cat.products) {
+      lines.push('FULL CATALOG:', cat.products.map(line).join('\n'))
+    } else if (cat.total > 0) {
+      lines.push(
+        '- The catalog is too large to list. When the customer asks about products, set catalog_search (text and/or category_id, filters as {key, value}; for numeric ranges use key "<attr>__min"/"<attr>__max"; min_price/max_price for price) and write a short placeholder reply; the system will run the search and ask you again with the results.',
+      )
+    } else {
+      lines.push('- The catalog is empty: offer to connect with a human.')
+    }
+    sections.push(lines.filter(Boolean).join('\n'))
+  }
+
+  if (skills.has('orders')) {
+    sections.push('ORDERS: taking orders in chat is not available yet; when the customer wants to buy, offer to pass the conversation to a human (handover=true).')
   }
 
   if (input.transferTargets.length) {
