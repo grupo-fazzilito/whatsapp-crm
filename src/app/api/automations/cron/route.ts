@@ -4,6 +4,7 @@ import { resumePendingExecution } from '@/lib/automations/engine'
 import type { AutomationContext } from '@/lib/automations/engine'
 import { processDueFollowups } from '@/lib/automations/followups'
 import { remindAbandonedCarts } from '@/lib/orders/abandoned'
+import { remindDueTasks } from '@/lib/crm/reminders'
 
 /**
  * Drain due `automation_pending_executions` rows, then fire due
@@ -77,5 +78,12 @@ export async function GET(request: Request) {
     abandonedCarts = { error: err instanceof Error ? err.message : String(err) }
   }
 
-  return NextResponse.json({ processed, followups, abandonedCarts })
+  let taskReminders: Awaited<ReturnType<typeof remindDueTasks>> | { error: string }
+  try {
+    taskReminders = await remindDueTasks()
+  } catch (err) {
+    taskReminders = { error: err instanceof Error ? err.message : String(err) }
+  }
+
+  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders })
 }

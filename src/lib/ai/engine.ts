@@ -14,6 +14,7 @@ import { formatMoney, moneyLocale } from '@/lib/workspace/countries'
 import { addToCart, cartItems, getOpenCart, setLineQuantity } from '@/lib/orders/service'
 import { ordersEnabled, sendCartSummary, sendProductCarousel, startCheckout, type CommerceCtx } from '@/lib/orders/chat'
 import type { AiAgentRow, BookingDraft, ConversationAiState } from './types'
+import { autoAssignConversation } from '@/lib/inbox/server'
 
 export const HANDOVER_PAUSE_MS = 12 * 60 * 60 * 1000
 const HISTORY_TURNS = 14
@@ -140,6 +141,8 @@ export async function handOverToHuman(
     contact_id: input.contactId,
     note_text: `[IA → humano] ${reason}. Último mensaje: "${input.messageText.slice(0, 300)}"`,
   })
+  // Nobody picked yet: round-robin when the workspace enabled it.
+  if (!assigneeUserId) await autoAssignConversation(input.workspaceId, input.conversationId, 'ai_handover')
 }
 
 function isClosedNow(ctx: BusinessContext): boolean {
@@ -155,6 +158,8 @@ async function history(conversationId: string): Promise<ChatTurn[]> {
     .select('sender_type, content_text, content_type, created_at')
     .eq('conversation_id', conversationId)
     .neq('content_type', 'system')
+    // Team-only notes never reach the model.
+    .neq('is_internal', true)
     .order('created_at', { ascending: false })
     .limit(HISTORY_TURNS)
   const turns: ChatTurn[] = []

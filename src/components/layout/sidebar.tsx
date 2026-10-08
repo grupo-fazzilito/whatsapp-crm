@@ -35,6 +35,8 @@ import {
   Bot,
   Package,
   ShoppingBag,
+  ListTodo,
+  BarChart3,
 } from "lucide-react";
 import {
   Avatar,
@@ -68,8 +70,10 @@ const navItems: NavItem[] = [
   { href: "/inbox", label: "nav.inbox", icon: MessageSquare },
   { href: "/contacts", label: "nav.contacts", icon: Users },
   { href: "/pipelines", label: "nav.pipelines", icon: GitBranch },
+  { href: "/tasks", label: "crm.tasks.navTitle", icon: ListTodo },
   { href: "/automations", label: "nav.automations", icon: Zap },
   { href: "/flows", label: "nav.flows", icon: Workflow },
+  { href: "/reports", label: "reports.navTitle", icon: BarChart3 },
   { href: "/channels", label: "channels.navTitle", icon: Radio },
   { href: "/agents", label: "agents.navTitle", icon: Bot },
 ];
@@ -207,7 +211,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     )}
                   >
                     <item.icon className="h-4 w-4" />
-                    <span className="flex-1">{t(item.label)}</span>
+                    <span className="flex-1">{t(item.href === "/reports" && !can("admin") ? "reports.navPersonal" : item.label)}</span>
                     {item.beta && (
                       <span
                         aria-label="Beta feature"

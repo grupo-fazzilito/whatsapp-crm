@@ -11,6 +11,7 @@ import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { cancelFollowupsForInbound } from '@/lib/automations/followups'
 import { handleCheckoutText, handleCommerceAction, handlePaymentProof, isCommerceAction, type CommerceCtx } from '@/lib/orders/chat'
 import type { Workspace } from '@/lib/workspace/types'
+import { autoAssignConversation, recordEvent } from '@/lib/inbox/server'
 
 type MessageEvent = Extract<InboundEvent, { kind: 'message' }>
 
@@ -320,6 +321,7 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
       last_message_text: ev.text || `[${ev.contentType}]`,
       last_message_at: now,
       unread_count: (conversation.unread_count || 0) + 1,
+      last_customer_message_at: new Date(ev.timestamp).toISOString(),
       updated_at: now,
     })
     .eq('id', conversation.id)
@@ -341,7 +343,11 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
   if (conversation.status === 'closed') {
     aiState = {}
     conversationAgentId = null
-    await db.from('conversations').update({ status: 'open', ai_agent_id: null, ai_state: {} }).eq('id', conversation.id)
+    await db
+      .from('conversations')
+      .update({ status: 'open', ai_agent_id: null, ai_state: {}, resolved_at: null, resolved_by: null })
+      .eq('id', conversation.id)
+    await recordEvent({ workspaceId: ws, conversationId: conversation.id, type: 'reopened', data: { by: 'customer' } })
   }
 
   // 0) Shopping: cart/checkout buttons, the answer to a checkout question
@@ -384,6 +390,12 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
       console.error('[ingest] AI routing failed:', err)
       return false
     })
+  }
+
+  // 2b) Nobody owns a brand-new conversation (no AI agent, no person):
+  //     round-robin auto-assignment when the workspace enabled it.
+  if (isFirstInboundMessage && !flow.consumed && !aiHandled && !conversation.assigned_agent_id && !(conversationAgentId ?? channel.ai_agent_id)) {
+    await autoAssignConversation(ws, conversation.id, 'new_conversation')
   }
 
   // 3) Automations (fire-and-forget).

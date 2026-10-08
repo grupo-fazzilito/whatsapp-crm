@@ -27,18 +27,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GitBranch, Plus, ChevronDown, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { useI18n } from "@/i18n/client";
+import { CloseDealDialog, type CloseStatus } from "@/components/crm/close-deal-dialog";
+import { cn } from "@/lib/utils";
 
-// Spec-defined seed — name and color per the product spec.
+// Spec-defined seed — color per the product spec, names in the UI language.
 const SPEC_DEFAULT_STAGES = [
-  { name: "New Lead", color: "#3b82f6", position: 0 }, // blue
-  { name: "Qualified", color: "#eab308", position: 1 }, // yellow
-  { name: "Proposal Sent", color: "#f97316", position: 2 }, // orange
-  { name: "Negotiation", color: "#8b5cf6", position: 3 }, // purple
-  { name: "Won", color: "#22c55e", position: 4 }, // green
+  { key: "newLead", color: "#3b82f6", position: 0 }, // blue
+  { key: "qualified", color: "#eab308", position: 1 }, // yellow
+  { key: "proposal", color: "#f97316", position: 2 }, // orange
+  { key: "negotiation", color: "#8b5cf6", position: 3 }, // purple
+  { key: "won", color: "#22c55e", position: 4 }, // green
 ];
+
+type StatusFilter = "open" | "won" | "lost" | "all";
+const STATUS_FILTERS: StatusFilter[] = ["open", "won", "lost", "all"];
+const FILTER_KEY = "pipelines:status";
 
 export default function PipelinesPage() {
   const supabase = createClient();
+  const { t } = useI18n();
 
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
@@ -57,6 +65,31 @@ export default function PipelinesPage() {
   const [dealFormOpen, setDealFormOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [defaultStageId, setDefaultStageId] = useState<string>("");
+
+  // Won / lost dialog (reason) + board status filter.
+  const [closing, setClosing] = useState<{ deal: Deal; status: CloseStatus } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
+  // Deep link: /pipelines?deal=<id> opens that deal.
+  const [deepLinkDealId, setDeepLinkDealId] = useState<string | null>(null);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("deal");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (id) setDeepLinkDealId(id);
+    try {
+      const saved = window.localStorage.getItem(FILTER_KEY) as StatusFilter | null;
+      if (saved && STATUS_FILTERS.includes(saved)) setStatusFilter(saved);
+    } catch {
+      /* storage blocked */
+    }
+  }, []);
+  const changeFilter = (f: StatusFilter) => {
+    setStatusFilter(f);
+    try {
+      window.localStorage.setItem(FILTER_KEY, f);
+    } catch {
+      /* storage blocked */
+    }
+  };
 
   // Guard against double-seeding (React StrictMode double-effect in dev).
   const seedAttempted = useRef(false);
@@ -103,7 +136,7 @@ export default function PipelinesPage() {
   const seedDefaultPipeline = useCallback(async (): Promise<Pipeline | null> => {
     const { data: pipeline, error } = await supabase
       .from("pipelines")
-      .insert({ name: "Sales Pipeline" })
+      .insert({ name: t("crm.pipelines.defaultName") })
       .select()
       .single();
 
@@ -114,14 +147,14 @@ export default function PipelinesPage() {
 
     const stagesPayload = SPEC_DEFAULT_STAGES.map((s) => ({
       pipeline_id: pipeline.id,
-      name: s.name,
+      name: t(`crm.pipelines.defaultStages.${s.key}`),
       color: s.color,
       position: s.position,
     }));
     await supabase.from("pipeline_stages").insert(stagesPayload);
 
     return pipeline as Pipeline;
-  }, [supabase]);
+  }, [supabase, t]);
 
   // Initial load + seed-if-empty
   useEffect(() => {
@@ -152,6 +185,39 @@ export default function PipelinesPage() {
     };
   }, [loadPipelines, seedDefaultPipeline, canSeed]);
 
+  // Deep link: select the deal's pipeline, then open it once loaded.
+  useEffect(() => {
+    if (!deepLinkDealId || loading) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("deals")
+        .select("pipeline_id, status")
+        .eq("id", deepLinkDealId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (!data) {
+        setDeepLinkDealId(null);
+        return;
+      }
+      if (data.pipeline_id !== selectedPipelineId) setSelectedPipelineId(data.pipeline_id);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [deepLinkDealId, loading, selectedPipelineId, supabase]);
+  useEffect(() => {
+    if (!deepLinkDealId) return;
+    const deal = deals.find((d) => d.id === deepLinkDealId);
+    if (!deal) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDeepLinkDealId(null);
+    setEditingDeal(deal);
+    setDefaultStageId(deal.stage_id);
+    setDealFormOpen(true);
+    if (deal.status && deal.status !== "open") setStatusFilter("all");
+  }, [deepLinkDealId, deals]);
+
   // Load stages + deals whenever selected pipeline changes.
   // Clearing on no-selection is a legitimate sync with URL/prop
   // state; the load completion uses async setters inside promise
@@ -160,7 +226,7 @@ export default function PipelinesPage() {
     if (!selectedPipelineId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setStages([]);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setDeals([]);
       return;
     }
@@ -208,12 +274,16 @@ export default function PipelinesPage() {
         .update({ stage_id: newStageId })
         .eq("id", dealId);
       if (error) {
-        toast.error("Failed to move deal");
+        toast.error(t("crm.deals.errors.moveFailed"));
         refreshDeals();
       }
     },
-    [supabase, refreshDeals],
+    [supabase, refreshDeals, t],
   );
+
+  const handleCloseDeal = useCallback((deal: Deal, status: CloseStatus) => {
+    setClosing({ deal, status });
+  }, []);
 
   const handleAddDeal = useCallback(
     (stageId?: string) => {
@@ -242,14 +312,14 @@ export default function PipelinesPage() {
       .single();
 
     if (error || !pipeline) {
-      toast.error("Failed to create pipeline");
+      toast.error(t("crm.pipelines.errors.createFailed"));
       setCreating(false);
       return;
     }
 
     const stagesPayload = SPEC_DEFAULT_STAGES.map((s) => ({
       pipeline_id: pipeline.id,
-      name: s.name,
+      name: t(`crm.pipelines.defaultStages.${s.key}`),
       color: s.color,
       position: s.position,
     }));
@@ -260,10 +330,17 @@ export default function PipelinesPage() {
     setSelectedPipelineId(pipeline.id);
     await refreshPipelines();
     setCreating(false);
-    toast.success("Pipeline created");
+    toast.success(t("crm.pipelines.toast.created"));
   }
 
   const selectedPipeline = pipelines.find((p) => p.id === selectedPipelineId);
+  const boardDeals =
+    statusFilter === "all" ? deals : deals.filter((d) => (d.status ?? "open") === statusFilter);
+  const statusCounts = deals.reduce<Record<string, number>>((acc, d) => {
+    const k = d.status ?? "open";
+    acc[k] = (acc[k] ?? 0) + 1;
+    return acc;
+  }, {});
 
   if (loading) {
     return (
@@ -293,7 +370,7 @@ export default function PipelinesPage() {
             >
               <GitBranch className="h-4 w-4 text-primary" />
               <span className="font-semibold">
-                {selectedPipeline?.name ?? "Select Pipeline"}
+                {selectedPipeline?.name ?? t("crm.pipelines.select")}
               </span>
               <ChevronDown className="h-4 w-4 text-slate-400" />
             </DropdownMenuTrigger>
@@ -303,7 +380,7 @@ export default function PipelinesPage() {
             >
               {pipelines.length === 0 && (
                 <DropdownMenuItem disabled className="text-slate-500">
-                  No pipelines yet
+                  {t("crm.pipelines.empty.title")}
                 </DropdownMenuItem>
               )}
               {pipelines.map((p) => (
@@ -327,7 +404,7 @@ export default function PipelinesPage() {
                   className="text-slate-300"
                 >
                   <Settings className="mr-2 h-3.5 w-3.5" />
-                  Manage Pipelines
+                  {t("crm.pipelines.manage")}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -341,7 +418,7 @@ export default function PipelinesPage() {
             className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
           >
             <Plus className="mr-1 h-4 w-4" />
-            Add Pipeline
+            {t("crm.pipelines.add")}
           </Button>
           <Button
             onClick={() => handleAddDeal()}
@@ -349,7 +426,7 @@ export default function PipelinesPage() {
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="mr-1 h-4 w-4" />
-            Add Deal
+            {t("crm.deals.board.add")}
           </Button>
         </div>
       </div>
@@ -359,28 +436,54 @@ export default function PipelinesPage() {
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 py-20">
           <GitBranch className="h-12 w-12 text-slate-600" />
           <h3 className="mt-4 text-lg font-medium text-white">
-            No pipelines yet
+            {t("crm.pipelines.empty.title")}
           </h3>
           <p className="mt-2 text-sm text-slate-400">
-            Create a pipeline to start tracking deals
+            {t("crm.pipelines.empty.description")}
           </p>
           <Button
             onClick={() => setNewPipelineOpen(true)}
             className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="mr-1 h-4 w-4" />
-            Create Pipeline
+            {t("crm.pipelines.create")}
           </Button>
         </div>
       ) : (
         <>
           <PipelineAnalytics stages={stages} deals={deals} />
+          <div
+            role="group"
+            aria-label={t("crm.deals.filter.label")}
+            className="-mx-1 flex gap-1 overflow-x-auto px-1"
+          >
+            {STATUS_FILTERS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                aria-pressed={statusFilter === f}
+                onClick={() => changeFilter(f)}
+                className={cn(
+                  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  statusFilter === f
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-slate-700 text-slate-400 hover:text-white",
+                )}
+              >
+                {t(`crm.deals.filter.${f}`)}
+                <span className="tabular-nums text-xs opacity-80">
+                  {f === "all" ? deals.length : statusCounts[f] ?? 0}
+                </span>
+              </button>
+            ))}
+          </div>
           <PipelineBoard
             stages={stages}
-            deals={deals}
+            deals={boardDeals}
             onDealMoved={handleDealMoved}
             onAddDeal={handleAddDeal}
             onEditDeal={handleEditDeal}
+            onCloseDeal={handleCloseDeal}
           />
         </>
       )}
@@ -389,21 +492,22 @@ export default function PipelinesPage() {
       <Dialog open={newPipelineOpen} onOpenChange={setNewPipelineOpen}>
         <DialogContent className="sm:max-w-sm bg-slate-900 border-slate-700">
           <DialogHeader>
-            <DialogTitle className="text-white">New Pipeline</DialogTitle>
+            <DialogTitle className="text-white">{t("crm.pipelines.newTitle")}</DialogTitle>
           </DialogHeader>
           <div className="py-2">
-            <Label className="text-slate-300">Pipeline Name</Label>
+            <Label htmlFor="new-pipeline-name" className="text-slate-300">{t("crm.pipelines.settings.name")}</Label>
             <Input
+              id="new-pipeline-name"
               value={newPipelineName}
               onChange={(e) => setNewPipelineName(e.target.value)}
-              placeholder="e.g., Enterprise Sales"
+              placeholder={t("crm.pipelines.namePlaceholder")}
               className="mt-2 bg-slate-800 border-slate-700 text-white"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleCreatePipeline();
               }}
             />
             <p className="mt-2 text-xs text-slate-400">
-              Default stages (New Lead → Won) will be created automatically.
+              {t("crm.pipelines.defaultStagesHint")}
             </p>
           </div>
           <DialogFooter className="bg-slate-900/50 border-slate-700">
@@ -412,14 +516,14 @@ export default function PipelinesPage() {
               onClick={() => setNewPipelineOpen(false)}
               className="border-slate-700 text-slate-300 hover:bg-slate-800"
             >
-              Cancel
+              {t("crm.common.cancel")}
             </Button>
             <Button
               onClick={handleCreatePipeline}
               disabled={creating || !newPipelineName.trim()}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              {creating ? "Creating..." : "Create Pipeline"}
+              {creating ? t("crm.common.creating") : t("crm.pipelines.create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -450,6 +554,19 @@ export default function PipelinesPage() {
         stages={stages}
         defaultStageId={defaultStageId}
         onSaved={refreshDeals}
+        onRequestClose={handleCloseDeal}
+      />
+
+      {/* Won / lost (reason) */}
+      <CloseDealDialog
+        deal={closing?.deal ?? null}
+        status={closing?.status ?? null}
+        onOpenChange={(o) => !o && setClosing(null)}
+        onDone={(updated) => {
+          setDeals((prev) => prev.map((d) => (d.id === updated.id ? { ...d, ...updated } : d)));
+          setEditingDeal((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+          refreshDeals();
+        }}
       />
     </div>
   );

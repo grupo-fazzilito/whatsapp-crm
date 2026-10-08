@@ -27,6 +27,11 @@ import {
   Bot,
   Hand,
   PauseCircle,
+  CheckCircle2,
+  RotateCcw,
+  ArrowRightLeft,
+  MessagesSquare,
+  Paperclip,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
@@ -48,6 +53,17 @@ import { buildReplyPreview } from "./reply-quote";
 import { ChannelBadge, type InboxChannel } from "./channel-badge";
 import type { InboxAgent } from "./use-inbox-directory";
 import { toast } from "sonner";
+import type { Tag } from "@/types";
+import type { ConversationEvent, Priority, QuickReply, QuickReplyAttachment, Team } from "@/lib/inbox/types";
+import { formatToday } from "@/lib/inbox/quick-replies";
+import type { MentionCandidate } from "@/lib/inbox/mentions";
+import { NoteBubble } from "./note-bubble";
+import { EventDivider } from "./event-divider";
+import { PriorityPicker } from "./priority";
+import { ConversationTags, type ConversationTagLink } from "./conversation-tags";
+import { ConversationFiles } from "./conversation-files";
+import { TransferDialog } from "./transfer-dialog";
+import type { TeamMemberInfo } from "./use-inbox-extras";
 
 interface ReplyDraft {
   id: string;
@@ -62,16 +78,43 @@ function renderTemplateBody(body: string, params: string[]): string {
   });
 }
 
-/** Fields the thread may change on a conversation (via PATCH /api/conversations/[id]). */
+/** Fields the thread may change on a conversation (server-confirmed rows). */
 export type ConversationPatch = Partial<
-  Pick<Conversation, "status" | "assigned_agent_id" | "ai_paused_until" | "updated_at">
+  Pick<
+    Conversation,
+    | "status"
+    | "assigned_agent_id"
+    | "ai_paused_until"
+    | "updated_at"
+    | "priority"
+    | "resolved_at"
+    | "resolved_by"
+    | "team_id"
+    | "conversation_tags"
+  >
 > & {
   /** AI agent owning the conversation (overrides the channel's). */
   ai_agent_id?: string | null;
 };
 
-/** conversations.ai_agent_id (not yet on the shared Conversation type). */
-type WithAiAgent = { ai_agent_id?: string | null };
+/** Patch with only the columns a PATCH/transfer response row carries. */
+function patchFromRow(row: Conversation): ConversationPatch {
+  return {
+    status: row.status,
+    assigned_agent_id: row.assigned_agent_id ?? undefined,
+    ai_paused_until: row.ai_paused_until ?? null,
+    ai_agent_id: row.ai_agent_id ?? null,
+    updated_at: row.updated_at,
+    priority: row.priority,
+    resolved_at: row.resolved_at ?? null,
+    resolved_by: row.resolved_by ?? null,
+    team_id: row.team_id ?? null,
+  };
+}
+
+type TimelineItem =
+  | { kind: "message"; at: string; message: Message }
+  | { kind: "event"; at: string; event: ConversationEvent };
 
 interface MessageThreadProps {
   conversation: Conversation | null;
@@ -113,19 +156,27 @@ interface MessageThreadProps {
    * working; the button is only rendered when this is provided.
    */
   onRefresh?: () => void;
+  /** Workspace tags (for the tag popover). */
+  tags?: Tag[];
+  tagsById?: Map<string, Tag>;
+  onTagCreated?: (tag: Tag) => void;
+  teams?: Team[];
+  /** Members with availability (transfer dialog). */
+  teamMembers?: TeamMemberInfo[];
+  quickReplies?: QuickReply[];
 }
 
-function groupMessagesByDate(messages: Message[]) {
-  const groups: { date: string; messages: Message[] }[] = [];
+function groupByDate(items: TimelineItem[]) {
+  const groups: { date: string; items: TimelineItem[] }[] = [];
   let currentDate = "";
 
-  for (const msg of messages) {
-    const day = format(new Date(msg.created_at), "yyyy-MM-dd");
+  for (const item of items) {
+    const day = format(new Date(item.at), "yyyy-MM-dd");
     if (day !== currentDate) {
       currentDate = day;
-      groups.push({ date: msg.created_at, messages: [msg] });
+      groups.push({ date: item.at, items: [item] });
     } else {
-      groups[groups.length - 1].messages.push(msg);
+      groups[groups.length - 1].items.push(item);
     }
   }
 
@@ -135,11 +186,17 @@ function groupMessagesByDate(messages: Message[]) {
 const STATUS_OPTIONS: { value: ConversationStatus; color: string }[] = [
   { value: "open", color: "text-primary" },
   { value: "pending", color: "text-amber-400" },
-  { value: "closed", color: "text-slate-400" },
+  { value: "closed", color: "text-emerald-400" },
 ];
 
 const EMPTY_AGENTS = new Map<string, InboxAgent>();
 const EMPTY_MEMBERS: Profile[] = [];
+const EMPTY_TAGS: Tag[] = [];
+const EMPTY_TAG_MAP = new Map<string, Tag>();
+const EMPTY_TEAMS: Team[] = [];
+const EMPTY_TEAM_MEMBERS: TeamMemberInfo[] = [];
+const EMPTY_QR: QuickReply[] = [];
+const EMPTY_LINKS: ConversationTagLink[] = [];
 
 /**
  * WhatsApp-style doodle background applied to the chat area (both the
@@ -173,9 +230,15 @@ export function MessageThread({
   onBack,
   resyncToken = 0,
   onRefresh,
+  tags = EMPTY_TAGS,
+  tagsById = EMPTY_TAG_MAP,
+  onTagCreated,
+  teams = EMPTY_TEAMS,
+  teamMembers = EMPTY_TEAM_MEMBERS,
+  quickReplies = EMPTY_QR,
 }: MessageThreadProps) {
-  const { user } = useAuth();
-  const { workspace } = useWorkspace();
+  const { user, profile } = useAuth();
+  const { workspace, can } = useWorkspace();
   const { t, locale } = useI18n();
   const dateLocale = locale === "es" ? esLocale : enUS;
   const workspaceId = workspace?.id;
@@ -214,6 +277,9 @@ export function MessageThread({
     }, 700);
   }, [isRefreshing, onRefresh]);
   const [replyTo, setReplyTo] = useState<ReplyDraft | null>(null);
+  const [events, setEvents] = useState<ConversationEvent[]>([]);
+  const [view, setView] = useState<"chat" | "files">("chat");
+  const [transferOpen, setTransferOpen] = useState(false);
   const [showSimulator, setShowSimulator] = useState(false);
   const [simulatedText, setSimulatedText] = useState("");
   const [simulating, setSimulating] = useState(false);
@@ -448,6 +514,56 @@ export function MessageThread({
     setReplyTo(null);
     setShowSimulator(false);
     setSimulatedText("");
+    setView("chat");
+  }, [conversationId]);
+
+  // Ownership / state timeline (conversation_events): fetched with the
+  // messages and kept live per conversation.
+  useEffect(() => {
+    if (!conversationId) {
+      setEvents([]);
+      return;
+    }
+    const supabase = createClient();
+    let cancelled = false;
+    supabase
+      .from("conversation_events")
+      .select("*")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true })
+      .limit(500)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) console.error("Failed to fetch conversation events:", error.message);
+        setEvents((data as ConversationEvent[]) ?? []);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [conversationId, resyncToken]);
+
+  useEffect(() => {
+    if (!conversationId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`conv-events:${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "conversation_events",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const row = payload.new as ConversationEvent;
+          setEvents((prev) => (prev.some((e) => e.id === row.id) ? prev : [...prev, row]));
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [conversationId]);
 
   // Reset the server-side unread_count to 0 whenever an unread count
@@ -471,13 +587,14 @@ export function MessageThread({
       });
   }, [conversationId, hasUnread]);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages / events, and when the chat tab
+  // comes back into view.
   useEffect(() => {
     if (scrollRef.current) {
       const el = scrollRef.current;
       el.scrollTop = el.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, events, view]);
 
   /**
    * POST /api/whatsapp/send (channel-agnostic despite the path) and keep
@@ -637,14 +754,7 @@ export function MessageThread({
           toast.error(t("inbox.thread.updateFailed", { reason: payload?.error || `HTTP ${res.status}` }));
           return false;
         }
-        const row = payload.conversation as Conversation & WithAiAgent;
-        onConversationPatch(conversation.id, {
-          status: row.status,
-          assigned_agent_id: row.assigned_agent_id ?? undefined,
-          ai_paused_until: row.ai_paused_until ?? null,
-          ai_agent_id: row.ai_agent_id ?? null,
-          updated_at: row.updated_at,
-        });
+        onConversationPatch(conversation.id, patchFromRow(payload.conversation as Conversation));
         return true;
       } catch (err) {
         const reason = err instanceof Error ? err.message : "network error";
@@ -660,6 +770,108 @@ export function MessageThread({
       void patchConversation({ status });
     },
     [patchConversation]
+  );
+
+  const handlePriorityChange = useCallback(
+    (priority: Priority) => {
+      void patchConversation({ priority });
+    },
+    [patchConversation],
+  );
+
+  const handleResolveToggle = useCallback(async () => {
+    if (!conversation) return;
+    const resolving = conversation.status !== "closed";
+    const ok = await patchConversation({ status: resolving ? "closed" : "open" });
+    if (ok) toast.success(resolving ? t("inboxpro.header.resolved") : t("inboxpro.header.reopened"));
+  }, [conversation, patchConversation, t]);
+
+  const handleTagLinksChange = useCallback(
+    (convId: string, links: ConversationTagLink[]) => {
+      onConversationPatch(convId, { conversation_tags: links });
+    },
+    [onConversationPatch],
+  );
+
+  /** Internal note: optimistic yellow bubble, then POST …/notes. */
+  const handleSendNote = useCallback(
+    async (text: string, mentionIds: string[]): Promise<boolean> => {
+      if (!conversation || !user) return false;
+      const tempId = `temp-note-${Date.now()}`;
+      onNewMessage({
+        id: tempId,
+        conversation_id: conversation.id,
+        sender_type: "agent",
+        sender_id: user.id,
+        content_type: "text",
+        content_text: text,
+        status: "sending",
+        created_at: new Date().toISOString(),
+        is_internal: true,
+      });
+      try {
+        const res = await fetch(`/api/conversations/${conversation.id}/notes`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, mentions: mentionIds }),
+        });
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok || !payload?.message) throw new Error(payload?.error || `HTTP ${res.status}`);
+        onRemoveMessage?.(tempId);
+        onNewMessage(payload.message as Message);
+        return true;
+      } catch (err) {
+        onRemoveMessage?.(tempId);
+        toast.error(t("inboxpro.composer.noteFailed", { reason: err instanceof Error ? err.message : "error" }));
+        return false;
+      }
+    },
+    [conversation, user, onNewMessage, onRemoveMessage, t],
+  );
+
+  /** A quick reply's stored files go out as media messages, in order. */
+  const handleSendQuickAttachments = useCallback(
+    async (attachments: QuickReplyAttachment[]) => {
+      if (!conversation) return;
+      const supabase = createClient();
+      for (const a of attachments) {
+        let url = a.url ?? null;
+        if (a.path) {
+          const { data } = await supabase.storage.from("attachments").createSignedUrl(a.path, 3600);
+          url = data?.signedUrl ?? null;
+        }
+        if (!url) {
+          toast.error(t("inboxpro.composer.attachmentFailed", { name: a.name }));
+          continue;
+        }
+        const caption = a.type === "document" ? a.name : undefined;
+        const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        onNewMessage({
+          id: tempId,
+          conversation_id: conversation.id,
+          sender_type: "agent",
+          content_type: a.type,
+          content_text: caption,
+          media_url: url,
+          status: "sending",
+          created_at: new Date().toISOString(),
+        });
+        await postSend(tempId, {
+          conversation_id: conversation.id,
+          message_type: a.type,
+          media_url: url,
+          content_text: caption,
+        });
+      }
+    },
+    [conversation, onNewMessage, postSend, t],
+  );
+
+  const handleTransferred = useCallback(
+    (row: Conversation) => {
+      onConversationPatch(row.id, patchFromRow(row));
+    },
+    [onConversationPatch],
   );
 
   const handleAssignChange = useCallback(
@@ -755,6 +967,45 @@ export function MessageThread({
     }
     return ids;
   }, [messages]);
+
+  const membersByUserId = useMemo(() => new Map(members.map((m) => [m.user_id, m])), [members]);
+  const memberNameList = useMemo(
+    () => members.map((m) => (m.full_name || "").trim()).filter(Boolean),
+    [members],
+  );
+  const mentionCandidates = useMemo<MentionCandidate[]>(
+    () =>
+      members
+        .filter((m) => m.user_id !== user?.id && (m.full_name || "").trim())
+        .map((m) => ({ userId: m.user_id, name: m.full_name.trim() })),
+    [members, user?.id],
+  );
+  const nameOfUser = useCallback(
+    (uid: string | null): string => {
+      if (!uid) return t("inboxpro.events.someone");
+      const m = membersByUserId.get(uid);
+      return m?.full_name || m?.email || t("inboxpro.events.someone");
+    },
+    [membersByUserId, t],
+  );
+  const teamName = useCallback(
+    (id: string | null): string => (id ? (teams.find((tm) => tm.id === id)?.name ?? "—") : "—"),
+    [teams],
+  );
+
+  // Messages + ownership events in one chronological timeline.
+  const timeline = useMemo<TimelineItem[]>(() => {
+    const items: TimelineItem[] = messages.map((m) => ({ kind: "message", at: m.created_at, message: m }));
+    for (const e of events) items.push({ kind: "event", at: e.created_at, event: e });
+    // Stable: messages keep their order; events slot in by time.
+    return items
+      .map((it, i) => ({ it, i }))
+      .sort((a, b) => {
+        const d = Date.parse(a.it.at) - Date.parse(b.it.at);
+        return d !== 0 ? d : a.i - b.i;
+      })
+      .map((x) => x.it);
+  }, [messages, events]);
 
   // Bucket reactions by their target message_id for O(1) per-bubble lookup.
   const reactionsByMessageId = useMemo(() => {
@@ -876,7 +1127,14 @@ export function MessageThread({
   }
 
   const displayName = contact.name || contact.phone || t("inbox.thread.customer");
-  const messageGroups = groupMessagesByDate(messages);
+  const timelineGroups = groupByDate(timeline);
+  const isResolved = conversation.status === "closed";
+  const quickReplyVars = {
+    nombre: contact.name || null,
+    negocio: workspace?.name ?? null,
+    agente: profile?.full_name || null,
+    fecha: formatToday(workspace?.timezone, locale),
+  };
   const currentStatus = STATUS_OPTIONS.find(
     (s) => s.value === conversation.status
   );
@@ -889,7 +1147,7 @@ export function MessageThread({
   // AI agent handling the conversation: its own (menu choice, transfer,
   // flow, manual) or else the channel's; and whether a human has taken
   // over (ai_paused_until in the future).
-  const conversationAgentId = (conversation as Conversation & WithAiAgent).ai_agent_id ?? null;
+  const conversationAgentId = conversation.ai_agent_id ?? null;
   const effectiveAgentId = conversationAgentId ?? channel?.ai_agent_id ?? null;
   const channelAgent = channel?.ai_agent_id ? agentsById.get(channel.ai_agent_id) : undefined;
   const currentAgent = effectiveAgentId ? agentsById.get(effectiveAgentId) : undefined;
@@ -969,7 +1227,7 @@ export function MessageThread({
               aria-label={t("inbox.thread.refresh")}
               title={t("inbox.thread.refresh")}
               className={cn(
-                "inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-white disabled:opacity-60",
+                "hidden h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-white disabled:opacity-60 sm:inline-flex",
               )}
             >
               <RefreshCw
@@ -985,7 +1243,7 @@ export function MessageThread({
             aria-label={t("inbox.simulator.button")}
             title={t("inbox.simulator.button")}
             className={cn(
-              "inline-flex h-7 px-2 items-center justify-center gap-1 rounded-md text-xs transition-colors border",
+              "hidden h-7 px-2 items-center justify-center gap-1 rounded-md text-xs transition-colors border sm:inline-flex",
               showSimulator
                 ? "bg-teal-500/10 border-teal-500/30 text-teal-300"
                 : "border-slate-700 bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white"
@@ -995,13 +1253,17 @@ export function MessageThread({
             <span className="hidden whitespace-nowrap 2xl:inline">{t("inbox.simulator.button")}</span>
           </button>
 
-          {/* Status dropdown */}
+          <PriorityPicker value={conversation.priority} onChange={handlePriorityChange} />
+
+          {/* Status dropdown ('closed' is shown as "Resuelta") */}
           <DropdownMenu>
-            <DropdownMenuTrigger className={cn(
-                  "inline-flex items-center justify-center h-7 gap-1 px-2 text-xs rounded-md hover:bg-slate-800",
+            <DropdownMenuTrigger
+              aria-label={`${t("inbox.thread.status")}: ${currentStatus ? t(`inboxpro.status.${currentStatus.value}`) : ""}`}
+              className={cn(
+                  "hidden items-center justify-center h-7 gap-1 px-2 text-xs rounded-md hover:bg-slate-800 md:inline-flex",
                   currentStatus?.color ?? "text-slate-400"
                 )}>
-                {currentStatus ? t(`inbox.status.${currentStatus.value}`) : t("inbox.thread.status")}
+                {currentStatus ? t(`inboxpro.status.${currentStatus.value}`) : t("inbox.thread.status")}
                 <ChevronDown className="h-3 w-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -1014,7 +1276,7 @@ export function MessageThread({
                   onClick={() => handleStatusChange(opt.value)}
                   className={cn("text-sm", opt.color)}
                 >
-                  {t(`inbox.status.${opt.value}`)}
+                  {t(`inboxpro.status.${opt.value}`)}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -1075,6 +1337,89 @@ export function MessageThread({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Transfer to a member / team with a reason */}
+          <button
+            type="button"
+            onClick={() => setTransferOpen(true)}
+            aria-label={t("inboxpro.header.transfer")}
+            title={t("inboxpro.header.transfer")}
+            className="inline-flex h-7 items-center justify-center gap-1 rounded-md px-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white"
+          >
+            <ArrowRightLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden 2xl:inline">{t("inboxpro.header.transfer")}</span>
+          </button>
+
+          {/* Resolve / reopen */}
+          <button
+            type="button"
+            onClick={() => void handleResolveToggle()}
+            className={cn(
+              "inline-flex h-7 items-center justify-center gap-1 rounded-md border px-2 text-xs font-medium transition-colors",
+              isResolved
+                ? "border-slate-600 text-slate-200 hover:bg-slate-800"
+                : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20",
+            )}
+          >
+            {isResolved ? (
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+            <span className="hidden sm:inline">
+              {isResolved ? t("inboxpro.header.reopen") : t("inboxpro.header.resolve")}
+            </span>
+            <span className="sr-only sm:hidden">
+              {isResolved ? t("inboxpro.header.reopen") : t("inboxpro.header.resolve")}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Tags + Chat / Files tabs */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-slate-800 bg-slate-900/95 px-3 py-1.5 sm:px-4">
+        <ConversationTags
+          conversationId={conversation.id}
+          links={conversation.conversation_tags ?? EMPTY_LINKS}
+          tags={tags}
+          tagsById={tagsById}
+          canCreate={can("admin")}
+          onLinksChange={handleTagLinksChange}
+          onTagCreated={(tag) => onTagCreated?.(tag)}
+        />
+        <div role="tablist" aria-label={t("inboxpro.header.viewTabs")} className="flex shrink-0 rounded-md border border-slate-700 p-0.5">
+          {(["chat", "files"] as const).map((v) => {
+            const active = view === v;
+            const Icon = v === "chat" ? MessagesSquare : Paperclip;
+            return (
+              <button
+                key={v}
+                type="button"
+                role="tab"
+                id={`thread-tab-${v}`}
+                aria-selected={active}
+                aria-controls={`thread-panel-${v}`}
+                tabIndex={active ? 0 : -1}
+                onClick={() => setView(v)}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    const next = v === "chat" ? "files" : "chat";
+                    setView(next);
+                    document.getElementById(`thread-tab-${next}`)?.focus();
+                  }
+                }}
+                className={cn(
+                  "inline-flex h-6 items-center gap-1 rounded px-2 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  active ? "bg-slate-700 text-white" : "text-slate-400 hover:text-white",
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="hidden sm:inline">{v === "chat" ? t("inboxpro.header.chat") : t("inboxpro.header.files")}</span>
+                <span className="sr-only sm:hidden">{v === "chat" ? t("inboxpro.header.chat") : t("inboxpro.header.files")}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -1214,13 +1559,37 @@ export function MessageThread({
         </div>
       )}
 
+      {view === "files" && (
+        <div
+          id="thread-panel-files"
+          role="tabpanel"
+          aria-labelledby="thread-tab-files"
+          className="flex min-h-0 flex-1 flex-col bg-slate-950"
+        >
+          <ConversationFiles
+            conversationId={conversation.id}
+            contactName={displayName}
+            membersByUserId={membersByUserId}
+            agentsById={agentsById}
+            refreshKey={messages.length}
+          />
+        </div>
+      )}
+
       {/* Messages Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
+      <div
+        ref={scrollRef}
+        id="thread-panel-chat"
+        role="tabpanel"
+        aria-labelledby="thread-tab-chat"
+        hidden={view !== "chat"}
+        className={cn("flex-1 overflow-y-auto px-4 py-4", view !== "chat" && "hidden")}
+      >
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
-        ) : messages.length === 0 ? (
+        ) : timeline.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <p className="text-sm text-slate-500">{t("inbox.thread.noMessages")}</p>
             {capabilities.templates && (
@@ -1231,7 +1600,7 @@ export function MessageThread({
           </div>
         ) : (
           <div className="space-y-4">
-            {messageGroups.map((group) => (
+            {timelineGroups.map((group) => (
               <div key={group.date}>
                 {/* Date separator */}
                 <div className="mb-4 flex items-center justify-center">
@@ -1241,7 +1610,28 @@ export function MessageThread({
                 </div>
                 {/* Messages */}
                 <div className="space-y-2">
-                  {group.messages.map((msg) => {
+                  {group.items.map((item) => {
+                    if (item.kind === "event") {
+                      return (
+                        <EventDivider
+                          key={`ev-${item.event.id}`}
+                          event={item.event}
+                          nameOf={nameOfUser}
+                          teamName={teamName}
+                        />
+                      );
+                    }
+                    const msg = item.message;
+                    if (msg.is_internal) {
+                      return (
+                        <NoteBubble
+                          key={msg.id}
+                          message={msg}
+                          authorName={nameOfUser(msg.sender_id ?? null)}
+                          memberNames={memberNameList}
+                        />
+                      );
+                    }
                     if (msg.content_type === "system") {
                       return <MessageBubble key={msg.id} message={msg} />;
                     }
@@ -1316,6 +1706,22 @@ export function MessageThread({
         onSendAttachment={handleSendAttachment}
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
+        onSendNote={handleSendNote}
+        mentionCandidates={mentionCandidates}
+        quickReplies={quickReplies}
+        quickReplyVars={quickReplyVars}
+        onSendQuickAttachments={handleSendQuickAttachments}
+      />
+
+      <TransferDialog
+        open={transferOpen}
+        onOpenChange={setTransferOpen}
+        conversationId={conversation.id}
+        members={teamMembers}
+        teams={teams}
+        currentUserId={user?.id ?? null}
+        currentAssigneeId={assignedAgentId}
+        onTransferred={handleTransferred}
       />
 
       {capabilities.templates && (

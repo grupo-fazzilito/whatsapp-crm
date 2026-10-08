@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Radio, MessageSquare, Tag, User, Palette, Users, ArrowRight } from 'lucide-react';
+import { Radio, MessageSquare, Tag, User, Palette, Users, ArrowRight, Zap, UsersRound } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
@@ -13,6 +13,8 @@ import { PasswordForm } from '@/components/settings/password-form';
 import { SessionsCard } from '@/components/settings/sessions-card';
 import { AppearancePanel } from '@/components/settings/appearance-panel';
 import { TeamManager } from '@/components/settings/team-manager';
+import { QuickRepliesManager } from '@/components/settings/quick-replies-manager';
+import { TeamsManager } from '@/components/settings/teams-manager';
 import { useT } from '@/i18n/client';
 
 const TAB_VALUES = [
@@ -21,6 +23,8 @@ const TAB_VALUES = [
   'whatsapp',
   'templates',
   'tags',
+  'quick-replies',
+  'teams',
   'appearance',
 ] as const;
 type TabValue = (typeof TAB_VALUES)[number];
@@ -58,7 +62,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={(v) => onChange(v as TabValue)}>
-        <TabsList className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/60 p-1 h-10 w-fit gap-1">
+        <TabsList className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/60 p-1 h-10 w-fit max-w-full overflow-x-auto gap-1">
           <TabsTrigger
             value="profile"
             className="data-active:bg-white dark:data-active:bg-slate-800 data-active:text-primary text-slate-600 dark:text-slate-400 data-active:shadow-sm transition-all duration-200"
@@ -93,6 +97,20 @@ export default function SettingsPage() {
           >
             <Tag className="size-4" />
             Tags
+          </TabsTrigger>
+          <TabsTrigger
+            value="quick-replies"
+            className="data-active:bg-white dark:data-active:bg-slate-800 data-active:text-primary text-slate-600 dark:text-slate-400 data-active:shadow-sm transition-all duration-200"
+          >
+            <Zap className="size-4" />
+            {t('inboxpro.quickReplies.tab')}
+          </TabsTrigger>
+          <TabsTrigger
+            value="teams"
+            className="data-active:bg-white dark:data-active:bg-slate-800 data-active:text-primary text-slate-600 dark:text-slate-400 data-active:shadow-sm transition-all duration-200"
+          >
+            <UsersRound className="size-4" />
+            {t('inboxpro.teams.tab')}
           </TabsTrigger>
           <TabsTrigger
             value="appearance"
@@ -135,6 +153,14 @@ export default function SettingsPage() {
 
         <TabsContent value="tags">
           <TagManager />
+        </TabsContent>
+
+        <TabsContent value="quick-replies">
+          <QuickRepliesManager />
+        </TabsContent>
+
+        <TabsContent value="teams">
+          <TeamsManager />
         </TabsContent>
 
         <TabsContent value="appearance">

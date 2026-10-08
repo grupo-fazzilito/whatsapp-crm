@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Conversation, Message, Contact } from "@/types";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtime, type ConversationTagRow } from "@/hooks/use-realtime";
 import { ConversationList } from "@/components/inbox/conversation-list";
 import { MessageThread, type ConversationPatch } from "@/components/inbox/message-thread";
 import { ContactSidebar } from "@/components/inbox/contact-sidebar";
@@ -13,6 +13,9 @@ import { WifiOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/i18n/client";
 import { useInboxDirectory } from "@/components/inbox/use-inbox-directory";
+import { useInboxExtras } from "@/components/inbox/use-inbox-extras";
+import { CONVERSATION_LIST_SELECT } from "@/components/inbox/conversation-list";
+import { OPEN_CONVERSATION_EVENT } from "@/components/notifications/events";
 import { cn } from "@/lib/utils";
 
 export default function InboxPage() {
@@ -28,6 +31,8 @@ export default function InboxPage() {
   const { t } = useI18n();
   // Channels, AI agents and members of the workspace — loaded once.
   const directory = useInboxDirectory();
+  // Tags, teams and quick replies (Bandeja Pro).
+  const extras = useInboxExtras();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] =
@@ -88,7 +93,7 @@ export default function InboxPage() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("conversations")
-        .select("*, contact:contacts(*)")
+        .select(CONVERSATION_LIST_SELECT)
         .eq("id", convId)
         .maybeSingle();
       if (error) {
@@ -103,7 +108,7 @@ export default function InboxPage() {
         return;
       }
       if (!data) return;
-      const fetched = data as Conversation;
+      const fetched = data as unknown as Conversation;
       setConversations((prev) => {
         const existing = prev.find((c) => c.id === fetched.id);
         if (existing) {
@@ -114,7 +119,11 @@ export default function InboxPage() {
           // realtime payloads never carry.
           return prev.map((c) =>
             c.id === fetched.id
-              ? { ...c, contact: c.contact ?? fetched.contact }
+              ? {
+                  ...c,
+                  contact: c.contact ?? fetched.contact,
+                  conversation_tags: c.conversation_tags ?? fetched.conversation_tags,
+                }
               : c,
           );
         }
@@ -149,6 +158,13 @@ export default function InboxPage() {
             );
             return [...withoutOptimistic, newMsg];
           });
+        }
+
+        // Internal notes are team-only: they never change the preview or
+        // the unread badge.
+        if (newMsg.is_internal) {
+          if (!knownConvIdsRef.current.has(newMsg.conversation_id)) hydrateConversation(newMsg.conversation_id);
+          return;
         }
 
         // Update conversation list preview. We need to know *synchronously*
@@ -259,6 +275,33 @@ export default function InboxPage() {
     [activeConversation, hydrateConversation]
   );
 
+  // Tag chips in the list: rows added/removed by teammates.
+  const handleConversationTagEvent = useCallback(
+    (event: { eventType: string; new: ConversationTagRow; old: Partial<ConversationTagRow> }) => {
+      if (event.eventType === "INSERT") {
+        const row = event.new;
+        if (!row.conversation_id || !row.tag_id) return;
+        const link = { id: row.id, tag_id: row.tag_id };
+        const patch = (c: Conversation): Conversation => {
+          const links = c.conversation_tags ?? [];
+          if (links.some((l) => l.id === row.id || l.tag_id === row.tag_id)) return c;
+          return { ...c, conversation_tags: [...links, link] };
+        };
+        setConversations((prev) => prev.map((c) => (c.id === row.conversation_id ? patch(c) : c)));
+        setActiveConversation((prev) => (prev && prev.id === row.conversation_id ? patch(prev) : prev));
+      } else if (event.eventType === "DELETE" && event.old?.id) {
+        const id = event.old.id;
+        const strip = (c: Conversation): Conversation =>
+          c.conversation_tags?.some((l) => l.id === id)
+            ? { ...c, conversation_tags: c.conversation_tags.filter((l) => l.id !== id) }
+            : c;
+        setConversations((prev) => prev.map(strip));
+        setActiveConversation((prev) => (prev ? strip(prev) : prev));
+      }
+    },
+    [],
+  );
+
   // Subscribe to realtime. The `isConnected` flag below feeds the
   // reconnect resync: realtime is best-effort and events sent while the
   // WS was disconnected (laptop sleep, network blip, background-tab
@@ -267,6 +310,7 @@ export default function InboxPage() {
     channelName: "inbox-realtime",
     onMessageEvent: handleMessageEvent,
     onConversationEvent: handleConversationEvent,
+    onConversationTagEvent: handleConversationTagEvent,
     enabled: true,
   });
 
@@ -410,6 +454,33 @@ export default function InboxPage() {
     [activeConversation?.id, router]
   );
 
+  // A notification clicked while the inbox is already open: the URL
+  // changes but the list doesn't reload, so the bell asks us directly.
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const id = (e as CustomEvent<{ conversationId?: string }>).detail?.conversationId;
+      if (!id || id === activeConversation?.id) return;
+      const match = conversations.find((c) => c.id === id);
+      if (match) {
+        handleSelectConversation(match);
+        return;
+      }
+      void (async () => {
+        const { data } = await createClient()
+          .from("conversations")
+          .select(CONVERSATION_LIST_SELECT)
+          .eq("id", id)
+          .maybeSingle();
+        if (!data) return;
+        const row = data as unknown as Conversation;
+        setConversations((prev) => (prev.some((c) => c.id === row.id) ? prev : [row, ...prev]));
+        handleSelectConversation(row);
+      })();
+    };
+    window.addEventListener(OPEN_CONVERSATION_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_CONVERSATION_EVENT, onOpen);
+  }, [conversations, activeConversation?.id, handleSelectConversation]);
+
   // Mobile "back" — deselect the conversation so the list pane comes
   // back. Also clears the ?c= param so a refresh lands on the list
   // instead of re-opening the thread the user just backed out of.
@@ -509,6 +580,8 @@ export default function InboxPage() {
             channelsById={directory.channelsById}
             membersByUserId={directory.membersByUserId}
             currentUserId={user?.id ?? null}
+            tags={extras.tags}
+            tagsById={extras.tagsById}
           />
         </div>
 
@@ -537,12 +610,18 @@ export default function InboxPage() {
             onBack={handleCloseConversation}
             resyncToken={resyncToken}
             onRefresh={handleManualRefresh}
+            tags={extras.tags}
+            tagsById={extras.tagsById}
+            onTagCreated={extras.addTag}
+            teams={extras.teams}
+            teamMembers={extras.teamMembers}
+            quickReplies={extras.quickReplies}
           />
         </div>
 
         {/* Right panel: Contact sidebar — desktop only. */}
         <div className="hidden shrink-0 lg:block">
-          <ContactSidebar contact={activeContact} />
+          <ContactSidebar contact={activeContact} conversationId={activeConversation?.id ?? null} />
         </div>
       </div>
     </div>

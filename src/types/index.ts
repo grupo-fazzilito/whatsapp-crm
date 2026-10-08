@@ -28,6 +28,8 @@ export interface Contact {
   avatar_url?: string;
   created_at: string;
   updated_at: string;
+  /** Embedded by the inbox list query (tag filter "include contact tags"). */
+  contact_tags?: { tag_id: string }[];
 }
 
 export interface Tag {
@@ -97,6 +99,19 @@ export interface Conversation {
   /** The channel's AI agent stays quiet until this moment (null = active). */
   ai_paused_until?: string | null;
   ai_state?: Record<string, unknown> | null;
+  /** AI agent owning the conversation (overrides the channel's). */
+  ai_agent_id?: string | null;
+  /** Inbox priority (migration 032). */
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  /** Set when the conversation is resolved (status 'closed'). */
+  resolved_at?: string | null;
+  resolved_by?: string | null;
+  /** Team the conversation belongs to (transfers / auto-assignment). */
+  team_id?: string | null;
+  /** Last inbound customer message (waiting-time sort). */
+  last_customer_message_at?: string | null;
+  /** Embedded by the inbox list query. */
+  conversation_tags?: { id: string; tag_id: string }[];
 }
 
 export type SenderType = 'customer' | 'agent' | 'bot';
@@ -142,6 +157,8 @@ export interface Message {
    * on interactive bot messages.
    */
   metadata?: Record<string, unknown> | null;
+  /** Team-only note (never sent to the customer). Migration 032. */
+  is_internal?: boolean;
 }
 
 /** One way to reach a contact on a channel (contact_identities). */
@@ -239,6 +256,13 @@ export interface Deal {
   notes?: string;
   expected_close_date?: string;
   status?: DealStatus;
+  /** Set by the DB when the deal is marked won / lost (033). */
+  won_at?: string | null;
+  lost_at?: string | null;
+  /** Why it was lost (workspaces.settings.crm.lost_reasons or free text). */
+  lost_reason?: string | null;
+  /** Optional note entered when closing the deal. */
+  close_note?: string | null;
   created_at: string;
   updated_at?: string;
   contact?: Contact;

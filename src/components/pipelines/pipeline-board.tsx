@@ -17,7 +17,10 @@ import {
 import type { Deal, PipelineStage } from "@/types";
 import { DealCard } from "./deal-card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, ThumbsDown, ThumbsUp } from "lucide-react";
+import { useI18n } from "@/i18n/client";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { formatMoney, moneyLocale } from "@/lib/workspace/countries";
 
 interface PipelineBoardProps {
   stages: PipelineStage[];
@@ -25,15 +28,15 @@ interface PipelineBoardProps {
   onDealMoved: (dealId: string, newStageId: string) => void;
   onAddDeal: (stageId: string) => void;
   onEditDeal: (deal: Deal) => void;
+  /** Quick "Ganado" / "Perdido" on open cards (asks for a reason). */
+  onCloseDeal?: (deal: Deal, status: "won" | "lost") => void;
 }
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+function useFormatCurrency() {
+  const { locale } = useI18n();
+  const { workspace } = useWorkspace();
+  return (value: number) =>
+    formatMoney(value, workspace?.currency || "USD", moneyLocale({ locale, country: workspace?.country }));
 }
 
 export function PipelineBoard({
@@ -42,6 +45,7 @@ export function PipelineBoard({
   onDealMoved,
   onAddDeal,
   onEditDeal,
+  onCloseDeal,
 }: PipelineBoardProps) {
   const [activeDealId, setActiveDealId] = useState<string | null>(null);
 
@@ -121,6 +125,7 @@ export function PipelineBoard({
               totalValue={totalValue}
               onAddDeal={onAddDeal}
               onEditDeal={onEditDeal}
+              onCloseDeal={onCloseDeal}
             />
           );
         })}
@@ -170,14 +175,18 @@ function StageColumn({
   totalValue,
   onAddDeal,
   onEditDeal,
+  onCloseDeal,
 }: {
   stage: PipelineStage;
   deals: Deal[];
   totalValue: number;
   onAddDeal: (stageId: string) => void;
   onEditDeal: (deal: Deal) => void;
+  onCloseDeal?: (deal: Deal, status: "won" | "lost") => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
+  const { t } = useI18n();
+  const formatCurrency = useFormatCurrency();
 
   return (
     // On mobile each column is `w-[85vw]` (with a reasonable min/max)
@@ -212,7 +221,7 @@ function StageColumn({
       >
         {deals.length === 0 ? (
           <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-slate-700 py-10 text-xs text-slate-500">
-            Drop a deal here
+            {t("crm.deals.board.drop")}
           </div>
         ) : (
           deals.map((deal) => (
@@ -221,6 +230,7 @@ function StageColumn({
               deal={deal}
               stage={stage}
               onEdit={onEditDeal}
+              onClose={onCloseDeal}
             />
           ))
         )}
@@ -233,7 +243,7 @@ function StageColumn({
         className="mt-3 w-full justify-start border border-dashed border-slate-700 bg-transparent text-slate-400 hover:border-slate-600 hover:bg-slate-800 hover:text-white"
       >
         <Plus className="mr-1 h-3 w-3" />
-        Add Deal
+        {t("crm.deals.board.add")}
       </Button>
     </div>
   );
@@ -243,23 +253,52 @@ function DraggableDealCard({
   deal,
   stage,
   onEdit,
+  onClose,
 }: {
   deal: Deal;
   stage: PipelineStage;
   onEdit: (deal: Deal) => void;
+  onClose?: (deal: Deal, status: "won" | "lost") => void;
 }) {
+  const { t } = useI18n();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: deal.id,
   });
+  const showActions = !!onClose && deal.status !== "won" && deal.status !== "lost";
 
+  // Quick actions are siblings of the draggable (not nested in the card's
+  // button) and sit over its top-right corner.
   return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      style={{ opacity: isDragging ? 0.3 : 1, touchAction: "none" }}
-    >
-      <DealCard deal={deal} stage={stage} onEdit={onEdit} />
+    <div className="relative" style={{ opacity: isDragging ? 0.3 : 1 }}>
+      <div ref={setNodeRef} {...listeners} {...attributes} style={{ touchAction: "none" }}>
+        <DealCard deal={deal} stage={stage} onEdit={onEdit} reserveActions={showActions} />
+      </div>
+      {showActions && (
+        <div className="absolute right-2 top-2 flex gap-0.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => onClose(deal, "won")}
+            aria-label={t("crm.deals.actions.wonFor", { title: deal.title })}
+            title={t("crm.deals.actions.won")}
+            className="text-emerald-400 hover:bg-emerald-500/15 hover:text-emerald-300"
+          >
+            <ThumbsUp />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => onClose(deal, "lost")}
+            aria-label={t("crm.deals.actions.lostFor", { title: deal.title })}
+            title={t("crm.deals.actions.lost")}
+            className="text-red-400 hover:bg-red-500/15 hover:text-red-300"
+          >
+            <ThumbsDown />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

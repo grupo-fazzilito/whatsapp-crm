@@ -28,9 +28,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
+import { ConversationCrmPanel } from "@/components/crm";
 
 interface ContactSidebarProps {
   contact: Contact | null;
+  /** Open conversation, so CRM deals/tasks created here link back to it. */
+  conversationId?: string | null;
 }
 
 interface SidebarOrder {
@@ -227,7 +230,7 @@ function OrdersCardBody({
   );
 }
 
-export function ContactSidebar({ contact }: ContactSidebarProps) {
+export function ContactSidebar({ contact, conversationId = null }: ContactSidebarProps) {
   const { t, locale } = useI18n();
   const [copied, setCopied] = useState(false);
   const [identities, setIdentities] = useState<ContactIdentity[]>([]);
@@ -410,6 +413,18 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
           )}
 
           <OrdersCard key={contact.id} contactId={contact.id} />
+
+          {/* CRM: open deals and tasks for this contact, created from the chat. */}
+          {conversationId && (
+            <div className="mt-4">
+              <ConversationCrmPanel
+                key={`${contact.id}-${conversationId}`}
+                conversationId={conversationId}
+                contactId={contact.id}
+                contactName={contact.name}
+              />
+            </div>
+          )}
 
           {/* Divider */}
           <div className="my-4 border-t border-slate-800" />
