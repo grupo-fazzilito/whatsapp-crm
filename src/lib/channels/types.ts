@@ -65,12 +65,30 @@ export type OutboundContent =
       cards: CarouselCard[]
     }
   | {
+      /** Map pin (WhatsApp native; other channels get a Google Maps link). */
+      type: 'location'
+      latitude: number
+      longitude: number
+      name?: string
+      address?: string
+    }
+  | {
       type: 'template'
       templateName: string
       language?: string
       params?: string[]
       components?: unknown[]
     }
+
+/** Official Google Maps URL for a pin (no API key). */
+export function mapsLink(latitude: number, longitude: number): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${latitude},${longitude}`)}`
+}
+
+/** Text fallback of a location (channels without native pins). */
+export function locationText(c: Extract<OutboundContent, { type: 'location' }>): string {
+  return ['📍 ' + ([c.name, c.address].filter(Boolean).join(' — ') || 'Ubicación'), mapsLink(c.latitude, c.longitude)].join('\n')
+}
 
 export interface CarouselCard {
   /** Stable id (e.g. product id) — for the inbox/widget rendering. */

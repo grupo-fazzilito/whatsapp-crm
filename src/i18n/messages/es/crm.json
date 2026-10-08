@@ -1,0 +1,329 @@
+{
+  "crm": {
+    "common": {
+      "cancel": "Cancelar",
+      "confirm": "Confirmar",
+      "creating": "Creando…",
+      "delete": "Eliminar",
+      "deleting": "Eliminando…",
+      "loading": "Cargando…",
+      "save": "Guardar",
+      "saveChanges": "Guardar cambios",
+      "saving": "Guardando…"
+    },
+    "panel": {
+      "deals": "Negocios",
+      "tasks": "Tareas",
+      "add": "Nuevo",
+      "noDeals": "Sin negocios abiertos.",
+      "noTasks": "Sin tareas pendientes.",
+      "taskForDeal": "Crear tarea para {title}",
+      "allTasks": "Ver todas mis tareas"
+    },
+    "tasks": {
+      "navTitle": "Tareas",
+      "title": "Tareas",
+      "description": "Seguimientos de tu equipo: llamadas, cotizaciones, recordatorios. Vinculadas a contactos, chats y negocios.",
+      "scope": {
+        "label": "Ver tareas de",
+        "mine": "Mis tareas",
+        "all": "Todas"
+      },
+      "views": {
+        "label": "Filtrar tareas",
+        "open": "Pendientes",
+        "overdue": "Vencidas",
+        "today": "Hoy",
+        "upcoming": "Próximas",
+        "done": "Completadas"
+      },
+      "groups": {
+        "overdue": "Vencidas",
+        "today": "Hoy",
+        "tomorrow": "Mañana",
+        "week": "Próximos 7 días",
+        "later": "Más adelante",
+        "none": "Sin fecha"
+      },
+      "empty": {
+        "open": "No tienes tareas pendientes",
+        "overdue": "Nada vencido. ¡Bien!",
+        "today": "Nada para hoy",
+        "upcoming": "No hay tareas próximas",
+        "done": "Aún no hay tareas completadas",
+        "filtered": "Ninguna tarea coincide con la búsqueda",
+        "hint": "Crea una arriba o desde un chat de la bandeja con «Crear tarea»."
+      },
+      "search": "Buscar tareas",
+      "quick": {
+        "label": "Nueva tarea",
+        "placeholder": "Nueva tarea… (ej. Llamar a Ana para confirmar)",
+        "add": "Agregar"
+      },
+      "presets": {
+        "none": "Sin fecha",
+        "in1h": "En 1 hora",
+        "today": "Hoy",
+        "tomorrow": "Mañana",
+        "next_week": "En una semana"
+      },
+      "priority": {
+        "low": "Baja",
+        "normal": "Normal",
+        "high": "Alta",
+        "urgent": "Urgente"
+      },
+      "status": {
+        "open": "Pendiente",
+        "done": "Completada",
+        "cancelled": "Cancelada"
+      },
+      "due": {
+        "todayAt": "Hoy {time}",
+        "tomorrowAt": "Mañana {time}",
+        "yesterdayAt": "Ayer {time}",
+        "overdueSr": "Vencida:"
+      },
+      "fields": {
+        "title": "Título",
+        "titlePlaceholder": "Ej. Enviar cotización",
+        "description": "Descripción",
+        "due": "Vence",
+        "duePresets": "Fechas rápidas",
+        "priority": "Prioridad",
+        "assignee": "Responsable",
+        "contact": "Contacto",
+        "deal": "Negocio"
+      },
+      "unassigned": "Sin asignar",
+      "me": "{name} (yo)",
+      "someone": "Alguien",
+      "noDeal": "Sin negocio",
+      "searchContact": "Buscar por nombre o teléfono",
+      "removeContact": "Quitar contacto",
+      "openChat": "Abrir chat",
+      "openChatFor": "Abrir chat de la tarea {title}",
+      "dealLabel": "Negocio: {title}",
+      "assignedTo": "Responsable: {name}",
+      "doneAt": "Completada {date}",
+      "actions": {
+        "complete": "Completar",
+        "completeFor": "Completar tarea: {title}",
+        "cancel": "Cancelar tarea",
+        "reopen": "Reabrir",
+        "reopenFor": "Reabrir tarea: {title}",
+        "delete": "Eliminar tarea"
+      },
+      "create": {
+        "button": "Crear tarea",
+        "title": "Nueva tarea",
+        "description": "Se vinculará a este contacto y conversación.",
+        "submit": "Crear tarea"
+      },
+      "complete": {
+        "title": "Completar tarea",
+        "result": "Resultado (opcional)",
+        "resultPlaceholder": "Ej. Confirmó el pedido para el viernes",
+        "followUp": "Programar un seguimiento",
+        "followUpDefault": "Seguimiento: {title}",
+        "submit": "Marcar como completada"
+      },
+      "sheet": {
+        "title": "Tarea",
+        "created": "Creada el {date} por {name}",
+        "notFound": "Esta tarea ya no existe.",
+        "doneBy": "Completada por {name} · {date}",
+        "confirmDelete": "¿Eliminar esta tarea?"
+      },
+      "toast": {
+        "created": "Tarea creada",
+        "saved": "Tarea guardada",
+        "completed": "Tarea completada",
+        "completedWithFollowUp": "Tarea completada y seguimiento programado",
+        "reopened": "Tarea reabierta",
+        "cancelled": "Tarea cancelada",
+        "deleted": "Tarea eliminada"
+      },
+      "errors": {
+        "createFailed": "No se pudo crear la tarea",
+        "saveFailed": "No se pudo guardar la tarea",
+        "completeFailed": "No se pudo completar la tarea",
+        "followUpFailed": "La tarea se completó, pero no se pudo crear el seguimiento",
+        "notOpen": "Esta tarea ya no está pendiente",
+        "deleteFailed": "No se pudo eliminar la tarea",
+        "titleRequired": "Escribe un título"
+      }
+    },
+    "reminders": {
+      "dueTitle": "Tarea por vencer: {title}",
+      "overdueTitle": "Tarea vencida: {title}",
+      "body": "Vence {when}",
+      "bodyContact": "Vence {when} · {contact}",
+      "bodyOverdue": "Venció {when}",
+      "bodyOverdueContact": "Venció {when} · {contact}"
+    },
+    "deals": {
+      "noContact": "Sin contacto",
+      "cardLabel": "{title}, {value}. Abrir negocio",
+      "reasonLabel": "Motivo: {reason}",
+      "status": {
+        "open": "Abierto",
+        "won": "Ganado",
+        "lost": "Perdido"
+      },
+      "filter": {
+        "label": "Mostrar negocios",
+        "open": "Abiertos",
+        "won": "Ganados",
+        "lost": "Perdidos",
+        "all": "Todos"
+      },
+      "board": {
+        "add": "Agregar negocio",
+        "drop": "Suelta un negocio aquí"
+      },
+      "actions": {
+        "won": "Ganado",
+        "lost": "Perdido",
+        "wonFor": "Marcar {title} como ganado",
+        "lostFor": "Marcar {title} como perdido",
+        "markWon": "Marcar ganado",
+        "markLost": "Marcar perdido",
+        "reopen": "Reabrir negocio"
+      },
+      "close": {
+        "wonTitle": "¡Negocio ganado!",
+        "lostTitle": "Marcar como perdido",
+        "reason": "¿Por qué se perdió?",
+        "note": "Comentario (opcional)",
+        "detailsRequired": "Cuéntanos el motivo",
+        "wonPlaceholder": "Ej. Pagó el 50% de adelanto",
+        "lostPlaceholder": "Detalles que ayuden a mejorar",
+        "wonSubmit": "Marcar ganado",
+        "lostSubmit": "Marcar perdido"
+      },
+      "create": {
+        "button": "Crear negocio",
+        "title": "Nuevo negocio",
+        "description": "Registra una oportunidad de venta con este contacto.",
+        "submit": "Crear negocio",
+        "noPipelines": "Aún no hay embudos de venta. Pide a un administrador que cree uno.",
+        "noPipelinesAdmin": "Aún no hay embudos de venta.",
+        "goToPipelines": "Crear un embudo"
+      },
+      "fields": {
+        "title": "Título",
+        "titlePlaceholder": "Nombre del negocio",
+        "pipeline": "Embudo",
+        "stage": "Etapa",
+        "value": "Valor ({currency})",
+        "currency": "Moneda",
+        "expectedClose": "Cierre estimado",
+        "owner": "Responsable",
+        "contact": "Contacto",
+        "selectContact": "Selecciona un contacto",
+        "notes": "Notas",
+        "notesPlaceholder": "Agrega notas…"
+      },
+      "form": {
+        "newTitle": "Nuevo negocio",
+        "editTitle": "Editar negocio",
+        "openChat": "Abrir conversación",
+        "status": "Estado",
+        "delete": "Eliminar negocio",
+        "confirmDelete": "¿Eliminar este negocio?"
+      },
+      "toast": {
+        "created": "Negocio creado",
+        "updated": "Negocio actualizado",
+        "deleted": "Negocio eliminado",
+        "won": "¡Negocio ganado!",
+        "lost": "Negocio marcado como perdido",
+        "reopened": "Negocio reabierto"
+      },
+      "errors": {
+        "required": "Título, contacto y etapa son obligatorios",
+        "createFailed": "No se pudo crear el negocio",
+        "saveFailed": "No se pudo guardar el negocio",
+        "deleteFailed": "No se pudo eliminar el negocio",
+        "moveFailed": "No se pudo mover el negocio",
+        "statusFailed": "No se pudo cambiar el estado del negocio",
+        "invalidValue": "Ingresa un valor válido"
+      }
+    },
+    "reasons": {
+      "title": "Motivos de pérdida",
+      "description": "Opciones que se muestran al marcar un negocio como perdido.",
+      "new": "Nuevo motivo",
+      "add": "Agregar",
+      "remove": "Quitar motivo {reason}",
+      "save": "Guardar motivos",
+      "reset": "Restablecer predeterminados",
+      "saved": "Motivos guardados",
+      "saveFailed": "No se pudieron guardar los motivos"
+    },
+    "pipelines": {
+      "defaultName": "Embudo de ventas",
+      "defaultStages": {
+        "newLead": "Nuevo lead",
+        "qualified": "Calificado",
+        "proposal": "Propuesta enviada",
+        "negotiation": "Negociación",
+        "won": "Ganado"
+      },
+      "defaultStagesHint": "Se crearán las etapas predeterminadas (Nuevo lead → Ganado).",
+      "select": "Selecciona un embudo",
+      "manage": "Administrar embudo",
+      "add": "Nuevo embudo",
+      "create": "Crear embudo",
+      "newTitle": "Nuevo embudo",
+      "namePlaceholder": "Ej. Ventas corporativas",
+      "empty": {
+        "title": "Aún no hay embudos",
+        "description": "Crea un embudo para empezar a seguir tus negocios."
+      },
+      "settings": {
+        "title": "Administrar embudo",
+        "name": "Nombre del embudo",
+        "stages": "Etapas",
+        "stageName": "Nombre de la etapa",
+        "newStage": "Nombre de la nueva etapa",
+        "pickColor": "Color {color}",
+        "changeColor": "Cambiar color",
+        "dragStage": "Arrastra para reordenar {name}",
+        "removeStage": "Eliminar etapa {name}",
+        "createNew": "Crear otro embudo",
+        "delete": "Eliminar embudo",
+        "deleteWarning": "Se eliminarán todos los negocios de este embudo. No se puede deshacer."
+      },
+      "toast": {
+        "created": "Embudo creado",
+        "saved": "Embudo guardado",
+        "deleted": "Embudo eliminado"
+      },
+      "errors": {
+        "createFailed": "No se pudo crear el embudo",
+        "saveFailed": "No se pudo guardar el embudo",
+        "deleteFailed": "No se pudo eliminar el embudo",
+        "addStageFailed": "No se pudo agregar la etapa",
+        "deleteStageFailed": "No se pudo eliminar la etapa",
+        "stageHasDeals": "Mueve o elimina primero los negocios de esta etapa"
+      }
+    },
+    "analytics": {
+      "totalDeals": "Negocios",
+      "totalDealsTip": "Todos los negocios de este embudo excepto los perdidos. Incluye los ganados.",
+      "pipelineValue": "Valor del embudo",
+      "pipelineValueTip": "Suma del valor de todos los negocios del embudo, sin contar los perdidos.",
+      "avgDeal": "Ticket promedio",
+      "avgDealTip": "Valor del embudo dividido entre el número de negocios no perdidos.",
+      "weighted": "Valor ponderado",
+      "weightedTip": "Ingreso esperado: valor de cada negocio abierto × probabilidad de su etapa (primera ≈ 10 %, hasta 90 %; ganado = 100 %). Sin perdidos.",
+      "wonMonth": "Ganados este mes",
+      "wonMonthTip": "Negocios marcados como ganados desde el primer día del mes.",
+      "lostMonth": "Perdidos este mes",
+      "lostMonthTip": "Negocios marcados como perdidos desde el primer día del mes.",
+      "howCalculated": "Cómo se calcula {label}"
+    }
+  }
+}

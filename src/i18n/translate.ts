@@ -24,6 +24,20 @@ import enCatalog from './messages/en/catalog.json'
 import enFollowups from './messages/en/followups.json'
 import esOrders from './messages/es/orders.json'
 import enOrders from './messages/en/orders.json'
+import esCrm from './messages/es/crm.json'
+import enCrm from './messages/en/crm.json'
+import esReports from './messages/es/reports.json'
+import enReports from './messages/en/reports.json'
+import esInboxPro from './messages/es/inboxpro.json'
+import enInboxPro from './messages/en/inboxpro.json'
+import esLeads from './messages/es/leads.json'
+import enLeads from './messages/en/leads.json'
+import esRealEstate from './messages/es/realestate.json'
+import enRealEstate from './messages/en/realestate.json'
+import esGcal from './messages/es/gcal.json'
+import enGcal from './messages/en/gcal.json'
+import esPortals from './messages/es/portals.json'
+import enPortals from './messages/en/portals.json'
 import type { AppLocale } from './config'
 
 // One file per area (core, channels, agents, webchat, inbox, business, routing) so features
@@ -32,8 +46,8 @@ import type { AppLocale } from './config'
 type Tree = { [key: string]: string | Tree }
 
 const DICTS: Record<AppLocale, Tree> = {
-  es: { ...esCore, ...esChannels, ...esAgents, ...esWebchat, ...esInbox, ...esBusiness, ...esRouting, ...esAdmin, ...esBookings, ...esCatalogImport, ...esCatalog, ...esFollowups, ...esOrders },
-  en: { ...enCore, ...enChannels, ...enAgents, ...enWebchat, ...enInbox, ...enBusiness, ...enRouting, ...enAdmin, ...enBookings, ...enCatalogImport, ...enCatalog, ...enFollowups, ...enOrders },
+  es: { ...esCore, ...esChannels, ...esAgents, ...esWebchat, ...esInbox, ...esBusiness, ...esRouting, ...esAdmin, ...esBookings, ...esCatalogImport, ...esCatalog, ...esFollowups, ...esOrders, ...esCrm, ...esReports, ...esInboxPro, ...esLeads, ...esRealEstate, ...esGcal, ...esPortals },
+  en: { ...enCore, ...enChannels, ...enAgents, ...enWebchat, ...enInbox, ...enBusiness, ...enRouting, ...enAdmin, ...enBookings, ...enCatalogImport, ...enCatalog, ...enFollowups, ...enOrders, ...enCrm, ...enReports, ...enInboxPro, ...enLeads, ...enRealEstate, ...enGcal, ...enPortals },
 }
 
 /** Dotted-path key into the message tree, e.g. "nav.inbox". */

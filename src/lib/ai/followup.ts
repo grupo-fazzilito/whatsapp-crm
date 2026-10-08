@@ -155,6 +155,7 @@ export async function loadFollowupInput(args: {
       .select('sender_type, content_text, content_type')
       .eq('workspace_id', args.workspaceId)
       .eq('conversation_id', args.conversationId)
+      .neq('is_internal', true)
       .order('created_at', { ascending: false })
       .limit(TRANSCRIPT_MESSAGES),
   ])

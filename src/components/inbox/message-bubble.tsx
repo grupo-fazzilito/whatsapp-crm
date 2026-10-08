@@ -71,7 +71,7 @@ function isProxyUrl(url: string): boolean {
 const ATTACHMENT_SIGN_MARKER = "/storage/v1/object/sign/attachments/";
 
 /** Object path inside the private `attachments` bucket, if `url` points there. */
-function attachmentPath(url: string): string | null {
+export function attachmentPath(url: string): string | null {
   const idx = url.indexOf(ATTACHMENT_SIGN_MARKER);
   if (idx < 0) return null;
   const rest = url.slice(idx + ATTACHMENT_SIGN_MARKER.length).split("?")[0];
@@ -89,7 +89,7 @@ function attachmentPath(url: string): string | null {
  *    sent to the provider expires after an hour)
  *  - anything else → as is
  */
-function useMediaSrc(url: string | undefined) {
+export function useMediaSrc(url: string | undefined) {
   const [state, setState] = useState<{ src: string | null; error: boolean; loading: boolean }>({
     src: null,
     error: false,

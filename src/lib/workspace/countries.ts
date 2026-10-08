@@ -45,10 +45,20 @@ export function moneyLocale(ws: { locale?: string | null; country?: string | nul
   return ws.country ? `${lang}-${ws.country}` : lang === 'en' ? 'en-US' : 'es-MX'
 }
 
-/** Format an amount in the workspace currency. */
-export function formatMoney(amount: number, currency: string, locale: string): string {
+/**
+ * Format an amount in a currency (the workspace's or a product's own).
+ * `whole` drops the cents of integer amounts ("S/ 450,000").
+ * Spanish locales without a local dollar sign show "US$" (the usual
+ * notation in Peru / Latin America) instead of the bare ISO code "USD".
+ */
+export function formatMoney(amount: number, currency: string, locale: string, opts: { whole?: boolean } = {}): string {
   try {
-    return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount)
+    const out = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      ...(opts.whole && Number.isInteger(amount) ? { maximumFractionDigits: 0 } : {}),
+    }).format(amount)
+    return currency === 'USD' && locale.startsWith('es') ? out.replace(/USD\s?/, 'US$ ') : out
   } catch {
     return `${currency} ${amount.toFixed(2)}`
   }

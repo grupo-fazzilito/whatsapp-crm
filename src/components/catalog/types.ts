@@ -21,6 +21,8 @@ export interface Product {
   description: string | null;
   price: number | null;
   compare_at_price: number | null;
+  /** ISO 4217; null = workspace currency. */
+  currency?: string | null;
   sku: string | null;
   stock: number | null;
   track_stock: boolean;

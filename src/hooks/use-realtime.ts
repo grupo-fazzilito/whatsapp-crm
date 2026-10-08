@@ -12,10 +12,19 @@ interface RealtimeEvent<T> {
   old: Partial<T>;
 }
 
+/** conversation_tags row (DELETE payloads only carry the id under RLS). */
+export interface ConversationTagRow {
+  id: string;
+  conversation_id?: string;
+  tag_id?: string;
+}
+
 interface UseRealtimeOptions {
   channelName: string;
   onMessageEvent?: (event: RealtimeEvent<Message>) => void;
   onConversationEvent?: (event: RealtimeEvent<Conversation>) => void;
+  /** Tags added to / removed from conversations (inbox list chips). */
+  onConversationTagEvent?: (event: RealtimeEvent<ConversationTagRow>) => void;
   enabled?: boolean;
 }
 
@@ -23,6 +32,7 @@ export function useRealtime({
   channelName,
   onMessageEvent,
   onConversationEvent,
+  onConversationTagEvent,
   enabled = true,
 }: UseRealtimeOptions) {
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -37,9 +47,11 @@ export function useRealtime({
   // callbacks, which always run after the render that updates it.
   const onMessageRef = useRef(onMessageEvent);
   const onConversationRef = useRef(onConversationEvent);
+  const onConversationTagRef = useRef(onConversationTagEvent);
   useEffect(() => {
     onMessageRef.current = onMessageEvent;
     onConversationRef.current = onConversationEvent;
+    onConversationTagRef.current = onConversationTagEvent;
   });
 
   useEffect(() => {
@@ -71,6 +83,30 @@ export function useRealtime({
             eventType: payload.eventType as RealtimeEvent<Conversation>["eventType"],
             new: payload.new as Conversation,
             old: payload.old as Partial<Conversation>,
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "conversation_tags", filter },
+        (payload) => {
+          onConversationTagRef.current?.({
+            eventType: "INSERT",
+            new: payload.new as ConversationTagRow,
+            old: {},
+          });
+        }
+      )
+      // DELETE events can't be filtered; under RLS they only carry the
+      // row id, which the inbox matches against the ids it holds.
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "conversation_tags" },
+        (payload) => {
+          onConversationTagRef.current?.({
+            eventType: "DELETE",
+            new: {} as ConversationTagRow,
+            old: payload.old as Partial<ConversationTagRow>,
           });
         }
       )

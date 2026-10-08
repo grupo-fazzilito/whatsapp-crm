@@ -2,7 +2,7 @@
 // Disabled unless TIKTOK_MESSAGING_ENABLED=true. The endpoint and payload
 // below follow the Business Messaging API "send message" shape; confirm
 // against the docs you receive with API access before enabling.
-import { ChannelSendError, type ChannelAdapter, type OutboundContent } from '../types'
+import { ChannelSendError, locationText, type ChannelAdapter, type OutboundContent } from '../types'
 
 const BASE = process.env.TIKTOK_BM_API_BASE ?? 'https://business-api.tiktok.com/open_api/v1.3'
 
@@ -22,6 +22,8 @@ function asText(content: OutboundContent): string {
       return content.caption ? `${content.caption}\n${content.url}` : content.url
     case 'carousel':
       return [content.text, '', ...content.cards.map((c, i) => `${i + 1}. ${c.title}${c.subtitle ? ` — ${c.subtitle}` : ''}`)].join('\n')
+    case 'location':
+      return locationText(content)
     case 'template':
       throw new ChannelSendError('Templates are only available on WhatsApp', 'unsupported')
   }

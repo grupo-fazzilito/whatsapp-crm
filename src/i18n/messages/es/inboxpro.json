@@ -1,0 +1,271 @@
+{
+  "inboxpro": {
+    "status": {
+      "open": "Abierta",
+      "pending": "Pendiente",
+      "closed": "Resuelta"
+    },
+    "views": {
+      "label": "Vista de la bandeja",
+      "all": "Todas",
+      "mine": "Mías",
+      "unassigned": "Sin asignar",
+      "resolved": "Resueltas"
+    },
+    "filters": {
+      "allStatuses": "Abiertas y pendientes",
+      "tags": "Etiquetas",
+      "tagsCount": "Etiquetas ({n})",
+      "noTags": "Aún no hay etiquetas",
+      "includeContactTags": "Incluir etiquetas del contacto",
+      "clearTags": "Quitar filtro de etiquetas",
+      "priority": "Prioridad",
+      "priorityCount": "Prioridad ({n})",
+      "sort": "Ordenar",
+      "clear": "Limpiar"
+    },
+    "sort": {
+      "recent": "Más recientes",
+      "priority": "Prioridad (urgentes primero)",
+      "waiting": "Esperando respuesta (más antiguo primero)"
+    },
+    "priority": {
+      "low": "Baja",
+      "normal": "Normal",
+      "high": "Alta",
+      "urgent": "Urgente",
+      "change": "Cambiar prioridad",
+      "current": "Prioridad: {name}"
+    },
+    "tags": {
+      "button": "Etiquetas",
+      "add": "Añadir etiqueta",
+      "addShort": "Etiqueta",
+      "search": "Buscar o crear etiqueta",
+      "create": "Crear «{name}»",
+      "createAdminOnly": "Solo los administradores pueden crear etiquetas nuevas.",
+      "none": "Aún no hay etiquetas en este negocio.",
+      "empty": "No hay etiquetas que coincidan.",
+      "remove": "Quitar etiqueta {name}",
+      "failed": "No se pudo actualizar la etiqueta: {reason}",
+      "more": "+{n}"
+    },
+    "header": {
+      "resolve": "Resolver",
+      "reopen": "Reabrir",
+      "resolved": "Conversación resuelta",
+      "reopened": "Conversación reabierta",
+      "transfer": "Transferir",
+      "chat": "Chat",
+      "files": "Archivos",
+      "viewTabs": "Vista de la conversación"
+    },
+    "transfer": {
+      "title": "Transferir conversación",
+      "description": "Elige a una persona o a un equipo. Recibirá una notificación.",
+      "target": "Transferir a",
+      "toMember": "Persona",
+      "toTeam": "Equipo",
+      "memberLabel": "Persona",
+      "teamLabel": "Equipo",
+      "teamOptional": "Equipo (opcional)",
+      "pickMember": "Elige una persona",
+      "pickTeam": "Elige un equipo",
+      "noTeam": "Sin equipo",
+      "autoPick": "Se asignará al siguiente miembro disponible del equipo (por turnos). Si nadie está disponible, quedará en el equipo sin asignar.",
+      "reason": "Motivo (opcional)",
+      "reasonPlaceholder": "Ej.: el cliente necesita una factura",
+      "submit": "Transferir",
+      "cancel": "Cancelar",
+      "done": "Conversación transferida a {name}",
+      "doneTeam": "Conversación transferida al equipo {name}",
+      "failed": "No se pudo transferir: {reason}",
+      "unavailable": "no disponible",
+      "noTeams": "Aún no hay equipos. Créalos en Configuración → Equipos.",
+      "you": "(tú)"
+    },
+    "events": {
+      "assigned": "{actor} asignó la conversación a {to}",
+      "assignedSelf": "{actor} tomó la conversación",
+      "autoAssigned": "Asignada automáticamente a {to}",
+      "unassigned": "{actor} quitó la asignación",
+      "transferred": "{actor} transfirió a {to}",
+      "transferredTeam": "{actor} transfirió al equipo {team}",
+      "transferredTeamMember": "{actor} transfirió a {to} ({team})",
+      "resolved": "{actor} marcó la conversación como resuelta",
+      "reopened": "{actor} reabrió la conversación",
+      "reopenedByCustomer": "Reabierta: el cliente volvió a escribir",
+      "priority": "{actor} cambió la prioridad a {priority}",
+      "tagAdded": "{actor} añadió la etiqueta {tag}",
+      "tagRemoved": "{actor} quitó la etiqueta {tag}",
+      "someone": "Alguien",
+      "system": "El sistema"
+    },
+    "notes": {
+      "label": "Nota interna — solo visible para el equipo",
+      "saving": "Guardando nota",
+      "failed": "No se pudo guardar"
+    },
+    "composer": {
+      "modeLabel": "Tipo de mensaje",
+      "reply": "Responder",
+      "note": "Nota interna",
+      "placeholder": "Escribe un mensaje… (/ para respuestas rápidas)",
+      "notePlaceholder": "Escribe una nota para el equipo… usa @ para mencionar",
+      "noteHint": "Solo tu equipo verá esta nota; el cliente no la recibe.",
+      "sendNote": "Guardar nota",
+      "noteFailed": "No se pudo guardar la nota: {reason}",
+      "mentions": "Mencionar a un compañero",
+      "noMembers": "No hay compañeros con ese nombre",
+      "quickReplies": "Respuestas rápidas",
+      "noQuickReplies": "No hay respuestas rápidas con ese atajo",
+      "noQuickRepliesYet": "Aún no tienes respuestas rápidas",
+      "manageQuickReplies": "Gestionar respuestas rápidas",
+      "hasAttachments": "Incluye archivos",
+      "quickReplyAttachments": "Archivos de la respuesta rápida",
+      "removeQuickAttachment": "Quitar {name}",
+      "attachmentsNotSupported": "Este canal no admite archivos: solo se insertó el texto.",
+      "attachmentFailed": "No se pudo enviar el archivo {name}"
+    },
+    "files": {
+      "title": "Archivos de la conversación",
+      "count": "{n} archivos",
+      "empty": "Aún no se han compartido archivos en esta conversación.",
+      "loading": "Cargando archivos…",
+      "open": "Abrir",
+      "download": "Descargar",
+      "preview": "Vista previa de {name}",
+      "from": {
+        "bot": "Agente IA",
+        "team": "Equipo"
+      },
+      "types": {
+        "image": "Imagen",
+        "video": "Video",
+        "audio": "Audio",
+        "document": "Documento",
+        "sticker": "Sticker"
+      }
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "unread": "{n} sin leer",
+      "unreadItem": "Sin leer",
+      "empty": "No tienes notificaciones",
+      "markAll": "Marcar todas como leídas"
+    },
+    "availability": {
+      "label": "Disponible",
+      "on": "Estás disponible: recibirás conversaciones asignadas automáticamente",
+      "off": "No disponible: no recibirás conversaciones automáticas",
+      "failed": "No se pudo cambiar tu disponibilidad"
+    },
+    "quickReplies": {
+      "tab": "Respuestas rápidas",
+      "title": "Respuestas rápidas",
+      "description": "Escribe / en el chat para insertarlas. Puedes usar las variables {nombre}, {negocio}, {agente} y {fecha}.",
+      "new": "Nueva respuesta",
+      "edit": "Editar respuesta",
+      "delete": "Eliminar",
+      "deleteConfirm": "¿Eliminar la respuesta /{shortcut}? Esta acción no se puede deshacer.",
+      "dialogHint": "Los miembros crean respuestas personales; los administradores pueden compartirlas con todo el equipo.",
+      "shortcut": "Atajo",
+      "shortcutHint": "Minúsculas, números, - y _. Se usa escribiendo /atajo.",
+      "titleField": "Título",
+      "body": "Mensaje",
+      "bodyHint": "Variables:",
+      "insertVariable": "Insertar {v}",
+      "attachments": "Archivos adjuntos",
+      "addAttachment": "Añadir archivo",
+      "maxAttachments": "Máximo {n} archivos por respuesta",
+      "attachmentCount": "{n} archivos",
+      "shared": "Compartir con todo el equipo",
+      "sharedHint": "Solo los administradores pueden compartir respuestas.",
+      "sharedBadge": "Compartida",
+      "personal": "Personal",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "saved": "Respuesta guardada",
+      "deleted": "Respuesta eliminada",
+      "search": "Buscar respuesta",
+      "noMatches": "No hay respuestas que coincidan.",
+      "empty": "Aún no hay respuestas rápidas",
+      "emptyHint": "Crea atajos para lo que respondes todos los días. Algunos ejemplos para empezar:",
+      "useExample": "Usar este ejemplo",
+      "useExampleFor": "Usar el ejemplo /{shortcut}",
+      "examples": {
+        "e1": {
+          "shortcut": "saludo",
+          "title": "Saludo",
+          "body": "¡Hola {nombre}! 👋 Gracias por escribir a {negocio}. Soy {agente}, ¿en qué te puedo ayudar?"
+        },
+        "e2": {
+          "shortcut": "horario",
+          "title": "Horario de atención",
+          "body": "Atendemos de lunes a sábado de 9:00 a. m. a 7:00 p. m. Los domingos descansamos."
+        },
+        "e3": {
+          "shortcut": "pago",
+          "title": "Medios de pago",
+          "body": "Puedes pagar con Yape, Plin o transferencia bancaria. Cuando realices el pago, envíanos la captura por aquí, por favor. 🙌"
+        }
+      },
+      "errors": {
+        "load": "No se pudieron cargar las respuestas rápidas",
+        "generic": "No se pudo guardar la respuesta",
+        "invalid_shortcut": "El atajo solo puede tener minúsculas, números, - y _",
+        "title_required": "El título es obligatorio",
+        "body_too_long": "El mensaje es demasiado largo",
+        "empty_reply": "Escribe un mensaje o añade un archivo",
+        "invalid_attachments": "Algún archivo no es válido",
+        "shortcut_taken": "Ya existe una respuesta con ese atajo",
+        "only_admins_share": "Solo los administradores pueden compartir respuestas"
+      }
+    },
+    "teams": {
+      "tab": "Equipos",
+      "title": "Equipos",
+      "description": "Agrupa a tu equipo (por ejemplo Ventas o Soporte) para transferir conversaciones y repartirlas automáticamente.",
+      "new": "Nuevo equipo",
+      "edit": "Editar equipo",
+      "delete": "Eliminar equipo",
+      "deleteConfirm": "¿Eliminar el equipo {name}? Las conversaciones se mantienen, solo dejan de pertenecer al equipo.",
+      "dialogHint": "Elige quiénes forman parte del equipo.",
+      "name": "Nombre",
+      "namePlaceholder": "Ej.: Ventas",
+      "descriptionField": "Descripción (opcional)",
+      "members": "Miembros",
+      "memberCount": "{n} miembros",
+      "availableCount": "{n} disponibles",
+      "empty": "Aún no hay equipos.",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "saved": "Equipo guardado",
+      "deleted": "Equipo eliminado",
+      "adminOnly": "Solo los administradores pueden cambiar esta configuración.",
+      "autoAssign": {
+        "title": "Asignación automática",
+        "description": "Reparte las conversaciones nuevas entre las personas disponibles.",
+        "mode": "Modo",
+        "off": "Desactivada",
+        "round_robin": "Por turnos (round robin)",
+        "defaultTeam": "Equipo que recibe las conversaciones",
+        "allMembers": "Todos los miembros",
+        "help": "Se asigna cuando una conversación nueva recibe su primer mensaje y ningún agente de IA la atiende, o cuando la IA la pasa a una persona. Primero recibe quien lleva más tiempo sin una asignación.",
+        "saved": "Asignación automática actualizada"
+      },
+      "availability": {
+        "title": "Disponibilidad",
+        "description": "Solo las personas disponibles reciben conversaciones automáticas. Cada persona cambia la suya desde su menú de usuario.",
+        "available": "Disponible",
+        "away": "No disponible"
+      },
+      "errors": {
+        "load": "No se pudieron cargar los equipos",
+        "generic": "No se pudo guardar",
+        "name_required": "El nombre es obligatorio",
+        "name_taken": "Ya existe un equipo con ese nombre"
+      }
+    }
+  }
+}

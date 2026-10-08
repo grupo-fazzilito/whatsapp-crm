@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { useT } from '@/i18n/client'
 import { createClient } from '@/lib/supabase/client'
 import type { Booking, BookingStatus, MessageAction } from './types'
+import { pushGoogleSync } from '@/components/integrations/google/push'
 
 const ENDPOINT: Record<MessageAction, string> = {
   confirm: '/api/business/bookings/confirm',
@@ -49,6 +50,7 @@ export function useBookingActions(patch: (id: string, changes: Partial<Booking>)
         return false
       }
       toast.success(t('bookings.toast.statusChanged', { status: t(`bookings.status.${status}`) }))
+      pushGoogleSync(booking.id)
       if (notify) notifyStatus(booking.id)
       return true
     },

@@ -21,6 +21,7 @@ import { ContactPicker } from './contact-picker'
 import { customFieldDefs } from './fields'
 import { StatusSelect } from './status-select'
 import type { Booking, BookingStatus, ContactLite, ProductLite, ServiceLite } from './types'
+import { pushGoogleSync } from '@/components/integrations/google/push'
 
 const selectClass =
   'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30'
@@ -227,6 +228,7 @@ export function BookingFormDialog(props: BookingFormProps) {
       return
     }
     toast.success(booking ? t('bookings.toast.updated') : t('bookings.toast.created'))
+    pushGoogleSync(res.data.id)
     const meaningful = !booking || whenChanged || booking.status !== form.status
     props.onSaved(res.data.id, form.notify && meaningful)
     onOpenChange(false)

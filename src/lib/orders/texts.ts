@@ -11,6 +11,7 @@ const T = {
     removed: 'Quité *{name}* de tu carrito.',
     cleared: 'Vacié tu carrito.',
     priceOnRequest: '*{name}* tiene precio a consultar; te comunico con el equipo para cotizarlo.',
+    foreignCurrency: '*{name}* se cotiza en {currency}; te comunico con un asesor.',
     outOfStock: 'Lo siento, *{name}* está agotado por ahora.',
     notEnough: 'Solo nos quedan {available} de *{name}*.',
     unavailable: 'Ese producto ya no está disponible.',
@@ -54,6 +55,8 @@ const T = {
       confirm: 'Confirmar pedido',
       edit: 'Modificar',
       payOptions: 'Ver opciones',
+      bookVisit: 'Agendar visita',
+      details: 'Ver ficha',
     },
   },
   en: {
@@ -61,6 +64,7 @@ const T = {
     removed: 'Removed *{name}* from your cart.',
     cleared: 'Your cart is now empty.',
     priceOnRequest: '*{name}* is priced on request; I’ll connect you with the team for a quote.',
+    foreignCurrency: '*{name}* is priced in {currency}; I’ll connect you with an advisor.',
     outOfStock: 'Sorry, *{name}* is out of stock right now.',
     notEnough: 'We only have {available} of *{name}* left.',
     unavailable: 'That product is no longer available.',
@@ -104,6 +108,8 @@ const T = {
       confirm: 'Place order',
       edit: 'Change',
       payOptions: 'See options',
+      bookVisit: 'Book a viewing',
+      details: 'See details',
     },
   },
 } as const

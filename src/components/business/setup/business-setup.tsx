@@ -9,8 +9,9 @@ import { ProfileForm } from './profile-form';
 import { IndustryForm } from './industry-form';
 import { HoursForm } from './hours-form';
 import { OrdersPaymentsForm } from './orders-payments-form';
+import { RoutingRulesManager } from '@/components/real-estate/routing/routing-rules-manager';
 
-const TABS = ['profile', 'industry', 'hours', 'orders'] as const;
+const TABS = ['profile', 'industry', 'hours', 'orders', 'leadRouting'] as const;
 type Tab = (typeof TABS)[number];
 
 export function BusinessSetup() {
@@ -38,11 +39,14 @@ export function BusinessSetup() {
       {!workspace ? (
         <LoadingBlock />
       ) : (
-        <Tabs value={tab === 'orders' && !modules.orders ? 'profile' : tab} onValueChange={onTab}>
+        <Tabs
+          value={(tab === 'orders' && !modules.orders) || (tab === 'leadRouting' && workspace.industry !== 'real_estate') ? 'profile' : tab}
+          onValueChange={onTab}
+        >
           <TabsList>
-            {TABS.filter((k) => k !== 'orders' || modules.orders).map((k) => (
+            {TABS.filter((k) => (k !== 'orders' || modules.orders) && (k !== 'leadRouting' || workspace.industry === 'real_estate')).map((k) => (
               <TabsTrigger key={k} value={k} className="px-3">
-                {k === 'orders' ? t('orders.settings.tab') : t(`business.setup.tab.${k}`)}
+                {k === 'orders' ? t('orders.settings.tab') : k === 'leadRouting' ? t('leads.routing.tab') : t(`business.setup.tab.${k}`)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -59,6 +63,11 @@ export function BusinessSetup() {
           {modules.orders && (
             <TabsContent value="orders" className="pt-2">
               <OrdersPaymentsForm key={workspace.updated_at} workspace={workspace} readOnly={readOnly} />
+            </TabsContent>
+          )}
+          {workspace.industry === 'real_estate' && (
+            <TabsContent value="leadRouting" className="pt-2">
+              <RoutingRulesManager />
             </TabsContent>
           )}
         </Tabs>

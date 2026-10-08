@@ -1,35 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import type {
-  Contact,
-  Conversation,
-  Deal,
-  DealStatus,
-  PipelineStage,
-  Profile,
-} from "@/types";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import type { Contact, Deal, PipelineStage, Profile } from "@/types";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Check,
-  X,
-  Trash2,
-  MessageSquare,
-  DollarSign,
-  Loader2,
-} from "lucide-react";
+import { Check, X, Trash2, MessageSquare, Loader2, RotateCcw, ListTodo } from "lucide-react";
 import { toast } from "sonner";
+import { useI18n } from "@/i18n/client";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { useMembers } from "@/components/crm/use-members";
+import { setDealStatus } from "@/components/crm/close-deal-dialog";
+import { CreateTaskDialog } from "@/components/crm/create-task-dialog";
 
 interface DealFormProps {
   open: boolean;
@@ -39,7 +25,12 @@ interface DealFormProps {
   stages: PipelineStage[];
   defaultStageId?: string;
   onSaved: () => void;
+  /** Opens the won / lost dialog (reason) for this deal. */
+  onRequestClose?: (deal: Deal, status: "won" | "lost") => void;
 }
+
+const selectCls =
+  "h-9 w-full rounded-lg border border-slate-700 bg-slate-800 px-2.5 text-sm text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary";
 
 export function DealForm({
   open,
@@ -49,12 +40,17 @@ export function DealForm({
   stages,
   defaultStageId,
   onSaved,
+  onRequestClose,
 }: DealFormProps) {
   const supabase = createClient();
+  const { t, locale } = useI18n();
+  const { workspace } = useWorkspace();
+  const { members } = useMembers();
+  const wsCurrency = workspace?.currency || "USD";
 
   const [title, setTitle] = useState("");
   const [value, setValue] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState(wsCurrency);
   const [contactId, setContactId] = useState("");
   const [stageId, setStageId] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
@@ -63,25 +59,30 @@ export function DealForm({
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [linkedConversation, setLinkedConversation] =
-    useState<Conversation | null>(null);
+  const [linkedConversationId, setLinkedConversationId] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
-  const [statusAction, setStatusAction] = useState<DealStatus | null>(null);
+  const [reopening, setReopening] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [taskOpen, setTaskOpen] = useState(false);
+
+  const currencies = useMemo(
+    () => Array.from(new Set([wsCurrency, deal?.currency || wsCurrency, "USD", "EUR"])),
+    [wsCurrency, deal?.currency],
+  );
 
   // Reset the form fields every time the sheet opens or its input
   // props change. This is a legitimate prop-driven sync; the rule is
   // over-cautious here, hence the block-level disable.
-  /* eslint-disable react-hooks/set-state-in-effect */
+   
   useEffect(() => {
     if (!open) return;
     setConfirmDelete(false);
     if (deal) {
       setTitle(deal.title);
       setValue(String(deal.value ?? ""));
-      setCurrency(deal.currency || "USD");
+      setCurrency(deal.currency || wsCurrency);
       // contact_id is nullable when the contact has been deleted
       // (migration 004: ON DELETE SET NULL). "" means "no selection".
       setContactId(deal.contact_id ?? "");
@@ -92,63 +93,78 @@ export function DealForm({
     } else {
       setTitle("");
       setValue("");
-      setCurrency("USD");
+      setCurrency(wsCurrency);
       setContactId("");
       setStageId(defaultStageId || stages[0]?.id || "");
       setAssignedTo("");
       setExpectedCloseDate("");
       setNotes("");
     }
-  }, [open, deal, defaultStageId, stages]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  }, [open, deal, defaultStageId, stages, wsCurrency]);
+   
 
   // Load supporting data once the sheet is open
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     (async () => {
-      const [c, p] = await Promise.all([
-        supabase.from("contacts").select("*").order("name"),
-        supabase.from("profiles").select("*").order("full_name"),
-      ]);
+      const c = await supabase.from("contacts").select("*").order("name").limit(1000);
       if (cancelled) return;
       setContacts((c.data ?? []) as Contact[]);
-      setProfiles((p.data ?? []) as Profile[]);
     })();
     return () => {
       cancelled = true;
     };
   }, [open, supabase]);
 
-  // Fetch linked conversation for the selected contact (newest open one).
-  // Clearing on no-selection is sync with prop state; the populated
-  // case runs setLinkedConversation inside the async fetch callback.
+  // Owners: profiles of this workspace's active members.
+  useEffect(() => {
+    if (!open || members.length === 0) return;
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("*")
+      .in("user_id", members.map((m) => m.userId))
+      .order("full_name")
+      .then(({ data }) => {
+        if (!cancelled) setProfiles((data ?? []) as Profile[]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, members, supabase]);
+
+  // Chat to open: the deal's own conversation, else the contact's latest.
   useEffect(() => {
     if (!open || !contactId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLinkedConversation(null);
+       
+      setLinkedConversationId(null);
+      return;
+    }
+    if (deal?.conversation_id && deal.contact_id === contactId) {
+      setLinkedConversationId(deal.conversation_id);
       return;
     }
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("conversations")
-        .select("*")
+        .select("id")
         .eq("contact_id", contactId)
         .order("last_message_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (cancelled) return;
-      setLinkedConversation((data as Conversation | null) ?? null);
+      setLinkedConversationId((data as { id: string } | null)?.id ?? null);
     })();
     return () => {
       cancelled = true;
     };
-  }, [open, contactId, supabase]);
+  }, [open, contactId, deal?.conversation_id, deal?.contact_id, supabase]);
 
   async function handleSave() {
     if (!title.trim() || !contactId || !stageId) {
-      toast.error("Title, contact, and stage are required");
+      toast.error(t("crm.deals.errors.required"));
       return;
     }
     setSaving(true);
@@ -166,49 +182,42 @@ export function DealForm({
     };
 
     if (deal) {
-      const { error } = await supabase
-        .from("deals")
-        .update(payload)
-        .eq("id", deal.id);
+      const { error } = await supabase.from("deals").update(payload).eq("id", deal.id);
       if (error) {
-        toast.error("Failed to save deal");
+        toast.error(t("crm.deals.errors.saveFailed"));
         setSaving(false);
         return;
       }
     } else {
       const { error } = await supabase
         .from("deals")
-        .insert({ ...payload, status: "open" });
+        .insert({ ...payload, conversation_id: linkedConversationId, status: "open" });
       if (error) {
-        toast.error("Failed to create deal");
+        toast.error(t("crm.deals.errors.createFailed"));
         setSaving(false);
         return;
       }
     }
 
     setSaving(false);
-    toast.success(deal ? "Deal updated" : "Deal created");
+    toast.success(deal ? t("crm.deals.toast.updated") : t("crm.deals.toast.created"));
     onOpenChange(false);
     onSaved();
   }
 
-  async function handleStatusChange(status: DealStatus) {
+  async function handleReopen() {
     if (!deal) return;
-    setStatusAction(status);
-    const { error } = await supabase
-      .from("deals")
-      .update({ status })
-      .eq("id", deal.id);
-    setStatusAction(null);
-    if (error) {
-      toast.error("Failed to update deal status");
-      return;
+    setReopening(true);
+    try {
+      await setDealStatus(deal.id, "open");
+      toast.success(t("crm.deals.toast.reopened"));
+      onOpenChange(false);
+      onSaved();
+    } catch {
+      toast.error(t("crm.deals.errors.statusFailed"));
+    } finally {
+      setReopening(false);
     }
-    toast.success(
-      status === "won" ? "Marked as won" : status === "lost" ? "Marked as lost" : "Deal reopened",
-    );
-    onOpenChange(false);
-    onSaved();
   }
 
   async function handleDelete() {
@@ -217,47 +226,46 @@ export function DealForm({
     const { error } = await supabase.from("deals").delete().eq("id", deal.id);
     setDeleting(false);
     if (error) {
-      toast.error("Failed to delete deal");
+      toast.error(t("crm.deals.errors.deleteFailed"));
       return;
     }
-    toast.success("Deal deleted");
+    toast.success(t("crm.deals.toast.deleted"));
     setConfirmDelete(false);
     onOpenChange(false);
     onSaved();
   }
 
+  const closedAt = deal?.status === "won" ? deal.won_at : deal?.status === "lost" ? deal.lost_at : null;
+  const dateTime = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="bg-slate-900 border-slate-700 text-slate-200 sm:max-w-lg w-full p-0"
-      >
+      <SheetContent side="right" className="w-full border-slate-700 bg-slate-900 p-0 text-slate-200 sm:max-w-lg">
         <div className="flex h-full flex-col">
           <SheetHeader className="border-b border-slate-700/50 p-4">
-            <SheetTitle className="text-white">
-              {deal ? "Edit Deal" : "New Deal"}
-            </SheetTitle>
+            <SheetTitle className="text-white">{deal ? t("crm.deals.form.editTitle") : t("crm.deals.form.newTitle")}</SheetTitle>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 space-y-4 overflow-y-auto p-4">
             <div className="grid gap-2">
-              <Label className="text-slate-300">Title</Label>
+              <Label htmlFor="deal-title" className="text-slate-300">
+                {t("crm.deals.fields.title")}
+              </Label>
               <Input
+                id="deal-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Deal title"
+                placeholder={t("crm.deals.fields.titlePlaceholder")}
                 className="border-slate-700 bg-slate-800 text-white"
               />
             </div>
 
             <div className="grid gap-2">
-              <Label className="text-slate-300">Contact</Label>
-              <select
-                value={contactId}
-                onChange={(e) => setContactId(e.target.value)}
-                className="h-9 w-full rounded-lg border border-slate-700 bg-slate-800 px-2.5 text-sm text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              >
-                <option value="">Select a contact</option>
+              <Label htmlFor="deal-contact" className="text-slate-300">
+                {t("crm.deals.fields.contact")}
+              </Label>
+              <select id="deal-contact" value={contactId} onChange={(e) => setContactId(e.target.value)} className={selectCls}>
+                <option value="">{t("crm.deals.fields.selectContact")}</option>
                 {contacts.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name || c.phone}
@@ -265,48 +273,54 @@ export function DealForm({
                 ))}
               </select>
 
-              {linkedConversation && (
+              {linkedConversationId && (
                 <Link
-                  href="/inbox"
+                  href={`/inbox?c=${linkedConversationId}`}
                   className="mt-1 inline-flex items-center gap-1.5 self-start rounded-md bg-primary/10 px-2 py-1 text-xs text-primary hover:bg-primary/20"
                 >
-                  <MessageSquare className="h-3 w-3" />
-                  Link to Conversation
+                  <MessageSquare className="h-3 w-3" aria-hidden />
+                  {t("crm.deals.form.openChat")}
                 </Link>
               )}
             </div>
 
             <div className="grid grid-cols-[1fr_110px] gap-3">
               <div className="grid gap-2">
-                <Label className="text-slate-300">Value</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
-                  <Input
-                    type="number"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    placeholder="0"
-                    className="border-slate-700 bg-slate-800 pl-7 text-white"
-                  />
-                </div>
+                <Label htmlFor="deal-value" className="text-slate-300">
+                  {t("crm.deals.fields.value", { currency })}
+                </Label>
+                <Input
+                  id="deal-value"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder="0"
+                  className="border-slate-700 bg-slate-800 text-white"
+                />
               </div>
               <div className="grid gap-2">
-                <Label className="text-slate-300">Currency</Label>
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-slate-700 bg-slate-800 px-2.5 text-sm text-white outline-none focus:border-primary"
-                >
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GBP">GBP</option>
+                <Label htmlFor="deal-currency" className="text-slate-300">
+                  {t("crm.deals.fields.currency")}
+                </Label>
+                <select id="deal-currency" value={currency} onChange={(e) => setCurrency(e.target.value)} className={selectCls}>
+                  {currencies.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
 
             <div className="grid gap-2">
-              <Label className="text-slate-300">Expected Close Date</Label>
+              <Label htmlFor="deal-close" className="text-slate-300">
+                {t("crm.deals.fields.expectedClose")}
+              </Label>
               <Input
+                id="deal-close"
                 type="date"
                 value={expectedCloseDate}
                 onChange={(e) => setExpectedCloseDate(e.target.value)}
@@ -315,12 +329,10 @@ export function DealForm({
             </div>
 
             <div className="grid gap-2">
-              <Label className="text-slate-300">Stage</Label>
-              <select
-                value={stageId}
-                onChange={(e) => setStageId(e.target.value)}
-                className="h-9 w-full rounded-lg border border-slate-700 bg-slate-800 px-2.5 text-sm text-white outline-none focus:border-primary"
-              >
+              <Label htmlFor="deal-stage" className="text-slate-300">
+                {t("crm.deals.fields.stage")}
+              </Label>
+              <select id="deal-stage" value={stageId} onChange={(e) => setStageId(e.target.value)} className={selectCls}>
                 {stages.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -330,13 +342,11 @@ export function DealForm({
             </div>
 
             <div className="grid gap-2">
-              <Label className="text-slate-300">Assigned To</Label>
-              <select
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                className="h-9 w-full rounded-lg border border-slate-700 bg-slate-800 px-2.5 text-sm text-white outline-none focus:border-primary"
-              >
-                <option value="">Unassigned</option>
+              <Label htmlFor="deal-owner" className="text-slate-300">
+                {t("crm.deals.fields.owner")}
+              </Label>
+              <select id="deal-owner" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className={selectCls}>
+                <option value="">{t("crm.tasks.unassigned")}</option>
                 {profiles.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.full_name || p.email}
@@ -346,63 +356,71 @@ export function DealForm({
             </div>
 
             <div className="grid gap-2">
-              <Label className="text-slate-300">Notes</Label>
+              <Label htmlFor="deal-notes" className="text-slate-300">
+                {t("crm.deals.fields.notes")}
+              </Label>
               <Textarea
+                id="deal-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add notes..."
+                placeholder={t("crm.deals.fields.notesPlaceholder")}
                 className="min-h-[100px] border-slate-700 bg-slate-800 text-white"
               />
             </div>
 
             {deal && (
               <div className="space-y-2 rounded-lg border border-slate-700 bg-slate-900/50 p-3">
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-                  Status
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    onClick={() => handleStatusChange("won")}
-                    disabled={!!statusAction || deal.status === "won"}
-                    className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    {statusAction === "won" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Check className="mr-1 h-4 w-4" />
-                        Mark as Won
-                      </>
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{t("crm.deals.form.status")}</p>
+                {deal.status === "won" || deal.status === "lost" ? (
+                  <div className="space-y-1 text-sm">
+                    <p className={deal.status === "won" ? "font-medium text-primary" : "font-medium text-red-400"}>
+                      {deal.status === "won" ? t("crm.deals.status.won") : t("crm.deals.status.lost")}
+                      {closedAt ? ` · ${dateTime.format(new Date(closedAt))}` : ""}
+                    </p>
+                    {deal.status === "lost" && deal.lost_reason && (
+                      <p className="text-slate-300">{t("crm.deals.reasonLabel", { reason: deal.lost_reason })}</p>
                     )}
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => handleStatusChange("lost")}
-                    disabled={!!statusAction || deal.status === "lost"}
-                    className="flex-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {statusAction === "lost" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <X className="mr-1 h-4 w-4" />
-                        Mark as Lost
-                      </>
-                    )}
-                  </Button>
-                </div>
-                {deal.status && deal.status !== "open" && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => handleStatusChange("open")}
-                    disabled={!!statusAction}
-                    className="w-full text-slate-400 hover:text-white"
-                  >
-                    Reopen deal
-                  </Button>
+                    {deal.close_note && <p className="whitespace-pre-wrap text-slate-400">{deal.close_note}</p>}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleReopen}
+                      disabled={reopening}
+                      className="w-full text-slate-300 hover:text-white"
+                    >
+                      {reopening ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="mr-1 h-4 w-4" />}
+                      {t("crm.deals.actions.reopen")}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={() => onRequestClose?.(deal, "won")}
+                      className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      <Check className="mr-1 h-4 w-4" />
+                      {t("crm.deals.actions.markWon")}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => onRequestClose?.(deal, "lost")}
+                      className="flex-1 bg-red-600 text-white hover:bg-red-700"
+                    >
+                      <X className="mr-1 h-4 w-4" />
+                      {t("crm.deals.actions.markLost")}
+                    </Button>
+                  </div>
                 )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setTaskOpen(true)}
+                  className="w-full border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800"
+                >
+                  <ListTodo className="mr-1 h-4 w-4" />
+                  {t("crm.tasks.create.button")}
+                </Button>
               </div>
             )}
           </div>
@@ -414,21 +432,21 @@ export function DealForm({
                 onClick={() => onOpenChange(false)}
                 className="flex-1 border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800"
               >
-                Cancel
+                {t("crm.common.cancel")}
               </Button>
               <Button
                 onClick={handleSave}
                 disabled={saving || !title.trim() || !contactId || !stageId}
                 className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {saving ? "Saving..." : deal ? "Save Changes" : "Create Deal"}
+                {saving ? t("crm.common.saving") : deal ? t("crm.common.saveChanges") : t("crm.deals.create.submit")}
               </Button>
             </div>
 
             {deal &&
               (confirmDelete ? (
-                <div className="mt-3 flex items-center justify-between gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs">
-                  <span className="text-red-300">Delete this deal?</span>
+                <div role="alert" className="mt-3 flex items-center justify-between gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs">
+                  <span className="text-red-300">{t("crm.deals.form.confirmDelete")}</span>
                   <div className="flex gap-1">
                     <button
                       type="button"
@@ -436,7 +454,7 @@ export function DealForm({
                       disabled={deleting}
                       className="rounded px-2 py-1 text-slate-300 hover:bg-slate-800"
                     >
-                      Cancel
+                      {t("crm.common.cancel")}
                     </button>
                     <button
                       type="button"
@@ -444,7 +462,7 @@ export function DealForm({
                       disabled={deleting}
                       className="rounded bg-red-600 px-2 py-1 font-medium text-white hover:bg-red-700 disabled:opacity-50"
                     >
-                      {deleting ? "Deleting..." : "Confirm"}
+                      {deleting ? t("crm.common.deleting") : t("crm.common.confirm")}
                     </button>
                   </div>
                 </div>
@@ -454,12 +472,21 @@ export function DealForm({
                   onClick={() => setConfirmDelete(true)}
                   className="mt-3 flex w-full items-center justify-center gap-1 text-xs text-red-400 hover:text-red-300"
                 >
-                  <Trash2 className="h-3 w-3" />
-                  Delete Deal
+                  <Trash2 className="h-3 w-3" aria-hidden />
+                  {t("crm.deals.form.delete")}
                 </button>
               ))}
           </div>
         </div>
+        {deal && (
+          <CreateTaskDialog
+            open={taskOpen}
+            onOpenChange={setTaskOpen}
+            contactId={deal.contact_id}
+            conversationId={linkedConversationId}
+            dealId={deal.id}
+          />
+        )}
       </SheetContent>
     </Sheet>
   );

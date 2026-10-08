@@ -1,5 +1,6 @@
 import type { AttributeField } from '@/lib/industries'
 import { validateAttributes, type AttributeValue } from './attributes'
+import { parseCurrency } from './currency'
 
 // Bulk catalog import — pure, client-safe helpers shared by the import
 // dialog (column mapping, preview) and the import route (re-validation,
@@ -14,6 +15,7 @@ export const FIXED_TARGETS = [
   'name',
   'description',
   'price',
+  'currency',
   'compare_at_price',
   'sku',
   'stock',
@@ -33,6 +35,8 @@ export interface ImportRow {
   name: string
   description?: string | null
   price?: number | null
+  /** ISO 4217 code; null = workspace currency. */
+  currency?: string | null
   compare_at_price?: number | null
   sku?: string | null
   stock?: number | null
@@ -82,6 +86,7 @@ const SYNONYMS: Record<FixedTarget, string[]> = {
   name: ['nombre', 'name', 'producto', 'product', 'titulo', 'title', 'platillo', 'plato', 'articulo', 'item', 'propiedad', 'nombre del producto', 'product name'],
   description: ['descripcion', 'description', 'detalle', 'detalles', 'details', 'desc'],
   price: ['precio', 'price', 'valor', 'pvp', 'precio venta', 'precio de venta', 'sale price', 'importe', 'costo', 'cost'],
+  currency: ['moneda', 'currency', 'divisa', 'tipo de moneda', 'moneda precio', 'price currency'],
   compare_at_price: ['precio anterior', 'precio regular', 'precio antes', 'precio original', 'compare at price', 'compare price', 'regular price', 'old price', 'precio tachado'],
   sku: ['sku', 'codigo', 'code', 'ref', 'referencia', 'reference', 'id producto', 'product id', 'codigo sku'],
   stock: ['stock', 'inventario', 'inventory', 'cantidad', 'quantity', 'qty', 'existencias', 'unidades', 'units'],
@@ -228,6 +233,12 @@ export function normalizeRow(raw: RawRecord, fields: AttributeField[], row: numb
   if (!isBlank(r.category)) data.category = text(r.category, 120)
   if (!isBlank(r.sku)) data.sku = text(r.sku, 100)
 
+  if (!isBlank(r.currency)) {
+    const cur = parseCurrency(r.currency)
+    if (!cur) errors.push({ field: 'currency', code: 'currency' })
+    else data.currency = cur
+  }
+
   for (const key of ['price', 'compare_at_price'] as const) {
     if (isBlank(r[key])) continue
     const n = parseNumber(r[key])
@@ -369,6 +380,7 @@ export function productPayload(
   }
   set('description', r.description)
   set('price', r.price)
+  set('currency', r.currency)
   set('compare_at_price', r.compare_at_price)
   set('sku', r.sku)
   if (r.stock !== undefined && r.stock !== null) {
@@ -391,11 +403,11 @@ export function productPayload(
 /** Fixed template headers (in the UI locale) followed by attribute keys. */
 export const TEMPLATE_HEADERS: Record<'es' | 'en', Record<FixedTarget, string>> = {
   es: {
-    name: 'nombre', description: 'descripcion', price: 'precio', compare_at_price: 'precio anterior', sku: 'sku', stock: 'stock',
+    name: 'nombre', description: 'descripcion', price: 'precio', currency: 'moneda', compare_at_price: 'precio anterior', sku: 'sku', stock: 'stock',
     category: 'categoria', images: 'imagenes', tags: 'etiquetas', is_featured: 'destacado', is_active: 'activo',
   },
   en: {
-    name: 'name', description: 'description', price: 'price', compare_at_price: 'compare at price', sku: 'sku', stock: 'stock',
+    name: 'name', description: 'description', price: 'price', currency: 'currency', compare_at_price: 'compare at price', sku: 'sku', stock: 'stock',
     category: 'category', images: 'images', tags: 'tags', is_featured: 'featured', is_active: 'active',
   },
 }

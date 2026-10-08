@@ -27,7 +27,7 @@ export function ImportPreview({ plan, targetLabel }: Props) {
   const price = (r: PlannedRow) => {
     if (r.data.price === undefined) return '';
     if (r.data.price === null) return t('catalogImport.preview.noPrice');
-    return workspace ? formatMoney(r.data.price, workspace.currency, moneyLocale) : String(r.data.price);
+    return workspace ? formatMoney(r.data.price, r.data.currency || workspace.currency, moneyLocale) : String(r.data.price);
   };
 
   const status = (r: PlannedRow) =>

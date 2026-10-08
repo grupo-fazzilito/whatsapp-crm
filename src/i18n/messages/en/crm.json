@@ -1,0 +1,329 @@
+{
+  "crm": {
+    "common": {
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "creating": "Creating…",
+      "delete": "Delete",
+      "deleting": "Deleting…",
+      "loading": "Loading…",
+      "save": "Save",
+      "saveChanges": "Save changes",
+      "saving": "Saving…"
+    },
+    "panel": {
+      "deals": "Deals",
+      "tasks": "Tasks",
+      "add": "New",
+      "noDeals": "No open deals.",
+      "noTasks": "No pending tasks.",
+      "taskForDeal": "Create task for {title}",
+      "allTasks": "See all my tasks"
+    },
+    "tasks": {
+      "navTitle": "Tasks",
+      "title": "Tasks",
+      "description": "Your team's follow-ups: calls, quotes, reminders. Linked to contacts, chats and deals.",
+      "scope": {
+        "label": "Show tasks for",
+        "mine": "My tasks",
+        "all": "Everyone"
+      },
+      "views": {
+        "label": "Filter tasks",
+        "open": "Pending",
+        "overdue": "Overdue",
+        "today": "Today",
+        "upcoming": "Upcoming",
+        "done": "Completed"
+      },
+      "groups": {
+        "overdue": "Overdue",
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "week": "Next 7 days",
+        "later": "Later",
+        "none": "No date"
+      },
+      "empty": {
+        "open": "You have no pending tasks",
+        "overdue": "Nothing overdue. Nice!",
+        "today": "Nothing due today",
+        "upcoming": "No upcoming tasks",
+        "done": "No completed tasks yet",
+        "filtered": "No task matches your search",
+        "hint": "Add one above or from an inbox chat with “Create task”."
+      },
+      "search": "Search tasks",
+      "quick": {
+        "label": "New task",
+        "placeholder": "New task… (e.g. Call Ana to confirm)",
+        "add": "Add"
+      },
+      "presets": {
+        "none": "No date",
+        "in1h": "In 1 hour",
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "next_week": "In a week"
+      },
+      "priority": {
+        "low": "Low",
+        "normal": "Normal",
+        "high": "High",
+        "urgent": "Urgent"
+      },
+      "status": {
+        "open": "Pending",
+        "done": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "due": {
+        "todayAt": "Today {time}",
+        "tomorrowAt": "Tomorrow {time}",
+        "yesterdayAt": "Yesterday {time}",
+        "overdueSr": "Overdue:"
+      },
+      "fields": {
+        "title": "Title",
+        "titlePlaceholder": "e.g. Send quote",
+        "description": "Description",
+        "due": "Due",
+        "duePresets": "Quick dates",
+        "priority": "Priority",
+        "assignee": "Assignee",
+        "contact": "Contact",
+        "deal": "Deal"
+      },
+      "unassigned": "Unassigned",
+      "me": "{name} (me)",
+      "someone": "Someone",
+      "noDeal": "No deal",
+      "searchContact": "Search by name or phone",
+      "removeContact": "Remove contact",
+      "openChat": "Open chat",
+      "openChatFor": "Open chat for task {title}",
+      "dealLabel": "Deal: {title}",
+      "assignedTo": "Assignee: {name}",
+      "doneAt": "Completed {date}",
+      "actions": {
+        "complete": "Complete",
+        "completeFor": "Complete task: {title}",
+        "cancel": "Cancel task",
+        "reopen": "Reopen",
+        "reopenFor": "Reopen task: {title}",
+        "delete": "Delete task"
+      },
+      "create": {
+        "button": "Create task",
+        "title": "New task",
+        "description": "It will be linked to this contact and conversation.",
+        "submit": "Create task"
+      },
+      "complete": {
+        "title": "Complete task",
+        "result": "Outcome (optional)",
+        "resultPlaceholder": "e.g. Confirmed the order for Friday",
+        "followUp": "Schedule a follow-up",
+        "followUpDefault": "Follow up: {title}",
+        "submit": "Mark as completed"
+      },
+      "sheet": {
+        "title": "Task",
+        "created": "Created {date} by {name}",
+        "notFound": "This task no longer exists.",
+        "doneBy": "Completed by {name} · {date}",
+        "confirmDelete": "Delete this task?"
+      },
+      "toast": {
+        "created": "Task created",
+        "saved": "Task saved",
+        "completed": "Task completed",
+        "completedWithFollowUp": "Task completed and follow-up scheduled",
+        "reopened": "Task reopened",
+        "cancelled": "Task cancelled",
+        "deleted": "Task deleted"
+      },
+      "errors": {
+        "createFailed": "Couldn't create the task",
+        "saveFailed": "Couldn't save the task",
+        "completeFailed": "Couldn't complete the task",
+        "followUpFailed": "The task was completed, but the follow-up couldn't be created",
+        "notOpen": "This task is no longer pending",
+        "deleteFailed": "Couldn't delete the task",
+        "titleRequired": "Enter a title"
+      }
+    },
+    "reminders": {
+      "dueTitle": "Task due soon: {title}",
+      "overdueTitle": "Task overdue: {title}",
+      "body": "Due {when}",
+      "bodyContact": "Due {when} · {contact}",
+      "bodyOverdue": "Was due {when}",
+      "bodyOverdueContact": "Was due {when} · {contact}"
+    },
+    "deals": {
+      "noContact": "No contact",
+      "cardLabel": "{title}, {value}. Open deal",
+      "reasonLabel": "Reason: {reason}",
+      "status": {
+        "open": "Open",
+        "won": "Won",
+        "lost": "Lost"
+      },
+      "filter": {
+        "label": "Show deals",
+        "open": "Open",
+        "won": "Won",
+        "lost": "Lost",
+        "all": "All"
+      },
+      "board": {
+        "add": "Add deal",
+        "drop": "Drop a deal here"
+      },
+      "actions": {
+        "won": "Won",
+        "lost": "Lost",
+        "wonFor": "Mark {title} as won",
+        "lostFor": "Mark {title} as lost",
+        "markWon": "Mark won",
+        "markLost": "Mark lost",
+        "reopen": "Reopen deal"
+      },
+      "close": {
+        "wonTitle": "Deal won!",
+        "lostTitle": "Mark as lost",
+        "reason": "Why was it lost?",
+        "note": "Comment (optional)",
+        "detailsRequired": "Tell us the reason",
+        "wonPlaceholder": "e.g. Paid a 50% deposit",
+        "lostPlaceholder": "Details that help us improve",
+        "wonSubmit": "Mark won",
+        "lostSubmit": "Mark lost"
+      },
+      "create": {
+        "button": "Create deal",
+        "title": "New deal",
+        "description": "Track a sales opportunity with this contact.",
+        "submit": "Create deal",
+        "noPipelines": "There are no pipelines yet. Ask an admin to create one.",
+        "noPipelinesAdmin": "There are no pipelines yet.",
+        "goToPipelines": "Create a pipeline"
+      },
+      "fields": {
+        "title": "Title",
+        "titlePlaceholder": "Deal name",
+        "pipeline": "Pipeline",
+        "stage": "Stage",
+        "value": "Value ({currency})",
+        "currency": "Currency",
+        "expectedClose": "Expected close",
+        "owner": "Owner",
+        "contact": "Contact",
+        "selectContact": "Select a contact",
+        "notes": "Notes",
+        "notesPlaceholder": "Add notes…"
+      },
+      "form": {
+        "newTitle": "New deal",
+        "editTitle": "Edit deal",
+        "openChat": "Open conversation",
+        "status": "Status",
+        "delete": "Delete deal",
+        "confirmDelete": "Delete this deal?"
+      },
+      "toast": {
+        "created": "Deal created",
+        "updated": "Deal updated",
+        "deleted": "Deal deleted",
+        "won": "Deal won!",
+        "lost": "Deal marked as lost",
+        "reopened": "Deal reopened"
+      },
+      "errors": {
+        "required": "Title, contact and stage are required",
+        "createFailed": "Couldn't create the deal",
+        "saveFailed": "Couldn't save the deal",
+        "deleteFailed": "Couldn't delete the deal",
+        "moveFailed": "Couldn't move the deal",
+        "statusFailed": "Couldn't change the deal status",
+        "invalidValue": "Enter a valid value"
+      }
+    },
+    "reasons": {
+      "title": "Lost reasons",
+      "description": "Options shown when a deal is marked as lost.",
+      "new": "New reason",
+      "add": "Add",
+      "remove": "Remove reason {reason}",
+      "save": "Save reasons",
+      "reset": "Restore defaults",
+      "saved": "Reasons saved",
+      "saveFailed": "Couldn't save the reasons"
+    },
+    "pipelines": {
+      "defaultName": "Sales pipeline",
+      "defaultStages": {
+        "newLead": "New lead",
+        "qualified": "Qualified",
+        "proposal": "Proposal sent",
+        "negotiation": "Negotiation",
+        "won": "Won"
+      },
+      "defaultStagesHint": "Default stages (New lead → Won) will be created automatically.",
+      "select": "Select pipeline",
+      "manage": "Manage pipeline",
+      "add": "Add pipeline",
+      "create": "Create pipeline",
+      "newTitle": "New pipeline",
+      "namePlaceholder": "e.g. Enterprise sales",
+      "empty": {
+        "title": "No pipelines yet",
+        "description": "Create a pipeline to start tracking deals."
+      },
+      "settings": {
+        "title": "Manage pipeline",
+        "name": "Pipeline name",
+        "stages": "Stages",
+        "stageName": "Stage name",
+        "newStage": "New stage name",
+        "pickColor": "Color {color}",
+        "changeColor": "Change color",
+        "dragStage": "Drag to reorder {name}",
+        "removeStage": "Delete stage {name}",
+        "createNew": "Create another pipeline",
+        "delete": "Delete pipeline",
+        "deleteWarning": "All deals in this pipeline will be deleted. This cannot be undone."
+      },
+      "toast": {
+        "created": "Pipeline created",
+        "saved": "Pipeline saved",
+        "deleted": "Pipeline deleted"
+      },
+      "errors": {
+        "createFailed": "Couldn't create the pipeline",
+        "saveFailed": "Couldn't save the pipeline",
+        "deleteFailed": "Couldn't delete the pipeline",
+        "addStageFailed": "Couldn't add the stage",
+        "deleteStageFailed": "Couldn't delete the stage",
+        "stageHasDeals": "Move or delete the deals in this stage first"
+      }
+    },
+    "analytics": {
+      "totalDeals": "Total deals",
+      "totalDealsTip": "Every deal in this pipeline that isn't lost. Won deals are included.",
+      "pipelineValue": "Pipeline value",
+      "pipelineValueTip": "Sum of the value of all deals in this pipeline, excluding lost ones.",
+      "avgDeal": "Avg deal size",
+      "avgDealTip": "Pipeline value divided by the number of non-lost deals.",
+      "weighted": "Weighted value",
+      "weightedTip": "Expected revenue: each open deal's value × its stage probability (first ≈ 10%, up to 90%; won = 100%). Lost deals excluded.",
+      "wonMonth": "Won this month",
+      "wonMonthTip": "Deals marked as won since the first day of the month.",
+      "lostMonth": "Lost this month",
+      "lostMonthTip": "Deals marked as lost since the first day of the month.",
+      "howCalculated": "How {label} is calculated"
+    }
+  }
+}

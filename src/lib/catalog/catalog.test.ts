@@ -26,7 +26,7 @@ describe('validateAttributes', () => {
   const fields = productAttributesFor('real_estate', null)
   it('coerces types and maps option labels to values', () => {
     const { values, errors } = validateAttributes(fields, {
-      operation: 'Renta',
+      operation: 'Alquiler',
       bedrooms: '3',
       area_m2: '85,5',
       zone: 'Miraflores',
@@ -110,5 +110,25 @@ describe('catalog section of the agent prompt', () => {
     expect(prompt).toContain('SEARCH RESULTS for "depa 2 recamaras"')
     expect(prompt).toContain('OUT OF STOCK')
     expect(prompt).toContain('do NOT set catalog_search again')
+  })
+})
+
+describe('per-product currency in the agent prompt', () => {
+  const ws = { ...ctx(null, 0).workspace, country: 'PE' } as BusinessContext['workspace']
+  const sale = product({ id: '00000000-0000-0000-0000-0000000000aa', name: 'Casa en La Molina', price: 350000, currency: 'USD', attributes: { operation: 'sale' } })
+  const rent = product({ id: '00000000-0000-0000-0000-0000000000bb', name: 'Depa en Surco', price: 2800, currency: null })
+  it('shows each listing with its own currency', () => {
+    const c = { ...ctx([sale, rent], 2), workspace: ws }
+    const prompt = buildSystemPrompt({ ...base, ctx: c }).replace(/\s/g, ' ')
+    expect(prompt).toContain('Casa en La Molina: US$ 350,000.00')
+    expect(prompt).toContain('Depa en Surco: S/ 2,800.00')
+    expect(prompt).toContain('never convert between currencies')
+  })
+  it('search results keep the product currency', () => {
+    const c = { ...ctx(null, 500), workspace: ws }
+    const prompt = buildSystemPrompt({ ...base, ctx: c, catalogResults: { query: 'casa', products: [sale] } }).replace(/\s/g, ' ')
+    expect(prompt).toContain('[00000000-0000-0000-0000-0000000000aa] Casa en La Molina: US$ 350,000.00')
+    // Large catalog: the model is told to pass the budget currency.
+    expect(buildSystemPrompt({ ...base, ctx: c })).toContain('currency="USD"')
   })
 })

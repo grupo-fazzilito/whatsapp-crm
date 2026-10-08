@@ -19,6 +19,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { NotificationBell } from "@/components/notifications/notification-bell";
+import { AvailabilityMenuItem } from "@/components/notifications/availability-toggle";
 
 type Label = ReturnType<typeof useWorkspace>["label"];
 type T = ReturnType<typeof useT>;
@@ -30,9 +32,11 @@ function getPageTitle(pathname: string, t: T, label: Label): string {
     ["/inbox", t("nav.inbox")],
     ["/contacts", t("nav.contacts")],
     ["/pipelines", t("nav.pipelines")],
+    ["/tasks", t("crm.tasks.navTitle")],
     ["/broadcasts", t("nav.broadcasts")],
     ["/automations", t("nav.automations")],
     ["/flows", t("nav.flows")],
+    ["/reports", t("reports.navTitle")],
     ["/settings", t("nav.settings")],
     ["/channels", t("channels.navTitle")],
     ["/agents", t("agents.navTitle")],
@@ -45,6 +49,8 @@ function getPageTitle(pathname: string, t: T, label: Label): string {
     ["/business/logs", t("nav.aiLogs")],
     ["/catalog", label("productPlural")],
     ["/orders", t("orders.navTitle")],
+    ["/captures", t("realestate.captures.navTitle")],
+    ["/real-estate/portals", t("portals.navTitle")],
   ];
   const match = titles
     .filter(([path]) => pathname === path || pathname.startsWith(`${path}/`))
@@ -89,6 +95,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-3">
+        <NotificationBell />
         {/* Sun / Moon Toggle */}
         <button
           type="button"
@@ -136,6 +143,8 @@ export function Header({ onOpenSidebar }: HeaderProps) {
                 {profile?.email ?? ""}
               </p>
             </div>
+            <DropdownMenuSeparator className="bg-border" />
+            <AvailabilityMenuItem />
             <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem
               render={

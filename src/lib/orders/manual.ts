@@ -1,5 +1,6 @@
 import 'server-only'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { cartCurrencyConflict } from '@/lib/catalog/currency'
 import { getPreset } from '@/lib/industries'
 import type { Workspace } from '@/lib/workspace/types'
 import { computeTotals, orderSettings } from './service'
@@ -13,7 +14,7 @@ export interface ManualItemInput {
 
 export type ManualOrderResult =
   | { ok: true; order: { id: string; number: number } }
-  | { ok: false; error: 'contact_not_found' | 'empty' | 'fulfillment_not_allowed' | 'address_required' | 'unavailable' | 'price_on_request'; detail?: string }
+  | { ok: false; error: 'contact_not_found' | 'empty' | 'fulfillment_not_allowed' | 'address_required' | 'unavailable' | 'price_on_request' | 'foreign_currency'; detail?: string }
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -51,7 +52,7 @@ export async function createManualOrder(args: {
   const variantIds = [...new Set(args.items.map((i) => i.variant_id).filter((v): v is string => !!v))]
   const { data: products } = await db
     .from('products')
-    .select('id, name, sku, price, is_active')
+    .select('id, name, sku, price, currency, is_active')
     .eq('workspace_id', ws.id)
     .in('id', productIds)
   const { data: variants } = variantIds.length
@@ -66,6 +67,8 @@ export async function createManualOrder(args: {
     if (item.variant_id && (!v || !v.is_active)) return { ok: false, error: 'unavailable', detail: p.name }
     const price = v?.price ?? p.price
     if (price === null || price === undefined) return { ok: false, error: 'price_on_request', detail: p.name }
+    // Orders are in the workspace currency only.
+    if (cartCurrencyConflict(p, ws.currency)) return { ok: false, error: 'foreign_currency', detail: p.name }
     const quantity = Math.min(999, Math.max(1, Math.round(item.quantity)))
     const existing = lines.find((l) => l.productId === p.id && l.variantId === (v?.id ?? null))
     if (existing) {

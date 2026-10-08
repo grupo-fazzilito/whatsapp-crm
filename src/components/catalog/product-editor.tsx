@@ -8,6 +8,7 @@ import { useWorkspace } from '@/hooks/use-workspace';
 import { createClient } from '@/lib/supabase/client';
 import type { AttributeField } from '@/lib/industries';
 import { validateAttributes } from '@/lib/catalog/attributes';
+import { PRODUCT_CURRENCIES } from '@/lib/catalog/currency';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +19,8 @@ import { invalidateAi, selectClass, trimOrNull } from '@/components/business/sha
 import { AttributeFields, type RawAttributes } from './attribute-fields';
 import { ImageManager, type ImageItem } from './image-manager';
 import { VariantsEditor, toVariantDraft, type VariantDraft } from './variants-editor';
+import { LISTING_EXTRA_KEYS, ListingExtras, validateListingExtras } from './listing-extras';
+import { isHiddenStatus, listingStatusOf } from '@/lib/real-estate/listing/status';
 import { CATALOG_BUCKET, VARIANT_INDUSTRIES, storagePathFromUrl, type Category, type Product, type Variant } from './types';
 
 interface Props {
@@ -50,6 +53,8 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
     category_id: product?.category_id ?? '',
     price: product?.price != null ? String(product.price) : '',
     priceOnRequest: product ? product.price == null : false,
+    // '' = workspace currency (stored as NULL).
+    currency: product?.currency && product.currency !== workspace?.currency ? product.currency : '',
     compare_at_price: product?.compare_at_price != null ? String(product.compare_at_price) : '',
     sku: product?.sku ?? '',
     track_stock: product?.track_stock ?? false,
@@ -71,6 +76,16 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const variantsDefault = VARIANT_INDUSTRIES.includes(workspace?.industry ?? '');
+  // Real estate: map / media / public link get their own section, and
+  // sold or rented listings are always inactive (DB trigger, migration 036).
+  const isRealEstate = workspace?.industry === 'real_estate';
+  const gridFields = useMemo(() => (isRealEstate ? fields.filter((f) => !LISTING_EXTRA_KEYS.includes(f.key)) : fields), [fields, isRealEstate]);
+  const listingHidden = isRealEstate && isHiddenStatus(listingStatusOf(attrs));
+  const priceCurrency = draft.currency || workspace?.currency || '';
+  const currencyOptions = useMemo(
+    () => [...new Set([...PRODUCT_CURRENCIES, ...(product?.currency ? [product.currency] : [])])].filter((c) => c !== workspace?.currency).sort(),
+    [product?.currency, workspace?.currency],
+  );
 
   useEffect(() => {
     if (!product) return;
@@ -138,7 +153,9 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
     if (compare !== null && !(compare >= 0)) errs.compare_at_price = t('catalog.error.price');
     const stock = draft.track_stock ? numOrNull(draft.stock) : null;
     if (draft.track_stock && (stock === null || !Number.isInteger(stock) || stock < 0)) errs.stock = t('catalog.error.stock');
-    const { values, errors: aErrs } = validateAttributes(fields, attrs);
+    const validated = validateAttributes(fields, attrs);
+    const { values } = validated;
+    const aErrs = isRealEstate ? { ...validated.errors, ...validateListingExtras(attrs) } : validated.errors;
     const variantRows = showVariants ? variants : [];
     for (const v of variantRows) {
       const vp = numOrNull(v.price);
@@ -179,12 +196,13 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
         description: trimOrNull(draft.description),
         category_id: draft.category_id || null,
         price,
+        currency: draft.currency || null,
         compare_at_price: compare,
         sku: trimOrNull(draft.sku),
         track_stock: draft.track_stock,
         stock,
         is_featured: draft.is_featured,
-        is_active: draft.is_active,
+        is_active: draft.is_active && !listingHidden,
         tags,
         images: urls,
         attributes: values,
@@ -353,10 +371,10 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
                 <Switch checked={draft.priceOnRequest} disabled={readOnly} onCheckedChange={(v) => set('priceOnRequest', v)} />
                 {t('catalog.field.priceOnRequest')}
               </label>
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-1.5">
                   <Label htmlFor="pe-price">
-                    {t('catalog.field.price')} ({workspace?.currency})
+                    {t('catalog.field.price')} ({priceCurrency})
                   </Label>
                   <Input
                     id="pe-price"
@@ -371,6 +389,27 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
                     onChange={(e) => set('price', e.target.value)}
                   />
                   {fieldError('price')}
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="pe-currency">{t('catalog.field.currency')}</Label>
+                  <select
+                    id="pe-currency"
+                    className={selectClass}
+                    value={draft.currency}
+                    disabled={readOnly}
+                    aria-describedby="pe-currency-hint"
+                    onChange={(e) => set('currency', e.target.value)}
+                  >
+                    <option value="">{t('catalog.field.currencyDefault', { currency: workspace?.currency ?? '' })}</option>
+                    {currencyOptions.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  <p id="pe-currency-hint" className="text-xs text-muted-foreground">
+                    {t('catalog.field.currencyHint')}
+                  </p>
                 </div>
                 <div className="grid gap-1.5">
                   <Label htmlFor="pe-compare">{t('catalog.field.compareAtPrice')}</Label>
@@ -433,16 +472,49 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
                   {t('catalog.editor.attributes')}
                 </h3>
                 <AttributeFields
-                  fields={fields}
+                  fields={gridFields}
                   values={attrs}
                   errors={attrErrors}
                   readOnly={readOnly}
                   onChange={(k, v) => {
+                    // Back from sold/rented: show the listing as active again (the DB does the same).
+                    if (isRealEstate && k === 'listing_status' && typeof v === 'string' && !isHiddenStatus(listingStatusOf({ listing_status: v })) && listingHidden) set('is_active', true);
                     setAttrs((a) => ({ ...a, [k]: v }));
                     setAttrErrors((e) => {
                       if (!e[k]) return e;
                       const next = { ...e };
                       delete next[k];
+                      return next;
+                    });
+                  }}
+                />
+              </section>
+            )}
+
+            {isRealEstate && (
+              <section className="grid gap-3" aria-labelledby="pe-sec-listing">
+                <h3 id="pe-sec-listing" className="text-sm font-semibold text-foreground">
+                  {t('realestate.listing.section')}
+                </h3>
+                <ListingExtras
+                  fields={fields}
+                  values={attrs}
+                  errors={attrErrors}
+                  readOnly={readOnly}
+                  name={draft.name}
+                  productId={product?.id ?? null}
+                  isActive={(product?.is_active ?? false) && draft.is_active && !listingHidden}
+                  workspaceSlug={workspace?.slug ?? null}
+                  onChange={(k, v) => {
+                    setAttrs((a) => ({ ...a, [k]: v }));
+                    setAttrErrors((e) => {
+                      if (!e[k] && !(k === 'latitude' || k === 'longitude')) return e;
+                      const next = { ...e };
+                      delete next[k];
+                      if (k === 'latitude' || k === 'longitude') {
+                        delete next.latitude;
+                        delete next.longitude;
+                      }
                       return next;
                     });
                   }}
@@ -510,7 +582,7 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
                   <VariantsEditor
                     variants={variants}
                     readOnly={readOnly}
-                    currency={workspace?.currency ?? ''}
+                    currency={priceCurrency}
                     trackStock={draft.track_stock}
                     onChange={setVariants}
                   />
@@ -523,9 +595,15 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
               <label className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
                 <span>
                   <span className="block text-sm font-medium text-foreground">{t('catalog.field.active')}</span>
-                  <span className="block text-xs text-muted-foreground">{t('catalog.field.activeHint')}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {listingHidden ? t('realestate.listing.hiddenHint') : t('catalog.field.activeHint')}
+                  </span>
                 </span>
-                <Switch checked={draft.is_active} disabled={readOnly} onCheckedChange={(v) => set('is_active', v)} />
+                <Switch
+                  checked={draft.is_active && !listingHidden}
+                  disabled={readOnly || listingHidden}
+                  onCheckedChange={(v) => set('is_active', v)}
+                />
               </label>
               <label className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
                 <span>

@@ -301,12 +301,14 @@ export async function visitorMessages(
 ): Promise<PublicMessage[]> {
   let q = supabaseAdmin()
     .from('messages')
-    .select('id, sender_type, content_type, content_text, media_url, metadata, created_at, status')
+    .select('id, sender_type, content_type, content_text, media_url, metadata, created_at, status, is_internal')
     .eq('workspace_id', channel.workspace_id)
     .eq('conversation_id', conversationId)
     .in('sender_type', ['customer', 'agent', 'bot'])
     .neq('content_type', 'system')
     .neq('status', 'failed')
+    // Internal notes are team-only: never shown to the visitor.
+    .eq('is_internal', false)
   const afterMs = after ? Date.parse(after) : NaN
   if (!Number.isNaN(afterMs)) {
     q = q.gt('created_at', new Date(afterMs - CURSOR_OVERLAP_MS).toISOString()).order('created_at', { ascending: true })
@@ -319,7 +321,7 @@ export async function visitorMessages(
 
 function isVisible(row: Record<string, unknown>): boolean {
   const meta = (row.metadata ?? {}) as Record<string, unknown>
-  return !meta.internal && !meta.is_note && !meta.note
+  return row.is_internal !== true && !meta.internal && !meta.is_note && !meta.note
 }
 
 export function cleanText(v: unknown, max: number): string | null {

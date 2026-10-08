@@ -1,0 +1,271 @@
+{
+  "inboxpro": {
+    "status": {
+      "open": "Open",
+      "pending": "Pending",
+      "closed": "Resolved"
+    },
+    "views": {
+      "label": "Inbox view",
+      "all": "All",
+      "mine": "Mine",
+      "unassigned": "Unassigned",
+      "resolved": "Resolved"
+    },
+    "filters": {
+      "allStatuses": "Open and pending",
+      "tags": "Tags",
+      "tagsCount": "Tags ({n})",
+      "noTags": "No tags yet",
+      "includeContactTags": "Include contact tags",
+      "clearTags": "Clear tag filter",
+      "priority": "Priority",
+      "priorityCount": "Priority ({n})",
+      "sort": "Sort",
+      "clear": "Clear"
+    },
+    "sort": {
+      "recent": "Most recent",
+      "priority": "Priority (urgent first)",
+      "waiting": "Waiting for reply (oldest first)"
+    },
+    "priority": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent",
+      "change": "Change priority",
+      "current": "Priority: {name}"
+    },
+    "tags": {
+      "button": "Tags",
+      "add": "Add tag",
+      "addShort": "Tag",
+      "search": "Search or create a tag",
+      "create": "Create “{name}”",
+      "createAdminOnly": "Only admins can create new tags.",
+      "none": "This business has no tags yet.",
+      "empty": "No matching tags.",
+      "remove": "Remove tag {name}",
+      "failed": "Couldn't update the tag: {reason}",
+      "more": "+{n}"
+    },
+    "header": {
+      "resolve": "Resolve",
+      "reopen": "Reopen",
+      "resolved": "Conversation resolved",
+      "reopened": "Conversation reopened",
+      "transfer": "Transfer",
+      "chat": "Chat",
+      "files": "Files",
+      "viewTabs": "Conversation view"
+    },
+    "transfer": {
+      "title": "Transfer conversation",
+      "description": "Pick a person or a team. They'll get a notification.",
+      "target": "Transfer to",
+      "toMember": "Person",
+      "toTeam": "Team",
+      "memberLabel": "Person",
+      "teamLabel": "Team",
+      "teamOptional": "Team (optional)",
+      "pickMember": "Pick a person",
+      "pickTeam": "Pick a team",
+      "noTeam": "No team",
+      "autoPick": "It goes to the team's next available member (round robin). If nobody is available it stays in the team, unassigned.",
+      "reason": "Reason (optional)",
+      "reasonPlaceholder": "e.g. the customer needs an invoice",
+      "submit": "Transfer",
+      "cancel": "Cancel",
+      "done": "Conversation transferred to {name}",
+      "doneTeam": "Conversation transferred to the {name} team",
+      "failed": "Couldn't transfer: {reason}",
+      "unavailable": "unavailable",
+      "noTeams": "No teams yet. Create them in Settings → Teams.",
+      "you": "(you)"
+    },
+    "events": {
+      "assigned": "{actor} assigned the conversation to {to}",
+      "assignedSelf": "{actor} took the conversation",
+      "autoAssigned": "Auto-assigned to {to}",
+      "unassigned": "{actor} unassigned the conversation",
+      "transferred": "{actor} transferred to {to}",
+      "transferredTeam": "{actor} transferred to the {team} team",
+      "transferredTeamMember": "{actor} transferred to {to} ({team})",
+      "resolved": "{actor} resolved the conversation",
+      "reopened": "{actor} reopened the conversation",
+      "reopenedByCustomer": "Reopened: the customer wrote again",
+      "priority": "{actor} set the priority to {priority}",
+      "tagAdded": "{actor} added the tag {tag}",
+      "tagRemoved": "{actor} removed the tag {tag}",
+      "someone": "Someone",
+      "system": "The system"
+    },
+    "notes": {
+      "label": "Internal note — only visible to your team",
+      "saving": "Saving note",
+      "failed": "Couldn't save"
+    },
+    "composer": {
+      "modeLabel": "Message type",
+      "reply": "Reply",
+      "note": "Internal note",
+      "placeholder": "Type a message… (/ for quick replies)",
+      "notePlaceholder": "Write a note for your team… use @ to mention",
+      "noteHint": "Only your team sees this note; the customer never gets it.",
+      "sendNote": "Save note",
+      "noteFailed": "Couldn't save the note: {reason}",
+      "mentions": "Mention a teammate",
+      "noMembers": "No teammate with that name",
+      "quickReplies": "Quick replies",
+      "noQuickReplies": "No quick reply with that shortcut",
+      "noQuickRepliesYet": "You don't have quick replies yet",
+      "manageQuickReplies": "Manage quick replies",
+      "hasAttachments": "Includes files",
+      "quickReplyAttachments": "Quick reply files",
+      "removeQuickAttachment": "Remove {name}",
+      "attachmentsNotSupported": "This channel doesn't support files: only the text was inserted.",
+      "attachmentFailed": "Couldn't send the file {name}"
+    },
+    "files": {
+      "title": "Conversation files",
+      "count": "{n} files",
+      "empty": "No files have been shared in this conversation yet.",
+      "loading": "Loading files…",
+      "open": "Open",
+      "download": "Download",
+      "preview": "Preview of {name}",
+      "from": {
+        "bot": "AI agent",
+        "team": "Team"
+      },
+      "types": {
+        "image": "Image",
+        "video": "Video",
+        "audio": "Audio",
+        "document": "Document",
+        "sticker": "Sticker"
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "unread": "{n} unread",
+      "unreadItem": "Unread",
+      "empty": "You have no notifications",
+      "markAll": "Mark all as read"
+    },
+    "availability": {
+      "label": "Available",
+      "on": "You're available: you'll get auto-assigned conversations",
+      "off": "Unavailable: you won't get auto-assigned conversations",
+      "failed": "Couldn't change your availability"
+    },
+    "quickReplies": {
+      "tab": "Quick replies",
+      "title": "Quick replies",
+      "description": "Type / in the chat to insert them. You can use the variables {nombre} (contact name), {negocio} (business), {agente} (you) and {fecha} (today).",
+      "new": "New reply",
+      "edit": "Edit reply",
+      "delete": "Delete",
+      "deleteConfirm": "Delete the /{shortcut} reply? This can't be undone.",
+      "dialogHint": "Members create personal replies; admins can share them with the whole team.",
+      "shortcut": "Shortcut",
+      "shortcutHint": "Lowercase letters, numbers, - and _. Used by typing /shortcut.",
+      "titleField": "Title",
+      "body": "Message",
+      "bodyHint": "Variables:",
+      "insertVariable": "Insert {v}",
+      "attachments": "Attachments",
+      "addAttachment": "Add file",
+      "maxAttachments": "Up to {n} files per reply",
+      "attachmentCount": "{n} files",
+      "shared": "Share with the whole team",
+      "sharedHint": "Only admins can share replies.",
+      "sharedBadge": "Shared",
+      "personal": "Personal",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Reply saved",
+      "deleted": "Reply deleted",
+      "search": "Search replies",
+      "noMatches": "No matching replies.",
+      "empty": "No quick replies yet",
+      "emptyHint": "Create shortcuts for what you answer every day. A few examples to start:",
+      "useExample": "Use this example",
+      "useExampleFor": "Use the /{shortcut} example",
+      "examples": {
+        "e1": {
+          "shortcut": "hello",
+          "title": "Greeting",
+          "body": "Hi {nombre}! 👋 Thanks for reaching out to {negocio}. I'm {agente}, how can I help?"
+        },
+        "e2": {
+          "shortcut": "hours",
+          "title": "Opening hours",
+          "body": "We're open Monday to Saturday, 9:00 a.m. to 7:00 p.m. Closed on Sundays."
+        },
+        "e3": {
+          "shortcut": "payment",
+          "title": "Payment methods",
+          "body": "You can pay by bank transfer or card on delivery. Once you've paid, please send us the screenshot here. 🙌"
+        }
+      },
+      "errors": {
+        "load": "Couldn't load quick replies",
+        "generic": "Couldn't save the reply",
+        "invalid_shortcut": "The shortcut can only have lowercase letters, numbers, - and _",
+        "title_required": "The title is required",
+        "body_too_long": "The message is too long",
+        "empty_reply": "Write a message or add a file",
+        "invalid_attachments": "A file is not valid",
+        "shortcut_taken": "There's already a reply with that shortcut",
+        "only_admins_share": "Only admins can share replies"
+      }
+    },
+    "teams": {
+      "tab": "Teams",
+      "title": "Teams",
+      "description": "Group your people (e.g. Sales or Support) to transfer conversations and share them out automatically.",
+      "new": "New team",
+      "edit": "Edit team",
+      "delete": "Delete team",
+      "deleteConfirm": "Delete the {name} team? Conversations are kept; they just stop belonging to the team.",
+      "dialogHint": "Pick who belongs to the team.",
+      "name": "Name",
+      "namePlaceholder": "e.g. Sales",
+      "descriptionField": "Description (optional)",
+      "members": "Members",
+      "memberCount": "{n} members",
+      "availableCount": "{n} available",
+      "empty": "No teams yet.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Team saved",
+      "deleted": "Team deleted",
+      "adminOnly": "Only admins can change these settings.",
+      "autoAssign": {
+        "title": "Auto-assignment",
+        "description": "Share new conversations out among available people.",
+        "mode": "Mode",
+        "off": "Off",
+        "round_robin": "Round robin",
+        "defaultTeam": "Team that receives conversations",
+        "allMembers": "All members",
+        "help": "It runs when a new conversation gets its first message and no AI agent handles it, or when the AI hands it over to a person. Whoever has gone longest without an assignment goes first.",
+        "saved": "Auto-assignment updated"
+      },
+      "availability": {
+        "title": "Availability",
+        "description": "Only available people get automatic conversations. Everyone changes their own from their user menu.",
+        "available": "Available",
+        "away": "Unavailable"
+      },
+      "errors": {
+        "load": "Couldn't load teams",
+        "generic": "Couldn't save",
+        "name_required": "The name is required",
+        "name_taken": "There's already a team with that name"
+      }
+    }
+  }
+}

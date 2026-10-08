@@ -181,6 +181,7 @@
         "address_required": "Indica la dirección de entrega.",
         "unavailable": "Un producto ya no está disponible{name}",
         "price_on_request": "«{name}» no tiene precio; no se puede pedir así.",
+        "foreign_currency": "«{name}» se cotiza en otra moneda; los pedidos solo admiten la moneda del negocio.",
         "invalid_item": "Revisa los productos del pedido.",
         "invalid_body": "Datos inválidos.",
         "Forbidden": "No tienes permiso para crear pedidos."

@@ -35,6 +35,10 @@ import {
   Bot,
   Package,
   ShoppingBag,
+  ListTodo,
+  BarChart3,
+  HousePlus,
+  CloudDownload,
 } from "lucide-react";
 import {
   Avatar,
@@ -68,8 +72,10 @@ const navItems: NavItem[] = [
   { href: "/inbox", label: "nav.inbox", icon: MessageSquare },
   { href: "/contacts", label: "nav.contacts", icon: Users },
   { href: "/pipelines", label: "nav.pipelines", icon: GitBranch },
+  { href: "/tasks", label: "crm.tasks.navTitle", icon: ListTodo },
   { href: "/automations", label: "nav.automations", icon: Zap },
   { href: "/flows", label: "nav.flows", icon: Workflow },
+  { href: "/reports", label: "reports.navTitle", icon: BarChart3 },
   { href: "/channels", label: "channels.navTitle", icon: Radio },
   { href: "/agents", label: "agents.navTitle", icon: Bot },
 ];
@@ -87,7 +93,7 @@ interface SidebarProps {
 export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { profile, signOut } = useAuth();
-  const { modules, label, can } = useWorkspace();
+  const { modules, label, can, workspace } = useWorkspace();
   const t = useT();
   const pendingOrders = usePendingOrders();
 
@@ -101,6 +107,8 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     ...(modules.services ? [{ href: "/business/services", label: label("servicePlural"), icon: BriefcaseBusiness }] : []),
     ...(modules.products ? [{ href: "/catalog", label: label("productPlural"), icon: Package }] : []),
     ...(modules.orders ? [{ href: "/orders", label: t("orders.navTitle"), icon: ShoppingBag, badge: pendingOrders }] : []),
+    ...(workspace?.industry === "real_estate" ? [{ href: "/captures", label: t("realestate.captures.navTitle"), icon: HousePlus }] : []),
+    ...(workspace?.industry === "real_estate" && modules.products && can("admin") ? [{ href: "/real-estate/portals", label: t("portals.navTitle"), icon: CloudDownload }] : []),
     { href: "/business/faqs", label: t("nav.faqs"), icon: FileQuestion },
     { href: "/business/logs", label: t("nav.aiLogs"), icon: History },
   ];
@@ -207,7 +215,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     )}
                   >
                     <item.icon className="h-4 w-4" />
-                    <span className="flex-1">{t(item.label)}</span>
+                    <span className="flex-1">{t(item.href === "/reports" && !can("admin") ? "reports.navPersonal" : item.label)}</span>
                     {item.beta && (
                       <span
                         aria-label="Beta feature"

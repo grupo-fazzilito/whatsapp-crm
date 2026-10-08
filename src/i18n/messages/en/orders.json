@@ -181,6 +181,7 @@
         "address_required": "Enter the delivery address.",
         "unavailable": "An item is no longer available{name}",
         "price_on_request": "\"{name}\" has no price, so it can't be ordered this way.",
+        "foreign_currency": "\"{name}\" is priced in another currency; orders only take the business currency.",
         "invalid_item": "Check the order items.",
         "invalid_body": "Invalid data.",
         "Forbidden": "You don't have permission to create orders."

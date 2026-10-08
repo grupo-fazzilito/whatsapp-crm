@@ -3,23 +3,44 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import type { Conversation, ConversationStatus, Profile } from "@/types";
-import { Search, ChevronDown } from "lucide-react";
+import type { Conversation, ConversationStatus, Profile, Tag } from "@/types";
+import { Search, ChevronDown, ArrowUpDown, Tag as TagIcon, Flag, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useI18n } from "@/i18n/client";
+import {
+  DEFAULT_FILTERS,
+  INBOX_VIEWS,
+  SORT_MODES,
+  filterAndSort,
+  matchesFilters,
+  type ConversationFilters,
+  type InboxView,
+  type OpenStatusFilter,
+  type SortMode,
+} from "@/lib/inbox/filters";
+import { PRIORITY_ORDER } from "@/lib/inbox/priority";
+import type { Priority } from "@/lib/inbox/types";
 import { ChannelIcon, channelLine, type InboxChannel } from "./channel-badge";
 import { initialsOf } from "./use-inbox-directory";
+import { PriorityIndicator, PRIORITY_STYLE } from "./priority";
+import { TagChip } from "./tag-chip";
 
-type AssignmentFilter = "all" | "mine" | "unassigned";
+/** Select used for every conversation row the inbox holds (list + hydrate). */
+export const CONVERSATION_LIST_SELECT =
+  "*, contact:contacts(*, contact_tags(tag_id)), conversation_tags(id, tag_id)";
 
 interface ConversationListProps {
   activeConversationId: string | null;
@@ -37,23 +58,45 @@ interface ConversationListProps {
   channelsById?: Map<string, InboxChannel>;
   membersByUserId?: Map<string, Profile>;
   currentUserId?: string | null;
+  tags?: Tag[];
+  tagsById?: Map<string, Tag>;
 }
 
 const STATUS_COLORS: Record<ConversationStatus, string> = {
   open: "bg-primary",
   pending: "bg-amber-500",
-  closed: "bg-slate-500",
+  closed: "bg-emerald-500",
 };
 
-const STATUS_FILTERS: (ConversationStatus | "all")[] = ["all", "open", "pending", "closed"];
-const ASSIGNMENT_FILTERS: AssignmentFilter[] = ["all", "mine", "unassigned"];
+const OPEN_STATUS_FILTERS: OpenStatusFilter[] = ["all", "open", "pending"];
 
 const EMPTY_CHANNELS: InboxChannel[] = [];
 const EMPTY_CHANNEL_MAP = new Map<string, InboxChannel>();
 const EMPTY_MEMBER_MAP = new Map<string, Profile>();
+const EMPTY_TAGS: Tag[] = [];
+const EMPTY_TAG_MAP = new Map<string, Tag>();
+
+const STORAGE_KEY = "inbox:list-prefs:v1";
+
+interface StoredPrefs {
+  view?: InboxView;
+  sort?: SortMode;
+  tagIds?: string[];
+  includeContactTags?: boolean;
+  priorities?: Priority[];
+}
+
+function readPrefs(): StoredPrefs {
+  try {
+    const raw = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
+    return raw ? (JSON.parse(raw) as StoredPrefs) : {};
+  } catch {
+    return {};
+  }
+}
 
 const triggerClass =
-  "inline-flex h-7 max-w-full items-center justify-center gap-1 rounded-md px-2 text-xs text-slate-400 hover:bg-slate-800 hover:text-white";
+  "inline-flex h-7 max-w-full items-center justify-center gap-1 rounded-md px-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white";
 
 export function ConversationList({
   activeConversationId,
@@ -65,13 +108,36 @@ export function ConversationList({
   channelsById = EMPTY_CHANNEL_MAP,
   membersByUserId = EMPTY_MEMBER_MAP,
   currentUserId = null,
+  tags = EMPTY_TAGS,
+  tagsById = EMPTY_TAG_MAP,
 }: ConversationListProps) {
   const { t } = useI18n();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<ConversationStatus | "all">("all");
+  const [prefs] = useState(readPrefs);
+  const [view, setView] = useState<InboxView>(
+    prefs.view && (INBOX_VIEWS as readonly string[]).includes(prefs.view) ? prefs.view : "all",
+  );
+  const [status, setStatus] = useState<OpenStatusFilter>("all");
   const [channelFilter, setChannelFilter] = useState<string>("all");
-  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("all");
+  const [tagIds, setTagIds] = useState<string[]>(Array.isArray(prefs.tagIds) ? prefs.tagIds : []);
+  const [includeContactTags, setIncludeContactTags] = useState(prefs.includeContactTags === true);
+  const [priorities, setPriorities] = useState<Priority[]>(Array.isArray(prefs.priorities) ? prefs.priorities : []);
+  const [sort, setSort] = useState<SortMode>(
+    prefs.sort && (SORT_MODES as readonly string[]).includes(prefs.sort) ? prefs.sort : "recent",
+  );
   const [loading, setLoading] = useState(true);
+
+  // Remember the view / sort / tag / priority choices for this browser.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ view, sort, tagIds, includeContactTags, priorities } satisfies StoredPrefs),
+      );
+    } catch {
+      // storage unavailable (private mode) — preferences just don't persist
+    }
+  }, [view, sort, tagIds, includeContactTags, priorities]);
 
   // Keep the latest callback in a ref so the fetch effect below can
   // have a stable, empty-dep identity. Previously the fetch useCallback
@@ -97,7 +163,7 @@ export function ConversationList({
     (async () => {
       const { data, error } = await supabase
         .from("conversations")
-        .select("*, contact:contacts(*)")
+        .select(CONVERSATION_LIST_SELECT)
         .order("last_message_at", { ascending: false });
 
       if (cancelled) return;
@@ -114,7 +180,7 @@ export function ConversationList({
         return;
       }
 
-      onConversationsLoadedRef.current(data ?? []);
+      onConversationsLoadedRef.current((data ?? []) as unknown as Conversation[]);
       setLoading(false);
     })();
 
@@ -126,35 +192,38 @@ export function ConversationList({
     // up on any events sent while the WS was disconnected or throttled.
   }, [resyncToken]);
 
-  const filtered = useMemo(() => {
-    let result = conversations;
+  // Ignore stored tag ids that no longer exist.
+  const validTagIds = useMemo(
+    () => (tags.length ? tagIds.filter((id) => tagsById.has(id)) : tagIds),
+    [tagIds, tags.length, tagsById],
+  );
 
-    if (filter !== "all") {
-      result = result.filter((c) => c.status === filter);
+  const filters: ConversationFilters = useMemo(
+    () => ({
+      ...DEFAULT_FILTERS,
+      view,
+      status,
+      channelId: channelFilter === "all" ? null : channelFilter,
+      tagIds: validTagIds,
+      includeContactTags,
+      priorities,
+      search,
+      currentUserId,
+    }),
+    [view, status, channelFilter, validTagIds, includeContactTags, priorities, search, currentUserId],
+  );
+
+  const filtered = useMemo(() => filterAndSort(conversations, filters, sort), [conversations, filters, sort]);
+
+  // Per-view counts with the other filters applied (shown on the tabs).
+  const viewCounts = useMemo(() => {
+    const counts = {} as Record<InboxView, number>;
+    for (const v of INBOX_VIEWS) {
+      const f = { ...filters, view: v, status: v === "resolved" ? "all" : filters.status } as ConversationFilters;
+      counts[v] = conversations.reduce((n, c) => (matchesFilters(c, f) ? n + 1 : n), 0);
     }
-
-    if (channelFilter !== "all") {
-      result = result.filter((c) => c.channel_id === channelFilter);
-    }
-
-    if (assignmentFilter === "mine") {
-      result = result.filter((c) => !!currentUserId && c.assigned_agent_id === currentUserId);
-    } else if (assignmentFilter === "unassigned") {
-      result = result.filter((c) => !c.assigned_agent_id);
-    }
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter((c) => {
-        const name = c.contact?.name?.toLowerCase() ?? "";
-        const phone = c.contact?.phone?.toLowerCase() ?? "";
-        const lastMsg = c.last_message_text?.toLowerCase() ?? "";
-        return name.includes(q) || phone.includes(q) || lastMsg.includes(q);
-      });
-    }
-
-    return result;
-  }, [conversations, filter, channelFilter, assignmentFilter, currentUserId, search]);
+    return counts;
+  }, [conversations, filters]);
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -171,6 +240,16 @@ export function ConversationList({
   );
 
   const activeChannel = channelFilter === "all" ? null : channelsById.get(channelFilter);
+  const hasExtraFilters =
+    channelFilter !== "all" || status !== "all" || validTagIds.length > 0 || priorities.length > 0;
+  const clearFilters = () => {
+    setChannelFilter("all");
+    setStatus("all");
+    setTagIds([]);
+    setPriorities([]);
+  };
+
+  const toggleIn = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
   return (
     // w-full on mobile so the list occupies the whole viewport when it's
@@ -180,7 +259,7 @@ export function ConversationList({
       {/* Search + Filters */}
       <div className="space-y-2 border-b border-slate-800 p-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
           <Input
             value={search}
             onChange={handleSearchChange}
@@ -188,6 +267,29 @@ export function ConversationList({
             aria-label={t("inbox.list.searchPlaceholder")}
             className="border-slate-700 bg-slate-800 pl-9 text-sm text-white placeholder-slate-500 focus:border-primary/50"
           />
+        </div>
+
+        {/* Views: Todas / Mías / Sin asignar / Resueltas */}
+        <div role="tablist" aria-label={t("inboxpro.views.label")} className="grid grid-cols-4 gap-0.5 rounded-lg bg-slate-800 p-0.5">
+          {INBOX_VIEWS.map((v) => {
+            const active = view === v;
+            return (
+              <button
+                key={v}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setView(v)}
+                className={cn(
+                  "flex min-w-0 flex-col items-center rounded-md px-1 py-1 text-[11px] leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  active ? "bg-slate-950 text-white shadow-sm" : "text-slate-400 hover:text-white",
+                )}
+              >
+                <span className="max-w-full truncate">{t(`inboxpro.views.${v}`)}</span>
+                <span className={cn("text-[10px]", active ? "text-primary" : "text-slate-400")}>{viewCounts[v]}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex flex-wrap items-center gap-1">
@@ -226,49 +328,140 @@ export function ConversationList({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Assignment filter */}
+          {/* Status filter (open views only) */}
+          {view !== "resolved" && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(triggerClass, status !== "all" && "text-white")}
+                aria-label={t("inbox.list.statusFilter")}
+              >
+                {status === "all" ? t("inboxpro.filters.allStatuses") : t(`inboxpro.status.${status}`)}
+                <ChevronDown className="h-3 w-3" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="border-slate-700 bg-slate-800">
+                {OPEN_STATUS_FILTERS.map((value) => (
+                  <DropdownMenuItem
+                    key={value}
+                    onClick={() => setStatus(value)}
+                    className={cn("text-sm", status === value ? "text-primary" : "text-slate-300")}
+                  >
+                    {value === "all" ? t("inboxpro.filters.allStatuses") : t(`inboxpro.status.${value}`)}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* Tag filter */}
           <DropdownMenu>
             <DropdownMenuTrigger
-              className={cn(triggerClass, assignmentFilter !== "all" && "text-white")}
-              aria-label={t("inbox.list.assignmentFilter")}
+              className={cn(triggerClass, validTagIds.length > 0 && "text-white")}
+              aria-label={t("inboxpro.filters.tags")}
             >
-              {t(`inbox.list.assignment.${assignmentFilter}`)}
+              <TagIcon className="h-3 w-3" aria-hidden="true" />
+              {validTagIds.length ? t("inboxpro.filters.tagsCount", { n: validTagIds.length }) : t("inboxpro.filters.tags")}
               <ChevronDown className="h-3 w-3" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="border-slate-700 bg-slate-800">
-              {ASSIGNMENT_FILTERS.map((value) => (
-                <DropdownMenuItem
-                  key={value}
-                  onClick={() => setAssignmentFilter(value)}
-                  className={cn("text-sm", assignmentFilter === value ? "text-primary" : "text-slate-300")}
-                >
-                  {t(`inbox.list.assignment.${value}`)}
+            <DropdownMenuContent align="start" className="max-h-80 w-60 border-slate-700 bg-slate-800">
+              {tags.length === 0 ? (
+                <DropdownMenuItem disabled className="text-sm text-slate-400">
+                  {t("inboxpro.filters.noTags")}
                 </DropdownMenuItem>
-              ))}
+              ) : (
+                tags.map((tag) => (
+                  <DropdownMenuCheckboxItem
+                    key={tag.id}
+                    checked={validTagIds.includes(tag.id)}
+                    onCheckedChange={() => setTagIds((prev) => toggleIn(prev, tag.id))}
+                    closeOnClick={false}
+                    className="gap-2 text-sm text-slate-200"
+                  >
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: tag.color }} aria-hidden="true" />
+                    <span className="truncate">{tag.name}</span>
+                  </DropdownMenuCheckboxItem>
+                ))
+              )}
+              <DropdownMenuSeparator className="bg-slate-700" />
+              <DropdownMenuCheckboxItem
+                checked={includeContactTags}
+                onCheckedChange={(v) => setIncludeContactTags(v === true)}
+                closeOnClick={false}
+                className="text-sm text-slate-200"
+              >
+                {t("inboxpro.filters.includeContactTags")}
+              </DropdownMenuCheckboxItem>
+              {validTagIds.length > 0 && (
+                <DropdownMenuItem onClick={() => setTagIds([])} className="text-sm text-slate-400">
+                  {t("inboxpro.filters.clearTags")}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Status filter */}
+          {/* Priority filter */}
           <DropdownMenu>
             <DropdownMenuTrigger
-              className={cn(triggerClass, filter !== "all" && "text-white")}
-              aria-label={t("inbox.list.statusFilter")}
+              className={cn(triggerClass, priorities.length > 0 && "text-white")}
+              aria-label={t("inboxpro.filters.priority")}
             >
-              {filter === "all" ? t("inbox.list.allStatuses") : t(`inbox.status.${filter}`)}
+              <Flag className="h-3 w-3" aria-hidden="true" />
+              {priorities.length === 1
+                ? t(`inboxpro.priority.${priorities[0]}`)
+                : priorities.length > 1
+                  ? t("inboxpro.filters.priorityCount", { n: priorities.length })
+                  : t("inboxpro.filters.priority")}
               <ChevronDown className="h-3 w-3" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="border-slate-700 bg-slate-800">
-              {STATUS_FILTERS.map((value) => (
-                <DropdownMenuItem
-                  key={value}
-                  onClick={() => setFilter(value)}
-                  className={cn("text-sm", filter === value ? "text-primary" : "text-slate-300")}
-                >
-                  {value === "all" ? t("inbox.list.allStatuses") : t(`inbox.status.${value}`)}
-                </DropdownMenuItem>
-              ))}
+            <DropdownMenuContent align="start" className="w-48 border-slate-700 bg-slate-800">
+              {PRIORITY_ORDER.map((p) => {
+                const s = PRIORITY_STYLE[p];
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={p}
+                    checked={priorities.includes(p)}
+                    onCheckedChange={() => setPriorities((prev) => toggleIn(prev, p))}
+                    closeOnClick={false}
+                    className="gap-2 text-sm text-slate-200"
+                  >
+                    <s.Icon className={cn("h-3.5 w-3.5", s.className)} aria-hidden="true" />
+                    {t(`inboxpro.priority.${p}`)}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Sort */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={cn(triggerClass, sort !== "recent" && "text-white")}
+              aria-label={`${t("inboxpro.filters.sort")}: ${t(`inboxpro.sort.${sort}`)}`}
+              title={`${t("inboxpro.filters.sort")}: ${t(`inboxpro.sort.${sort}`)}`}
+            >
+              <ArrowUpDown className="h-3 w-3" aria-hidden="true" />
+              <span className="sr-only">{t("inboxpro.filters.sort")}</span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60 border-slate-700 bg-slate-800">
+              <DropdownMenuRadioGroup value={sort} onValueChange={(v) => setSort(v as SortMode)}>
+                {SORT_MODES.map((m) => (
+                  <DropdownMenuRadioItem key={m} value={m} className="text-sm text-slate-200">
+                    {t(`inboxpro.sort.${m}`)}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {hasExtraFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs text-slate-400 hover:bg-slate-800 hover:text-white"
+            >
+              <X className="h-3 w-3" aria-hidden="true" />
+              {t("inboxpro.filters.clear")}
+            </button>
+          )}
         </div>
       </div>
 
@@ -280,7 +473,7 @@ export function ConversationList({
           </div>
         ) : filtered.length === 0 ? (
           <div className="px-4 py-12 text-center">
-            <p className="text-sm text-slate-500">{t("inbox.list.empty")}</p>
+            <p className="text-sm text-slate-400">{t("inbox.list.empty")}</p>
           </div>
         ) : (
           <div className="flex flex-col">
@@ -292,6 +485,7 @@ export function ConversationList({
                 assignee={
                   conv.assigned_agent_id ? membersByUserId.get(conv.assigned_agent_id) : undefined
                 }
+                tagsById={tagsById}
                 isActive={conv.id === activeConversationId}
                 onSelect={handleSelect}
               />
@@ -307,14 +501,18 @@ interface ConversationItemProps {
   conversation: Conversation;
   channel?: InboxChannel;
   assignee?: Profile;
+  tagsById: Map<string, Tag>;
   isActive: boolean;
   onSelect: (conversation: Conversation) => void;
 }
+
+const MAX_CHIPS = 2;
 
 function ConversationItem({
   conversation,
   channel,
   assignee,
+  tagsById,
   isActive,
   onSelect,
 }: ConversationItemProps) {
@@ -336,10 +534,14 @@ function ConversationItem({
 
   const channelType = channel?.type ?? "whatsapp";
   const assigneeName = assignee?.full_name || assignee?.email;
+  const chipTags = (conversation.conversation_tags ?? [])
+    .map((l) => tagsById.get(l.tag_id))
+    .filter((tg): tg is Tag => !!tg);
 
   return (
     <button
       onClick={handleClick}
+      aria-current={isActive ? "true" : undefined}
       className={cn(
         "flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-slate-800/50",
         isActive && "border-l-2 border-primary bg-slate-800/70"
@@ -368,12 +570,13 @@ function ConversationItem({
       {/* Content */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-medium text-white">
-            {displayName}
+          <span className="flex min-w-0 items-center gap-1.5">
+            <PriorityIndicator priority={conversation.priority} />
+            <span className="truncate text-sm font-medium text-white">{displayName}</span>
           </span>
-          <span className="shrink-0 text-[10px] text-slate-500">{timeAgo}</span>
+          <span className="shrink-0 text-[10px] text-slate-400">{timeAgo}</span>
         </div>
-        <p className="truncate text-[10px] text-slate-500">{channelLine(channel)}</p>
+        <p className="truncate text-[10px] text-slate-400">{channelLine(channel)}</p>
         <div className="mt-0.5 flex items-center justify-between gap-2">
           <p className="truncate text-xs text-slate-400">
             {conversation.last_message_text || t("inbox.list.noMessages")}
@@ -401,10 +604,26 @@ function ConversationItem({
                 "h-2 w-2 rounded-full",
                 STATUS_COLORS[conversation.status]
               )}
-              title={t(`inbox.status.${conversation.status}`)}
+              title={t(`inboxpro.status.${conversation.status}`)}
             />
+            <span className="sr-only">{t(`inboxpro.status.${conversation.status}`)}</span>
           </div>
         </div>
+        {chipTags.length > 0 && (
+          <div className="mt-1 flex min-w-0 items-center gap-1 overflow-hidden">
+            {chipTags.slice(0, MAX_CHIPS).map((tg) => (
+              <TagChip key={tg.id} name={tg.name} color={tg.color} size="xs" className="max-w-[45%]" />
+            ))}
+            {chipTags.length > MAX_CHIPS && (
+              <span
+                className="shrink-0 text-[10px] text-slate-400"
+                title={chipTags.slice(MAX_CHIPS).map((tg) => tg.name).join(", ")}
+              >
+                {t("inboxpro.tags.more", { n: chipTags.length - MAX_CHIPS })}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </button>
   );

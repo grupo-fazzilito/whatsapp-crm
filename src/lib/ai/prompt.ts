@@ -1,10 +1,13 @@
 import { getPreset, resolveIndustry, industryLabel } from '@/lib/industries'
 import { formatMoney, moneyLocale } from '@/lib/workspace/countries'
+import { formatProductPrice } from '@/lib/catalog/currency'
 import { freeSlotsForBusiness, freeSlotsForStaff, upcomingDates } from './slots'
 import { weekdayOf, zonedNow } from './time'
 import { productAttributesFor } from '@/lib/catalog/attributes'
 import type { BusinessContext } from './context'
 import type { AiAgentRow, BookingDraft } from './types'
+import { CAPTURE_SCHEMA, LEAD_PROFILE_SCHEMA, qualifiesLeads, realEstateLeadSections, type CaptureOutput } from '@/lib/real-estate/leads/prompt-section'
+import type { LeadFields } from '@/lib/real-estate/leads/types'
 
 export const AGENT_INTENTS = [
   'greeting',
@@ -51,6 +54,8 @@ export interface AgentOutput {
     filters?: { key: string; value: string }[]
     min_price?: number
     max_price?: number
+    /** ISO currency of min/max_price (e.g. USD for "300 mil dólares"). */
+    currency?: string
   }
   /** Products whose photo + price should be sent after the reply (max 3). */
   show_product_ids?: string[]
@@ -58,6 +63,10 @@ export interface AgentOutput {
   cart_ops?: { op: 'add' | 'set' | 'remove'; product_id: string; variant_name?: string; quantity?: number }[]
   /** What to show after the reply: the cart summary or the checkout. */
   order_action?: 'none' | 'show_cart' | 'checkout'
+  /** Real estate: what the buyer/tenant is looking for (merged server-side). */
+  lead_profile?: Record<string, unknown>
+  /** Real estate: owner who wants to sell/rent their own property. */
+  capture?: CaptureOutput
 }
 
 /** Gemini responseSchema for AgentOutput. */
@@ -99,6 +108,7 @@ export const AGENT_OUTPUT_SCHEMA = {
         },
         min_price: { type: 'NUMBER' },
         max_price: { type: 'NUMBER' },
+        currency: { type: 'STRING', description: 'ISO 4217 code of min_price/max_price when the customer states a currency (USD, PEN...)' },
       },
     },
     show_product_ids: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Product ids to show with photo (carousel)' },
@@ -119,6 +129,15 @@ export const AGENT_OUTPUT_SCHEMA = {
   },
   required: ['reply', 'intent', 'language', 'confidence', 'handover', 'transfer_to_agent_id', 'booking_action'],
 } as const
+
+/** Output schema for an agent: real-estate lead agents also return lead_profile / capture. */
+export function agentOutputSchema(industry: string | null | undefined, skills: string[]): Record<string, unknown> {
+  if (!qualifiesLeads(industry, skills)) return AGENT_OUTPUT_SCHEMA as unknown as Record<string, unknown>
+  return {
+    ...AGENT_OUTPUT_SCHEMA,
+    properties: { ...AGENT_OUTPUT_SCHEMA.properties, lead_profile: LEAD_PROFILE_SCHEMA, capture: CAPTURE_SCHEMA },
+  }
+}
 
 const TONES: Record<string, string> = {
   friendly: 'warm, friendly and close',
@@ -147,6 +166,8 @@ export interface PromptInput {
   catalogResults?: { query: string; products: import('./context').CatalogProduct[] } | null
   /** Current open cart of the conversation (orders skill). */
   cart?: { lines: { productId: string; name: string; quantity: number; unitPrice: number }[]; subtotal: number } | null
+  /** Real estate: the customer's lead profile so far. */
+  leadProfile?: Partial<LeadFields> | null
 }
 
 function money(ctx: BusinessContext, amount: number | null | undefined): string {
@@ -310,6 +331,9 @@ export function buildSystemPrompt(input: PromptInput): string {
         `BOOKINGS ("${L('booking')}"):`,
         `- Collect step by step, one or two questions per message: ${modules.services && ctx.services.length ? 'service, ' : ''}${preset.bookingNeedsStaff && ctx.staff.length ? `${L('staff').toLowerCase()} (or "any"), ` : ''}date and time from AVAILABLE START TIMES${fieldList ? `, plus: ${fieldList}` : ''}.`,
         '- Put customer_name in booking.customer_name; other fields go in booking.fields as {key, value}. party_size goes in booking.party_size.',
+        preset.bookingFields.some((f) => f.type === 'product')
+          ? `- The ${L('booking').toLowerCase()} is about a specific ${L('product').toLowerCase()}: always put its id (from the catalog list or search results) in booking.product_id.`
+          : '',
         '- Fill booking.* with everything known so far on EVERY turn (ids from the lists, dates YYYY-MM-DD, times HH:MM) and set booking_action="collecting".',
         '- When everything is known, summarize it and ask the customer to confirm. Only when the customer clearly confirms set booking_action="confirm" (the system will validate the slot and send the confirmation itself).',
         '- NEVER say the booking is confirmed, booked or scheduled yourself: only the system confirms. When you set booking_action="confirm" your reply text is not sent.',
@@ -338,7 +362,7 @@ export function buildSystemPrompt(input: PromptInput): string {
         .map(([k, v]) => `${k}=${Array.isArray(v) ? v.join('/') : v}`)
         .join(', ')
       const stock = p.track_stock ? ((p.stock ?? 0) > 0 ? `stock ${p.stock}` : 'OUT OF STOCK') : ''
-      return `- [${p.id}] ${p.name}: ${p.price === null ? 'price on request' : money(ctx, p.price)}${catName(p.category_id) ? ` | ${catName(p.category_id)}` : ''}${attrs ? ` | ${attrs}` : ''}${stock ? ` | ${stock}` : ''}${p.images?.length ? ' | has photo' : ''}${p.description ? ` — ${p.description.slice(0, 160)}` : ''}`
+      return `- [${p.id}] ${p.name}: ${p.price === null ? 'price on request' : formatProductPrice(Number(p.price), p, ctx.workspace)}${catName(p.category_id) ? ` | ${catName(p.category_id)}` : ''}${attrs ? ` | ${attrs}` : ''}${stock ? ` | ${stock}` : ''}${p.images?.length ? ' | has photo' : ''}${p.description ? ` — ${p.description.slice(0, 160)}` : ''}`
     }
     const lines = [
       `CATALOG ("${L('productPlural')}", ${cat.total} active):`,
@@ -349,9 +373,12 @@ export function buildSystemPrompt(input: PromptInput): string {
             .join('; ')}`
         : '',
       '- Only mention products, prices and stock that appear in this prompt. Never invent products. If something is out of stock, say so and suggest alternatives.',
+      '- Each price carries its own currency (e.g. US$ vs S/): quote it exactly as shown and never convert between currencies.',
       skills.has('orders') && modules.orders
         ? '- To show products, put their ids in show_product_ids (up to 10, only "has photo"): they are sent as a swipeable carousel with photo, price and an "Add to cart" button. Prefer this when the customer browses, and then keep your reply to ONE short line (do not list the products or prices again).'
-        : '- To show photos, put up to 3 product ids in show_product_ids (only products that "has photo").',
+        : modules.bookings && preset.bookingFields.some((f) => f.type === 'product')
+          ? `- To show ${L('productPlural').toLowerCase()}, put their ids in show_product_ids (up to 10, only "has photo"): they are sent as a swipeable carousel with photo, price and "Book a viewing" / "See details" buttons. Prefer this when the customer is browsing, and then keep your reply to ONE or TWO short lines (do not list the ${L('productPlural').toLowerCase()}, prices or features again; you may mention a mismatch with what they asked for).`
+          : '- To show photos, put up to 3 product ids in show_product_ids (only products that "has photo").',
     ]
     if (input.catalogResults) {
       lines.push(
@@ -363,7 +390,7 @@ export function buildSystemPrompt(input: PromptInput): string {
       lines.push('FULL CATALOG:', cat.products.map(line).join('\n'))
     } else if (cat.total > 0) {
       lines.push(
-        '- The catalog is too large to list. When the customer asks about products, set catalog_search (text and/or category_id, filters as {key, value}; for numeric ranges use key "<attr>__min"/"<attr>__max"; min_price/max_price for price) and write a short placeholder reply; the system will run the search and ask you again with the results.',
+        '- The catalog is too large to list. When the customer asks about products, set catalog_search (text and/or category_id, filters as {key, value}; for numeric ranges use key "<attr>__min"/"<attr>__max"; min_price/max_price for price, plus currency when the customer states one, e.g. "hasta 300 mil dólares" → max_price=300000, currency="USD") and write a short placeholder reply; the system will run the search and ask you again with the results.',
       )
     } else {
       lines.push('- The catalog is empty: offer to connect with a human.')
@@ -387,6 +414,9 @@ export function buildSystemPrompt(input: PromptInput): string {
   } else if (skills.has('orders')) {
     sections.push('ORDERS: online orders are turned off for this business; when the customer wants to buy, offer to pass the conversation to a human (handover=true).')
   }
+
+  const leadAgent = qualifiesLeads(ws.industry, agent.skills)
+  if (leadAgent) sections.push(...realEstateLeadSections(input.leadProfile, ws.currency))
 
   if (input.transferTargets.length) {
     sections.push(
@@ -413,6 +443,7 @@ export function buildSystemPrompt(input: PromptInput): string {
   sections.push(
     [
       'OUTPUT: a JSON object with: reply, intent, language (ISO code of the customer language), confidence (0-1), handover, transfer_to_agent_id ("" if none), booking_action ("none" if not booking), booking (object, may be empty).',
+      leadAgent ? 'Also lead_profile (object with only the facts the customer gave; {} if none) and capture (only for owners offering their property; omit otherwise).' : '',
       input.customerName ? `The customer's name on file is "${input.customerName}".` : '',
     ]
       .filter(Boolean)

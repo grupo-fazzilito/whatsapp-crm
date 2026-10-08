@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Pencil, Plus, Search, Trash2, UserRound } from 'lucide-react';
 import { useI18n, useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
+import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { formatMoney } from '@/lib/workspace/countries';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +18,9 @@ import { cn } from '@/lib/utils';
 import { moneyLocale, EmptyState, LoadingBlock, Notice, PageHeader, invalidateAi, type Service, type Staff } from '../shared';
 import { useDayLabel } from '../setup/hours-form';
 import { StaffEditor, type MemberOption } from './staff-editor';
+import { CalendarConnection } from '@/components/integrations/google/calendar-connection';
+import { GcalReturnToast } from '@/components/integrations/google/return-toast';
+import { useGcalStatus } from '@/components/integrations/google/use-gcal';
 
 export function StaffManager() {
   const t = useT();
@@ -32,6 +36,8 @@ export function StaffManager() {
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<Staff | null | undefined>(undefined);
   const [deleting, setDeleting] = useState<Staff | null>(null);
+  const { status: gcal, reload: reloadGcal } = useGcalStatus();
+  const { user } = useAuth();
 
   const load = useCallback(async () => {
     const db = createClient();
@@ -106,6 +112,9 @@ export function StaffManager() {
 
   return (
     <div className="space-y-6">
+      <Suspense fallback={null}>
+        <GcalReturnToast onConnected={reloadGcal} />
+      </Suspense>
       <PageHeader
         title={staffPlural}
         description={t('business.staff.description', { staff: staffPlural.toLowerCase() })}
@@ -199,6 +208,20 @@ export function StaffManager() {
                           </Badge>
                         ))}
                         {svc.length > 4 && <Badge variant="outline">+{svc.length - 4}</Badge>}
+                      </div>
+                    )}
+
+                    {gcal && modules.bookings && (gcal.configured || gcal.connections.some((c) => c.staff_id === s.id)) && (
+                      <div className="border-t border-border pt-3">
+                        <CalendarConnection
+                          compact
+                          staffId={s.id}
+                          staffName={s.name}
+                          connection={gcal.connections.find((c) => c.staff_id === s.id) ?? null}
+                          configured={gcal.configured}
+                          canManage={isAdmin || (!!user && s.member_user_id === user.id)}
+                          onChanged={reloadGcal}
+                        />
                       </div>
                     )}
 

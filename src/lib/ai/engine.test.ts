@@ -22,7 +22,7 @@ vi.mock('./context', () => ({ loadBusinessContext: async () => h.ctx, invalidate
 vi.mock('./bookings', () => ({ createBookingFromDraft: h.createBookingFromDraft, cancelNextBooking: vi.fn() }))
 vi.mock('./prompt', async (orig) => ({ ...(await orig<typeof import('./prompt')>()), buildSystemPrompt: () => 'SYSTEM' }))
 
-import { HANDOVER_PAUSE_MS, runAgent } from './engine'
+import { HANDOVER_PAUSE_MS, runAgent, toCatalogQuery } from './engine'
 
 const WS = 'ws1'
 
@@ -161,5 +161,12 @@ describe('runAgent', () => {
     })
     expect((h.db.rows('conversations')[0].ai_state as { booking?: unknown }).booking).toBeUndefined()
     expect(sentTexts()[0]).toContain('10 de enero')
+  })
+})
+
+describe('catalog_search → searchProducts query', () => {
+  it('passes the budget currency so price bounds only compare that currency', () => {
+    expect(toCatalogQuery({ text: 'casa', max_price: 300000, currency: 'dólares' })).toMatchObject({ maxPrice: 300000, priceCurrency: 'USD' })
+    expect(toCatalogQuery({ text: 'depa', max_price: 3000 })).toMatchObject({ maxPrice: 3000, priceCurrency: null })
   })
 })

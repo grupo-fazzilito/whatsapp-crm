@@ -21,6 +21,7 @@ import { customFieldSummary } from './fields'
 import { BOOKING_STATUSES, customerName, type Booking, type BookingStatus, type ContactLite } from './types'
 import { useBookingActions } from './use-booking-actions'
 import { useBookingsData } from './use-bookings-data'
+import { pushGoogleSync } from '@/components/integrations/google/push'
 
 type Scope = 'upcoming' | 'today' | 'past' | 'all'
 
@@ -114,6 +115,7 @@ export function BookingsManager() {
       return
     }
     toast.success(t('bookings.toast.deleted'))
+    pushGoogleSync()
     if (detailsId === deleting.id) setDetailsId(null)
     data.reload()
   }

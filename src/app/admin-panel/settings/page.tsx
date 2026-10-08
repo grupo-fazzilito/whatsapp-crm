@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Settings, Shield, Bell, Users, Save, Loader2 } from "lucide-react";
 import { AdminShell } from "../admin-shell";
 import { AiProvidersCard } from "./ai-providers-card";
+import { GoogleCalendarCard } from "./google-calendar-card";
+import { AdminMercadoLibreCard } from "@/components/real-estate/portals/admin-mercadolibre-card";
 import { useI18n } from "@/i18n/client";
 
 const inputCls = "w-full rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors";
@@ -50,6 +52,10 @@ export default function AdminSettingsPage() {
         </div>
 
         <AiProvidersCard />
+
+        <GoogleCalendarCard />
+
+        <AdminMercadoLibreCard />
 
         <section className="rounded-xl border border-slate-800 bg-slate-900 p-6 space-y-4" aria-labelledby="agency-title">
           <h2 id="agency-title" className="text-sm font-bold text-white flex items-center gap-2">

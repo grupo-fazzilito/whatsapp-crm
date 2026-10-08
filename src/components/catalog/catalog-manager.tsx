@@ -34,6 +34,9 @@ import { EmptyState, LoadingBlock, Notice, PageHeader, invalidateAi, moneyLocale
 import { ProductEditor } from './product-editor';
 import { CategoriesDialog } from './categories-dialog';
 import { CatalogImportDialog } from './import/catalog-import-dialog';
+import { ListingStatusBadge } from './listing-extras';
+import { ListingPublicSettings } from './listing-public-settings';
+import { listingStatusOf } from '@/lib/real-estate/listing/status';
 import { CATALOG_BUCKET, PAGE_SIZE, formatAttribute, productSearchFilter, storagePathFromUrl, type Category, type Product } from './types';
 
 type View = 'grid' | 'list';
@@ -207,10 +210,14 @@ export function CatalogManager() {
     setAttrFilters({});
   };
 
-  const money = (n: number) => formatMoney(n, workspace?.currency ?? 'USD', moneyLocale(locale, workspace?.country));
+  // Each product in its own currency (NULL = the workspace's).
+  const money = (n: number, cur?: string | null) => formatMoney(n, cur || workspace?.currency || 'USD', moneyLocale(locale, workspace?.country));
   const yes = t('catalog.yes');
+  const isRealEstate = workspace?.industry === 'real_estate';
+  // Real estate: the status has its own badge, so skip it in the attribute chips.
+  const chipFields = isRealEstate ? fields.filter((f) => f.key !== 'listing_status') : fields;
   const keyAttributes = (p: Product) =>
-    fields
+    chipFields
       .map((f) => formatAttribute(f, p.attributes?.[f.key], locale, yes))
       .filter((s): s is string => !!s)
       .slice(0, 3);
@@ -262,11 +269,11 @@ export function CatalogManager() {
       <span className="text-sm text-muted-foreground">{t('catalog.priceOnRequest')}</span>
     ) : (
       <span className="flex flex-wrap items-baseline gap-1.5">
-        <span className="font-semibold text-foreground">{money(Number(p.price))}</span>
+        <span className="font-semibold text-foreground">{money(Number(p.price), p.currency)}</span>
         {p.compare_at_price != null && Number(p.compare_at_price) > Number(p.price) && (
           <s className="text-xs text-muted-foreground">
             <span className="sr-only">{t('catalog.before')} </span>
-            {money(Number(p.compare_at_price))}
+            {money(Number(p.compare_at_price), p.currency)}
           </s>
         )}
       </span>
@@ -341,6 +348,7 @@ export function CatalogManager() {
                 <Upload className="size-4" />
                 {t('catalog.import')}
               </Button>
+              <ListingPublicSettings />
               <Button variant="outline" onClick={() => setCategoriesOpen(true)}>
                 <FolderTree className="size-4" />
                 {t('catalog.categories.button')}
@@ -537,6 +545,7 @@ export function CatalogManager() {
                             {t('catalog.featured')}
                           </span>
                         )}
+                        {isRealEstate && <ListingStatusBadge status={listingStatusOf(p.attributes)} />}
                         {!p.is_active && (
                           <span className="rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
                             {t('catalog.inactive')}
@@ -622,6 +631,7 @@ export function CatalogManager() {
                                 <span className="truncate">{p.name}</span>
                               </span>
                               {p.sku && <span className="block text-xs text-muted-foreground">SKU {p.sku}</span>}
+                              {isRealEstate && <ListingStatusBadge status={listingStatusOf(p.attributes)} className="mt-0.5" />}
                               {!p.is_active && <span className="block text-xs text-muted-foreground">{t('catalog.inactive')}</span>}
                             </span>
                           </span>

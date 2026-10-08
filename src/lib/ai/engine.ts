@@ -1,19 +1,24 @@
 import 'server-only'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendMessage } from '@/lib/messaging/send'
-import { industryLabel } from '@/lib/industries'
+import { getPreset, industryLabel } from '@/lib/industries'
 import type { LoadedChannel } from '@/lib/channels'
 import { loadBusinessContext, type BusinessContext } from './context'
 import { completeJson, llmConfigured, parseJsonLoose, type ChatTurn } from './llm'
-import { AGENT_OUTPUT_SCHEMA, buildSystemPrompt, type AgentOutput } from './prompt'
+import { agentOutputSchema, buildSystemPrompt, type AgentOutput } from './prompt'
 import { cancelNextBooking, createBookingFromDraft } from './bookings'
 import { businessWindows } from './slots'
 import { toMinutes, zonedNow } from './time'
 import { getProducts, searchProducts, type CatalogQuery } from '@/lib/catalog/search'
-import { formatMoney, moneyLocale } from '@/lib/workspace/countries'
+import { formatProductPrice, parseCurrency } from '@/lib/catalog/currency'
 import { addToCart, cartItems, getOpenCart, setLineQuantity } from '@/lib/orders/service'
-import { ordersEnabled, sendCartSummary, sendProductCarousel, startCheckout, type CommerceCtx } from '@/lib/orders/chat'
+import { ordersEnabled, productAction, sendCartSummary, sendProductCarousel, startCheckout, type CommerceCtx } from '@/lib/orders/chat'
+import { texts } from '@/lib/orders/texts'
 import type { AiAgentRow, BookingDraft, ConversationAiState } from './types'
+import { autoAssignConversation } from '@/lib/inbox/server'
+import { qualifiesLeads } from '@/lib/real-estate/leads/prompt-section'
+import { applyAiCapture, applyAiLeadProfile, leadForPrompt } from '@/lib/real-estate/leads/ai'
+import { onViewingConfirmed } from '@/lib/real-estate/leads/visits'
 
 export const HANDOVER_PAUSE_MS = 12 * 60 * 60 * 1000
 const HISTORY_TURNS = 14
@@ -29,16 +34,16 @@ type Lang = 'es' | 'en'
 
 const TEXT: Record<Lang, Record<string, string>> = {
   es: {
-    handover: 'Gracias por escribir. Te comunico con una persona del equipo; en breve te responden. 🙏',
-    booked: '✅ ¡Listo! Confirmamos tu {booking} para el *{date}* a las *{time}*{extra}.',
-    slotTaken: 'Ese horario ya no está disponible. Opciones para ese día: {alts}. ¿Cuál prefieres?',
-    closed: 'Ese día no hay disponibilidad. ¿Te propongo otra fecha?',
-    past: 'Esa fecha u hora ya pasó. ¿Qué otro día te acomoda?',
-    cancelled: 'Listo, cancelamos tu {booking} del *{date}* a las *{time}*.',
-    noBooking: 'No encontré una reserva próxima a tu nombre. ¿Me compartes la fecha?',
+    handover: 'Gracias por escribir. En breve una persona del equipo continúa la conversación. 🙏',
+    booked: '✅ ¡Listo! Quedó confirmada la reserva: {booking} el *{date}* a las *{time}*{extra}.',
+    slotTaken: 'Ese horario ya no está disponible. Opciones para ese día: {alts}.',
+    closed: 'Ese día no hay disponibilidad. ¿Buscamos otra fecha?',
+    past: 'Esa fecha u hora ya pasó. ¿Qué otro día sería conveniente?',
+    cancelled: 'Listo, quedó cancelada la reserva: {booking} del *{date}* a las *{time}*.',
+    noBooking: 'No encontré una reserva próxima con estos datos. ¿Cuál es la fecha de la reserva?',
     fallback: 'Disculpa, no pude procesar tu mensaje. Te comunico con una persona del equipo.',
-    missing: 'Para confirmar tu {booking} me falta: {fields}. ¿Me lo compartes?',
-    notConfirmed: 'No pude confirmar tu {booking} con esos datos. ¿Revisamos la fecha y la hora, o prefieres que te comunique con una persona del equipo?',
+    missing: 'Para confirmar la reserva ({booking}) falta: {fields}.',
+    notConfirmed: 'No se pudo confirmar la reserva ({booking}) con esos datos. ¿Revisamos la fecha y la hora, o paso la conversación a una persona del equipo?',
     with: ' con {staff}',
     for: ' para {service}',
   },
@@ -140,6 +145,8 @@ export async function handOverToHuman(
     contact_id: input.contactId,
     note_text: `[IA → humano] ${reason}. Último mensaje: "${input.messageText.slice(0, 300)}"`,
   })
+  // Nobody picked yet: round-robin when the workspace enabled it.
+  if (!assigneeUserId) await autoAssignConversation(input.workspaceId, input.conversationId, 'ai_handover')
 }
 
 function isClosedNow(ctx: BusinessContext): boolean {
@@ -155,6 +162,8 @@ async function history(conversationId: string): Promise<ChatTurn[]> {
     .select('sender_type, content_text, content_type, created_at')
     .eq('conversation_id', conversationId)
     .neq('content_type', 'system')
+    // Team-only notes never reach the model.
+    .neq('is_internal', true)
     .order('created_at', { ascending: false })
     .limit(HISTORY_TURNS)
   const turns: ChatTurn[] = []
@@ -289,7 +298,11 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
   const sells = agent.skills.includes('orders') && ordersEnabled(ctx.workspace)
   const openCart = sells ? await getOpenCart(input.workspaceId, input.conversationId, input.contactId, false) : null
   const openLines = openCart ? await cartItems(openCart.id) : []
+  // Real estate: what we know about the buyer/tenant so far.
+  const leadAgent = qualifiesLeads(ctx.workspace.industry, agent.skills)
+  const leadProfile = leadAgent ? await leadForPrompt(input.workspaceId, input.contactId) : null
   const promptInput = {
+    leadProfile,
     cart: openCart
       ? { lines: openLines, subtotal: openLines.reduce((a, l) => a + l.unitPrice * l.quantity, 0) }
       : null,
@@ -316,7 +329,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     const raw = await completeJson({
       system: buildSystemPrompt({ ...promptInput, catalogResults }),
       turns,
-      schema: AGENT_OUTPUT_SCHEMA as unknown as Record<string, unknown>,
+      schema: agentOutputSchema(ctx.workspace.industry, agent.skills),
       model: agent.model,
       meter: catalogResults ? { ...meter, purpose: 'catalog' } : meter,
     })
@@ -353,6 +366,15 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     await reply(input, agent, TEXT[lang].fallback)
     await handOverToHuman(input, 'La IA no pudo procesar el mensaje')
     return true
+  }
+
+  // Real estate: merge what the customer told us (lead profile → score,
+  // deal stage, routing) and register owners offering their property.
+  if (leadAgent) {
+    await applyAiLeadProfile({ workspaceId: input.workspaceId, contactId: input.contactId, conversationId: input.conversationId, raw: out.lead_profile })
+    if (out.capture) {
+      await applyAiCapture({ workspaceId: input.workspaceId, contactId: input.contactId, conversationId: input.conversationId, capture: out.capture, state })
+    }
   }
 
   const lang = pickLang(agent, ctx, out.language)
@@ -408,6 +430,11 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     }
 
     if (out.booking_action === 'confirm') {
+      // Bookings about a product (property viewing): if the model didn't
+      // say which, use the product most recently shown in this chat.
+      if (!draft.product_id && getPreset(ctx.workspace.industry).bookingFields.some((f) => f.type === 'product')) {
+        draft.product_id = await lastShownProductId(input.conversationId)
+      }
       const result = await createBookingFromDraft({
         workspaceId: input.workspaceId,
         contactId: input.contactId,
@@ -421,6 +448,8 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
         const msg = fill(T.booked, { booking: bookingNoun, date: longDate(draft.date!, lang, ctx), time: draft.time!.padStart(5, '0'), extra })
         await setState(input.conversationId, { ai_state: { ...state, booking: undefined } })
         await reply(input, agent, msg)
+        // Viewing of a listing: deal → "Visita agendada" + map pin.
+        if (draft.product_id) await onViewingConfirmed(input.workspaceId, result.bookingId, { sendLocation: true, aiAgentId: agent.id })
         await log(input, agent, msg, 'booking', out.confidence ?? 1)
         return true
       }
@@ -453,7 +482,10 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     aiAgentId: agent.id,
   }
   if (sells && out.cart_ops?.length) await applyCartOps(commerce, out.cart_ops)
-  if (sells && out.show_product_ids?.length) {
+  // Carousel with action buttons when the business sells from chat or
+  // books visits per product (real estate); otherwise plain photo cards.
+  const cardsWithActions = sells || productAction(ctx.workspace) === 'book'
+  if (cardsWithActions && out.show_product_ids?.length) {
     const shown = await sendProductCarousel(commerce, out.show_product_ids)
     if (!shown) await sendProductCards(input, agent, ctx, out.show_product_ids)
   } else {
@@ -499,6 +531,8 @@ async function applyCartOps(c: CommerceCtx, ops: NonNullable<AgentOutput['cart_o
               ? `${r.name}: ${lang === 'en' ? `only ${r.available} left` : `solo quedan ${r.available}`}`
               : r.reason === 'price_on_request'
                 ? `${r.name}: ${lang === 'en' ? 'price on request' : 'precio a consultar'}`
+                : r.reason === 'foreign_currency'
+                ? fill(texts(lang).foreignCurrency, { name: r.name, currency: r.currency })
                 : lang === 'en' ? 'a product is no longer available' : 'un producto ya no está disponible',
         )
       }
@@ -564,8 +598,25 @@ function bookingLooksComplete(draft: BookingDraft, ctx: BusinessContext): boolea
   return !!(draft.date && draft.time && (ctx.services.length === 0 || draft.service_id))
 }
 
+/** Product the bot showed last in this conversation (photo card or carousel). */
+async function lastShownProductId(conversationId: string): Promise<string | null> {
+  const { data } = await supabaseAdmin()
+    .from('messages')
+    .select('metadata')
+    .eq('conversation_id', conversationId)
+    .eq('sender_type', 'bot')
+    .order('created_at', { ascending: false })
+    .limit(15)
+  for (const row of data ?? []) {
+    const md = (row.metadata ?? {}) as { product_id?: string; product_ids?: string[] }
+    if (md.product_id) return md.product_id
+    if (md.product_ids?.length === 1) return md.product_ids[0]
+  }
+  return null
+}
+
 function describeMissing(missing: string[], lang: Lang, ctx: BusinessContext): string {
-  const es: Record<string, string> = { service: 'el servicio', staff: industryLabel(ctx.workspace.industry, 'staff', 'es', ctx.workspace.settings).toLowerCase(), date: 'la fecha', time: 'la hora', customer_name: 'tu nombre', party_size: 'el número de personas', product: 'cuál te interesa' }
+  const es: Record<string, string> = { service: 'el servicio', staff: industryLabel(ctx.workspace.industry, 'staff', 'es', ctx.workspace.settings).toLowerCase(), date: 'la fecha', time: 'la hora', customer_name: 'el nombre completo', party_size: 'el número de personas', product: `qué ${industryLabel(ctx.workspace.industry, 'product', 'es', ctx.workspace.settings).toLowerCase()} es` }
   const en: Record<string, string> = { service: 'the service', staff: industryLabel(ctx.workspace.industry, 'staff', 'en', ctx.workspace.settings).toLowerCase(), date: 'the date', time: 'the time', customer_name: 'your name', party_size: 'the number of people', product: 'which one you want' }
   const dict = lang === 'en' ? en : es
   return missing.map((m) => dict[m] ?? m).join(', ')
@@ -589,12 +640,13 @@ export function toCatalogQuery(q: NonNullable<AgentOutput['catalog_search']>): C
     filters,
     minPrice: typeof q.min_price === 'number' && q.min_price > 0 ? q.min_price : null,
     maxPrice: typeof q.max_price === 'number' && q.max_price > 0 ? q.max_price : null,
+    priceCurrency: parseCurrency(q.currency),
     limit: 8,
   }
 }
 
 function describeQuery(q: NonNullable<AgentOutput['catalog_search']>): string {
-  return [q.text, ...(q.filters ?? []).map((f) => `${f.key}=${f.value}`), q.min_price ? `>=${q.min_price}` : '', q.max_price ? `<=${q.max_price}` : '']
+  return [q.text, ...(q.filters ?? []).map((f) => `${f.key}=${f.value}`), q.min_price ? `>=${q.min_price}` : '', q.max_price ? `<=${q.max_price}` : '', (q.min_price || q.max_price) && q.currency ? String(q.currency).toUpperCase() : '']
     .filter(Boolean)
     .join(', ')
 }
@@ -606,7 +658,7 @@ async function sendProductCards(input: RunAgentInput, agent: AiAgentRow, ctx: Bu
   const products = await getProducts(input.workspaceId, wanted)
   for (const p of products) {
     if (!p.images?.[0]) continue
-    const price = p.price === null ? '' : ` — ${formatMoney(Number(p.price), ctx.workspace.currency, moneyLocale(ctx.workspace))}`
+    const price = p.price === null ? '' : ` — ${formatProductPrice(Number(p.price), p, ctx.workspace)}`
     await sendMessage({
       workspaceId: input.workspaceId,
       conversationId: input.conversationId,
@@ -660,7 +712,7 @@ export async function previewAgentTurn(input: PreviewTurnInput): Promise<Preview
       await completeJson({
         system: catalogResults ? buildSystemPrompt({ ...promptBase, catalogResults }) : system,
         turns: asJsonHistory(input.turns),
-        schema: AGENT_OUTPUT_SCHEMA as unknown as Record<string, unknown>,
+        schema: agentOutputSchema(ctx.workspace.industry, input.agent.skills),
         model: input.agent.model,
         meter: { workspaceId: input.workspaceId, purpose: 'playground', aiAgentId: input.agent.id },
       }),
