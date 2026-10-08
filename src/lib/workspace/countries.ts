@@ -39,6 +39,12 @@ export function countryDefaults(code: string | null | undefined): CountryInfo {
   return COUNTRIES.find((c) => c.code === code) ?? COUNTRIES.find((c) => c.code === 'US')!
 }
 
+/** Number/currency locale for a workspace: its language + country (es-PE → "S/ 55.00"). */
+export function moneyLocale(ws: { locale?: string | null; country?: string | null }): string {
+  const lang = ws.locale === 'en' ? 'en' : 'es'
+  return ws.country ? `${lang}-${ws.country}` : lang === 'en' ? 'en-US' : 'es-MX'
+}
+
 /** Format an amount in the workspace currency. */
 export function formatMoney(amount: number, currency: string, locale: string): string {
   try {

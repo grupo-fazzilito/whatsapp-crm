@@ -1,0 +1,116 @@
+{
+  "catalogImport": {
+    "title": "Importar {items}",
+    "description": "Sube un archivo CSV o Excel, o pega una lista y deja que la IA la ordene. Revisarás todo antes de guardar.",
+    "tabs": {
+      "file": "Archivo",
+      "ai": "Pegar texto / Con IA"
+    },
+    "steps": {
+      "source": "Origen",
+      "mapping": "Columnas",
+      "preview": "Revisión",
+      "done": "Resultado"
+    },
+    "file": {
+      "choose": "Elegir archivo",
+      "hint": "CSV, XLSX o XLS · hasta {max} filas. La primera fila debe tener los nombres de las columnas.",
+      "drop": "Arrastra tu archivo aquí o haz clic para elegirlo",
+      "template": "Descargar plantilla",
+      "templateHint": "Plantilla con las columnas para tu tipo de negocio y una fila de ejemplo.",
+      "reading": "Leyendo archivo…",
+      "empty": "El archivo no tiene filas con datos.",
+      "tooMany": "El archivo tiene {count} filas; el máximo es {max}.",
+      "unsupported": "Formato no soportado. Usa CSV, XLSX o XLS.",
+      "tooBig": "El archivo es demasiado grande (máx. 10 MB).",
+      "failed": "No se pudo leer el archivo."
+    },
+    "ai": {
+      "label": "Lista en texto libre",
+      "placeholder": "Pega aquí tu menú de WhatsApp, lista de precios o fichas de {items}…\n\nEj.:\nENTRADAS\nCeviche clásico - S/ 35\nCausa limeña - S/ 22",
+      "hint": "La IA detecta nombre, descripción, precio, categoría y los campos de tu negocio. Nada se guarda hasta que confirmes.",
+      "analyze": "Analizar con IA",
+      "analyzing": "Analizando…",
+      "nothingFound": "La IA no encontró {items} en el texto.",
+      "failed": "No se pudo analizar el texto."
+    },
+    "mapping": {
+      "intro": "{file} · {count} filas. Indica a qué campo corresponde cada columna.",
+      "column": "Columna del archivo",
+      "sample": "Ejemplo",
+      "target": "Campo",
+      "ignore": "— No importar —",
+      "attributes": "Campos de {product}",
+      "fixed": "Datos generales",
+      "needName": "Asigna una columna a «Nombre» para continuar.",
+      "continue": "Revisar filas"
+    },
+    "preview": {
+      "summary": "{total} filas: {creates} nuevas, {updates} a actualizar, {errors} con errores.",
+      "onlyErrors": "Ver solo filas con errores",
+      "row": "Fila",
+      "status": "Acción",
+      "name": "Nombre",
+      "sku": "SKU",
+      "price": "Precio",
+      "category": "Categoría",
+      "issues": "Observaciones",
+      "create": "Crear",
+      "update": "Actualizar",
+      "error": "Error",
+      "noPrice": "A consultar",
+      "skipNote": "Las filas con errores no se importarán. Corrige el archivo y vuelve a subirlo si las necesitas.",
+      "updateNote": "Las filas con un SKU que ya existe actualizan ese registro; las demás se crean. Las categorías nuevas se crean automáticamente.",
+      "checking": "Comprobando SKUs…",
+      "import": "Importar {count}",
+      "importing": "Importando…",
+      "nothing": "No hay filas válidas para importar."
+    },
+    "done": {
+      "title": "Importación terminada",
+      "created": "Creados",
+      "updated": "Actualizados",
+      "failed": "Con error",
+      "failedRows": "Filas que no se pudieron importar",
+      "toast": "{created} creados y {updated} actualizados.",
+      "close": "Cerrar",
+      "again": "Importar otro archivo"
+    },
+    "fields": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "price": "Precio",
+      "compare_at_price": "Precio anterior",
+      "sku": "SKU",
+      "stock": "Stock",
+      "category": "Categoría",
+      "images": "Imágenes (URLs)",
+      "tags": "Etiquetas",
+      "is_featured": "Destacado",
+      "is_active": "Activo"
+    },
+    "errors": {
+      "name_required": "falta el nombre",
+      "number": "debe ser un número",
+      "integer": "debe ser un número entero",
+      "negative": "no puede ser negativo",
+      "url": "debe ser una URL pública http(s)",
+      "too_many": "demasiados valores (máx. 10)",
+      "boolean": "usa sí / no",
+      "required": "es obligatorio",
+      "option": "valor no permitido",
+      "sku_duplicate": "SKU repetido en el archivo"
+    },
+    "template": {
+      "fileName": "plantilla-catalogo",
+      "exampleName": "{product} de ejemplo",
+      "exampleDescription": "Descripción breve que verá el cliente",
+      "exampleCategory": "General",
+      "exampleTags": "nuevo, popular",
+      "yes": "sí"
+    },
+    "back": "Atrás",
+    "cancel": "Cancelar",
+    "failed": "La importación falló."
+  }
+}

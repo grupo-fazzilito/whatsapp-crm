@@ -17,6 +17,8 @@ import {
   PhoneCall,
   Loader2,
   Calendar,
+  Hourglass,
+  RotateCcw,
 } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
@@ -41,13 +43,16 @@ import {
 import { AUTOMATION_TEMPLATES, type TemplateSlug } from "@/lib/automations/templates"
 import { triggerMeta, formatRelative } from "@/lib/automations/trigger-meta"
 import { cn } from "@/lib/utils"
+import { useT } from "@/i18n/client"
 
 const TEMPLATE_ORDER: TemplateSlug[] = [
   "welcome_message",
   "appointment_booking",
   "out_of_office",
   "lead_qualifier",
-  "follow_up_reminder",
+  "followup_no_reply_2h",
+  "followup_last_call_23h",
+  "followup_winback_3d",
 ]
 
 const TEMPLATE_ICON: Record<TemplateSlug, typeof Zap> = {
@@ -55,7 +60,9 @@ const TEMPLATE_ICON: Record<TemplateSlug, typeof Zap> = {
   appointment_booking: Calendar,
   out_of_office: Clock,
   lead_qualifier: Users,
-  follow_up_reminder: PhoneCall,
+  followup_no_reply_2h: PhoneCall,
+  followup_last_call_23h: Hourglass,
+  followup_winback_3d: RotateCcw,
 }
 
 export default function AutomationsPage() {
@@ -275,6 +282,7 @@ function AutomationCard({
   onDelete: () => void
 }) {
   const meta = triggerMeta(automation.trigger_type)
+  const t = useT()
   return (
     <li className="rounded-xl border border-slate-800 bg-slate-900 transition-colors hover:border-slate-700">
       <div className="flex items-center gap-4 p-4">
@@ -311,7 +319,7 @@ function AutomationCard({
                 meta.pillClass,
               )}
             >
-              {meta.label}
+              {meta.i18nKey ? t(meta.i18nKey) : meta.label}
             </span>
             <span className="tabular-nums">
               {automation.execution_count} run{automation.execution_count === 1 ? "" : "s"}

@@ -1,0 +1,116 @@
+{
+  "catalogImport": {
+    "title": "Import {items}",
+    "description": "Upload a CSV or Excel file, or paste a list and let the AI tidy it up. You'll review everything before saving.",
+    "tabs": {
+      "file": "File",
+      "ai": "Paste text / AI"
+    },
+    "steps": {
+      "source": "Source",
+      "mapping": "Columns",
+      "preview": "Review",
+      "done": "Result"
+    },
+    "file": {
+      "choose": "Choose file",
+      "hint": "CSV, XLSX or XLS · up to {max} rows. The first row must hold the column names.",
+      "drop": "Drop your file here or click to choose it",
+      "template": "Download template",
+      "templateHint": "Template with the columns for your type of business and an example row.",
+      "reading": "Reading file…",
+      "empty": "The file has no rows with data.",
+      "tooMany": "The file has {count} rows; the maximum is {max}.",
+      "unsupported": "Unsupported format. Use CSV, XLSX or XLS.",
+      "tooBig": "The file is too large (max 10 MB).",
+      "failed": "Could not read the file."
+    },
+    "ai": {
+      "label": "Free-form list",
+      "placeholder": "Paste your WhatsApp menu, price list or {items} sheets here…\n\nE.g.:\nSTARTERS\nClassic ceviche - $12\nCausa - $8",
+      "hint": "The AI detects name, description, price, category and your business's fields. Nothing is saved until you confirm.",
+      "analyze": "Analyze with AI",
+      "analyzing": "Analyzing…",
+      "nothingFound": "The AI found no {items} in the text.",
+      "failed": "Could not analyze the text."
+    },
+    "mapping": {
+      "intro": "{file} · {count} rows. Choose which field each column goes to.",
+      "column": "File column",
+      "sample": "Sample",
+      "target": "Field",
+      "ignore": "— Don't import —",
+      "attributes": "{product} fields",
+      "fixed": "General",
+      "needName": "Map a column to “Name” to continue.",
+      "continue": "Review rows"
+    },
+    "preview": {
+      "summary": "{total} rows: {creates} new, {updates} to update, {errors} with errors.",
+      "onlyErrors": "Show only rows with errors",
+      "row": "Row",
+      "status": "Action",
+      "name": "Name",
+      "sku": "SKU",
+      "price": "Price",
+      "category": "Category",
+      "issues": "Notes",
+      "create": "Create",
+      "update": "Update",
+      "error": "Error",
+      "noPrice": "On request",
+      "skipNote": "Rows with errors won't be imported. Fix the file and upload it again if you need them.",
+      "updateNote": "Rows whose SKU already exists update that record; the rest are created. New categories are created automatically.",
+      "checking": "Checking SKUs…",
+      "import": "Import {count}",
+      "importing": "Importing…",
+      "nothing": "There are no valid rows to import."
+    },
+    "done": {
+      "title": "Import finished",
+      "created": "Created",
+      "updated": "Updated",
+      "failed": "Failed",
+      "failedRows": "Rows that could not be imported",
+      "toast": "{created} created and {updated} updated.",
+      "close": "Close",
+      "again": "Import another file"
+    },
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "price": "Price",
+      "compare_at_price": "Compare-at price",
+      "sku": "SKU",
+      "stock": "Stock",
+      "category": "Category",
+      "images": "Images (URLs)",
+      "tags": "Tags",
+      "is_featured": "Featured",
+      "is_active": "Active"
+    },
+    "errors": {
+      "name_required": "name is missing",
+      "number": "must be a number",
+      "integer": "must be a whole number",
+      "negative": "can't be negative",
+      "url": "must be a public http(s) URL",
+      "too_many": "too many values (max 10)",
+      "boolean": "use yes / no",
+      "required": "is required",
+      "option": "value not allowed",
+      "sku_duplicate": "SKU repeated in the file"
+    },
+    "template": {
+      "fileName": "catalog-template",
+      "exampleName": "Sample {product}",
+      "exampleDescription": "Short description the customer will see",
+      "exampleCategory": "General",
+      "exampleTags": "new, popular",
+      "yes": "yes"
+    },
+    "back": "Back",
+    "cancel": "Cancel",
+    "failed": "The import failed."
+  }
+}

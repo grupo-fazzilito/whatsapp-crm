@@ -88,6 +88,7 @@ Answer with JSON: {"urgency": "emergency"|"urgent"|"routine"|"self_care", "recom
   let result: TriageResult
   try {
     const raw = await completeJson({
+      meter: { workspaceId: ws.id, purpose: 'triage' },
       system,
       turns: [{ role: 'user', content: `Patient reports: ${symptoms}` }],
       schema: SCHEMA,

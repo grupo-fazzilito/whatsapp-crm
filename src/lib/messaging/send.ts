@@ -2,6 +2,7 @@ import 'server-only'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getAdapter, ChannelSendError, type LoadedChannel, type OutboundContent } from '@/lib/channels'
 import { defaultChannel, loadChannel } from '@/lib/channels/store'
+import { armFollowupsForOutbound } from '@/lib/automations/followups'
 
 export type SenderType = 'agent' | 'bot'
 
@@ -169,6 +170,22 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
         .update({ phone: `+${usedRecipient}` })
         .eq('id', conversation.contact_id)
         .neq('phone', `+${usedRecipient}`)
+    }
+
+    // "Seguimientos": we spoke last — (re)arm the no_reply automations.
+    // Never let scheduling break a send.
+    try {
+      await armFollowupsForOutbound({
+        workspaceId,
+        conversationId,
+        contactId: conversation.contact_id,
+        channelId: conversation.channel_id ?? channel?.id ?? null,
+        messageId: row.id,
+        status,
+        metadata: input.metadata,
+      })
+    } catch (err) {
+      console.error('[send] follow-up scheduling failed:', err instanceof Error ? err.message : err)
     }
   }
 

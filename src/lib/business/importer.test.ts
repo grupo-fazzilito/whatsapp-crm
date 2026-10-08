@@ -52,8 +52,15 @@ describe('normalizeFaqs', () => {
 describe('extract', () => {
   it('calls the shared LLM helper and parses fenced JSON', async () => {
     completeJson.mockResolvedValueOnce('```json\n{"services":[{"name":"Corte"}]}\n```')
-    const out = await extract('sys', 'Corte 100', SERVICES_SCHEMA, 'services')
+    const out = await extract('sys', 'Corte 100', SERVICES_SCHEMA, 'services', 'ws-1')
     expect(out).toEqual([{ name: 'Corte' }])
-    expect(completeJson).toHaveBeenCalledWith(expect.objectContaining({ system: 'sys', schema: SERVICES_SCHEMA, turns: [{ role: 'user', content: 'Corte 100' }] }))
+    expect(completeJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        system: 'sys',
+        schema: SERVICES_SCHEMA,
+        turns: [{ role: 'user', content: 'Corte 100' }],
+        meter: { workspaceId: 'ws-1', purpose: 'import' },
+      }),
+    )
   })
 })

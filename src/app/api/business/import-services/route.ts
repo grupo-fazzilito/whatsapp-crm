@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   if (text.length > MAX_TEXT) return NextResponse.json({ error: `Text is too long (max ${MAX_TEXT} characters)` }, { status: 400 })
 
   try {
-    const raw = await extract(servicesPrompt(ws), text, SERVICES_SCHEMA, 'services')
+    const raw = await extract(servicesPrompt(ws), text, SERVICES_SCHEMA, 'services', ws.id)
     return NextResponse.json({ services: normalizeServices(raw) })
   } catch (err) {
     return importError(err)

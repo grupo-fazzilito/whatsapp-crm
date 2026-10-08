@@ -8,6 +8,7 @@ import { routeInbound } from '@/lib/ai/routing'
 import type { ConversationAiState } from '@/lib/ai/types'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
+import { cancelFollowupsForInbound } from '@/lib/automations/followups'
 
 type MessageEvent = Extract<InboundEvent, { kind: 'message' }>
 
@@ -322,6 +323,12 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
     .eq('id', conversation.id)
 
   await flagBroadcastReply(ws, contact.id)
+
+  // "Seguimientos": the customer answered — drop pending follow-ups and
+  // parked waits of follow-up runs for this conversation.
+  await cancelFollowupsForInbound(ws, conversation.id).catch((err) =>
+    console.error('[ingest] follow-up cancel failed:', err instanceof Error ? err.message : err),
+  )
 
   const outcome: IngestOutcome = { contactId: contact.id, conversationId: conversation.id, messageId: inserted.id, duplicate: false }
   const text = ev.text ?? ''

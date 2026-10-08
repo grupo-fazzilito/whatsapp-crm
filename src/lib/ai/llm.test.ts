@@ -45,13 +45,13 @@ describe('providerOrder', () => {
   })
   it("moves the agent model's provider first", () => {
     expect(providerOrder(cfg)).toEqual(['openai', 'deepseek', 'gemini'])
-    expect(providerOrder(cfg, 'deepseek-chat')).toEqual(['deepseek', 'openai', 'gemini'])
+    expect(providerOrder(cfg, 'deepseek-flash')).toEqual(['deepseek', 'openai', 'gemini'])
   })
 })
 
 describe('completeJson', () => {
   it('calls DeepSeek chat completions in JSON mode with the configured model and base URL', async () => {
-    const cfg = buildAiConfig({ models: { deepseek: 'deepseek-chat' }, deepseek_base_url: 'https://ds.example/' }, { DEEPSEEK_API_KEY: 'ds-key' })
+    const cfg = buildAiConfig({ models: { deepseek: 'deepseek-flash' }, deepseek_base_url: 'https://ds.example/' }, { DEEPSEEK_API_KEY: 'ds-key' })
     const fetchMock = vi.fn().mockResolvedValue(chatResponse('{"reply":"ok"}'))
     vi.stubGlobal('fetch', fetchMock)
 
@@ -60,7 +60,7 @@ describe('completeJson', () => {
     expect(url).toBe('https://ds.example/chat/completions')
     expect(init.headers.Authorization).toBe('Bearer ds-key')
     const body = JSON.parse(init.body)
-    expect(body.model).toBe('deepseek-chat')
+    expect(body.model).toBe('deepseek-flash')
     expect(body.response_format).toEqual({ type: 'json_object' })
     expect(body.messages[0].content).toMatch(/json/i)
     expect(body.messages[1]).toEqual({ role: 'user', content: 'hola' })
@@ -80,5 +80,64 @@ describe('completeJson', () => {
 
   it('throws LlmUnavailableError when nothing is configured', async () => {
     await expect(completeJson(req, buildAiConfig(null, {}))).rejects.toBeInstanceOf(LlmUnavailableError)
+  })
+})
+
+describe('usage metering', () => {
+  it('costs a call from the provider-reported tokens (cached input at the cached rate)', async () => {
+    const { costUsd, priceFor } = await import('./pricing')
+    const price = priceFor('deepseek', 'deepseek-flash')
+    // 5,000 input (1,000 cached) + 250 output
+    const cost = costUsd({ input: 5000, cachedInput: 1000, output: 250 }, price)
+    expect(cost).toBeCloseTo((4000 * 0.3 + 1000 * 0.006 + 250 * 1.2) / 1e6, 10)
+    // Unknown model falls back to the provider default; panel overrides win.
+    expect(priceFor('gemini', 'gemini-9-ultra')).toEqual(priceFor('gemini', 'gemini-2.5-flash'))
+    expect(priceFor('openai', 'openai/gpt-4o-mini', { 'gpt-4o-mini': { input: 1, cachedInput: 1, output: 1 } }).input).toBe(1)
+  })
+
+  it('reads DeepSeek usage incl. cache hits from the response', async () => {
+    const cfg = buildAiConfig(null, { DEEPSEEK_API_KEY: 'd' })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            model: 'deepseek-flash',
+            choices: [{ message: { content: '{"reply":"hola"}' } }],
+            usage: { prompt_tokens: 5000, prompt_cache_hit_tokens: 4000, completion_tokens: 200 },
+          }),
+          { status: 200 },
+        ),
+      ),
+    )
+    // No meter → nothing recorded, but the call must still succeed.
+    await expect(completeJson(req, cfg)).resolves.toBe('{"reply":"hola"}')
+  })
+})
+
+describe('DeepSeek empty JSON-mode content', () => {
+  it('retries without json mode and returns the second answer', async () => {
+    const cfg = buildAiConfig(null, { DEEPSEEK_API_KEY: 'd' })
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(chatResponse('   \n  '))
+      .mockResolvedValueOnce(chatResponse('Here: {"reply":"ok"}'))
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(completeJson(req, cfg)).resolves.toBe('Here: {"reply":"ok"}')
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).response_format).toEqual({ type: 'json_object' })
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).response_format).toBeUndefined()
+  })
+
+  it('moves to the next provider when both attempts are empty', async () => {
+    const cfg = buildAiConfig(null, { DEEPSEEK_API_KEY: 'd', OPENAI_API_KEY: 'o' })
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(chatResponse(' '))
+        .mockResolvedValueOnce(chatResponse(''))
+        .mockResolvedValueOnce(chatResponse('{"reply":"openai"}')),
+    )
+    await expect(completeJson(req, cfg)).resolves.toBe('{"reply":"openai"}')
   })
 })

@@ -7,8 +7,12 @@ import {
   type BuilderStepInput,
 } from '@/lib/automations/steps-tree'
 import {
+  partitionIssues,
+  validateChannelRules,
   validateStepsForActivation,
   validateTriggerForActivation,
+  type ChannelRef,
+  type ValidationIssue,
 } from '@/lib/automations/validate'
 
 export async function GET(
@@ -76,6 +80,7 @@ export async function PATCH(
   // activating it OR editing an already-active one), validate the
   // merged configuration first. Activation is the natural gate — drafts
   // are still allowed to be incomplete.
+  let warnings: ValidationIssue[] = []
   const willBeActive =
     typeof update.is_active === 'boolean' ? update.is_active : existing.is_active
   if (willBeActive) {
@@ -84,19 +89,28 @@ export async function PATCH(
     const mergedSteps = Array.isArray(body.steps)
       ? (body.steps as { step_type: string; step_config: Record<string, unknown> }[])
       : await loadStepsTree(id, workspace.id)
-    const issues = [
+    const { data: channels } = await admin.from('channels').select('id, type').eq('workspace_id', workspace.id)
+    const { errors, warnings: w } = partitionIssues([
       ...validateTriggerForActivation(mergedTriggerType, mergedTriggerConfig),
       ...validateStepsForActivation(mergedSteps),
-    ]
-    if (issues.length > 0) {
+      ...validateChannelRules({
+        triggerType: mergedTriggerType,
+        triggerConfig: mergedTriggerConfig,
+        steps: mergedSteps,
+        channels: (channels ?? []) as ChannelRef[],
+      }),
+    ])
+    if (errors.length > 0) {
       return NextResponse.json(
         {
           error: 'Cannot keep automation active with invalid configuration',
-          issues,
+          issues: errors,
+          warnings: w,
         },
         { status: 400 },
       )
     }
+    warnings = w
   }
 
   if (Object.keys(update).length > 0) {
@@ -113,7 +127,7 @@ export async function PATCH(
     if (err) return NextResponse.json({ error: err }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, warnings })
 }
 
 export async function DELETE(

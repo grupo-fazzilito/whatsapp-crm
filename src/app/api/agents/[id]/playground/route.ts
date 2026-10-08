@@ -11,7 +11,8 @@ import type { AiAgentRow, BookingDraft } from '@/lib/ai/types'
  * Body: { turns: [{ role: 'user'|'assistant', content }], draft?: BookingDraft }
  * One model turn of the saved agent with the real prompt and business
  * data, without side effects (nothing is sent, booked or stored).
- * Returns { reply, intent, handover, transferTo, bookingAction, draft, draftLabels }.
+ * Returns { reply, intent, handover, transferTo, bookingAction, draft, draftLabels,
+ *   catalogSearch, showProductIds, shownProducts: [{ id, name, image }] }.
  * 503 { code: 'llm_unavailable' } when no AI provider is configured.
  */
 
@@ -83,14 +84,19 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     const result = await previewAgentTurn({ workspaceId: wsId, agent: agent as AiAgentRow, turns, draft, channelType: 'webchat' })
 
     // Human-readable names for the ids in the draft.
-    const [service, staff] = await Promise.all([
+    const [service, staff, shown] = await Promise.all([
       result.draft.service_id
         ? db.from('services').select('name').eq('id', result.draft.service_id).eq('workspace_id', wsId).maybeSingle()
         : Promise.resolve({ data: null }),
       result.draft.staff_id
         ? db.from('staff').select('name').eq('id', result.draft.staff_id).eq('workspace_id', wsId).maybeSingle()
         : Promise.resolve({ data: null }),
+      // Products the agent would send as photos.
+      result.showProductIds.length
+        ? db.from('products').select('id, name, images').in('id', result.showProductIds.filter(isUuid)).eq('workspace_id', wsId)
+        : Promise.resolve({ data: [] }),
     ])
+    const byId = new Map(((shown.data ?? []) as { id: string; name: string; images: string[] | null }[]).map((p) => [p.id, p]))
 
     return NextResponse.json({
       ...result,
@@ -98,6 +104,10 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
         service: (service.data as { name?: string } | null)?.name ?? null,
         staff: (staff.data as { name?: string } | null)?.name ?? null,
       },
+      shownProducts: result.showProductIds
+        .map((pid) => byId.get(pid))
+        .filter((p) => !!p)
+        .map((p) => ({ id: p!.id, name: p!.name, image: p!.images?.[0] ?? null })),
     })
   } catch (err) {
     if (err instanceof LlmUnavailableError) {

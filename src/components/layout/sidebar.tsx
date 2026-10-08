@@ -32,6 +32,7 @@ import {
   Briefcase,
   Radio,
   Bot,
+  Package,
 } from "lucide-react";
 import {
   Avatar,
@@ -93,6 +94,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     ...(can("admin") ? [{ href: "/business/setup", label: t("nav.setup"), icon: Store }] : []),
     ...(modules.staff ? [{ href: "/business/staff", label: label("staffPlural"), icon: UserRound }] : []),
     ...(modules.services ? [{ href: "/business/services", label: label("servicePlural"), icon: BriefcaseBusiness }] : []),
+    ...(modules.products ? [{ href: "/catalog", label: label("productPlural"), icon: Package }] : []),
     { href: "/business/faqs", label: t("nav.faqs"), icon: FileQuestion },
     { href: "/business/logs", label: t("nav.aiLogs"), icon: History },
   ];

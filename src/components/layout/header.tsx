@@ -43,6 +43,7 @@ function getPageTitle(pathname: string, t: T, label: Label): string {
     ["/business/services", label("servicePlural")],
     ["/business/faqs", t("nav.faqs")],
     ["/business/logs", t("nav.aiLogs")],
+    ["/catalog", label("productPlural")],
   ];
   const match = titles
     .filter(([path]) => pathname === path || pathname.startsWith(`${path}/`))

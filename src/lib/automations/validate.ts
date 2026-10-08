@@ -1,4 +1,7 @@
 import type { AutomationTriggerType } from '@/types'
+import type { ChannelType } from '@/lib/channels/types'
+import { CHANNEL_CAPABILITIES } from '@/lib/channels/capabilities'
+import { delayHours, normalizeNoReplyConfig, supportsTemplates } from './followup-rules'
 
 // ------------------------------------------------------------
 // Pre-flight config validation for automations about to be activated.
@@ -18,6 +21,11 @@ export interface ValidationIssue {
   /** Dot-path for the UI to highlight; stable enough to build a table. */
   path: string
   message: string
+  /** Stable id for the UI to translate (newer rules only). */
+  code?: string
+  params?: Record<string, string | number>
+  /** Warnings never block activation. Missing = error. */
+  severity?: 'error' | 'warning'
 }
 
 interface StepLike {
@@ -135,6 +143,18 @@ function validateOne(step: StepLike, path: string, issues: ValidationIssue[]): v
     case 'close_conversation':
       // No config required.
       break
+    case 'ai_followup':
+      if (c.agent_id !== undefined && c.agent_id !== null && typeof c.agent_id !== 'string') {
+        issues.push({ path: `${path}.agent_id`, message: 'agent must be an id', code: 'ai_followup_agent' })
+      }
+      if (typeof c.instructions === 'string' && c.instructions.length > 1000) {
+        issues.push({
+          path: `${path}.instructions`,
+          message: 'instructions are too long (max 1000 characters)',
+          code: 'ai_followup_instructions_long',
+        })
+      }
+      break
     default:
       issues.push({ path, message: `unknown step type: ${step.step_type}` })
   }
@@ -168,9 +188,147 @@ export function validateTriggerForActivation(
     if (!nonEmpty(cfg.tag_id)) {
       issues.push({ path: 'trigger.tag_id', message: 'tag is required' })
     }
+  } else if (triggerType === 'no_reply') {
+    const after = (cfg.after ?? {}) as Record<string, unknown>
+    if (typeof after.amount !== 'number' || !Number.isFinite(after.amount) || after.amount <= 0) {
+      issues.push({ path: 'trigger.after.amount', message: 'delay must be greater than 0', code: 'no_reply_amount' })
+    }
+    if (!['minutes', 'hours', 'days'].includes(String(after.unit))) {
+      issues.push({ path: 'trigger.after.unit', message: 'delay unit must be minutes, hours, or days', code: 'no_reply_unit' })
+    } else if (delayHours(after) > MAX_NO_REPLY_HOURS) {
+      issues.push({ path: 'trigger.after', message: 'delay cannot exceed 30 days', code: 'no_reply_too_long' })
+    }
+    if (cfg.channel_ids !== undefined && (!Array.isArray(cfg.channel_ids) || cfg.channel_ids.some((v) => typeof v !== 'string'))) {
+      issues.push({ path: 'trigger.channel_ids', message: 'channels must be a list of ids', code: 'no_reply_channels' })
+    }
+    if (cfg.only_when_ai === true && cfg.only_when_human === true) {
+      issues.push({
+        path: 'trigger.only_when_ai',
+        message: 'choose "only AI" or "only human", not both',
+        code: 'no_reply_both_filters',
+      })
+    }
   }
 
   return issues
+}
+
+const MAX_NO_REPLY_HOURS = 30 * 24
+
+// ------------------------------------------------------------
+// Channel rules: messaging windows and templates.
+//
+// WhatsApp / Instagram / Messenger only accept free-form messages within
+// 24 h of the customer's last message (TikTok: 48 h); outside it only
+// approved templates work, and templates only exist on WhatsApp.
+//
+// For each free-form send we compute a LOWER BOUND of the time since the
+// customer last wrote: the no_reply delay (the customer has been silent
+// at least that long) plus every wait before the step. When that bound
+// reaches a channel's window the send can never succeed there:
+//   - every targeted channel closed → error (blocks activation);
+//   - only some of them            → warning.
+// ------------------------------------------------------------
+
+export interface ChannelRef {
+  id: string
+  type: ChannelType
+}
+
+export function validateChannelRules(input: {
+  triggerType: AutomationTriggerType | string
+  triggerConfig: unknown
+  steps: StepLike[]
+  /** Channels of the workspace. */
+  channels: ChannelRef[]
+}): ValidationIssue[] {
+  const issues: ValidationIssue[] = []
+  const types = targetChannelTypes(input.triggerType, input.triggerConfig, input.channels)
+  const base = input.triggerType === 'no_reply' ? delayHours(normalizeNoReplyConfig(input.triggerConfig).after) : 0
+
+  const checkFreeForm = (path: string, elapsed: number) => {
+    if (types.length === 0) {
+      if (elapsed >= 24) {
+        issues.push({
+          path,
+          message: 'free-form messages need the customer to have written in the last 24 h; use a template',
+          code: 'window_closed_some',
+          params: { hours: Math.round(elapsed), channels: 'WhatsApp, Instagram, Messenger' },
+          severity: 'warning',
+        })
+      }
+      return
+    }
+    const closed = types.filter((t) => {
+      const h = CHANNEL_CAPABILITIES[t].replyWindowHours
+      return h !== null && elapsed >= h
+    })
+    if (closed.length === 0) return
+    const all = closed.length === types.length
+    issues.push({
+      path,
+      message: all
+        ? `the messaging window is always closed at this point (customer silent ≥ ${Math.round(elapsed)} h); use a template`
+        : `the messaging window is closed at this point on ${closed.join(', ')}; use a template there`,
+      code: all ? 'window_closed' : 'window_closed_some',
+      params: { hours: Math.round(elapsed), channels: closed.map(channelName).join(', ') },
+      severity: all ? 'error' : 'warning',
+    })
+  }
+
+  const checkTemplate = (path: string) => {
+    if (types.length === 0) return
+    const ok = types.filter((t) => supportsTemplates(t))
+    if (ok.length === types.length) return
+    const bad = types.filter((t) => !supportsTemplates(t))
+    issues.push({
+      path,
+      message: ok.length === 0 ? 'templates only work on WhatsApp channels' : `templates do not work on ${bad.join(', ')}`,
+      code: ok.length === 0 ? 'template_whatsapp_only' : 'template_some_channels',
+      params: { channels: bad.map(channelName).join(', ') },
+      severity: ok.length === 0 ? 'error' : 'warning',
+    })
+  }
+
+  const walkWindow = (steps: StepLike[], prefix: string, start: number) => {
+    let elapsed = start
+    steps.forEach((s, i) => {
+      const path = `${prefix}steps[${i}]`
+      const c = s.step_config ?? {}
+      if (s.step_type === 'wait') elapsed += delayHours(c as { amount?: unknown; unit?: unknown })
+      else if (s.step_type === 'send_message' || s.step_type === 'ai_followup') checkFreeForm(path, elapsed)
+      else if (s.step_type === 'send_template') checkTemplate(path)
+      else if (s.step_type === 'condition' && s.branches) {
+        // A wait inside a branch only delays that branch (engine semantics).
+        if (s.branches.yes) walkWindow(s.branches.yes, `${path}.yes.`, elapsed)
+        if (s.branches.no) walkWindow(s.branches.no, `${path}.no.`, elapsed)
+      }
+    })
+  }
+
+  if (Array.isArray(input.steps)) walkWindow(input.steps, '', base)
+  return issues
+}
+
+/** Splits issues into blocking errors and warnings. */
+export function partitionIssues(issues: ValidationIssue[]): { errors: ValidationIssue[]; warnings: ValidationIssue[] } {
+  return {
+    errors: issues.filter((i) => i.severity !== 'warning'),
+    warnings: issues.filter((i) => i.severity === 'warning'),
+  }
+}
+
+function targetChannelTypes(triggerType: string, triggerConfig: unknown, channels: ChannelRef[]): ChannelType[] {
+  let pool = channels
+  if (triggerType === 'no_reply') {
+    const ids = normalizeNoReplyConfig(triggerConfig).channel_ids ?? []
+    if (ids.length) pool = channels.filter((c) => ids.includes(c.id))
+  }
+  return [...new Set(pool.map((c) => c.type))]
+}
+
+function channelName(t: ChannelType): string {
+  return { whatsapp: 'WhatsApp', instagram: 'Instagram', messenger: 'Messenger', tiktok: 'TikTok', webchat: 'Web chat' }[t] ?? t
 }
 
 function nonEmpty(v: unknown): boolean {

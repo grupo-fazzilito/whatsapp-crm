@@ -158,8 +158,15 @@ export function normalizeFaqs(raw: unknown): ImportedFaq[] {
 }
 
 /** Runs the extraction model; returns the parsed list under `key`. */
-export async function extract(system: string, content: string, schema: Record<string, unknown>, key: 'services' | 'faqs') {
+export async function extract(
+  system: string,
+  content: string,
+  schema: Record<string, unknown>,
+  key: 'services' | 'faqs',
+  workspaceId: string,
+) {
   const text = await completeJson({
+    meter: { workspaceId, purpose: 'import' },
     system,
     turns: [{ role: 'user', content: content.slice(0, MAX_TEXT) }],
     schema,
