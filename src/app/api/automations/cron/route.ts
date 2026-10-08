@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/automations/admin-client'
 import { resumePendingExecution } from '@/lib/automations/engine'
 import type { AutomationContext } from '@/lib/automations/engine'
 import { processDueFollowups } from '@/lib/automations/followups'
+import { remindAbandonedCarts } from '@/lib/orders/abandoned'
 
 /**
  * Drain due `automation_pending_executions` rows, then fire due
@@ -69,5 +70,12 @@ export async function GET(request: Request) {
     followups = { error: err instanceof Error ? err.message : String(err) }
   }
 
-  return NextResponse.json({ processed, followups })
+  let abandonedCarts: { reminded: number; skipped: number } | { error: string }
+  try {
+    abandonedCarts = await remindAbandonedCarts()
+  } catch (err) {
+    abandonedCarts = { error: err instanceof Error ? err.message : String(err) }
+  }
+
+  return NextResponse.json({ processed, followups, abandonedCarts })
 }

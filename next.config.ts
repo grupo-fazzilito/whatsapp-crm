@@ -126,7 +126,13 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
       {
-        source: "/:path*",
+        // Shared (CDN) caching only for public pages. Everything else —
+        // APIs, the authenticated app, auth/invite pages, the admin panel —
+        // is per-user and must never be stored by a shared cache.
+        // (Rules are merged, so this must not also match /api: the last
+        // matching Cache-Control wins.)
+        source:
+          "/((?!api|_next|admin-panel|dashboard|inbox|contacts|pipelines|broadcasts|automations|flows|settings|healthcare|business|catalog|orders|agents|channels|admin|login|signup|forgot-password|invite|auth).*)",
         headers: [
           {
             key: "Cache-Control",
@@ -134,6 +140,11 @@ const nextConfig: NextConfig = {
               "public, max-age=0, s-maxage=300, stale-while-revalidate=86400",
           },
         ],
+      },
+      {
+        source:
+          "/:path(admin-panel|dashboard|inbox|contacts|pipelines|broadcasts|automations|flows|settings|healthcare|business|catalog|orders|agents|channels|admin|login|signup|forgot-password|invite|auth)/:rest*",
+        headers: [{ key: "Cache-Control", value: "private, no-store" }],
       },
       {
         // Security headers on every response, including /_next/static

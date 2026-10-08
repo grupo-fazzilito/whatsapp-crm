@@ -737,6 +737,25 @@ export function MessageThread({
     return map;
   }, [messages]);
 
+  // Customer images the bot took as payment proof: the latest customer
+  // image before each bot message tagged event 'payment_proof'.
+  const paymentProofIds = useMemo(() => {
+    const ids = new Set<string>();
+    let lastImage: string | null = null;
+    for (const m of messages) {
+      if (m.sender_type === "customer" && m.content_type === "image") lastImage = m.id;
+      else if (
+        m.sender_type !== "customer" &&
+        (m.metadata as Record<string, unknown> | null | undefined)?.event === "payment_proof" &&
+        lastImage
+      ) {
+        ids.add(lastImage);
+        lastImage = null;
+      }
+    }
+    return ids;
+  }, [messages]);
+
   // Bucket reactions by their target message_id for O(1) per-bubble lookup.
   const reactionsByMessageId = useMemo(() => {
     const map = new Map<string, MessageReaction[]>();
@@ -1275,6 +1294,7 @@ export function MessageThread({
                               : null
                           }
                           onRetry={canRetry ? () => void handleRetry(msg) : undefined}
+                          isPaymentProof={paymentProofIds.has(msg.id)}
                         />
                       </MessageActions>
                     );

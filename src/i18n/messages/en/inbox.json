@@ -88,7 +88,17 @@
       "unavailable": "{label} unavailable",
       "failed": "Not delivered",
       "failedWithReason": "Not delivered: {reason}",
-      "retry": "Retry"
+      "retry": "Retry",
+      "carousel": "Carousel of {count} products",
+      "paymentProof": "Payment proof",
+      "events": {
+        "cart_summary": "Cart",
+        "order_placed": "Order placed",
+        "order_status": "Order status",
+        "payment_options": "Payment options",
+        "payment_method": "Payment method",
+        "payment_proof": "Payment received"
+      }
     },
     "media": {
       "image": "Image",
@@ -114,7 +124,29 @@
       "noDeals": "No deals",
       "notes": "Notes",
       "addNote": "Add a note...",
-      "saveNote": "Save note"
+      "saveNote": "Save note",
+      "orders": {
+        "title": "Orders",
+        "openCart": "Open cart",
+        "subtotal": "Subtotal",
+        "none": "No orders",
+        "status": {
+          "pending": "Pending",
+          "confirmed": "Confirmed",
+          "preparing": "Preparing",
+          "ready": "Ready",
+          "shipped": "Shipped",
+          "delivered": "Delivered",
+          "cancelled": "Cancelled"
+        },
+        "payment": {
+          "unpaid": "Unpaid",
+          "awaiting_proof": "Awaiting proof",
+          "proof_received": "Proof received",
+          "paid": "Paid",
+          "refunded": "Refunded"
+        }
+      }
     },
     "templates": {
       "title": "Send template",

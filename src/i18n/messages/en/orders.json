@@ -1,0 +1,247 @@
+{
+  "orders": {
+    "navTitle": "Orders",
+    "navBadge": "{count} new orders",
+    "title": "Orders",
+    "description": "Orders placed through chat or entered by your team. Confirm them, move them along and verify payments.",
+    "moduleOff": "The orders module is off for this business. Turn it on in Business setup → Industry.",
+    "truncated": "Showing the {limit} most recent orders. Use the filters to see others.",
+    "status": {
+      "pending": "New",
+      "confirmed": "Confirmed",
+      "preparing": "Preparing",
+      "ready": "Ready",
+      "shipped": "On the way",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "tabs": {
+      "all": "All",
+      "pending": "New",
+      "confirmed": "Confirmed",
+      "preparing": "Preparing",
+      "ready": "Ready",
+      "shipped": "On the way",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "payment": {
+      "unpaid": "Payment pending",
+      "awaiting_proof": "Awaiting proof",
+      "proof_received": "To verify",
+      "paid": "Paid",
+      "refunded": "Refunded"
+    },
+    "paymentFilter": {
+      "all": "All payments",
+      "to_verify": "To verify",
+      "pending": "Pending",
+      "paid": "Paid"
+    },
+    "fulfillment": {
+      "pickup": "Pickup",
+      "delivery": "Delivery",
+      "dine_in": "Dine-in"
+    },
+    "source": {
+      "ai": "AI assistant",
+      "chat_buttons": "Chat buttons",
+      "manual": "Entered by the team",
+      "webchat": "Web chat"
+    },
+    "channel": {
+      "whatsapp": "WhatsApp",
+      "messenger": "Messenger",
+      "instagram": "Instagram",
+      "tiktok": "TikTok",
+      "webchat": "Web chat"
+    },
+    "view": {
+      "label": "View",
+      "list": "List",
+      "board": "Board"
+    },
+    "sound": {
+      "on": "Sound on",
+      "off": "Sound off",
+      "hint": "Play a sound when a new order arrives"
+    },
+    "filters": {
+      "status": "Order status",
+      "payment": "Payment",
+      "search": "Search by number, customer or phone",
+      "from": "From",
+      "to": "To",
+      "clear": "Clear filters"
+    },
+    "columns": {
+      "number": "No.",
+      "customer": "Customer",
+      "date": "Date",
+      "fulfillment": "Fulfillment",
+      "total": "Total",
+      "status": "Status",
+      "payment": "Payment",
+      "actions": "Actions"
+    },
+    "board": {
+      "empty": "No orders"
+    },
+    "empty": {
+      "title": "No orders yet",
+      "filteredTitle": "No orders match the filters",
+      "description": "When a customer orders through chat it shows up here instantly."
+    },
+    "actions": {
+      "confirm": "Confirm",
+      "preparing": "Preparing",
+      "ready": "Ready",
+      "shipped": "On the way",
+      "delivered": "Delivered",
+      "cancel": "Cancel order",
+      "confirmCancel": "Yes, cancel order",
+      "back": "Back",
+      "markPaid": "Mark as paid"
+    },
+    "detail": {
+      "title": "Order details",
+      "heading": "Order #{number}",
+      "actions": "Order actions",
+      "customer": "Customer",
+      "noName": "Unnamed customer",
+      "openConversation": "Open conversation",
+      "fulfillment": "Fulfillment",
+      "reference": "Reference",
+      "notes": "Notes",
+      "items": "Items",
+      "subtotal": "Subtotal",
+      "deliveryFee": "Delivery",
+      "discount": "Discount",
+      "total": "Total",
+      "payment": "Payment",
+      "noMethod": "No method chosen yet",
+      "proof": "Payment proof",
+      "openProof": "View payment proof full size",
+      "openNewTab": "Open in a new tab",
+      "proofUnavailable": "The payment proof could not be loaded.",
+      "timeline": "History",
+      "notify": "Notify the customer",
+      "noConversation": "This order has no conversation, so the customer can't be notified.",
+      "cancelReason": "Reason (optional, sent to the customer)",
+      "cancelReasonPlaceholder": "E.g. we ran out of stock"
+    },
+    "timeline": {
+      "created": "Order created · {source}",
+      "status": "Status: {status}",
+      "payment": "Payment: {status}",
+      "notified": "Customer notified"
+    },
+    "toast": {
+      "new": "New order #{number}",
+      "view": "View",
+      "moved": "Order updated: {status}",
+      "cancelled": "Order cancelled",
+      "paid": "Payment recorded"
+    },
+    "errors": {
+      "generic": "The order could not be updated. Please try again.",
+      "outOfStock": "Not enough stock of \"{name}\". Adjust inventory or cancel the order.",
+      "not_found": "The order doesn't exist or was deleted.",
+      "closed": "This order is already closed (delivered or cancelled).",
+      "not_pending": "The order is no longer pending.",
+      "not_cancellable": "This order can no longer be cancelled.",
+      "invalid_status": "That status change isn't valid.",
+      "Forbidden": "You don't have permission for this action.",
+      "Unauthorized": "Your session expired. Please sign in again."
+    },
+    "new": {
+      "button": "New order",
+      "title": "New order",
+      "description": "Enter an order taken by phone or in person. Prices come from the catalog.",
+      "customer": "Customer",
+      "searchCustomer": "Search contacts by name or phone",
+      "noCustomers": "No contacts found.",
+      "changeCustomer": "Change customer",
+      "products": "Items",
+      "searchProduct": "Search products",
+      "variant": "Variant",
+      "quantity": "Quantity",
+      "less": "Remove one",
+      "more": "Add one",
+      "remove": "Remove item",
+      "noPrice": "Price on request",
+      "address": "Delivery address",
+      "submit": "Create order",
+      "created": "Order #{number} created",
+      "errors": {
+        "generic": "The order could not be created.",
+        "contact_not_found": "Choose a valid customer.",
+        "empty": "Add at least one item.",
+        "fulfillment_not_allowed": "That fulfillment option isn't enabled.",
+        "address_required": "Enter the delivery address.",
+        "unavailable": "An item is no longer available{name}",
+        "price_on_request": "\"{name}\" has no price, so it can't be ordered this way.",
+        "invalid_item": "Check the order items.",
+        "invalid_body": "Invalid data.",
+        "Forbidden": "You don't have permission to create orders."
+      }
+    },
+    "settings": {
+      "tab": "Orders & payments",
+      "title": "Orders",
+      "description": "How customers receive the orders they place through chat.",
+      "fulfillment": "Enabled fulfillment options",
+      "fulfillmentRequired": "Enable at least one fulfillment option.",
+      "deliveryFee": "Delivery fee ({currency})",
+      "minOrder": "Minimum order ({currency})",
+      "minOrderHint": "0 = no minimum.",
+      "invalidAmount": "Amounts must be positive numbers.",
+      "notify": "Message the customer when the status changes",
+      "notifyHint": "A message is sent in the conversation when the order is confirmed, prepared, dispatched or delivered. You can turn it off per order."
+    },
+    "methods": {
+      "title": "Payment methods",
+      "description": "Shown to the customer after they place an order. Payments are verified by hand.",
+      "empty": "No payment methods yet. Add a wallet QR, a bank account or cash.",
+      "add": "Add payment method",
+      "newTitle": "New payment method",
+      "editTitle": "Edit payment method",
+      "editorHint": "Customers will see everything you write here.",
+      "name": "Name",
+      "namePlaceholder": "Yape, Plin, Bank…",
+      "nameRequired": "Enter a name.",
+      "type": "Type",
+      "types": {
+        "qr": "QR code (wallet)",
+        "bank_transfer": "Bank transfer",
+        "cash": "Cash",
+        "card_on_delivery": "Card on delivery",
+        "other": "Other"
+      },
+      "instructions": "Instructions",
+      "instructionsPlaceholder": "Holder: Jane Doe\nNumber: 987 654 321\nAccount: 002-…",
+      "qr": "QR image",
+      "qrAlt": "Payment method QR code",
+      "uploadImage": "Upload image",
+      "replaceImage": "Replace",
+      "removeImage": "Remove image",
+      "badImage": "Use a JPG, PNG, WebP or GIF image.",
+      "imageTooBig": "The image is larger than 8 MB.",
+      "uploadFailed": "The image could not be uploaded: {reason}",
+      "requiresProof": "Ask for proof",
+      "requiresProofHint": "The customer is asked for a screenshot of the payment so you can verify it.",
+      "proofShort": "asks for proof",
+      "active": "Active",
+      "inactive": "Inactive",
+      "activeFor": "Enable {name}",
+      "moveUp": "Move {name} up",
+      "moveDown": "Move {name} down",
+      "edit": "Edit {name}",
+      "delete": "Delete {name}",
+      "deleteTitle": "Delete payment method?",
+      "deleteDescription": "\"{name}\" will no longer be shown to customers. Past orders keep its name.",
+      "deleteConfirm": "Delete",
+      "deleted": "Payment method deleted"
+    }
+  }
+}

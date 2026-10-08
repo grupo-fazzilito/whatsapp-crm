@@ -20,6 +20,8 @@ function asText(content: OutboundContent): string {
       return [content.text, '', ...content.sections.flatMap((s) => s.options).map((o, i) => `${i + 1}. ${o.title}`)].join('\n')
     case 'media':
       return content.caption ? `${content.caption}\n${content.url}` : content.url
+    case 'carousel':
+      return [content.text, '', ...content.cards.map((c, i) => `${i + 1}. ${c.title}${c.subtitle ? ` — ${c.subtitle}` : ''}`)].join('\n')
     case 'template':
       throw new ChannelSendError('Templates are only available on WhatsApp', 'unsupported')
   }

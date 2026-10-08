@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-import { originAllowed, signVisitorToken, verifyVisitorToken } from './server'
+import { originAllowed, publicMessage, signVisitorToken, verifyVisitorToken } from './server'
 import type { ChannelRow } from '@/lib/channels'
 
 const channel = (allowed: string[]) => ({ settings: { allowed_origins: allowed } }) as unknown as ChannelRow
@@ -33,5 +33,35 @@ describe('originAllowed', () => {
     expect(originAllowed(ch, 'https://eu.brand.io')).toBe(true)
     expect(originAllowed(ch, 'https://brand.io.evil.com')).toBe(false)
     expect(originAllowed(ch, 'https://evilbrand.io')).toBe(false)
+  })
+})
+
+describe('publicMessage', () => {
+  it('keeps widget fields, cards trimmed, and drops internal ids', () => {
+    const m = publicMessage({
+      id: 'm1',
+      sender_type: 'bot',
+      content_type: 'interactive',
+      content_text: 'Mira',
+      media_url: null,
+      created_at: '2026-01-01T00:00:00Z',
+      metadata: {
+        order_id: 'o1',
+        cart_id: 'c1',
+        event: 'cart_summary',
+        error: 'x',
+        options: [{ id: 'cart:view', title: 'Ver' }],
+        cards: [
+          { id: 'p1', imageUrl: 'https://cdn.test/a.jpg', title: 'Pizza', subtitle: 'S/ 30', buttons: [{ id: 'cart:add:p1', title: 'Agregar', extra: 1 }] },
+          { id: 'p2', imageUrl: 'javascript:alert(1)', title: 'Bad', buttons: [] },
+          { imageUrl: 'https://x', buttons: [] },
+        ],
+      },
+    })
+    expect(Object.keys(m.metadata).sort()).toEqual(['cards', 'options'])
+    expect(m.metadata.cards).toEqual([
+      { imageUrl: 'https://cdn.test/a.jpg', title: 'Pizza', subtitle: 'S/ 30', buttons: [{ id: 'cart:add:p1', title: 'Agregar' }] },
+      { imageUrl: null, title: 'Bad', subtitle: undefined, buttons: [] },
+    ])
   })
 })
