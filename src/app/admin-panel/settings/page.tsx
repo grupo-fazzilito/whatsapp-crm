@@ -5,6 +5,7 @@ import { Settings, Shield, Bell, Users, Save, Loader2 } from "lucide-react";
 import { AdminShell } from "../admin-shell";
 import { AiProvidersCard } from "./ai-providers-card";
 import { GoogleCalendarCard } from "./google-calendar-card";
+import { MetaWhatsAppCard } from "./meta-whatsapp-card";
 import { AdminMercadoLibreCard } from "@/components/real-estate/portals/admin-mercadolibre-card";
 import { useI18n } from "@/i18n/client";
 
@@ -52,6 +53,8 @@ export default function AdminSettingsPage() {
         </div>
 
         <AiProvidersCard />
+
+        <MetaWhatsAppCard />
 
         <GoogleCalendarCard />
 

@@ -1,12 +1,14 @@
 import { NextResponse, after } from 'next/server'
 import crypto from 'node:crypto'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
+import { verifyMetaWebhookRequest } from '@/lib/whatsapp/webhook-signature'
+import { getMetaConfig } from '@/lib/platform/meta'
 import { decrypt } from '@/lib/whatsapp/encryption'
-import { parseWhatsAppWebhook, type WaWebhookBody } from '@/lib/channels/parsers/whatsapp'
+import { parseWhatsAppCoexistence, parseWhatsAppWebhook, type CoexBatch, type WaWebhookBody } from '@/lib/channels/parsers/whatsapp'
 import { parseMetaMessagingWebhook, type MetaMessagingBody } from '@/lib/channels/parsers/meta-messaging'
 import { findChannelByExternalId } from '@/lib/channels/store'
 import { ingestEvents } from '@/lib/messaging/ingest'
+import { applyCoexBatch } from '@/lib/messaging/echo'
 import type { ChannelType, InboundEvent } from '@/lib/channels'
 
 // One callback URL for the platform's Meta app: WhatsApp Business,
@@ -18,9 +20,9 @@ function safeEqual(a: string, b: string): boolean {
   return ab.length === bb.length && crypto.timingSafeEqual(ab, bb)
 }
 
-/** Platform token (META_VERIFY_TOKEN) or any channel's own verify token. */
+/** Platform token (admin panel → META_VERIFY_TOKEN) or any channel's own verify token. */
 async function verifyTokenMatches(token: string): Promise<boolean> {
-  const platform = process.env.META_VERIFY_TOKEN
+  const platform = (await getMetaConfig()).verifyToken
   if (platform && safeEqual(platform, token)) return true
 
   const { data } = await supabaseAdmin().from('channel_secrets').select('secrets')
@@ -80,13 +82,28 @@ async function dispatch(type: ChannelType, events: InboundEvent[]) {
   }
 }
 
+async function dispatchCoexistence(batches: CoexBatch[]) {
+  for (const batch of batches) {
+    const channel = await findChannelByExternalId('whatsapp', batch.phoneNumberId)
+    if (!channel) {
+      console.warn(`[webhook] no whatsapp channel for ${batch.phoneNumberId}; ignoring coexistence event`)
+      continue
+    }
+    await applyCoexBatch(channel, batch)
+  }
+}
+
 export async function POST(request: Request) {
-  // Verify the exact bytes Meta signed.
+  // Verify the exact bytes Meta signed: the platform app first, then the
+  // own Meta app of the channels the payload claims (manual setups).
   const rawBody = await request.text()
-  if (!verifyMetaWebhookSignature(rawBody, request.headers.get('x-hub-signature-256'))) {
+  const trust = await verifyMetaWebhookRequest(rawBody, request.headers.get('x-hub-signature-256'))
+  if (!trust.ok) {
     console.warn('[webhook] rejected request with invalid signature')
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
+  // Signed by a channel's own app: only that app's accounts are processed.
+  const allowed = trust.via === 'channel' ? new Set(trust.externalIds) : null
 
   let body: { object?: string }
   try {
@@ -96,9 +113,17 @@ export async function POST(request: Request) {
   }
 
   const parsed = parse(body)
-  if (parsed && parsed.events.length > 0) {
+  const events = parsed ? parsed.events.filter((e) => !allowed || allowed.has(e.channelExternalId)) : []
+  const coex =
+    body.object === 'whatsapp_business_account'
+      ? parseWhatsAppCoexistence(body as WaWebhookBody).filter((b) => !allowed || allowed.has(b.phoneNumberId))
+      : []
+  if (parsed && events.length > 0) {
     // Ack within Meta's timeout; process after the response is sent.
-    after(() => dispatch(parsed.type, parsed.events).catch((err) => console.error('[webhook] dispatch failed:', err)))
+    after(() => dispatch(parsed.type, events).catch((err) => console.error('[webhook] dispatch failed:', err)))
+  }
+  if (coex.length > 0) {
+    after(() => dispatchCoexistence(coex).catch((err) => console.error('[webhook] coexistence failed:', err)))
   }
   return NextResponse.json({ status: 'received' }, { status: 200 })
 }

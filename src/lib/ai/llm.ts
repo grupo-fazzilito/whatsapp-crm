@@ -2,6 +2,7 @@ import 'server-only'
 import { getAiConfig, getPlatformSetting, type AiConfig, type AiProvider } from '@/lib/platform/settings'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { costUsd, priceFor, type ModelPrice, type TokenUsage } from './pricing'
+import { OPENAI_IMAGE_TYPES, audioFileName, mediaKindOf, normalizeMime, resolveMime } from './assist/mime'
 
 // JSON-mode chat completion over several providers, tried in order until
 // one answers: Gemini (with a circuit breaker for hard failures),
@@ -47,6 +48,21 @@ const noUsage = (): TokenUsage => ({ input: 0, cachedInput: 0, output: 0 })
 
 export class LlmUnavailableError extends Error {}
 
+/**
+ * Provider base URLs. AI_PROVIDER_MOCK_URL (ignored in production) points
+ * Gemini and OpenAI at a local mock (`<mock>/gemini/...`, `<mock>/openai/...`)
+ * so E2E tests never send fake keys to the real APIs.
+ */
+export function providerBases(env: Record<string, string | undefined> = process.env): { gemini: string; openai: string; openrouter: string } {
+  const mock = env.NODE_ENV !== 'production' ? env.AI_PROVIDER_MOCK_URL?.replace(/\/$/, '') : undefined
+  if (mock) return { gemini: `${mock}/gemini`, openai: `${mock}/openai/v1`, openrouter: `${mock}/openrouter/api/v1` }
+  return {
+    gemini: 'https://generativelanguage.googleapis.com',
+    openai: 'https://api.openai.com/v1',
+    openrouter: 'https://openrouter.ai/api/v1',
+  }
+}
+
 const DEFAULT_GEMINI = 'gemini-2.5-flash'
 const BACKUP_GEMINI = 'gemini-2.0-flash'
 const CIRCUIT_MS = 60_000
@@ -56,9 +72,9 @@ async function gemini(model: string, req: LlmRequest, key: string): Promise<{ ok
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), req.timeoutMs ?? 12_000)
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+    const res = await fetch(`${providerBases().gemini}/v1beta/models/${model}:generateContent`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       signal: ctrl.signal,
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: req.system }] },
@@ -92,7 +108,8 @@ async function gemini(model: string, req: LlmRequest, key: string): Promise<{ ok
 
 async function openai(req: LlmRequest, key: string, defaultModel?: string): Promise<ProviderResult> {
   const viaOpenRouter = key.startsWith('sk-or-')
-  const url = viaOpenRouter ? 'https://openrouter.ai/api/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions'
+  const bases = providerBases()
+  const url = `${viaOpenRouter ? bases.openrouter : bases.openai}/chat/completions`
   const isOpenAiModel = req.model && /^(gpt|o\d)/.test(req.model)
   const model = isOpenAiModel ? req.model! : defaultModel || 'gpt-4o-mini'
   const ctrl = new AbortController()
@@ -238,6 +255,7 @@ async function recordUsage(meter: UsageMeter, provider: AiProvider, result: Prov
       input_tokens: result.usage.input,
       cached_input_tokens: result.usage.cachedInput,
       output_tokens: result.usage.output,
+      ...(result.usage.audioSeconds ? { audio_seconds: Math.round(result.usage.audioSeconds * 100) / 100 } : {}),
       cost_usd: cost,
       latency_ms: latencyMs,
     })
@@ -307,4 +325,391 @@ export function parseJsonLoose<T>(text: string): T | null {
     }
     return null
   }
+}
+
+// ------------------------------------------------------------
+// Multimodal: audio transcription and image / PDF reading
+// ------------------------------------------------------------
+// Gemini (generateContent with inline_data, or the Files API above the
+// inline limit) and OpenAI (/audio/transcriptions multipart; vision and
+// PDFs through chat completions content parts). DeepSeek is text-only,
+// so a DeepSeek-only platform gets MediaAiUnavailableError.
+
+export type MediaAiReason = 'no_provider' | 'unsupported_type' | 'too_large' | 'failed'
+
+export class MediaAiUnavailableError extends Error {
+  constructor(
+    public reason: MediaAiReason,
+    message?: string,
+  ) {
+    super(message ?? reason)
+    this.name = 'MediaAiUnavailableError'
+  }
+}
+
+export type MediaModality = 'audio' | 'vision'
+
+export interface MediaResult {
+  text: string
+  provider: AiProvider
+  model: string
+}
+
+/** Max media we hand to a model (also the download cap). */
+export const MAX_MEDIA_BYTES = 20 * 1024 * 1024
+/** Gemini's inline request limit is 20 MB including base64 overhead (×4/3) and the prompt. */
+export const GEMINI_INLINE_MAX_BYTES = 14 * 1024 * 1024
+/** OpenAI /audio/transcriptions accepts files up to 25 MB. */
+const OPENAI_AUDIO_MAX_BYTES = 25 * 1024 * 1024
+const DEFAULT_OPENAI_TRANSCRIBE = 'gpt-4o-mini-transcribe'
+
+const isOpenRouterKey = (key: string | undefined) => !!key && key.startsWith('sk-or-')
+
+/** Providers able to handle a modality, in the configured order. */
+export function mediaProviders(cfg: AiConfig, modality: MediaModality): AiProvider[] {
+  return cfg.order.filter((p) => {
+    const key = cfg.keys[p]
+    if (!key) return false
+    if (p === 'gemini') return true
+    // OpenRouter exposes chat completions (vision) but not /audio/transcriptions.
+    if (p === 'openai') return modality === 'vision' || !isOpenRouterKey(key)
+    return false // deepseek: text only
+  })
+}
+
+export async function mediaCapabilities(cfg?: AiConfig): Promise<{ text: boolean; audio: boolean; vision: boolean }> {
+  const config = cfg ?? (await getAiConfig())
+  return {
+    text: providerOrder(config).length > 0,
+    audio: mediaProviders(config, 'audio').length > 0,
+    vision: mediaProviders(config, 'vision').length > 0,
+  }
+}
+
+function toBase64(bytes: Uint8Array): string {
+  return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString('base64')
+}
+
+function withTimeout(ms: number): { signal: AbortSignal; done: () => void } {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), ms)
+  return { signal: ctrl.signal, done: () => clearTimeout(timer) }
+}
+
+/** Gemini wants a few canonical audio types. */
+function geminiMime(mime: string): string {
+  const m = normalizeMime(mime)
+  if (m === 'video/ogg' || m === 'audio/opus') return 'audio/ogg'
+  if (m === 'audio/mp4') return 'audio/m4a'
+  return m
+}
+
+interface GeminiFile {
+  name: string
+  uri: string
+  mimeType: string
+}
+
+/** Resumable upload to the Gemini Files API (files are deleted after use, 48 h at most). */
+async function geminiUpload(bytes: Uint8Array, mime: string, key: string, signal: AbortSignal): Promise<GeminiFile> {
+  const base = providerBases().gemini
+  const start = await fetch(`${base}/upload/v1beta/files`, {
+    method: 'POST',
+    signal,
+    headers: {
+      'x-goog-api-key': key,
+      'X-Goog-Upload-Protocol': 'resumable',
+      'X-Goog-Upload-Command': 'start',
+      'X-Goog-Upload-Header-Content-Length': String(bytes.byteLength),
+      'X-Goog-Upload-Header-Content-Type': mime,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ file: { display_name: `chat-media-${Date.now()}` } }),
+  })
+  const uploadUrl = start.headers.get('x-goog-upload-url')
+  if (!start.ok || !uploadUrl) throw new Error(`Gemini upload start ${start.status}`)
+  const up = await fetch(uploadUrl, {
+    method: 'POST',
+    signal,
+    headers: { 'Content-Length': String(bytes.byteLength), 'X-Goog-Upload-Offset': '0', 'X-Goog-Upload-Command': 'upload, finalize' },
+    body: Uint8Array.from(bytes),
+  })
+  if (!up.ok) throw new Error(`Gemini upload ${up.status}`)
+  const info = (await up.json()) as { file?: { name?: string; uri?: string; mimeType?: string; state?: string } }
+  let file = info.file
+  if (!file?.name || !file.uri) throw new Error('Gemini upload returned no file')
+  // Audio / PDFs may need a moment of processing before they can be used.
+  for (let i = 0; i < 10 && file?.state === 'PROCESSING'; i++) {
+    await new Promise((r) => setTimeout(r, 1000))
+    const st: Response = await fetch(`${base}/v1beta/${file.name}`, { signal, headers: { 'x-goog-api-key': key } })
+    if (!st.ok) break
+    file = { ...file, ...((await st.json()) as typeof file) }
+  }
+  if (file?.state === 'FAILED') throw new Error('Gemini file processing failed')
+  return { name: file!.name!, uri: file!.uri!, mimeType: file!.mimeType || mime }
+}
+
+async function geminiMedia(
+  key: string,
+  model: string,
+  input: { bytes: Uint8Array; mimeType: string; prompt: string; maxOutputTokens: number; timeoutMs: number },
+): Promise<{ ok: boolean; status: number; text: string; usage: TokenUsage; body: string }> {
+  const { signal, done } = withTimeout(input.timeoutMs)
+  const mime = geminiMime(input.mimeType)
+  let uploaded: GeminiFile | null = null
+  try {
+    const mediaPart =
+      input.bytes.byteLength <= GEMINI_INLINE_MAX_BYTES
+        ? { inline_data: { mime_type: mime, data: toBase64(input.bytes) } }
+        : await geminiUpload(input.bytes, mime, key, signal).then((f) => {
+            uploaded = f
+            return { file_data: { mime_type: f.mimeType, file_uri: f.uri } }
+          })
+    const res = await fetch(`${providerBases().gemini}/v1beta/models/${model}:generateContent`, {
+      method: 'POST',
+      signal,
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: input.prompt }, mediaPart] }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: input.maxOutputTokens,
+          // 2.5 Flash thinks by default; transcription / description doesn't need it.
+          ...(/2\.5-flash/.test(model) ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+        },
+      }),
+    })
+    const body = await res.text()
+    if (!res.ok) return { ok: false, status: res.status, text: '', usage: noUsage(), body }
+    const data = JSON.parse(body)
+    const parts = (data.candidates?.[0]?.content?.parts ?? []) as { text?: string; thought?: boolean }[]
+    const text = parts
+      .filter((p) => !p.thought)
+      .map((p) => p.text ?? '')
+      .join('')
+      .trim()
+    const u = data.usageMetadata ?? {}
+    const details = (u.promptTokensDetails ?? []) as { modality?: string; tokenCount?: number }[]
+    return {
+      ok: true,
+      status: 200,
+      text,
+      body,
+      usage: {
+        input: u.promptTokenCount ?? 0,
+        cachedInput: u.cachedContentTokenCount ?? 0,
+        output: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0),
+        audioInput: details.filter((d) => d.modality === 'AUDIO').reduce((n, d) => n + (d.tokenCount ?? 0), 0),
+      },
+    }
+  } finally {
+    done()
+    const f = uploaded as GeminiFile | null
+    if (f) {
+      fetch(`${providerBases().gemini}/v1beta/${f.name}`, { method: 'DELETE', headers: { 'x-goog-api-key': key } }).catch(() => {})
+    }
+  }
+}
+
+/** Gemini with the configured model, falling back to the backup model when overloaded. */
+async function geminiMediaWithBackup(
+  cfg: AiConfig,
+  input: Parameters<typeof geminiMedia>[2],
+): Promise<ProviderResult> {
+  let model = cfg.models.gemini || DEFAULT_GEMINI
+  let r = await geminiMedia(cfg.keys.gemini!, model, input)
+  if (!r.ok && (r.status === 503 || r.status === 429) && model !== BACKUP_GEMINI) {
+    model = BACKUP_GEMINI
+    r = await geminiMedia(cfg.keys.gemini!, model, input)
+  }
+  if (!r.ok) throw new Error(`Gemini ${r.status}: ${r.body.slice(0, 200)}`)
+  return { text: r.text, model, usage: r.usage }
+}
+
+async function openaiTranscribe(
+  key: string,
+  input: { bytes: Uint8Array; mimeType: string; language?: string | null; prompt?: string; timeoutMs: number },
+): Promise<ProviderResult> {
+  if (input.bytes.byteLength > OPENAI_AUDIO_MAX_BYTES) throw new MediaAiUnavailableError('too_large')
+  const model = process.env.OPENAI_TRANSCRIBE_MODEL || DEFAULT_OPENAI_TRANSCRIBE
+  const form = new FormData()
+  form.append('file', new Blob([Uint8Array.from(input.bytes)], { type: normalizeMime(input.mimeType) }), audioFileName(input.mimeType))
+  form.append('model', model)
+  form.append('response_format', 'json')
+  // gpt-transcribe takes `languages` instead; the others an ISO-639-1 `language`.
+  if (input.language && model !== 'gpt-transcribe') form.append('language', input.language)
+  if (input.prompt && model !== 'gpt-4o-transcribe-diarize') form.append('prompt', input.prompt)
+  const { signal, done } = withTimeout(input.timeoutMs)
+  try {
+    const res = await fetch(`${providerBases().openai}/audio/transcriptions`, {
+      method: 'POST',
+      signal,
+      headers: { Authorization: `Bearer ${key}` },
+      body: form,
+    })
+    if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 200)}`)
+    const data = (await res.json()) as {
+      text?: string
+      usage?: { type?: string; input_tokens?: number; output_tokens?: number; seconds?: number; input_token_details?: { audio_tokens?: number } }
+    }
+    const u = data.usage ?? {}
+    const usage: TokenUsage =
+      u.type === 'duration'
+        ? { input: 0, cachedInput: 0, output: 0, audioSeconds: u.seconds ?? 0 }
+        : {
+            input: u.input_tokens ?? 0,
+            cachedInput: 0,
+            output: u.output_tokens ?? 0,
+            audioInput: u.input_token_details?.audio_tokens ?? u.input_tokens ?? 0,
+          }
+    return { text: (data.text ?? '').trim(), model, usage }
+  } finally {
+    done()
+  }
+}
+
+async function openaiVision(
+  key: string,
+  defaultModel: string | undefined,
+  input: { bytes: Uint8Array; mimeType: string; prompt: string; maxOutputTokens: number; timeoutMs: number },
+): Promise<ProviderResult> {
+  const viaOpenRouter = isOpenRouterKey(key)
+  const model = defaultModel && /^(gpt|o\d)/.test(defaultModel) ? defaultModel : 'gpt-4o-mini'
+  const mime = normalizeMime(input.mimeType)
+  const dataUrl = `data:${mime};base64,${toBase64(input.bytes)}`
+  const mediaPart =
+    mime === 'application/pdf'
+      ? { type: 'file', file: { filename: 'document.pdf', file_data: dataUrl } }
+      : { type: 'image_url', image_url: { url: dataUrl } }
+  const bases = providerBases()
+  const { signal, done } = withTimeout(input.timeoutMs)
+  try {
+    const res = await fetch(`${viaOpenRouter ? bases.openrouter : bases.openai}/chat/completions`, {
+      method: 'POST',
+      signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${key}`,
+        ...(viaOpenRouter ? { 'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001', 'X-Title': 'ChatNexGen' } : {}),
+      },
+      body: JSON.stringify({
+        model: viaOpenRouter ? `openai/${model}` : model,
+        temperature: 0.1,
+        max_tokens: input.maxOutputTokens,
+        messages: [{ role: 'user', content: [{ type: 'text', text: input.prompt }, mediaPart] }],
+      }),
+    })
+    if (!res.ok) throw new Error(`${viaOpenRouter ? 'OpenRouter' : 'OpenAI'} ${res.status}: ${(await res.text()).slice(0, 200)}`)
+    const data = await res.json()
+    const u = data.usage ?? {}
+    return {
+      text: String(data.choices?.[0]?.message?.content ?? '').trim(),
+      model,
+      usage: { input: u.prompt_tokens ?? 0, cachedInput: u.prompt_tokens_details?.cached_tokens ?? 0, output: u.completion_tokens ?? 0 },
+    }
+  } finally {
+    done()
+  }
+}
+
+const LANGUAGE_NAMES: Record<string, string> = { es: 'Spanish', en: 'English', pt: 'Portuguese' }
+
+export interface TranscribeInput {
+  bytes: Uint8Array
+  mimeType: string
+  /** ISO-639-1 hint ("es"); the transcript keeps the spoken language. */
+  language?: string | null
+  meter: UsageMeter
+  timeoutMs?: number
+}
+
+/** Speech → text with the first configured provider that handles audio. */
+export async function transcribeAudio(input: TranscribeInput, cfg?: AiConfig): Promise<MediaResult> {
+  const config = cfg ?? (await getAiConfig())
+  const mime = normalizeMime(input.mimeType)
+  if (mediaKindOf(mime) !== 'audio') throw new MediaAiUnavailableError('unsupported_type', `Not audio: ${mime}`)
+  if (input.bytes.byteLength > MAX_MEDIA_BYTES) throw new MediaAiUnavailableError('too_large')
+  const providers = mediaProviders(config, 'audio')
+  if (!providers.length) throw new MediaAiUnavailableError('no_provider', 'No AI provider for audio (configure Gemini or OpenAI)')
+  const timeoutMs = input.timeoutMs ?? 20_000
+  const lang = input.language ? LANGUAGE_NAMES[input.language] : null
+  const prompt = [
+    'Transcribe this voice message verbatim, in the language it is spoken.',
+    lang ? `It is most likely in ${lang}.` : '',
+    'Return only the transcript as plain text: no timestamps, speaker labels, quotes or comments.',
+    'If there is no intelligible speech, return an empty response.',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const errors: string[] = []
+  for (const provider of providers) {
+    const started = Date.now()
+    try {
+      const result =
+        provider === 'gemini'
+          ? await geminiMediaWithBackup(config, { bytes: input.bytes, mimeType: mime, prompt, maxOutputTokens: 2048, timeoutMs })
+          : await openaiTranscribe(config.keys.openai!, { bytes: input.bytes, mimeType: mime, language: input.language, timeoutMs })
+      await recordUsage(input.meter, provider, result, Date.now() - started)
+      return { text: result.text, provider, model: result.model }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      errors.push(`${provider}: ${msg.slice(0, 200)}`)
+      console.warn(`[ai] ${provider} transcription failed:`, msg.slice(0, 200))
+    }
+  }
+  throw new MediaAiUnavailableError('failed', `Transcription failed (${errors.join(' | ')})`)
+}
+
+export interface DescribeInput {
+  bytes?: Uint8Array
+  /** Public https URL, fetched with SSRF protection when `bytes` is absent. */
+  url?: string
+  mimeType?: string
+  prompt: string
+  meter: UsageMeter
+  maxOutputTokens?: number
+  timeoutMs?: number
+}
+
+/** Image / PDF → text (description or extracted content) per `prompt`. */
+export async function describeMedia(input: DescribeInput, cfg?: AiConfig): Promise<MediaResult> {
+  const config = cfg ?? (await getAiConfig())
+  const providers = mediaProviders(config, 'vision')
+  if (!providers.length) throw new MediaAiUnavailableError('no_provider', 'No AI provider for images/PDFs (configure Gemini or OpenAI)')
+  let bytes = input.bytes
+  let declared = input.mimeType
+  if (!bytes) {
+    if (!input.url) throw new MediaAiUnavailableError('unsupported_type', 'bytes or url required')
+    const { safeFetch } = await import('@/lib/real-estate/portals/net')
+    const got = await safeFetch(input.url, { maxBytes: MAX_MEDIA_BYTES, timeoutMs: 15_000 }).catch((e) => {
+      throw new MediaAiUnavailableError(e?.code === 'too_large' ? 'too_large' : 'failed', `Download failed: ${e instanceof Error ? e.message : e}`)
+    })
+    bytes = got.bytes
+    declared = declared || got.contentType
+  }
+  if (bytes.byteLength > MAX_MEDIA_BYTES) throw new MediaAiUnavailableError('too_large')
+  const mime = resolveMime(declared, bytes)
+  const kind = mediaKindOf(mime)
+  if (kind !== 'image' && kind !== 'pdf') throw new MediaAiUnavailableError('unsupported_type', `Not an image or PDF: ${mime}`)
+  const timeoutMs = input.timeoutMs ?? 30_000
+  const maxOutputTokens = input.maxOutputTokens ?? 1024
+  const errors: string[] = []
+  for (const provider of providers) {
+    if (provider === 'openai' && kind === 'image' && !OPENAI_IMAGE_TYPES.has(mime)) continue
+    const started = Date.now()
+    try {
+      const result =
+        provider === 'gemini'
+          ? await geminiMediaWithBackup(config, { bytes, mimeType: mime, prompt: input.prompt, maxOutputTokens, timeoutMs })
+          : await openaiVision(config.keys.openai!, config.models.openai, { bytes, mimeType: mime, prompt: input.prompt, maxOutputTokens, timeoutMs })
+      await recordUsage(input.meter, provider, result, Date.now() - started)
+      if (!result.text) throw new Error('empty response')
+      return { text: result.text, provider, model: result.model }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      errors.push(`${provider}: ${msg.slice(0, 200)}`)
+      console.warn(`[ai] ${provider} vision failed:`, msg.slice(0, 200))
+    }
+  }
+  throw new MediaAiUnavailableError(errors.length ? 'failed' : 'unsupported_type', errors.length ? `Vision failed (${errors.join(' | ')})` : `No provider accepts ${mime}`)
 }

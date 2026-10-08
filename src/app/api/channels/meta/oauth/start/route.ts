@@ -1,7 +1,8 @@
 import crypto from 'node:crypto'
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { META_SCOPES, metaOAuthAvailable, metaRedirectUri, sign } from '../../../_lib/shared'
+import { getMetaConfig, metaAppReady } from '@/lib/platform/meta'
+import { META_SCOPES, metaRedirectUri, sign } from '../../../_lib/shared'
 
 /**
  * GET /api/channels/meta/oauth/start — admin. Sends the browser to
@@ -15,7 +16,8 @@ export async function GET(request: NextRequest) {
   if (!guard.ok) {
     return NextResponse.redirect(new URL('/channels?connect=meta&error=forbidden', request.url))
   }
-  if (!metaOAuthAvailable()) {
+  const cfg = await getMetaConfig()
+  if (!metaAppReady(cfg)) {
     return NextResponse.redirect(new URL('/channels?connect=meta&error=not_configured', request.url))
   }
 
@@ -26,14 +28,14 @@ export async function GET(request: NextRequest) {
     t: Date.now(),
   })
 
-  const url = new URL('https://www.facebook.com/v21.0/dialog/oauth')
-  url.searchParams.set('client_id', process.env.META_APP_ID!)
+  const url = new URL(`https://www.facebook.com/${cfg.graphVersion}/dialog/oauth`)
+  url.searchParams.set('client_id', cfg.appId!)
   url.searchParams.set('redirect_uri', metaRedirectUri(request))
   url.searchParams.set('state', state)
   url.searchParams.set('response_type', 'code')
   // Facebook Login for Business can use a saved configuration instead of
   // a raw scope list (Meta app → Facebook Login for Business → Configurations).
-  if (process.env.META_LOGIN_CONFIG_ID) url.searchParams.set('config_id', process.env.META_LOGIN_CONFIG_ID)
+  if (cfg.loginConfigId) url.searchParams.set('config_id', cfg.loginConfigId)
   else url.searchParams.set('scope', META_SCOPES.join(','))
   return NextResponse.redirect(url)
 }

@@ -1,11 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
+import { getMetaConfig, metaAppReady } from '@/lib/platform/meta'
 import {
-  GRAPH,
   META_COOKIE_PATH,
   candidateCookieNames,
   candidateCookies,
-  metaOAuthAvailable,
   metaRedirectUri,
   verifySigned,
   type MetaCandidatePage,
@@ -62,7 +61,9 @@ export async function GET(request: NextRequest) {
 
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return back(request, { error: 'forbidden' })
-  if (!metaOAuthAvailable()) return back(request, { error: 'not_configured' })
+  const cfg = await getMetaConfig()
+  if (!metaAppReady(cfg)) return back(request, { error: 'not_configured' })
+  const GRAPH = cfg.graphBase
 
   const state = verifySigned<State>(q.get('state'))
   if (
@@ -77,8 +78,8 @@ export async function GET(request: NextRequest) {
   const code = q.get('code')
   if (!code) return back(request, { error: 'denied' })
 
-  const appId = process.env.META_APP_ID!
-  const secret = process.env.META_APP_SECRET!
+  const appId = cfg.appId!
+  const secret = cfg.appSecret!
   let pages: MetaCandidatePage[]
   try {
     const short = await graphJson<{ access_token: string }>(

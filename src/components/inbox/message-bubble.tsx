@@ -28,6 +28,7 @@ import { format } from "date-fns";
 import { useI18n } from "@/i18n/client";
 import { ReplyQuote } from "./reply-quote";
 import { MessageReactions } from "./message-reactions";
+import { MediaAi, hasMediaAi } from "./ai-assist/media-ai";
 
 interface MessageBubbleProps {
   message: Message;
@@ -563,6 +564,9 @@ export function MessageBubble({
           {agentName || t("inbox.bubble.aiAgent")}
         </span>
       )}
+      {isAgent && meta.source === "whatsapp_business_app" && (
+        <span className="mb-0.5 px-1 text-[10px] text-slate-400">{t("metawa.bubble.fromPhone")}</span>
+      )}
       <div
         className={cn(
           "relative rounded-2xl px-3 py-2",
@@ -595,6 +599,7 @@ export function MessageBubble({
           {isAgent && <StatusIcon status={message.status} />}
         </div>
       </div>
+      {hasMediaAi(message) && <MediaAi message={message} align={isAgent ? "end" : "start"} />}
       {failed && isAgent && (
         <div className="mt-0.5 flex max-w-full items-center gap-2 px-1 text-[10px] text-red-400">
           <span className="truncate" title={errorText ?? undefined}>

@@ -6,6 +6,8 @@ export type ChannelDTO = ChannelRow;
 
 export interface ChannelFeatures {
   metaOAuth: boolean;
+  /** WhatsApp Embedded Signup available (platform Meta app + configuration id). */
+  whatsappSignup?: boolean;
   tiktok: boolean;
   platformVerifyToken: boolean;
 }

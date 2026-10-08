@@ -112,6 +112,10 @@ export interface Conversation {
   last_customer_message_at?: string | null;
   /** Embedded by the inbox list query. */
   conversation_tags?: { id: string; tag_id: string }[];
+  /** AI summary as JSON text (migration 040; see src/lib/ai/assist/core.ts). */
+  ai_summary?: string | null;
+  ai_summary_at?: string | null;
+  ai_summary_by?: string | null;
 }
 
 export type SenderType = 'customer' | 'agent' | 'bot';
@@ -159,6 +163,11 @@ export interface Message {
   metadata?: Record<string, unknown> | null;
   /** Team-only note (never sent to the customer). Migration 032. */
   is_internal?: boolean;
+  /** Voice-note transcript (AI assist, migration 040). */
+  transcript?: string | null;
+  /** AI description / extracted text of an image or PDF (migration 040). */
+  ai_media_text?: string | null;
+  ai_processed_at?: string | null;
 }
 
 /** One way to reach a contact on a channel (contact_identities). */

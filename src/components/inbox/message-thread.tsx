@@ -32,6 +32,7 @@ import {
   ArrowRightLeft,
   MessagesSquare,
   Paperclip,
+  NotebookText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
@@ -46,6 +47,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { channelCapabilities, attachmentKind } from "@/lib/channels/capabilities";
 import { MessageBubble } from "./message-bubble";
+import { SummarySheet } from "./ai-assist/summary-sheet";
 import { MessageActions } from "./message-actions";
 import { MessageComposer } from "./message-composer";
 import { TemplatePicker } from "./template-picker";
@@ -280,6 +282,7 @@ export function MessageThread({
   const [events, setEvents] = useState<ConversationEvent[]>([]);
   const [view, setView] = useState<"chat" | "files">("chat");
   const [transferOpen, setTransferOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [showSimulator, setShowSimulator] = useState(false);
   const [simulatedText, setSimulatedText] = useState("");
   const [simulating, setSimulating] = useState(false);
@@ -1338,6 +1341,18 @@ export function MessageThread({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* AI summary of the conversation (AI assist) */}
+          <button
+            type="button"
+            onClick={() => setSummaryOpen(true)}
+            aria-label={t("aiassist.summary.button")}
+            title={t("aiassist.summary.button")}
+            className="inline-flex h-7 items-center justify-center gap-1 rounded-md px-2 text-xs text-violet-300 hover:bg-slate-800 hover:text-violet-200"
+          >
+            <NotebookText className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden 2xl:inline">{t("aiassist.summary.button")}</span>
+          </button>
+
           {/* Transfer to a member / team with a reason */}
           <button
             type="button"
@@ -1711,6 +1726,14 @@ export function MessageThread({
         quickReplies={quickReplies}
         quickReplyVars={quickReplyVars}
         onSendQuickAttachments={handleSendQuickAttachments}
+      />
+
+      <SummarySheet
+        open={summaryOpen}
+        onOpenChange={setSummaryOpen}
+        conversationId={conversation.id}
+        nameOf={(uid) => (uid ? nameOfUser(uid) : null)}
+        canManageSettings={can("admin")}
       />
 
       <TransferDialog

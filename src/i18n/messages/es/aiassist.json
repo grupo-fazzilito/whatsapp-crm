@@ -1,0 +1,72 @@
+{
+  "aiassist": {
+    "media": {
+      "transcribe": "Transcribir",
+      "transcribing": "Transcribiendo…",
+      "transcript": "Transcripción",
+      "showTranscript": "Ver transcripción",
+      "hideTranscript": "Ocultar transcripción",
+      "emptyTranscript": "No se detectó voz en el audio.",
+      "read": "Leer con IA",
+      "reading": "Leyendo…",
+      "readResult": "Leído con IA",
+      "showRead": "Ver lectura con IA",
+      "hideRead": "Ocultar lectura con IA",
+      "retry": "Volver a intentar",
+      "redo": "Volver a generar"
+    },
+    "errors": {
+      "noAudioProvider": "Configura Gemini u OpenAI en el panel para transcribir audios",
+      "noVisionProvider": "Configura Gemini u OpenAI en el panel para leer imágenes y PDF",
+      "noTextProvider": "No hay un proveedor de IA configurado en el panel",
+      "tooLarge": "El archivo es demasiado grande para la IA (máx. 20 MB)",
+      "unsupported": "La IA no puede leer este tipo de archivo",
+      "mediaUnavailable": "No se pudo descargar el archivo",
+      "empty": "La conversación aún no tiene mensajes",
+      "rateLimited": "Demasiadas solicitudes. Espera un momento.",
+      "failed": "La IA no respondió. Inténtalo de nuevo."
+    },
+    "summary": {
+      "button": "Resumir",
+      "title": "Resumen de la conversación",
+      "description": "Generado con IA a partir de los mensajes (las notas internas no se usan).",
+      "generate": "Generar resumen",
+      "regenerate": "Regenerar",
+      "generating": "Generando resumen…",
+      "none": "Todavía no hay un resumen de esta conversación.",
+      "keyPoints": "Puntos clave",
+      "intent": "Intención del cliente",
+      "pending": "Pendientes",
+      "noPending": "Sin pendientes",
+      "nextStep": "Siguiente paso sugerido",
+      "updated": "Actualizado {date}",
+      "updatedBy": "Actualizado {date} por {name}",
+      "copy": "Copiar resumen",
+      "copied": "Resumen copiado",
+      "close": "Cerrar"
+    },
+    "suggest": {
+      "button": "Sugerir respuesta",
+      "buttonWithDraft": "Mejorar mi borrador con IA",
+      "loading": "Generando sugerencia…",
+      "ready": "Sugerencia lista: revísala y edítala antes de enviar"
+    },
+    "settings": {
+      "title": "Asistente IA de la bandeja",
+      "open": "Ajustes del asistente IA",
+      "autoTranscribe": "Transcribir audios entrantes automáticamente",
+      "autoTranscribeHint": "Las notas de voz se convierten en texto para el equipo y para que los agentes IA puedan responderlas.",
+      "autoReadImages": "Leer imágenes para el agente IA",
+      "autoReadImagesHint": "Cuando un agente IA atiende la conversación, recibe una descripción breve de las imágenes del cliente.",
+      "providers": "Proveedores disponibles",
+      "audio": "Audio",
+      "vision": "Imágenes y PDF",
+      "text": "Texto",
+      "available": "disponible",
+      "unavailable": "no configurado",
+      "saved": "Ajustes guardados",
+      "saveFailed": "No se pudieron guardar los ajustes",
+      "adminOnly": "Solo los administradores pueden cambiar estos ajustes."
+    }
+  }
+}

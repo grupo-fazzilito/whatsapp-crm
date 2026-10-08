@@ -9,6 +9,7 @@ import { processPropertyMatchJobs } from '@/lib/real-estate/leads/alerts'
 import { processViewings } from '@/lib/real-estate/leads/visits'
 import { runGoogleCalendarCron } from '@/lib/integrations/google/sync'
 import { runScheduledPortalImports } from '@/lib/real-estate/portals/schedule'
+import { processWebhookDeliveries } from '@/lib/webhooks/deliver'
 
 /**
  * Drain due `automation_pending_executions` rows, then fire due
@@ -112,5 +113,13 @@ export async function GET(request: Request) {
     portalImports = { error: err instanceof Error ? err.message : String(err) }
   }
 
-  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, realEstate, portalImports })
+  // Outgoing webhooks (public API): deliveries + retries with backoff.
+  let webhooks: Awaited<ReturnType<typeof processWebhookDeliveries>> | { error: string }
+  try {
+    webhooks = await processWebhookDeliveries()
+  } catch (err) {
+    webhooks = { error: err instanceof Error ? err.message : String(err) }
+  }
+
+  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, realEstate, portalImports, webhooks })
 }
