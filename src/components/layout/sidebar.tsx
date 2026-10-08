@@ -37,6 +37,8 @@ import {
   ShoppingBag,
   ListTodo,
   BarChart3,
+  HousePlus,
+  CloudDownload,
 } from "lucide-react";
 import {
   Avatar,
@@ -91,7 +93,7 @@ interface SidebarProps {
 export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { profile, signOut } = useAuth();
-  const { modules, label, can } = useWorkspace();
+  const { modules, label, can, workspace } = useWorkspace();
   const t = useT();
   const pendingOrders = usePendingOrders();
 
@@ -105,6 +107,8 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     ...(modules.services ? [{ href: "/business/services", label: label("servicePlural"), icon: BriefcaseBusiness }] : []),
     ...(modules.products ? [{ href: "/catalog", label: label("productPlural"), icon: Package }] : []),
     ...(modules.orders ? [{ href: "/orders", label: t("orders.navTitle"), icon: ShoppingBag, badge: pendingOrders }] : []),
+    ...(workspace?.industry === "real_estate" ? [{ href: "/captures", label: t("realestate.captures.navTitle"), icon: HousePlus }] : []),
+    ...(workspace?.industry === "real_estate" && modules.products && can("admin") ? [{ href: "/real-estate/portals", label: t("portals.navTitle"), icon: CloudDownload }] : []),
     { href: "/business/faqs", label: t("nav.faqs"), icon: FileQuestion },
     { href: "/business/logs", label: t("nav.aiLogs"), icon: History },
   ];

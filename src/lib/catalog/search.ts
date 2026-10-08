@@ -9,6 +9,8 @@ export interface ProductRow {
   description: string | null
   price: number | null
   compare_at_price: number | null
+  /** ISO 4217; null = workspace currency (migration 039). */
+  currency?: string | null
   sku: string | null
   stock: number | null
   track_stock: boolean
@@ -26,6 +28,8 @@ export interface CatalogQuery {
   filters?: Record<string, unknown>
   minPrice?: number | null
   maxPrice?: number | null
+  /** Currency of min/maxPrice: bounds only apply to products priced in it. */
+  priceCurrency?: string | null
   inStockOnly?: boolean
   limit?: number
 }
@@ -41,6 +45,7 @@ export async function searchProducts(workspaceId: string, q: CatalogQuery): Prom
     max_price: q.maxPrice ?? null,
     in_stock_only: !!q.inStockOnly,
     max_results: q.limit ?? 8,
+    price_currency: q.priceCurrency?.toUpperCase() || null,
   })
   if (error) {
     console.error('[catalog] search failed:', error.message)

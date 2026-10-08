@@ -230,7 +230,7 @@ export const PRESETS: IndustryPreset[] = [
     productAttributes: [
       { key: 'operation', type: 'select', label: l('Operación', 'Listing type'), required: true, filterable: true, options: [
         { value: 'sale', label: l('Venta', 'Sale') },
-        { value: 'rent', label: l('Renta', 'Rent') },
+        { value: 'rent', label: l('Alquiler', 'Rent') },
       ] },
       { key: 'property_type', type: 'select', label: l('Tipo', 'Type'), filterable: true, options: [
         { value: 'house', label: l('Casa', 'House') },
@@ -239,11 +239,38 @@ export const PRESETS: IndustryPreset[] = [
         { value: 'office', label: l('Oficina', 'Office') },
         { value: 'commercial', label: l('Local comercial', 'Retail') },
       ] },
-      { key: 'bedrooms', type: 'number', label: l('Recámaras', 'Bedrooms'), filterable: true },
+      { key: 'bedrooms', type: 'number', label: l('Dormitorios', 'Bedrooms'), filterable: true },
       { key: 'bathrooms', type: 'number', label: l('Baños', 'Bathrooms'), filterable: true },
-      { key: 'area_m2', type: 'number', label: l('Superficie', 'Area'), unit: 'm²', filterable: true },
+      { key: 'area_m2', type: 'number', label: l('Área', 'Area'), unit: 'm²', filterable: true },
       { key: 'parking', type: 'number', label: l('Estacionamientos', 'Parking spots') },
-      { key: 'zone', type: 'text', label: l('Zona / Colonia', 'Neighborhood'), filterable: true },
+      { key: 'zone', type: 'text', label: l('Distrito / Zona', 'District / Neighborhood'), filterable: true },
+      // Sold / rented listings are hidden automatically (migration 036 trigger).
+      { key: 'listing_status', type: 'select', label: l('Estado', 'Status'), filterable: true, options: [
+        { value: 'available', label: l('Disponible', 'Available') },
+        { value: 'reserved', label: l('Separada', 'Reserved') },
+        { value: 'sold', label: l('Vendida', 'Sold') },
+        { value: 'rented', label: l('Alquilada', 'Rented') },
+      ] },
+      { key: 'address', type: 'text', label: l('Dirección', 'Address') },
+      { key: 'latitude', type: 'number', label: l('Latitud', 'Latitude') },
+      { key: 'longitude', type: 'number', label: l('Longitud', 'Longitude') },
+      { key: 'amenities', type: 'multiselect', label: l('Amenidades', 'Amenities'), filterable: true, options: [
+        { value: 'pool', label: l('Piscina', 'Pool') },
+        { value: 'gym', label: l('Gimnasio', 'Gym') },
+        { value: 'elevator', label: l('Ascensor', 'Elevator') },
+        { value: 'terrace', label: l('Terraza', 'Terrace') },
+        { value: 'garden', label: l('Jardín', 'Garden') },
+        { value: 'garage', label: l('Cochera', 'Garage') },
+        { value: 'security_24h', label: l('Seguridad 24h', '24h security') },
+        { value: 'common_areas', label: l('Áreas comunes', 'Common areas') },
+        { value: 'furnished', label: l('Amoblado', 'Furnished') },
+        { value: 'pet_friendly', label: l('Pet friendly', 'Pet friendly') },
+      ] },
+      { key: 'maintenance_fee', type: 'number', label: l('Mantenimiento mensual', 'Monthly maintenance fee') },
+      { key: 'year_built', type: 'number', label: l('Año de construcción', 'Year built') },
+      { key: 'floor', type: 'number', label: l('Piso', 'Floor') },
+      { key: 'video_url', type: 'text', label: l('Video (URL)', 'Video (URL)') },
+      { key: 'virtual_tour_url', type: 'text', label: l('Tour virtual (URL)', 'Virtual tour (URL)') },
     ],
     bookingFields: [
       nameField,
@@ -252,7 +279,13 @@ export const PRESETS: IndustryPreset[] = [
     fulfillment: [],
     ai: {
       persona: l('Eres el asistente de una inmobiliaria; ayudas a encontrar propiedades y agendar visitas.', 'You are the assistant of a real estate agency; you help find listings and schedule viewings.'),
-      rules: [l('No negocies precios; ofrece pasar con un asesor.', 'Do not negotiate prices; offer to connect with an agent.')],
+      rules: [
+        l('No negocies precios; ofrece pasar con un asesor.', 'Do not negotiate prices; offer to connect with an agent.'),
+        l(
+          'Si listing_status=reserved (Separada), avísalo y ofrece alternativas similares; nunca ofrezcas propiedades vendidas o alquiladas.',
+          'If listing_status=reserved, say so and offer similar alternatives; never offer sold or rented listings.',
+        ),
+      ],
     },
     seedFaqs: [],
   },

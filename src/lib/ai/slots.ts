@@ -35,6 +35,15 @@ export interface StaffRow {
   weekly_slots: Record<string, StaffSlot[]> | null
   date_exceptions: { date: string; is_available: boolean; slots?: StaffSlot[]; reason?: string }[] | null
   is_active?: boolean | null
+  /** External busy time (e.g. the staff member's Google Calendar). */
+  busy?: BusyInterval[] | null
+}
+
+/** Busy time in business-local wall clock; end '24:00' = end of day. */
+export interface BusyInterval {
+  date: string
+  start: string
+  end: string
 }
 
 export interface BookingRow {
@@ -58,6 +67,8 @@ export interface SlotQuery {
   stepMinutes?: number
   /** Concurrent bookings allowed per time when no staff is involved. */
   capacity?: number
+  /** Extra busy time per staff id (merged with StaffRow.busy). */
+  busy?: Record<string, BusyInterval[]>
 }
 
 interface Window {
@@ -143,10 +154,20 @@ export function freeSlotsForStaff(staff: StaffRow, date: string, q: SlotQuery): 
   const step = q.stepMinutes ?? 30
   const nowMin = toMinutes(q.nowTime) ?? 0
   const taken = q.bookings.filter((b) => b.staff_id === staff.id && b.booking_date === date && ACTIVE.has(b.status))
+  const blocked = busyFor(staff, date, q)
   return staffCandidateStarts(staff, date, windows, q.durationMinutes, step)
     .filter((s) => date > q.today || s > nowMin)
     .filter((s) => !taken.some((b) => overlaps(s, q.durationMinutes, toMinutes(b.booking_time) ?? -1, b.duration_minutes ?? 30)))
+    .filter((s) => !blocked.some((w) => s < w.end && w.start < s + q.durationMinutes))
     .map(fromMinutes)
+}
+
+/** Busy windows (minutes) of a staff member on `date`, from both sources. */
+export function busyFor(staff: StaffRow, date: string, q: Pick<SlotQuery, 'busy'>): Window[] {
+  return [...(q.busy?.[staff.id] ?? []), ...(staff.busy ?? [])]
+    .filter((b) => b.date === date)
+    .map((b) => ({ start: toMinutes(b.start) ?? 0, end: toMinutes(b.end) ?? 0 }))
+    .filter((w) => w.end > w.start)
 }
 
 /** Free start times when bookings don't need a staff member (capacity per time). */

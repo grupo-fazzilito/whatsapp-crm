@@ -5,6 +5,10 @@ import type { AutomationContext } from '@/lib/automations/engine'
 import { processDueFollowups } from '@/lib/automations/followups'
 import { remindAbandonedCarts } from '@/lib/orders/abandoned'
 import { remindDueTasks } from '@/lib/crm/reminders'
+import { processPropertyMatchJobs } from '@/lib/real-estate/leads/alerts'
+import { processViewings } from '@/lib/real-estate/leads/visits'
+import { runGoogleCalendarCron } from '@/lib/integrations/google/sync'
+import { runScheduledPortalImports } from '@/lib/real-estate/portals/schedule'
 
 /**
  * Drain due `automation_pending_executions` rows, then fire due
@@ -85,5 +89,28 @@ export async function GET(request: Request) {
     taskReminders = { error: err instanceof Error ? err.message : String(err) }
   }
 
-  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders })
+  let googleCalendar: Awaited<ReturnType<typeof runGoogleCalendarCron>> | { error: string }
+  try {
+    googleCalendar = await runGoogleCalendarCron()
+  } catch (err) {
+    googleCalendar = { error: err instanceof Error ? err.message : String(err) }
+  }
+
+  // Real estate: listing ↔ lead alerts, viewing stage sync + post-visit question.
+  let realEstate: { matches: Awaited<ReturnType<typeof processPropertyMatchJobs>>; viewings: Awaited<ReturnType<typeof processViewings>> } | { error: string }
+  try {
+    realEstate = { matches: await processPropertyMatchJobs(), viewings: await processViewings() }
+  } catch (err) {
+    realEstate = { error: err instanceof Error ? err.message : String(err) }
+  }
+
+  // Real estate: daily re-import from Mercado Libre / agency feeds.
+  let portalImports: Awaited<ReturnType<typeof runScheduledPortalImports>> | { error: string }
+  try {
+    portalImports = await runScheduledPortalImports()
+  } catch (err) {
+    portalImports = { error: err instanceof Error ? err.message : String(err) }
+  }
+
+  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, realEstate, portalImports })
 }

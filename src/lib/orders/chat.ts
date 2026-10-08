@@ -2,8 +2,9 @@ import 'server-only'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendMessage } from '@/lib/messaging/send'
 import { getPreset, resolveIndustry } from '@/lib/industries'
-import type { CarouselCard, InteractiveOption, LoadedChannel } from '@/lib/channels'
+import type { CarouselCard, InteractiveOption, LoadedChannel, OutboundContent } from '@/lib/channels'
 import type { Workspace } from '@/lib/workspace/types'
+import { propertyUrl } from '@/lib/real-estate/listing/url'
 import {
   addToCart,
   cartItems,
@@ -19,6 +20,7 @@ import {
   type OrderSettings,
 } from './service'
 import { fill, summaryText, texts, type Fulfillment, type Lang } from './texts'
+import { cartCurrencyConflict, formatProductPrice } from '@/lib/catalog/currency'
 
 // Button ids carried back by the channels when the customer taps:
 //   cart:add:<productId>[:<variantId>]  cart:more:<productId>
@@ -60,16 +62,35 @@ export function ordersEnabled(ws: Workspace): boolean {
   return resolveIndustry(ws.industry, ws.settings).modules.orders
 }
 
+/**
+ * What a product card's main button does: add to cart (stores,
+ * restaurants), book a visit/appointment for that product (real estate:
+ * bookings are about a listing), or nothing but details.
+ */
+export type ProductAction = 'cart' | 'book' | 'none'
+
+export function productAction(ws: Workspace): ProductAction {
+  const { preset, modules } = resolveIndustry(ws.industry, ws.settings)
+  if (modules.orders) return 'cart'
+  if (modules.bookings && preset.bookingFields.some((f) => f.type === 'product')) return 'book'
+  return 'none'
+}
+
+function primaryButton(action: ProductAction, productId: string, t: ReturnType<typeof texts>) {
+  if (action === 'cart') return { id: `cart:add:${productId}`, title: t.buttons.add }
+  if (action === 'book') return { id: `visit:book:${productId}`, title: t.buttons.bookVisit }
+  return null
+}
+
 // ------------------------------------------------------------
 // Product carousel
 // ------------------------------------------------------------
 export async function sendProductCarousel(ctx: CommerceCtx, productIds: string[], intro?: string): Promise<boolean> {
   const lang = langFor(ctx.workspace)
   const t = texts(lang)
-  const money = moneyFor(ctx.workspace)
   const { data } = await supabaseAdmin()
     .from('products')
-    .select('id, name, price, images, track_stock, stock, description')
+    .select('id, name, price, currency, images, track_stock, stock, description')
     .eq('workspace_id', ctx.workspace.id)
     .eq('is_active', true)
     .in('id', productIds.filter((id) => UUID.test(id)).slice(0, 10))
@@ -77,21 +98,18 @@ export async function sendProductCarousel(ctx: CommerceCtx, productIds: string[]
   const products = productIds.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => !!p && !!p.images?.[0])
   if (!products.length) return false
 
-  const canOrder = ordersEnabled(ctx.workspace)
+  const action = productAction(ctx.workspace)
   const cards: CarouselCard[] = products.map((p) => {
+    const main = primaryButton(action, p.id, t)
+    const moreTitle = action === 'book' ? t.buttons.details : t.buttons.more
     const soldOut = p.track_stock && (p.stock ?? 0) <= 0
-    const price = p.price === null ? '' : money(Number(p.price))
+    const price = p.price === null ? '' : formatProductPrice(Number(p.price), p, ctx.workspace)
     return {
       id: p.id,
       imageUrl: p.images[0],
       title: p.name,
       subtitle: [price, soldOut ? (lang === 'en' ? 'Out of stock' : 'Agotado') : ''].filter(Boolean).join(' · ') || undefined,
-      buttons: canOrder
-        ? [
-            { id: `cart:add:${p.id}`, title: t.buttons.add },
-            { id: `cart:more:${p.id}`, title: t.buttons.more },
-          ]
-        : [{ id: `cart:more:${p.id}`, title: t.buttons.more }],
+      buttons: main ? [main, { id: `cart:more:${p.id}`, title: moreTitle }] : [{ id: `cart:more:${p.id}`, title: moreTitle }],
     }
   })
   await say(ctx, { type: 'carousel', text: intro || (lang === 'en' ? 'Here you go:' : 'Mira estas opciones:'), cards }, { product_ids: products.map((p) => p.id) })
@@ -348,6 +366,13 @@ export async function handleCommerceAction(ctx: CommerceCtx, id: string): Promis
   if (kind === 'cart') {
     if (action === 'add' && a && UUID.test(a)) {
       if (!ordersEnabled(ctx.workspace)) return false
+      // Priced in another currency (e.g. a USD listing): quoted by a person, not via cart.
+      const { data: prod } = await supabaseAdmin().from('products').select('name, currency').eq('id', a).eq('workspace_id', ctx.workspace.id).maybeSingle()
+      const foreign = prod ? cartCurrencyConflict(prod, ctx.workspace.currency) : null
+      if (prod && foreign) {
+        await say(ctx, { type: 'text', text: fill(t.foreignCurrency, { name: prod.name, currency: foreign }) })
+        return true
+      }
       // Products with variants: ask which one first.
       const { data: variants } = await supabaseAdmin()
         .from('product_variants')
@@ -370,7 +395,9 @@ export async function handleCommerceAction(ctx: CommerceCtx, id: string): Promis
       const r = await addToCart(cart!, a, b && UUID.test(b) ? b : null, 1)
       if (!r.ok) {
         const msg =
-          r.reason === 'price_on_request'
+          r.reason === 'foreign_currency'
+            ? fill(t.foreignCurrency, { name: r.name, currency: r.currency })
+            : r.reason === 'price_on_request'
             ? fill(t.priceOnRequest, { name: r.name ?? '' })
             : r.reason === 'out_of_stock'
               ? fill(t.outOfStock, { name: r.name ?? '' })
@@ -394,19 +421,24 @@ export async function handleCommerceAction(ctx: CommerceCtx, id: string): Promis
     if (action === 'more' && a && UUID.test(a)) {
       const { data: p } = await supabaseAdmin()
         .from('products')
-        .select('name, description, price, images')
+        .select('name, description, price, currency, images')
         .eq('id', a)
         .eq('workspace_id', ctx.workspace.id)
         .maybeSingle()
       if (!p) return false
-      const money = moneyFor(ctx.workspace)
-      const text = [`*${p.name}*${p.price !== null ? ` — ${money(Number(p.price))}` : ''}`, p.description ?? ''].filter(Boolean).join('\n\n')
-      await say(
-        ctx,
-        ordersEnabled(ctx.workspace)
+      const action = productAction(ctx.workspace)
+      // Real estate: link to the public property page (gallery, map, PDF).
+      const link = action === 'book' ? propertyUrl(ctx.workspace, { id: a }) : ''
+      const text = [`*${p.name}*${p.price !== null ? ` — ${formatProductPrice(Number(p.price), p, ctx.workspace)}` : ''}`, p.description ?? '', link ? `${lang === 'en' ? 'Full details' : 'Ficha completa'}: ${link}` : '']
+        .filter(Boolean)
+        .join('\n\n')
+      const content: OutboundContent =
+        action === 'cart' && !cartCurrencyConflict(p, ctx.workspace.currency)
           ? { type: 'buttons', text: text.slice(0, 1000), options: [{ id: `cart:add:${a}`, title: t.buttons.add }, { id: 'cart:view', title: t.buttons.viewCart }] }
-          : { type: 'text', text },
-      )
+          : action === 'book'
+            ? { type: 'buttons', text: text.slice(0, 1000), options: [{ id: `visit:book:${a}`, title: t.buttons.bookVisit }] }
+            : { type: 'text', text }
+      await say(ctx, content, { product_id: a })
       return true
     }
     if (action === 'view') {

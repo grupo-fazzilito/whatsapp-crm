@@ -80,6 +80,7 @@
       "name": "Name",
       "description": "Description",
       "price": "Price",
+      "currency": "Currency (blank = business currency)",
       "compare_at_price": "Compare-at price",
       "sku": "SKU",
       "stock": "Stock",
@@ -99,6 +100,7 @@
       "boolean": "use yes / no",
       "required": "is required",
       "option": "value not allowed",
+      "currency": "unknown currency (use a code like PEN, USD, EUR)",
       "sku_duplicate": "SKU repeated in the file"
     },
     "template": {

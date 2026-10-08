@@ -19,6 +19,7 @@ const SCHEMA = {
           name: { type: 'STRING' },
           description: { type: 'STRING' },
           price: { type: 'NUMBER', nullable: true },
+          currency: { type: 'STRING' },
           category: { type: 'STRING' },
           sku: { type: 'STRING' },
           attributes: {
@@ -60,7 +61,8 @@ Analyze the raw text (a WhatsApp menu, price list, listing sheet, spreadsheet co
 For each item extract:
 - "name": item name.
 - "description": short description ("" if none).
-- "price": number in ${ws.currency}, digits only (no symbols or thousand separators). null when no price is stated.
+- "price": number, digits only (no symbols or thousand separators). null when no price is stated.
+- "currency": ISO 4217 code of that price ONLY when the text states a currency other than ${ws.currency} (e.g. "US$ 350,000" → "USD"); "" otherwise.
 - "category": the section/group it belongs to if the text has one ("" if none).
 - "sku": code/reference only if the text shows one ("" otherwise).
 - "attributes": list of {"key","value"} using ONLY these keys (omit those the text does not state):
@@ -74,6 +76,7 @@ interface Extracted {
   name?: unknown
   description?: unknown
   price?: unknown
+  currency?: unknown
   category?: unknown
   sku?: unknown
   attributes?: unknown
@@ -123,6 +126,7 @@ export async function POST(request: Request) {
           name: str(p.name),
           description: str(p.description) || undefined,
           price: typeof p.price === 'number' || (typeof p.price === 'string' && p.price.trim()) ? p.price : undefined,
+          currency: str(p.currency) || undefined,
           category: str(p.category) || undefined,
           sku: str(p.sku) || undefined,
           attributes,

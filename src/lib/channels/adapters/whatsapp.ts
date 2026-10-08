@@ -175,6 +175,18 @@ async function sendOnce(ctx: SendContext, to: string, content: OutboundContent):
       return sendMedia(phoneNumberId, accessToken, to, content, contextMessageId)
     case 'carousel':
       return sendCarousel(phoneNumberId, accessToken, to, content, contextMessageId)
+    case 'location':
+      return postMessage(phoneNumberId, accessToken, {
+        to,
+        type: 'location',
+        location: {
+          latitude: content.latitude,
+          longitude: content.longitude,
+          ...(content.name ? { name: content.name.slice(0, 1000) } : {}),
+          ...(content.address ? { address: content.address.slice(0, 1000) } : {}),
+        },
+        ...(contextMessageId ? { context: { message_id: contextMessageId } } : {}),
+      })
   }
 }
 

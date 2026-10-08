@@ -6,6 +6,7 @@ import { safeTimeZone } from '@/lib/ai/time'
 import type { Workspace } from '@/lib/workspace/types'
 import { buildBookingMessage, type BookingMessageKind } from './messages'
 import { selectDueReminders, utcDate, type ReminderCandidate } from './reminders'
+import { afterViewingReminder } from '@/lib/real-estate/leads/visits'
 
 type WorkspaceLite = Pick<Workspace, 'id' | 'name' | 'industry' | 'locale' | 'timezone' | 'settings'>
 
@@ -163,6 +164,8 @@ export async function processBookingReminders(now = new Date()): Promise<{ proce
     }
     const { error: upErr } = await db.from('bookings').update(due.updates).eq('id', b.id).eq('workspace_id', b.workspace_id)
     if (upErr) console.error(`[bookings] reminder flags update failed for ${b.id}:`, upErr.message)
+    // Real-estate viewings: the property's map pin with the last reminder.
+    if (b.workspace?.industry === 'real_estate') await afterViewingReminder(b.workspace_id, b.id, due.hoursUntil)
     processed++
   }
   return { processed, skipped }

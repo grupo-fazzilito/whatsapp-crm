@@ -1,6 +1,7 @@
 import 'server-only'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getAdapter, ChannelSendError, type LoadedChannel, type OutboundContent } from '@/lib/channels'
+import { locationText } from '@/lib/channels/types'
 import { defaultChannel, loadChannel } from '@/lib/channels/store'
 import { armFollowupsForOutbound } from '@/lib/automations/followups'
 
@@ -37,6 +38,8 @@ export function contentPreview(content: OutboundContent): string {
       return content.text
     case 'template':
       return `[Template: ${content.templateName}]`
+    case 'location':
+      return locationText(content)
   }
 }
 
@@ -52,6 +55,8 @@ function dbContentType(content: OutboundContent): string {
       return 'interactive'
     case 'template':
       return 'template'
+    case 'location':
+      return 'location'
   }
 }
 
@@ -152,6 +157,9 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
         ...(content.type === 'buttons' ? { options: content.options } : {}),
         ...(content.type === 'list' ? { sections: content.sections, button_label: content.buttonLabel } : {}),
         ...(content.type === 'carousel' ? { cards: content.cards } : {}),
+        ...(content.type === 'location'
+          ? { location: { latitude: content.latitude, longitude: content.longitude, name: content.name ?? null, address: content.address ?? null } }
+          : {}),
         ...(error ? { error } : {}),
       },
     })

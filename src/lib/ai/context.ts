@@ -3,7 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { addDays, safeTimeZone, zonedNow } from './time'
 import type { Workspace } from '@/lib/workspace/types'
 import type { AiAgentRow } from './types'
-import type { BookingRow, BusinessException, BusinessHoursRow, StaffRow } from './slots'
+import type { BookingRow, BusinessException, BusinessHoursRow, BusyInterval, StaffRow } from './slots'
+import { loadStaffBusy } from '@/lib/integrations/google/busy'
 
 export interface ServiceRow {
   id: string
@@ -37,6 +38,8 @@ export interface CatalogProduct {
   name: string
   description: string | null
   price: number | null
+  /** ISO 4217; null = workspace currency. */
+  currency?: string | null
   category_id: string | null
   stock: number | null
   track_stock: boolean
@@ -66,6 +69,8 @@ export interface BusinessContext {
   agents: AiAgentRow[]
   /** Active bookings from today on (horizon BOOKING_HORIZON_DAYS). */
   bookings: (BookingRow & { id: string })[]
+  /** Google Calendar busy time per staff id (also set on each staff row). */
+  busy?: Record<string, BusyInterval[]>
   catalog: CatalogSummary
 }
 
@@ -111,7 +116,7 @@ export async function loadBusinessContext(workspaceId: string, fresh = false): P
       ? (
           await db
             .from('products')
-            .select('id, name, description, price, category_id, stock, track_stock, images, attributes, is_featured')
+            .select('id, name, description, price, currency, category_id, stock, track_stock, images, attributes, is_featured')
             .eq('workspace_id', workspaceId)
             .eq('is_active', true)
             .order('is_featured', { ascending: false })
@@ -119,6 +124,16 @@ export async function loadBusinessContext(workspaceId: string, fresh = false): P
             .order('name')
         ).data
       : null
+
+  // External calendars: failures are logged inside and never block.
+  let busy: Record<string, BusyInterval[]> = {}
+  if ((staff.data ?? []).length > 0) {
+    try {
+      busy = await loadStaffBusy(workspaceId, timeZone, today, BOOKING_HORIZON_DAYS, { fresh })
+    } catch (err) {
+      console.warn('[ai-context] calendar busy time unavailable:', err instanceof Error ? err.message : err)
+    }
+  }
 
   const servicesByStaff = new Map<string, string[]>()
   for (const l of links.data ?? []) {
@@ -130,11 +145,12 @@ export async function loadBusinessContext(workspaceId: string, fresh = false): P
     timeZone,
     hours: (hours.data ?? []) as BusinessHoursRow[],
     exceptions: ((workspace as { date_exceptions?: BusinessException[] }).date_exceptions ?? []) as BusinessException[],
-    staff: (staff.data ?? []).map((s) => ({ ...s, service_ids: servicesByStaff.get(s.id) ?? [] })) as StaffFull[],
+    staff: (staff.data ?? []).map((s) => ({ ...s, service_ids: servicesByStaff.get(s.id) ?? [], busy: busy[s.id] ?? null })) as StaffFull[],
     services: (services.data ?? []) as ServiceRow[],
     faqs: (faqs.data ?? []) as FaqRow[],
     agents: (agents.data ?? []) as AiAgentRow[],
     bookings: (bookings.data ?? []) as BusinessContext['bookings'],
+    busy,
     catalog: {
       categories: (categories.data ?? []) as CatalogSummary['categories'],
       total,

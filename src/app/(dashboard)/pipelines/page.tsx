@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { useI18n } from "@/i18n/client";
 import { CloseDealDialog, type CloseStatus } from "@/components/crm/close-deal-dialog";
 import { cn } from "@/lib/utils";
+import { RealEstatePipelineButton } from "@/components/pipelines/real-estate-pipeline-button";
 
 // Spec-defined seed — color per the product spec, names in the UI language.
 const SPEC_DEFAULT_STAGES = [
@@ -411,7 +412,14 @@ export default function PipelinesPage() {
           </DropdownMenu>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <RealEstatePipelineButton
+            pipelines={pipelines}
+            onReady={async (id) => {
+              setPipelines(await loadPipelines());
+              setSelectedPipelineId(id);
+            }}
+          />
           <Button
             variant="outline"
             onClick={() => setNewPipelineOpen(true)}

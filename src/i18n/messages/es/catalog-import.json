@@ -80,6 +80,7 @@
       "name": "Nombre",
       "description": "Descripción",
       "price": "Precio",
+      "currency": "Moneda (vacío = moneda del negocio)",
       "compare_at_price": "Precio anterior",
       "sku": "SKU",
       "stock": "Stock",
@@ -99,6 +100,7 @@
       "boolean": "usa sí / no",
       "required": "es obligatorio",
       "option": "valor no permitido",
+      "currency": "moneda no reconocida (usa un código como PEN, USD, EUR)",
       "sku_duplicate": "SKU repetido en el archivo"
     },
     "template": {

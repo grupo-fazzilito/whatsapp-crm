@@ -95,6 +95,9 @@ export function NewOrderDialog({ open, onOpenChange, onCreated }: Props) {
     const id = setTimeout(async () => {
       let q = createClient().from('products').select('id, name, price, product_variants(id, name, price, is_active)').eq('is_active', true);
       if (s) q = q.ilike('name', `%${s}%`);
+      // Orders are in the business currency: skip products priced in another one.
+      const cur = workspace?.currency;
+      if (cur && /^[A-Z]{3}$/.test(cur)) q = q.or(`currency.is.null,currency.eq.${cur}`);
       const { data } = await q.order('name').limit(8);
       if (!cancelled) setProducts((data ?? []) as ProductHit[]);
     }, 250);
@@ -102,7 +105,7 @@ export function NewOrderDialog({ open, onOpenChange, onCreated }: Props) {
       cancelled = true;
       clearTimeout(id);
     };
-  }, [productQ]);
+  }, [productQ, workspace?.currency]);
 
   const activeVariants = (p: ProductHit) => (p.product_variants ?? []).filter((v) => v.is_active);
   const priceOf = (l: Line) => {

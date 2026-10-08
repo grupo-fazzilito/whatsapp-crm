@@ -221,6 +221,8 @@ export interface Pipeline {
   /** Created by (nullable since workspaces). */
   user_id?: string | null;
   name: string;
+  /** Stable identifier of seeded pipelines, e.g. 'real_estate' (migration 036). */
+  key?: string | null;
   created_at: string;
 }
 
@@ -231,6 +233,8 @@ export interface PipelineStage {
   name: string;
   position: number;
   color: string;
+  /** Stable stage key of seeded pipelines (e.g. 'viewing_scheduled'). */
+  key?: string | null;
   created_at: string;
 }
 

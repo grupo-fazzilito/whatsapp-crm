@@ -43,6 +43,7 @@ export async function downloadTemplate(fields: AttributeField[], locale: 'es' | 
     name: example.name,
     description: example.description,
     price: 25,
+    currency: '',
     compare_at_price: '',
     sku: 'SKU-001',
     stock: 10,

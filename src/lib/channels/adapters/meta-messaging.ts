@@ -1,7 +1,7 @@
 // Messenger and Instagram Direct share Meta's Send API: the page access
 // token posts to /{page-id}/messages, and the recipient is a page-scoped
 // (PSID) or Instagram-scoped (IGSID) id.
-import { ChannelSendError, type ChannelAdapter, type ChannelType, type OutboundContent, type SendContext, type SendResult } from '../types'
+import { ChannelSendError, locationText, type ChannelAdapter, type ChannelType, type OutboundContent, type SendContext, type SendResult } from '../types'
 
 const GRAPH = 'https://graph.facebook.com/v21.0'
 // Messenger quick replies: max 13, title max 20 chars.
@@ -47,6 +47,8 @@ function toMessage(content: OutboundContent): Record<string, unknown> {
           },
         },
       }
+    case 'location':
+      return { text: locationText(content) }
     case 'template':
       throw new ChannelSendError('Templates are only available on WhatsApp', 'unsupported')
   }

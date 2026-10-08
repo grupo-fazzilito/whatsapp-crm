@@ -12,6 +12,7 @@ import { cancelFollowupsForInbound } from '@/lib/automations/followups'
 import { handleCheckoutText, handleCommerceAction, handlePaymentProof, isCommerceAction, type CommerceCtx } from '@/lib/orders/chat'
 import type { Workspace } from '@/lib/workspace/types'
 import { autoAssignConversation, recordEvent } from '@/lib/inbox/server'
+import { handleVisitAction, isVisitAction } from '@/lib/real-estate/leads/visits'
 
 type MessageEvent = Extract<InboundEvent, { kind: 'message' }>
 
@@ -348,6 +349,18 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
       .update({ status: 'open', ai_agent_id: null, ai_state: {}, resolved_at: null, resolved_by: null })
       .eq('id', conversation.id)
     await recordEvent({ workspaceId: ws, conversationId: conversation.id, type: 'reopened', data: { by: 'customer' } })
+  }
+
+  // 0a) Real estate: post-visit answers and "Agendar visita" buttons.
+  if (isVisitAction(ev.interactiveReplyId)) {
+    const handledVisit = await handleVisitAction(
+      { workspaceId: ws, conversationId: conversation.id, contactId: contact.id, aiAgentId: conversationAgentId ?? channel.ai_agent_id },
+      ev.interactiveReplyId,
+    ).catch((err) => {
+      console.error('[ingest] visit action failed:', err)
+      return false
+    })
+    if (handledVisit) return outcome
   }
 
   // 0) Shopping: cart/checkout buttons, the answer to a checkout question

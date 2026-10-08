@@ -1,5 +1,6 @@
 import 'server-only'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { cartCurrencyConflict } from '@/lib/catalog/currency'
 import { sendMessage } from '@/lib/messaging/send'
 import { invalidateBusinessContext } from '@/lib/ai/context'
 import { formatMoney, moneyLocale } from '@/lib/workspace/countries'
@@ -96,14 +97,16 @@ export async function getOpenCart(
 export async function cartItems(cartId: string): Promise<CartItemView[]> {
   const { data } = await supabaseAdmin()
     .from('cart_items')
-    .select('id, quantity, product_id, variant_id, product:products(name, price, images, track_stock, stock, is_active), variant:product_variants(name, price, stock, is_active)')
+    .select('id, quantity, product_id, variant_id, product:products(name, price, currency, images, track_stock, stock, is_active, workspace:workspaces(currency)), variant:product_variants(name, price, stock, is_active)')
     .eq('cart_id', cartId)
     .order('created_at')
   const out: CartItemView[] = []
   for (const row of data ?? []) {
-    const p = row.product as unknown as { name: string; price: number | null; images: string[]; track_stock: boolean; stock: number | null; is_active: boolean } | null
+    const p = row.product as unknown as { name: string; price: number | null; currency: string | null; images: string[]; track_stock: boolean; stock: number | null; is_active: boolean; workspace: { currency: string } | null } | null
     const v = row.variant as unknown as { name: string; price: number | null; stock: number | null; is_active: boolean } | null
     if (!p || !p.is_active || (v && !v.is_active)) continue
+    // Priced in another currency since it was added: not orderable.
+    if (cartCurrencyConflict(p, p.workspace?.currency ?? '')) continue
     const price = v?.price ?? p.price
     if (price === null || price === undefined) continue
     out.push({
@@ -132,17 +135,23 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 export type AddResult =
   | { ok: true; name: string; quantity: number }
   | { ok: false; reason: 'unavailable' | 'price_on_request' | 'out_of_stock' | 'not_enough'; name?: string; available?: number }
+  | { ok: false; reason: 'foreign_currency'; name: string; currency: string }
 
 /** Adds (or increases) a line. Checks availability, price and stock. */
 export async function addToCart(cart: Cart, productId: string, variantId: string | null, quantity: number): Promise<AddResult> {
   const db = supabaseAdmin()
   const { data: p } = await db
     .from('products')
-    .select('id, name, price, track_stock, stock, is_active')
+    .select('id, name, price, currency, track_stock, stock, is_active, workspace:workspaces(currency)')
     .eq('id', productId)
     .eq('workspace_id', cart.workspace_id)
     .maybeSingle()
   if (!p || !p.is_active) return { ok: false, reason: 'unavailable' }
+  // Orders are in the workspace currency: a listing priced in another
+  // currency (e.g. a USD sale in a PEN workspace) is quoted by a person.
+  const wsCurrency = (p.workspace as unknown as { currency: string } | null)?.currency ?? ''
+  const foreign = cartCurrencyConflict(p, wsCurrency)
+  if (foreign) return { ok: false, reason: 'foreign_currency', name: p.name, currency: foreign }
   let v: { id: string; name: string; price: number | null; stock: number | null; is_active: boolean } | null = null
   if (variantId) {
     const { data } = await db.from('product_variants').select('id, name, price, stock, is_active').eq('id', variantId).eq('product_id', productId).maybeSingle()

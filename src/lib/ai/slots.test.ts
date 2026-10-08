@@ -92,3 +92,36 @@ describe('zonedNow', () => {
     expect(zonedNow('Europe/Madrid', instant)).toMatchObject({ date: '2026-10-12', time: '05:30', weekday: 'Monday' })
   })
 })
+
+describe('external busy time (Google Calendar)', () => {
+  // Free without busy: 09:00, 09:30, 10:00, 12:00, 12:30, 13:00 (60 min).
+  it('drops starts that overlap a busy interval passed per staff', () => {
+    const q: SlotQuery = { ...base, busy: { s1: [{ date: MON, start: '09:15', end: '10:00' }] } }
+    expect(freeSlotsForStaff(barber, MON, q)).toEqual(['10:00', '12:00', '12:30', '13:00'])
+  })
+  it('treats the end as exclusive and ignores other dates and staff', () => {
+    const q: SlotQuery = {
+      ...base,
+      busy: {
+        s1: [
+          { date: MON, start: '12:00', end: '13:00' },
+          { date: '2026-10-13', start: '00:00', end: '24:00' },
+        ],
+        s2: [{ date: MON, start: '00:00', end: '24:00' }],
+      },
+    }
+    expect(freeSlotsForStaff(barber, MON, q)).toEqual(['09:00', '09:30', '10:00', '13:00'])
+  })
+  it('reads busy attached to the staff row and merges both sources', () => {
+    const busyBarber: StaffRow = { ...barber, busy: [{ date: MON, start: '13:00', end: '24:00' }] }
+    const q: SlotQuery = { ...base, busy: { s1: [{ date: MON, start: '09:00', end: '09:30' }] } }
+    expect(freeSlotsForStaff(busyBarber, MON, q)).toEqual(['09:30', '10:00', '12:00'])
+  })
+  it('blocks the whole day for an all-day busy interval', () => {
+    expect(freeSlotsForStaff(barber, MON, { ...base, busy: { s1: [{ date: MON, start: '00:00', end: '24:00' }] } })).toEqual([])
+  })
+  it('ignores empty or inverted intervals', () => {
+    const q: SlotQuery = { ...base, busy: { s1: [{ date: MON, start: '10:00', end: '10:00' }, { date: MON, start: '12:00', end: '11:00' }] } }
+    expect(freeSlotsForStaff(barber, MON, q)).toEqual(['09:00', '09:30', '10:00', '12:00', '12:30', '13:00'])
+  })
+})

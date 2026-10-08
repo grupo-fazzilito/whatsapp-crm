@@ -5,6 +5,7 @@ import { freeSlotsForBusiness, freeSlotsForStaff } from './slots'
 import { isIsoDate, zonedNow } from './time'
 import { invalidateBusinessContext, loadBusinessContext } from './context'
 import type { BookingDraft } from './types'
+import { scheduleBookingSync } from '@/lib/integrations/google/sync'
 
 export type BookingFailure =
   | { reason: 'missing'; missing: string[] }
@@ -75,6 +76,8 @@ export async function createBookingFromDraft(
     durationMinutes: duration,
     stepMinutes: 15,
     capacity: Number(ctx.workspace.settings?.booking_capacity ?? 1),
+    // Google Calendar busy time, re-read at confirm time (fresh context).
+    busy: ctx.busy,
   }
 
   let staffId: string | null = null
@@ -121,6 +124,7 @@ export async function createBookingFromDraft(
     .single()
   if (error) return { ok: false, reason: 'invalid', detail: error.message }
   invalidateBusinessContext(input.workspaceId)
+  if (staffId) scheduleBookingSync(data.id, input.workspaceId)
   return { ok: true, bookingId: data.id, staffName, serviceName: service?.name ?? null }
 }
 
@@ -144,5 +148,6 @@ export async function cancelNextBooking(workspaceId: string, contactId: string, 
   if (!data) return null
   await supabaseAdmin().from('bookings').update({ status: 'cancelled' }).eq('id', data.id)
   invalidateBusinessContext(workspaceId)
+  scheduleBookingSync(data.id, workspaceId)
   return { date: data.booking_date, time: data.booking_time }
 }

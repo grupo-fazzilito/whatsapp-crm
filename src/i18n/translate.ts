@@ -30,6 +30,14 @@ import esReports from './messages/es/reports.json'
 import enReports from './messages/en/reports.json'
 import esInboxPro from './messages/es/inboxpro.json'
 import enInboxPro from './messages/en/inboxpro.json'
+import esLeads from './messages/es/leads.json'
+import enLeads from './messages/en/leads.json'
+import esRealEstate from './messages/es/realestate.json'
+import enRealEstate from './messages/en/realestate.json'
+import esGcal from './messages/es/gcal.json'
+import enGcal from './messages/en/gcal.json'
+import esPortals from './messages/es/portals.json'
+import enPortals from './messages/en/portals.json'
 import type { AppLocale } from './config'
 
 // One file per area (core, channels, agents, webchat, inbox, business, routing) so features
@@ -38,8 +46,8 @@ import type { AppLocale } from './config'
 type Tree = { [key: string]: string | Tree }
 
 const DICTS: Record<AppLocale, Tree> = {
-  es: { ...esCore, ...esChannels, ...esAgents, ...esWebchat, ...esInbox, ...esBusiness, ...esRouting, ...esAdmin, ...esBookings, ...esCatalogImport, ...esCatalog, ...esFollowups, ...esOrders, ...esCrm, ...esReports, ...esInboxPro },
-  en: { ...enCore, ...enChannels, ...enAgents, ...enWebchat, ...enInbox, ...enBusiness, ...enRouting, ...enAdmin, ...enBookings, ...enCatalogImport, ...enCatalog, ...enFollowups, ...enOrders, ...enCrm, ...enReports, ...enInboxPro },
+  es: { ...esCore, ...esChannels, ...esAgents, ...esWebchat, ...esInbox, ...esBusiness, ...esRouting, ...esAdmin, ...esBookings, ...esCatalogImport, ...esCatalog, ...esFollowups, ...esOrders, ...esCrm, ...esReports, ...esInboxPro, ...esLeads, ...esRealEstate, ...esGcal, ...esPortals },
+  en: { ...enCore, ...enChannels, ...enAgents, ...enWebchat, ...enInbox, ...enBusiness, ...enRouting, ...enAdmin, ...enBookings, ...enCatalogImport, ...enCatalog, ...enFollowups, ...enOrders, ...enCrm, ...enReports, ...enInboxPro, ...enLeads, ...enRealEstate, ...enGcal, ...enPortals },
 }
 
 /** Dotted-path key into the message tree, e.g. "nav.inbox". */
