@@ -9,6 +9,8 @@ import type { ConversationAiState } from '@/lib/ai/types'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { cancelFollowupsForInbound } from '@/lib/automations/followups'
+import { handleCheckoutText, handleCommerceAction, handlePaymentProof, isCommerceAction, type CommerceCtx } from '@/lib/orders/chat'
+import type { Workspace } from '@/lib/workspace/types'
 
 type MessageEvent = Extract<InboundEvent, { kind: 'message' }>
 
@@ -342,6 +344,14 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
     await db.from('conversations').update({ status: 'open', ai_agent_id: null, ai_state: {} }).eq('id', conversation.id)
   }
 
+  // 0) Shopping: cart/checkout buttons, the answer to a checkout question
+  //    (address, name) or a payment screenshot are handled without AI.
+  const handledByCommerce = await handleCommerce(channel, conversation, contact.id, ev, mediaUrl, conversationAgentId).catch((err) => {
+    console.error('[ingest] commerce handling failed:', err)
+    return false
+  })
+  if (handledByCommerce) return outcome
+
   // 1) Flows first: an active bot-menu run, or a flow whose trigger matches,
   //    owns the message (flows can hand off to an AI agent themselves).
   const flow = await dispatchInboundToFlows({
@@ -391,6 +401,45 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
   }
 
   return outcome
+}
+
+async function handleCommerce(
+  channel: LoadedChannel,
+  conversation: { id: string; ai_paused_until?: string | null },
+  contactId: string,
+  ev: MessageEvent,
+  mediaUrl: string | null,
+  conversationAgentId: string | null,
+): Promise<boolean> {
+  const isAction = isCommerceAction(ev.interactiveReplyId)
+  const isImage = ev.contentType === 'image' && !!mediaUrl
+  const maybeCheckoutText = ev.contentType === 'text' && !!ev.text?.trim()
+  if (!isAction && !isImage && !maybeCheckoutText) return false
+
+  // Plain text only matters while checkout waits for an answer: check that
+  // cheaply before loading anything else (this runs on every message).
+  if (!isAction && !isImage) {
+    const { data: waiting } = await supabaseAdmin()
+      .from('carts')
+      .select('id')
+      .eq('conversation_id', conversation.id)
+      .eq('status', 'open')
+      .in('checkout->>step', ['address', 'name'])
+      .maybeSingle()
+    if (!waiting) return false
+  }
+
+  const { data: workspace } = await supabaseAdmin().from('workspaces').select('*').eq('id', channel.workspace_id).single()
+  const ctx: CommerceCtx = {
+    workspace: workspace as Workspace,
+    channel,
+    conversationId: conversation.id,
+    contactId,
+    aiAgentId: conversationAgentId ?? channel.ai_agent_id,
+  }
+  if (isAction) return handleCommerceAction(ctx, ev.interactiveReplyId!)
+  if (isImage) return handlePaymentProof(ctx, mediaUrl!)
+  return handleCheckoutText(ctx, ev.text!)
 }
 
 /** Entry point for every webhook / web-chat post. */

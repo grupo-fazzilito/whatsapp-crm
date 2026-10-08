@@ -8,13 +8,14 @@ import { LoadingBlock, Notice, PageHeader } from '../shared';
 import { ProfileForm } from './profile-form';
 import { IndustryForm } from './industry-form';
 import { HoursForm } from './hours-form';
+import { OrdersPaymentsForm } from './orders-payments-form';
 
-const TABS = ['profile', 'industry', 'hours'] as const;
+const TABS = ['profile', 'industry', 'hours', 'orders'] as const;
 type Tab = (typeof TABS)[number];
 
 export function BusinessSetup() {
   const t = useT();
-  const { workspace, can } = useWorkspace();
+  const { workspace, can, modules } = useWorkspace();
   const readOnly = !can('admin');
   const [tab, setTab] = useState<Tab>(() => {
     if (typeof window === 'undefined') return 'profile';
@@ -37,11 +38,11 @@ export function BusinessSetup() {
       {!workspace ? (
         <LoadingBlock />
       ) : (
-        <Tabs value={tab} onValueChange={onTab}>
+        <Tabs value={tab === 'orders' && !modules.orders ? 'profile' : tab} onValueChange={onTab}>
           <TabsList>
-            {TABS.map((k) => (
+            {TABS.filter((k) => k !== 'orders' || modules.orders).map((k) => (
               <TabsTrigger key={k} value={k} className="px-3">
-                {t(`business.setup.tab.${k}`)}
+                {k === 'orders' ? t('orders.settings.tab') : t(`business.setup.tab.${k}`)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -55,6 +56,11 @@ export function BusinessSetup() {
           <TabsContent value="hours" className="pt-2">
             <HoursForm workspace={workspace} readOnly={readOnly} />
           </TabsContent>
+          {modules.orders && (
+            <TabsContent value="orders" className="pt-2">
+              <OrdersPaymentsForm key={workspace.updated_at} workspace={workspace} readOnly={readOnly} />
+            </TabsContent>
+          )}
         </Tabs>
       )}
     </div>

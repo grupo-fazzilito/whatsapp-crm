@@ -54,6 +54,10 @@ export interface AgentOutput {
   }
   /** Products whose photo + price should be sent after the reply (max 3). */
   show_product_ids?: string[]
+  /** Cart changes requested in this turn (orders skill). */
+  cart_ops?: { op: 'add' | 'set' | 'remove'; product_id: string; variant_name?: string; quantity?: number }[]
+  /** What to show after the reply: the cart summary or the checkout. */
+  order_action?: 'none' | 'show_cart' | 'checkout'
 }
 
 /** Gemini responseSchema for AgentOutput. */
@@ -97,7 +101,21 @@ export const AGENT_OUTPUT_SCHEMA = {
         max_price: { type: 'NUMBER' },
       },
     },
-    show_product_ids: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Up to 3 product ids to send with photo' },
+    show_product_ids: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Product ids to show with photo (carousel)' },
+    cart_ops: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          op: { type: 'STRING', enum: ['add', 'set', 'remove'] },
+          product_id: { type: 'STRING' },
+          variant_name: { type: 'STRING' },
+          quantity: { type: 'NUMBER' },
+        },
+        required: ['op', 'product_id'],
+      },
+    },
+    order_action: { type: 'STRING', enum: ['none', 'show_cart', 'checkout'] },
   },
   required: ['reply', 'intent', 'language', 'confidence', 'handover', 'transfer_to_agent_id', 'booking_action'],
 } as const
@@ -127,6 +145,8 @@ export interface PromptInput {
   channelLabel: string
   /** Results of a catalog search requested in the previous model turn. */
   catalogResults?: { query: string; products: import('./context').CatalogProduct[] } | null
+  /** Current open cart of the conversation (orders skill). */
+  cart?: { lines: { productId: string; name: string; quantity: number; unitPrice: number }[]; subtotal: number } | null
 }
 
 function money(ctx: BusinessContext, amount: number | null | undefined): string {
@@ -329,7 +349,9 @@ export function buildSystemPrompt(input: PromptInput): string {
             .join('; ')}`
         : '',
       '- Only mention products, prices and stock that appear in this prompt. Never invent products. If something is out of stock, say so and suggest alternatives.',
-      '- To show photos, put up to 3 product ids in show_product_ids (only products that "has photo").',
+      skills.has('orders') && modules.orders
+        ? '- To show products, put their ids in show_product_ids (up to 10, only "has photo"): they are sent as a swipeable carousel with photo, price and an "Add to cart" button. Prefer this when the customer browses, and then keep your reply to ONE short line (do not list the products or prices again).'
+        : '- To show photos, put up to 3 product ids in show_product_ids (only products that "has photo").',
     ]
     if (input.catalogResults) {
       lines.push(
@@ -349,8 +371,21 @@ export function buildSystemPrompt(input: PromptInput): string {
     sections.push(lines.filter(Boolean).join('\n'))
   }
 
-  if (skills.has('orders')) {
-    sections.push('ORDERS: taking orders in chat is not available yet; when the customer wants to buy, offer to pass the conversation to a human (handover=true).')
+  if (skills.has('orders') && modules.orders) {
+    const cart = input.cart
+    sections.push(
+      [
+        'ORDERS (shopping cart):',
+        '- When the customer wants to buy, add items with cart_ops: {op:"add", product_id, quantity, variant_name?}; change with {op:"set", quantity}; remove with {op:"remove"}. Use ids from the catalog/search results only. The system validates price and stock and confirms each change itself, so keep your reply short (do not repeat prices or totals).',
+        '- Set order_action="show_cart" when the customer asks to see the cart, and order_action="checkout" when they want to finish/pay. The system then asks for delivery method, address and name, shows the total and sends the payment options (QR / bank details) — do not collect those yourself.',
+        '- Never say an order is placed or paid: only the system does that.',
+        cart && cart.lines.length
+          ? `- Current cart: ${cart.lines.map((l) => `${l.quantity}× ${l.name} [${l.productId}]`).join('; ')} (subtotal ${money(ctx, cart.subtotal)})`
+          : '- The cart is empty.',
+      ].join('\n'),
+    )
+  } else if (skills.has('orders')) {
+    sections.push('ORDERS: online orders are turned off for this business; when the customer wants to buy, offer to pass the conversation to a human (handover=true).')
   }
 
   if (input.transferTargets.length) {

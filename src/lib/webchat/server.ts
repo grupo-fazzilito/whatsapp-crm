@@ -240,13 +240,45 @@ export interface PublicMessage {
   created_at: string
 }
 
-// Only what the widget needs: never leak flow ids, errors, agent ids.
+// Only what the widget needs: never leak flow ids, errors, agent ids,
+// order/cart ids. Button ids (cart:add:<productId>, pay:<methodId>...) are
+// what the visitor sends back, so they stay.
 const PUBLIC_METADATA_KEYS = ['options', 'sections', 'button_label', 'header', 'footer', 'filename']
 
-function publicMessage(row: Record<string, unknown>): PublicMessage {
+export interface PublicCard {
+  imageUrl: string | null
+  title: string
+  subtitle?: string
+  buttons: { id: string; title: string }[]
+}
+
+/** Carousel cards reduced to what the widget renders. */
+export function publicCards(v: unknown): PublicCard[] | undefined {
+  if (!Array.isArray(v)) return undefined
+  const str = (x: unknown, max: number) => (typeof x === 'string' && x ? x.slice(0, max) : undefined)
+  const cards = v.slice(0, 10).flatMap((c): PublicCard[] => {
+    if (!c || typeof c !== 'object') return []
+    const card = c as Record<string, unknown>
+    const title = str(card.title, 200)
+    if (!title) return []
+    const img = str(card.imageUrl, 2048)
+    const buttons = (Array.isArray(card.buttons) ? card.buttons : []).slice(0, 3).flatMap((b) => {
+      const r = (b ?? {}) as Record<string, unknown>
+      const id = str(r.id, 200)
+      const t = str(r.title, 40)
+      return id && t ? [{ id, title: t }] : []
+    })
+    return [{ imageUrl: img && /^https?:\/\//i.test(img) ? img : null, title, subtitle: str(card.subtitle, 300), buttons }]
+  })
+  return cards.length ? cards : undefined
+}
+
+export function publicMessage(row: Record<string, unknown>): PublicMessage {
   const meta = (row.metadata ?? {}) as Record<string, unknown>
   const metadata: Record<string, unknown> = {}
   for (const k of PUBLIC_METADATA_KEYS) if (meta[k] !== undefined) metadata[k] = meta[k]
+  const cards = publicCards(meta.cards)
+  if (cards) metadata.cards = cards
   return {
     id: row.id as string,
     sender_type: row.sender_type as PublicMessage['sender_type'],

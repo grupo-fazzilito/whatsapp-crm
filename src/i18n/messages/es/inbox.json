@@ -88,7 +88,17 @@
       "unavailable": "{label} no disponible",
       "failed": "No se entregó",
       "failedWithReason": "No se entregó: {reason}",
-      "retry": "Reintentar"
+      "retry": "Reintentar",
+      "carousel": "Carrusel de {count} productos",
+      "paymentProof": "Comprobante de pago",
+      "events": {
+        "cart_summary": "Carrito",
+        "order_placed": "Pedido creado",
+        "order_status": "Estado del pedido",
+        "payment_options": "Opciones de pago",
+        "payment_method": "Método de pago",
+        "payment_proof": "Pago recibido"
+      }
     },
     "media": {
       "image": "Imagen",
@@ -114,7 +124,29 @@
       "noDeals": "Sin negocios",
       "notes": "Notas",
       "addNote": "Añadir una nota...",
-      "saveNote": "Guardar nota"
+      "saveNote": "Guardar nota",
+      "orders": {
+        "title": "Pedidos",
+        "openCart": "Carrito abierto",
+        "subtotal": "Subtotal",
+        "none": "Sin pedidos",
+        "status": {
+          "pending": "Pendiente",
+          "confirmed": "Confirmado",
+          "preparing": "Preparando",
+          "ready": "Listo",
+          "shipped": "Enviado",
+          "delivered": "Entregado",
+          "cancelled": "Cancelado"
+        },
+        "payment": {
+          "unpaid": "Sin pagar",
+          "awaiting_proof": "Esperando comprobante",
+          "proof_received": "Comprobante recibido",
+          "paid": "Pagado",
+          "refunded": "Reembolsado"
+        }
+      }
     },
     "templates": {
       "title": "Enviar plantilla",

@@ -6,7 +6,7 @@ import {
   sendTextMessage,
 } from '@/lib/whatsapp/meta-api'
 import { isRecipientNotAllowedError, phoneVariants, sanitizePhoneForMeta } from '@/lib/whatsapp/phone-utils'
-import { ChannelSendError, type ChannelAdapter, type OutboundContent, type SendContext, type SendResult } from '../types'
+import { ChannelSendError, type CarouselCard, type ChannelAdapter, type OutboundContent, type SendContext, type SendResult } from '../types'
 
 const GRAPH = 'https://graph.facebook.com/v21.0'
 
@@ -41,6 +41,85 @@ async function sendMedia(
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data?.error?.message ?? `Meta API error: ${res.status}`)
   return data.messages[0].id
+}
+
+async function postMessage(phoneNumberId: string, accessToken: string, payload: Record<string, unknown>): Promise<string> {
+  const res = await fetch(`${GRAPH}/${phoneNumberId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', ...payload }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data?.error?.message ?? `Meta API error: ${res.status}`)
+  return data.messages[0].id
+}
+
+const quickReplies = (buttons: { id: string; title: string }[]) =>
+  buttons.slice(0, 3).map((b) => ({ type: 'reply', reply: { id: b.id.slice(0, 256), title: b.title.slice(0, 20) } }))
+
+/** One product card: image header + body + reply buttons. */
+function cardAsButtons(to: string, card: CarouselCard, contextMessageId?: string) {
+  return {
+    to,
+    type: 'interactive',
+    interactive: {
+      type: 'button',
+      header: { type: 'image', image: { link: card.imageUrl } },
+      body: { text: [`*${card.title}*`, card.subtitle].filter(Boolean).join('\n').slice(0, 1024) },
+      action: { buttons: quickReplies(card.buttons) },
+    },
+    ...(contextMessageId ? { context: { message_id: contextMessageId } } : {}),
+  }
+}
+
+/**
+ * Interactive media carousel (2–10 cards, same buttons on every card).
+ * If Meta rejects it (older accounts/regions), fall back to one image +
+ * buttons message per card so the customer still sees the products.
+ */
+async function sendCarousel(
+  phoneNumberId: string,
+  accessToken: string,
+  to: string,
+  c: Extract<OutboundContent, { type: 'carousel' }>,
+  contextMessageId?: string,
+): Promise<string> {
+  const cards = c.cards.slice(0, 10)
+  if (cards.length === 1) return postMessage(phoneNumberId, accessToken, cardAsButtons(to, cards[0], contextMessageId))
+  const buttonCount = Math.min(...cards.map((x) => x.buttons.length), 3)
+  try {
+    return await postMessage(phoneNumberId, accessToken, {
+      to,
+      type: 'interactive',
+      interactive: {
+        type: 'carousel',
+        body: { text: c.text.slice(0, 1024) },
+        action: {
+          cards: cards.map((card, i) => ({
+            card_index: i,
+            header: { type: 'image', image: { link: card.imageUrl } },
+            body: { text: [`*${card.title}*`, card.subtitle].filter(Boolean).join('\n').slice(0, 160) },
+            action: {
+              buttons: card.buttons.slice(0, buttonCount).map((b) => ({
+                type: 'quick_reply',
+                quick_reply: { id: b.id.slice(0, 256), title: b.title.slice(0, 20) },
+              })),
+            },
+          })),
+        },
+      },
+      ...(contextMessageId ? { context: { message_id: contextMessageId } } : {}),
+    })
+  } catch (err) {
+    console.warn('[whatsapp] carousel rejected, sending cards one by one:', err instanceof Error ? err.message : err)
+    await postMessage(phoneNumberId, accessToken, { to, type: 'text', text: { body: c.text } })
+    let first = ''
+    for (const card of cards) {
+      const id = await postMessage(phoneNumberId, accessToken, cardAsButtons(to, card))
+      first ||= id
+    }
+    return first
+  }
 }
 
 async function sendOnce(ctx: SendContext, to: string, content: OutboundContent): Promise<string> {
@@ -94,6 +173,8 @@ async function sendOnce(ctx: SendContext, to: string, content: OutboundContent):
       ).messageId
     case 'media':
       return sendMedia(phoneNumberId, accessToken, to, content, contextMessageId)
+    case 'carousel':
+      return sendCarousel(phoneNumberId, accessToken, to, content, contextMessageId)
   }
 }
 

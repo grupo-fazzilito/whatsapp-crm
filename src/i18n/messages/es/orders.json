@@ -1,0 +1,247 @@
+{
+  "orders": {
+    "navTitle": "Pedidos",
+    "navBadge": "{count} pedidos nuevos",
+    "title": "Pedidos",
+    "description": "Pedidos que llegan por el chat o que registra tu equipo. Confírmalos, avanza su estado y verifica los pagos.",
+    "moduleOff": "El módulo de pedidos está desactivado para este negocio. Actívalo en Configuración del negocio → Industria.",
+    "truncated": "Se muestran los {limit} pedidos más recientes. Usa los filtros para ver otros.",
+    "status": {
+      "pending": "Nuevo",
+      "confirmed": "Confirmado",
+      "preparing": "En preparación",
+      "ready": "Listo",
+      "shipped": "En camino",
+      "delivered": "Entregado",
+      "cancelled": "Cancelado"
+    },
+    "tabs": {
+      "all": "Todos",
+      "pending": "Nuevos",
+      "confirmed": "Confirmados",
+      "preparing": "En preparación",
+      "ready": "Listos",
+      "shipped": "En camino",
+      "delivered": "Entregados",
+      "cancelled": "Cancelados"
+    },
+    "payment": {
+      "unpaid": "Pago pendiente",
+      "awaiting_proof": "Esperando comprobante",
+      "proof_received": "Por verificar",
+      "paid": "Pagado",
+      "refunded": "Reembolsado"
+    },
+    "paymentFilter": {
+      "all": "Todos los pagos",
+      "to_verify": "Por verificar",
+      "pending": "Pendiente",
+      "paid": "Pagado"
+    },
+    "fulfillment": {
+      "pickup": "Recojo en tienda",
+      "delivery": "Delivery",
+      "dine_in": "Consumo en el local"
+    },
+    "source": {
+      "ai": "Asistente IA",
+      "chat_buttons": "Botones del chat",
+      "manual": "Registrado por el equipo",
+      "webchat": "Chat web"
+    },
+    "channel": {
+      "whatsapp": "WhatsApp",
+      "messenger": "Messenger",
+      "instagram": "Instagram",
+      "tiktok": "TikTok",
+      "webchat": "Chat web"
+    },
+    "view": {
+      "label": "Vista",
+      "list": "Lista",
+      "board": "Tablero"
+    },
+    "sound": {
+      "on": "Sonido activado",
+      "off": "Sonido apagado",
+      "hint": "Reproducir un sonido cuando llega un pedido nuevo"
+    },
+    "filters": {
+      "status": "Estado del pedido",
+      "payment": "Pago",
+      "search": "Buscar por número, cliente o teléfono",
+      "from": "Desde",
+      "to": "Hasta",
+      "clear": "Limpiar filtros"
+    },
+    "columns": {
+      "number": "N.º",
+      "customer": "Cliente",
+      "date": "Fecha",
+      "fulfillment": "Entrega",
+      "total": "Total",
+      "status": "Estado",
+      "payment": "Pago",
+      "actions": "Acciones"
+    },
+    "board": {
+      "empty": "Sin pedidos"
+    },
+    "empty": {
+      "title": "Aún no hay pedidos",
+      "filteredTitle": "Ningún pedido coincide con los filtros",
+      "description": "Cuando un cliente haga un pedido por el chat aparecerá aquí al instante."
+    },
+    "actions": {
+      "confirm": "Confirmar",
+      "preparing": "En preparación",
+      "ready": "Listo",
+      "shipped": "En camino",
+      "delivered": "Entregado",
+      "cancel": "Cancelar pedido",
+      "confirmCancel": "Sí, cancelar pedido",
+      "back": "Volver",
+      "markPaid": "Marcar como pagado"
+    },
+    "detail": {
+      "title": "Detalle del pedido",
+      "heading": "Pedido #{number}",
+      "actions": "Acciones del pedido",
+      "customer": "Cliente",
+      "noName": "Cliente sin nombre",
+      "openConversation": "Abrir conversación",
+      "fulfillment": "Entrega",
+      "reference": "Referencia",
+      "notes": "Notas",
+      "items": "Productos",
+      "subtotal": "Subtotal",
+      "deliveryFee": "Delivery",
+      "discount": "Descuento",
+      "total": "Total",
+      "payment": "Pago",
+      "noMethod": "Método aún no elegido",
+      "proof": "Comprobante de pago",
+      "openProof": "Ver comprobante en tamaño completo",
+      "openNewTab": "Abrir en una pestaña nueva",
+      "proofUnavailable": "No se pudo cargar el comprobante.",
+      "timeline": "Historial",
+      "notify": "Notificar al cliente",
+      "noConversation": "Este pedido no tiene conversación, no se puede notificar al cliente.",
+      "cancelReason": "Motivo (opcional, se envía al cliente)",
+      "cancelReasonPlaceholder": "Ej.: nos quedamos sin stock"
+    },
+    "timeline": {
+      "created": "Pedido creado · {source}",
+      "status": "Estado: {status}",
+      "payment": "Pago: {status}",
+      "notified": "Se notificó al cliente"
+    },
+    "toast": {
+      "new": "Nuevo pedido #{number}",
+      "view": "Ver",
+      "moved": "Pedido actualizado: {status}",
+      "cancelled": "Pedido cancelado",
+      "paid": "Pago registrado"
+    },
+    "errors": {
+      "generic": "No se pudo actualizar el pedido. Inténtalo de nuevo.",
+      "outOfStock": "No hay stock suficiente de «{name}». Ajusta el inventario o cancela el pedido.",
+      "not_found": "El pedido no existe o fue eliminado.",
+      "closed": "Este pedido ya está cerrado (entregado o cancelado).",
+      "not_pending": "El pedido ya no está pendiente.",
+      "not_cancellable": "Este pedido ya no se puede cancelar.",
+      "invalid_status": "Ese cambio de estado no es válido.",
+      "Forbidden": "No tienes permiso para esta acción.",
+      "Unauthorized": "Tu sesión expiró. Vuelve a iniciar sesión."
+    },
+    "new": {
+      "button": "Nuevo pedido",
+      "title": "Nuevo pedido",
+      "description": "Registra un pedido tomado por teléfono o en persona. Los precios se toman del catálogo.",
+      "customer": "Cliente",
+      "searchCustomer": "Buscar contacto por nombre o teléfono",
+      "noCustomers": "No se encontraron contactos.",
+      "changeCustomer": "Cambiar cliente",
+      "products": "Productos",
+      "searchProduct": "Buscar producto",
+      "variant": "Variante",
+      "quantity": "Cantidad",
+      "less": "Quitar uno",
+      "more": "Agregar uno",
+      "remove": "Quitar producto",
+      "noPrice": "Precio a consultar",
+      "address": "Dirección de entrega",
+      "submit": "Crear pedido",
+      "created": "Pedido #{number} creado",
+      "errors": {
+        "generic": "No se pudo crear el pedido.",
+        "contact_not_found": "Elige un cliente válido.",
+        "empty": "Agrega al menos un producto.",
+        "fulfillment_not_allowed": "Ese tipo de entrega no está habilitado.",
+        "address_required": "Indica la dirección de entrega.",
+        "unavailable": "Un producto ya no está disponible{name}",
+        "price_on_request": "«{name}» no tiene precio; no se puede pedir así.",
+        "invalid_item": "Revisa los productos del pedido.",
+        "invalid_body": "Datos inválidos.",
+        "Forbidden": "No tienes permiso para crear pedidos."
+      }
+    },
+    "settings": {
+      "tab": "Pedidos y pagos",
+      "title": "Pedidos",
+      "description": "Cómo reciben los clientes sus pedidos hechos por el chat.",
+      "fulfillment": "Opciones de entrega habilitadas",
+      "fulfillmentRequired": "Habilita al menos una opción de entrega.",
+      "deliveryFee": "Costo de delivery ({currency})",
+      "minOrder": "Pedido mínimo ({currency})",
+      "minOrderHint": "0 = sin mínimo.",
+      "invalidAmount": "Los montos deben ser números positivos.",
+      "notify": "Avisar al cliente cuando cambie el estado",
+      "notifyHint": "Se envía un mensaje en la conversación al confirmar, preparar, despachar o entregar. Puedes desactivarlo en cada pedido."
+    },
+    "methods": {
+      "title": "Métodos de pago",
+      "description": "Se le muestran al cliente después de hacer su pedido. Los pagos se verifican a mano.",
+      "empty": "Aún no hay métodos de pago. Agrega Yape, Plin, una cuenta bancaria o efectivo.",
+      "add": "Agregar método de pago",
+      "newTitle": "Nuevo método de pago",
+      "editTitle": "Editar método de pago",
+      "editorHint": "Todo lo que escribas aquí lo verá el cliente.",
+      "name": "Nombre",
+      "namePlaceholder": "Yape, Plin, BCP…",
+      "nameRequired": "Escribe un nombre.",
+      "type": "Tipo",
+      "types": {
+        "qr": "Código QR (billetera)",
+        "bank_transfer": "Transferencia bancaria",
+        "cash": "Efectivo",
+        "card_on_delivery": "Tarjeta contra entrega",
+        "other": "Otro"
+      },
+      "instructions": "Instrucciones",
+      "instructionsPlaceholder": "Titular: Juan Pérez\nNúmero: 987 654 321\nCCI: 002-…",
+      "qr": "Imagen del QR",
+      "qrAlt": "Código QR del método de pago",
+      "uploadImage": "Subir imagen",
+      "replaceImage": "Reemplazar",
+      "removeImage": "Quitar imagen",
+      "badImage": "Usa una imagen JPG, PNG, WebP o GIF.",
+      "imageTooBig": "La imagen pesa más de 8 MB.",
+      "uploadFailed": "No se pudo subir la imagen: {reason}",
+      "requiresProof": "Pedir comprobante",
+      "requiresProofHint": "Se le pide al cliente una captura del pago para verificarlo.",
+      "proofShort": "pide comprobante",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "activeFor": "Activar {name}",
+      "moveUp": "Subir {name}",
+      "moveDown": "Bajar {name}",
+      "edit": "Editar {name}",
+      "delete": "Eliminar {name}",
+      "deleteTitle": "¿Eliminar método de pago?",
+      "deleteDescription": "«{name}» dejará de mostrarse a los clientes. Los pedidos anteriores conservan su nombre.",
+      "deleteConfirm": "Eliminar",
+      "deleted": "Método de pago eliminado"
+    }
+  }
+}

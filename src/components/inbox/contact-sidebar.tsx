@@ -8,6 +8,9 @@ import { useI18n } from "@/i18n/client";
 import { es as esLocale, enUS } from "date-fns/locale";
 import { CHANNEL_TYPE_LABELS } from "@/lib/channels/capabilities";
 import { ChannelIcon } from "./channel-badge";
+import Link from "next/link";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { formatMoney, moneyLocale } from "@/lib/workspace/countries";
 import {
   Phone,
   Mail,
@@ -19,6 +22,8 @@ import {
   StickyNote,
   Plus,
   Link2,
+  ShoppingBag,
+  ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,6 +31,200 @@ import { format } from "date-fns";
 
 interface ContactSidebarProps {
   contact: Contact | null;
+}
+
+interface SidebarOrder {
+  id: string;
+  number: number;
+  status: string;
+  payment_status: string;
+  total: number;
+  currency: string;
+  created_at: string;
+}
+
+interface SidebarCartLine {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPrice: number | null;
+}
+
+const PAYMENT_TONE: Record<string, string> = {
+  unpaid: "text-slate-400",
+  awaiting_proof: "text-amber-300",
+  proof_received: "text-sky-300",
+  paid: "text-emerald-300",
+  refunded: "text-slate-400",
+};
+
+/** Recent orders of the contact + the open cart, for the agent. */
+function OrdersCard({ contactId }: { contactId: string }) {
+  const { workspace, modules } = useWorkspace();
+  if (!workspace) return null;
+  return <OrdersCardBody contactId={contactId} workspace={workspace} ordersOn={modules.orders} />;
+}
+
+function OrdersCardBody({
+  contactId,
+  workspace,
+  ordersOn,
+}: {
+  contactId: string;
+  workspace: NonNullable<ReturnType<typeof useWorkspace>["workspace"]>;
+  ordersOn: boolean;
+}) {
+  const { t, locale } = useI18n();
+  const [orders, setOrders] = useState<SidebarOrder[]>([]);
+  const [cart, setCart] = useState<SidebarCartLine[] | null>(null);
+  const money = useCallback(
+    (n: number, currency?: string) =>
+      formatMoney(n, currency || workspace.currency, moneyLocale(workspace)),
+    [workspace],
+  );
+
+  const load = useCallback(async () => {
+    const supabase = createClient();
+    const [ordersRes, cartRes] = await Promise.all([
+      supabase
+        .from("orders")
+        .select("id, number, status, payment_status, total, currency, created_at")
+        .eq("workspace_id", workspace.id)
+        .eq("contact_id", contactId)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabase
+        .from("carts")
+        .select(
+          "id, cart_items(id, quantity, product:products(name, price), variant:product_variants(name, price))",
+        )
+        .eq("workspace_id", workspace.id)
+        .eq("contact_id", contactId)
+        .eq("status", "open")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    setOrders(
+      ((ordersRes.data ?? []) as SidebarOrder[]).map((o) => ({ ...o, total: Number(o.total) })),
+    );
+    type Row = {
+      id: string;
+      quantity: number;
+      product: { name: string; price: number | null } | null;
+      variant: { name: string; price: number | null } | null;
+    };
+    const rows = ((cartRes.data as { cart_items?: Row[] } | null)?.cart_items ?? []).filter(
+      (r) => r.product,
+    );
+    setCart(
+      rows.length
+        ? rows.map((r) => {
+            const price = r.variant?.price ?? r.product!.price;
+            return {
+              id: r.id,
+              name: r.variant ? `${r.product!.name} (${r.variant.name})` : r.product!.name,
+              quantity: r.quantity,
+              unitPrice: price === null || price === undefined ? null : Number(price),
+            };
+          })
+        : null,
+    );
+  }, [contactId, workspace.id]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`sidebar-orders-${contactId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders", filter: `contact_id=eq.${contactId}` },
+        () => void load(),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [contactId, load]);
+
+  if (!ordersOn && orders.length === 0 && !cart) return null;
+
+  const subtotal = cart?.reduce((a, l) => a + (l.unitPrice ?? 0) * l.quantity, 0) ?? 0;
+  const dateLocale = locale === "es" ? esLocale : enUS;
+
+  return (
+    <>
+      <div className="my-4 border-t border-slate-800" />
+      <section aria-labelledby="sidebar-orders-title">
+        <h4
+          id="sidebar-orders-title"
+          className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-slate-500"
+        >
+          <ShoppingBag className="h-3 w-3" aria-hidden="true" />
+          {t("inbox.sidebar.orders.title")}
+        </h4>
+
+        {cart && (
+          <div className="mt-2 rounded-lg border border-dashed border-slate-700 px-3 py-2">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-slate-300">
+              <ShoppingCart className="h-3 w-3" aria-hidden="true" />
+              {t("inbox.sidebar.orders.openCart")}
+            </p>
+            <ul className="mt-1 space-y-0.5">
+              {cart.map((l) => (
+                <li key={l.id} className="flex justify-between gap-2 text-xs text-slate-400">
+                  <span className="min-w-0 truncate">
+                    {l.quantity}× {l.name}
+                  </span>
+                  {l.unitPrice !== null && (
+                    <span className="shrink-0 tabular-nums">{money(l.unitPrice * l.quantity)}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 flex justify-between border-t border-slate-800 pt-1 text-xs text-slate-300">
+              <span>{t("inbox.sidebar.orders.subtotal")}</span>
+              <span className="tabular-nums">{money(subtotal)}</span>
+            </p>
+          </div>
+        )}
+
+        <div className="mt-2 space-y-2">
+          {orders.length === 0 ? (
+            <p className="px-1 text-xs text-slate-600">{t("inbox.sidebar.orders.none")}</p>
+          ) : (
+            orders.map((o) => (
+              <Link
+                key={o.id}
+                href={`/orders?order=${o.id}`}
+                className="block rounded-lg bg-slate-800 px-3 py-2 transition-colors hover:bg-slate-700"
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-white">#{o.number}</span>
+                  <span className="text-sm tabular-nums text-slate-200">
+                    {money(o.total, o.currency)}
+                  </span>
+                </span>
+                <span className="mt-1 flex items-center justify-between gap-2 text-[11px]">
+                  <span className="rounded-full bg-slate-700 px-1.5 py-0.5 text-slate-200">
+                    {t(`inbox.sidebar.orders.status.${o.status}`)}
+                  </span>
+                  <span className={PAYMENT_TONE[o.payment_status] ?? "text-slate-400"}>
+                    {t(`inbox.sidebar.orders.payment.${o.payment_status}`)}
+                  </span>
+                </span>
+                <span className="mt-0.5 block text-[10px] text-slate-500">
+                  {format(new Date(o.created_at), "d MMM HH:mm", { locale: dateLocale })}
+                </span>
+              </Link>
+            ))
+          )}
+        </div>
+      </section>
+    </>
+  );
 }
 
 export function ContactSidebar({ contact }: ContactSidebarProps) {
@@ -209,6 +408,8 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
               </div>
             </>
           )}
+
+          <OrdersCard key={contact.id} contactId={contact.id} />
 
           {/* Divider */}
           <div className="my-4 border-t border-slate-800" />

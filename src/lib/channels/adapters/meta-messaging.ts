@@ -30,6 +30,23 @@ function toMessage(content: OutboundContent): Record<string, unknown> {
       }
       return { text: numberedMenu(content.text, options) }
     }
+    case 'carousel':
+      // Generic template: up to 10 cards with image, title, subtitle and
+      // up to 3 postback buttons (Messenger and Instagram).
+      return {
+        attachment: {
+          type: 'template',
+          payload: {
+            template_type: 'generic',
+            elements: content.cards.slice(0, 10).map((c) => ({
+              title: c.title.slice(0, 80),
+              ...(c.subtitle ? { subtitle: c.subtitle.slice(0, 80) } : {}),
+              image_url: c.imageUrl,
+              buttons: c.buttons.slice(0, 3).map((b) => ({ type: 'postback', title: b.title.slice(0, 20), payload: b.id })),
+            })),
+          },
+        },
+      }
     case 'template':
       throw new ChannelSendError('Templates are only available on WhatsApp', 'unsupported')
   }

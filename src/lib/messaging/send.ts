@@ -33,6 +33,7 @@ export function contentPreview(content: OutboundContent): string {
       return content.caption ?? `[${content.mediaType}]`
     case 'buttons':
     case 'list':
+    case 'carousel':
       return content.text
     case 'template':
       return `[Template: ${content.templateName}]`
@@ -47,6 +48,7 @@ function dbContentType(content: OutboundContent): string {
       return content.mediaType
     case 'buttons':
     case 'list':
+    case 'carousel':
       return 'interactive'
     case 'template':
       return 'template'
@@ -149,6 +151,7 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
         ...(input.metadata ?? {}),
         ...(content.type === 'buttons' ? { options: content.options } : {}),
         ...(content.type === 'list' ? { sections: content.sections, button_label: content.buttonLabel } : {}),
+        ...(content.type === 'carousel' ? { cards: content.cards } : {}),
         ...(error ? { error } : {}),
       },
     })

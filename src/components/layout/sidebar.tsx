@@ -10,6 +10,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useT } from "@/i18n/client";
 import { WorkspaceSwitcher } from "./workspace-switcher";
+import { usePendingOrders } from "@/components/orders/use-pending-orders";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -33,6 +34,7 @@ import {
   Radio,
   Bot,
   Package,
+  ShoppingBag,
 } from "lucide-react";
 import {
   Avatar,
@@ -57,6 +59,8 @@ interface NavItem {
    * Purely informational — doesn't affect routing or access.
    */
   beta?: boolean;
+  /** Small count chip (e.g. new orders). Hidden when 0. */
+  badge?: number;
 }
 
 const navItems: NavItem[] = [
@@ -85,6 +89,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
   const { profile, signOut } = useAuth();
   const { modules, label, can } = useWorkspace();
   const t = useT();
+  const pendingOrders = usePendingOrders();
 
   // Business section: only the modules this workspace's industry uses,
   // named with the industry's own nouns (Doctors, Barbers, Teachers...).
@@ -95,6 +100,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     ...(modules.staff ? [{ href: "/business/staff", label: label("staffPlural"), icon: UserRound }] : []),
     ...(modules.services ? [{ href: "/business/services", label: label("servicePlural"), icon: BriefcaseBusiness }] : []),
     ...(modules.products ? [{ href: "/catalog", label: label("productPlural"), icon: Package }] : []),
+    ...(modules.orders ? [{ href: "/orders", label: t("orders.navTitle"), icon: ShoppingBag, badge: pendingOrders }] : []),
     { href: "/business/faqs", label: t("nav.faqs"), icon: FileQuestion },
     { href: "/business/logs", label: t("nav.aiLogs"), icon: History },
   ];
@@ -248,6 +254,14 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                   >
                     <item.icon className="h-4 w-4" />
                     <span className="flex-1">{item.label}</span>
+                    {!!item.badge && (
+                      <span
+                        aria-label={t("orders.navBadge", { count: item.badge })}
+                        className="min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[10px] font-semibold leading-none text-primary-foreground"
+                      >
+                        {item.badge > 99 ? "99+" : item.badge}
+                      </span>
+                    )}
                   </Link>
                 </li>
               );

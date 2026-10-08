@@ -30,7 +30,9 @@
       typing: 'Escribiendo…', tooMany: 'Demasiados mensajes. Espera un momento.',
       tooLong: 'El mensaje es demasiado largo (máx. 2000 caracteres).', unread: 'mensajes nuevos',
       offline: 'Sin conexión. Reintentando…', image: 'Imagen', file: 'Archivo adjunto', options: 'Opciones',
-      error: 'Algo salió mal. Inténtalo de nuevo.'
+      error: 'Algo salió mal. Inténtalo de nuevo.', attach: 'Adjuntar imagen', prev: 'Anterior', next: 'Siguiente',
+      cards: 'Productos', of: 'de', closeImg: 'Cerrar imagen', imgType: 'Solo imágenes JPG, PNG o WebP.',
+      imgSize: 'La imagen supera los 5 MB.', noConv: 'Escribe un mensaje antes de enviar una imagen.'
     },
     en: {
       open: 'Open chat', close: 'Close chat', placeholder: 'Type a message…',
@@ -41,7 +43,9 @@
       typing: 'Typing…', tooMany: 'Too many messages. Please wait a moment.',
       tooLong: 'The message is too long (max. 2000 characters).', unread: 'new messages',
       offline: 'Connection lost. Retrying…', image: 'Image', file: 'Attachment', options: 'Options',
-      error: 'Something went wrong. Please try again.'
+      error: 'Something went wrong. Please try again.', attach: 'Attach image', prev: 'Previous', next: 'Next',
+      cards: 'Products', of: 'of', closeImg: 'Close image', imgType: 'Only JPG, PNG or WebP images.',
+      imgSize: 'The image is larger than 5 MB.', noConv: 'Send a message before sending an image.'
     }
   };
   var langAttr = script.getAttribute('data-lang') || navigator.language || 'es';
@@ -74,7 +78,7 @@
     return n;
   }
   function api(path, opts) {
-    return fetch(API + path, Object.assign({ credentials: 'omit', mode: 'cors' }, opts)).then(function (r) {
+    return fetch(API + path, Object.assign({ credentials: 'omit', mode: 'cors', cache: 'no-store' }, opts)).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (b) {
         if (!r.ok) { var e = new Error(b.error || 'http_' + r.status); e.status = r.status; throw e; }
         return b;
@@ -113,6 +117,7 @@
   // ---------------------------------------------------------------- icons
   var ICON_CHAT = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
   var ICON_X = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  var ICON_CLIP = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>';
   var ICON_SEND = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>';
 
   // ---------------------------------------------------------------- styles
@@ -153,6 +158,24 @@
     '.chip{border:1.5px solid var(--brand);background:#fff;color:#111827;border-radius:999px;padding:6px 12px;cursor:pointer;text-align:left}',
     '.chip:hover:not(:disabled){background:var(--brand);color:var(--on)}',
     '.chip:disabled{opacity:.55;cursor:default}',
+    '.car{align-self:stretch;position:relative;margin:0 -14px;padding:0}',
+    '.track{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 14px;padding:2px 14px 6px;scrollbar-width:thin;overscroll-behavior-x:contain}',
+    '.card{flex:0 0 200px;scroll-snap-align:start;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}',
+    '.card img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#f1f5f9}',
+    '.card .cb{padding:8px 10px;display:flex;flex-direction:column;gap:6px;flex:1}',
+    '.card h3{margin:0;font-size:14px;font-weight:650;line-height:1.3}.card p{margin:0;font-size:12.5px;color:#475569}',
+    '.cbtn{border:1.5px solid var(--brand);background:#fff;color:#111827;border-radius:8px;padding:6px 8px;cursor:pointer;font-weight:600}',
+    '.cbtn:hover{background:var(--brand);color:var(--on)}',
+    '.cbtn:first-of-type{margin-top:auto}',
+    '.nav{display:flex;justify-content:flex-end;gap:6px;padding:0 14px}',
+    '.nav button{width:32px;height:32px;border-radius:50%;border:1px solid #94a3b8;background:#fff;cursor:pointer;font-size:18px;line-height:1}',
+    '.nav button:disabled{opacity:.4;cursor:default}',
+    '.clip{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:transparent;color:#334155;display:flex;align-items:center;justify-content:center;cursor:pointer}',
+    '.clip:hover{background:#f1f5f9}',
+    '.lb{position:absolute;inset:0;z-index:5;background:rgba(15,23,42,.96);display:flex;align-items:center;justify-content:center;padding:48px 12px 12px}',
+    '.lb img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;background:#fff}',
+    '.lb button{position:absolute;top:8px;right:8px;color:#fff}',
+    '.lb :focus-visible{outline-color:#fff}',
     '.typing{align-self:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:10px 14px;display:flex;gap:4px}',
     '.typing i{width:6px;height:6px;border-radius:50%;background:#64748b;animation:b 1s infinite ease-in-out}',
     '.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}',
@@ -221,7 +244,13 @@
     });
     ui.sendBtn = el('button', { type: 'submit', class: 'send', 'aria-label': T.send });
     ui.sendBtn.innerHTML = ICON_SEND;
-    ui.composer = el('form', { class: 'composer', onsubmit: function (e) { e.preventDefault(); submitComposer(); } }, [ui.input, ui.sendBtn]);
+    ui.file = el('input', {
+      type: 'file', accept: 'image/jpeg,image/png,image/webp', hidden: true, tabindex: '-1',
+      onchange: function () { var f = ui.file.files && ui.file.files[0]; ui.file.value = ''; if (f) sendImage(f); }
+    });
+    var clip = el('button', { type: 'button', class: 'clip', 'aria-label': T.attach, title: T.attach, onclick: function () { ui.file.click(); } });
+    clip.innerHTML = ICON_CLIP;
+    ui.composer = el('form', { class: 'composer', onsubmit: function (e) { e.preventDefault(); submitComposer(); } }, [clip, ui.file, ui.input, ui.sendBtn]);
 
     var foot = el('div', { class: 'foot' }, [
       document.createTextNode(T.powered + ' '),
@@ -443,7 +472,7 @@
       // Our own optimistic bubble coming back: adopt it instead of duplicating.
       for (var i = 0; i < state.pending.length; i++) {
         var p = state.pending[i];
-        if (!p.id && p.text === m.content_text) { p.id = m.id; return; }
+        if (!p.id && (p.img ? m.content_type === 'image' : p.text === m.content_text)) { p.id = m.id; return; }
       }
     } else {
       hideTyping();
@@ -470,13 +499,17 @@
     var out = m.sender_type === 'customer';
     var node = el('div', { class: 'msg ' + (out ? 'out' : 'in') + (extraClass ? ' ' + extraClass : '') });
     node.append(el('span', { class: 'sr', text: (out ? T.you : state.cfg.business_name || state.cfg.title) + ': ' }));
-    var url = safeUrl(m.media_url);
+    var url = m.local || safeUrl(m.media_url);
     var text = m.content_text || '';
     if (url && /^\[\w+\]$/.test(text)) text = '';
     if (url && m.content_type === 'image') {
-      node.append(el('a', { href: url, target: '_blank', rel: 'noopener noreferrer' }, [
-        el('img', { src: url, alt: text || T.image, loading: 'lazy' })
-      ]));
+      var alt = text || T.image;
+      var a = el('a', { href: url, target: '_blank', rel: 'noopener noreferrer', onclick: function (e) {
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+        e.preventDefault();
+        viewImage(url, alt, a);
+      } }, [el('img', { src: url, alt: alt, loading: 'lazy' })]);
+      node.append(a);
     } else if (url) {
       node.append(el('a', { href: url, target: '_blank', rel: 'noopener noreferrer', text: (m.metadata && m.metadata.filename) || T.file }));
       if (text) node.append(document.createElement('br'));
@@ -485,9 +518,64 @@
     if (m.created_at) node.append(el('time', { class: 'time', datetime: m.created_at, text: fmtTime(m.created_at) }));
     if (out) disableChips();
     ui.log.append(node);
-    if (!out) renderChips(m);
+    if (!out) { renderCards(m); renderChips(m); }
     scrollDown(out);
     return node;
+  }
+
+  // Full-size image inside the panel (payment QR, product photos).
+  function viewImage(url, alt, opener) {
+    var shut = function () { box.remove(); if (opener && opener.isConnected) opener.focus(); };
+    var x = el('button', { type: 'button', class: 'icon-btn', 'aria-label': T.closeImg, onclick: shut });
+    x.innerHTML = ICON_X;
+    var box = el('div', {
+      class: 'lb', role: 'dialog', 'aria-modal': 'true', 'aria-label': alt,
+      onclick: function (e) { if (e.target === box) shut(); },
+      onkeydown: function (e) {
+        if (e.key === 'Escape') { e.stopPropagation(); shut(); }
+        else if (e.key === 'Tab') { e.preventDefault(); x.focus(); }
+      }
+    }, [el('img', { src: url, alt: alt }), x]);
+    ui.panel.append(box);
+    x.focus();
+  }
+
+  // Product carousel: horizontal scroll-snap track + prev/next for keyboard and mouse.
+  function renderCards(m) {
+    var cards = (m.metadata || {}).cards;
+    if (!Array.isArray(cards) || !cards.length) return;
+    var track = el('div', { class: 'track' });
+    cards.forEach(function (c, i) {
+      if (!c || !c.title) return;
+      var img = safeUrl(c.imageUrl);
+      var body = el('div', { class: 'cb' }, [el('h3', { text: c.title }), c.subtitle ? el('p', { text: c.subtitle }) : null]);
+      (c.buttons || []).forEach(function (b) {
+        if (!b || !b.title) return;
+        body.append(el('button', {
+          type: 'button', class: 'cbtn', text: b.title, 'aria-label': b.title + ': ' + c.title,
+          onclick: function () { send(String(b.title), b.id != null ? String(b.id) : null); }
+        }));
+      });
+      track.append(el('div', { class: 'card', role: 'group', 'aria-roledescription': 'slide', 'aria-label': (i + 1) + ' ' + T.of + ' ' + cards.length + ': ' + c.title }, [
+        img ? el('img', { src: img, alt: '', loading: 'lazy', decoding: 'async' }) : null, body
+      ]));
+    });
+    var step = function (dir) {
+      var card = track.querySelector('.card');
+      var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      track.scrollBy({ left: dir * ((card ? card.offsetWidth : 200) + 10), behavior: reduce ? 'auto' : 'smooth' });
+    };
+    var prev = el('button', { type: 'button', 'aria-label': T.prev, text: '‹', onclick: function () { step(-1); } });
+    var next = el('button', { type: 'button', 'aria-label': T.next, text: '›', onclick: function () { step(1); } });
+    var sync = function () {
+      prev.disabled = track.scrollLeft <= 2;
+      next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+    };
+    track.addEventListener('scroll', sync, { passive: true });
+    var nodes = [track];
+    if (cards.length > 1) nodes.push(el('div', { class: 'nav' }, [prev, next]));
+    ui.log.append(el('section', { class: 'car', 'aria-roledescription': 'carousel', 'aria-label': T.cards }, nodes));
+    requestAnimationFrame(sync);
   }
 
   function renderChips(m) {
@@ -548,13 +636,34 @@
   }
 
   function send(text, replyId) {
-    var p = { id: null, text: text };
-    state.pending.push(p);
     var node = renderMessage({ id: 'tmp', sender_type: 'customer', content_type: 'text', content_text: text, created_at: new Date().toISOString(), metadata: {} });
+    deliver({ id: null, text: text }, node, function () {
+      return post('/messages', { visitor_token: state.stored.t, text: text, reply_id: replyId || undefined });
+    }, function () { send(text, replyId); });
+  }
+
+  // Payment screenshots & co.: upload to /upload, then post the stored path.
+  function sendImage(file) {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return alertFail(T.imgType);
+    if (file.size > 5 * 1024 * 1024) return alertFail(T.imgSize);
+    var local = URL.createObjectURL(file);
+    var node = renderMessage({ id: 'tmp', sender_type: 'customer', content_type: 'image', local: local, created_at: new Date().toISOString(), metadata: {} });
+    deliver({ id: null, img: true }, node, function () {
+      var fd = new FormData();
+      fd.append('visitor_token', state.stored.t);
+      fd.append('file', file);
+      return api('/upload', { method: 'POST', body: fd }).then(function (r) {
+        return post('/messages', { visitor_token: state.stored.t, image_path: r.path });
+      });
+    }, function () { sendImage(file); }, true);
+  }
+
+  function deliver(p, node, request, retry, isImage) {
+    state.pending.push(p);
     state.sending++;
     typingTimer = setTimeout(showTyping, 700);
     ensureSession()
-      .then(function () { return post('/messages', { visitor_token: state.stored.t, text: text, reply_id: replyId || undefined }); })
+      .then(request)
       .then(function (r) {
         p.id = p.id || r.message_id;
         state.seen[r.message_id] = true;
@@ -566,10 +675,10 @@
         state.pending.splice(state.pending.indexOf(p), 1);
         if (err.status === 401) resetVisitor();
         node.classList.add('failed');
-        var retry = el('button', { type: 'button', text: T.retry, onclick: function () { fail.remove(); node.remove(); send(text, replyId); } });
-        var fail = el('div', { class: 'fail', role: 'alert' }, [
-          document.createTextNode(err.status === 429 ? T.tooMany : err.status === 413 ? T.tooLong : T.failed), retry
-        ]);
+        var s = err.status;
+        var msg = s === 429 ? T.tooMany : s === 413 ? (isImage ? T.imgSize : T.tooLong) : s === 415 ? T.imgType : s === 409 ? T.noConv : T.failed;
+        var again = el('button', { type: 'button', text: T.retry, onclick: function () { fail.remove(); node.remove(); retry(); } });
+        var fail = el('div', { class: 'fail', role: 'alert' }, [document.createTextNode(msg), s === 409 || s === 415 || s === 413 ? null : again]);
         node.after(fail);
         scrollDown(true);
       })

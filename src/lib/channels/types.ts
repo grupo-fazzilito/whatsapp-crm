@@ -59,12 +59,28 @@ export type OutboundContent =
       footer?: string
     }
   | {
+      /** Swipeable product cards. Each card: image, text and the same buttons. */
+      type: 'carousel'
+      text: string
+      cards: CarouselCard[]
+    }
+  | {
       type: 'template'
       templateName: string
       language?: string
       params?: string[]
       components?: unknown[]
     }
+
+export interface CarouselCard {
+  /** Stable id (e.g. product id) — for the inbox/widget rendering. */
+  id: string
+  imageUrl: string
+  title: string
+  subtitle?: string
+  /** 1–3 quick-reply buttons; every card must have the same count. */
+  buttons: InteractiveOption[]
+}
 
 export interface SendContext {
   channel: LoadedChannel

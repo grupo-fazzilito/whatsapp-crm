@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import { ingestMessage } from '@/lib/messaging/ingest'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import {
   anyOriginCors,
   cleanText,
@@ -16,6 +17,9 @@ import {
 export const maxDuration = 60
 
 const MAX_TEXT = 2000
+/** Signed URL stored on the message (the inbox re-signs on display). */
+const IMAGE_URL_TTL_S = 60 * 60 * 24 * 7
+const UPLOAD_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/
 
 export function OPTIONS(req: Request) {
   return preflight(req)
@@ -23,6 +27,7 @@ export function OPTIONS(req: Request) {
 
 /**
  * POST /api/webchat/messages {visitor_token, text, reply_id?}
+ *   or {visitor_token, image_path, text?} — image_path from /api/webchat/upload
  * → {message_id, conversation_id}
  * Stored through the same ingest pipeline as every channel (AI agent →
  * flows → automations run before this returns).
@@ -46,8 +51,30 @@ export async function POST(req: Request) {
     return wcJson({ error: 'text_too_long', max: MAX_TEXT }, 413, v.cors)
   }
   const text = cleanText(body.text, MAX_TEXT)
-  if (!text) return wcJson({ error: 'empty_text' }, 400, v.cors)
-  const replyId = cleanText(body.reply_id, 200)
+  const imagePath = body.image_path === undefined || body.image_path === null ? null : body.image_path
+
+  let mediaUrl: string | null = null
+  if (imagePath !== null) {
+    // Only objects uploaded through /api/webchat/upload for this visitor's conversation.
+    const conversationId = await visitorConversationId(v.channel, v.visitorId)
+    const prefix = `${v.channel.workspace_id}/webchat/${conversationId}/`
+    if (
+      !conversationId ||
+      typeof imagePath !== 'string' ||
+      !imagePath.startsWith(prefix) ||
+      !UPLOAD_NAME.test(imagePath.slice(prefix.length))
+    ) {
+      return wcJson({ error: 'invalid_image' }, 400, v.cors)
+    }
+    const { data, error } = await supabaseAdmin()
+      .storage.from('attachments')
+      .createSignedUrl(imagePath, IMAGE_URL_TTL_S)
+    if (error || !data?.signedUrl) return wcJson({ error: 'invalid_image' }, 400, v.cors)
+    mediaUrl = data.signedUrl
+  } else if (!text) {
+    return wcJson({ error: 'empty_text' }, 400, v.cors)
+  }
+  const replyId = mediaUrl ? null : cleanText(body.reply_id, 200)
 
   const outcome = await ingestMessage(v.channel, {
     kind: 'message',
@@ -55,8 +82,9 @@ export async function POST(req: Request) {
     from: { externalId: v.visitorId },
     externalMessageId: `wc_${randomUUID()}`,
     timestamp: Date.now(),
-    contentType: replyId ? 'interactive' : 'text',
+    contentType: mediaUrl ? 'image' : replyId ? 'interactive' : 'text',
     text,
+    mediaUrl,
     interactiveReplyId: replyId,
   })
   if (!outcome?.messageId) return wcJson({ error: 'store_failed' }, 500, v.cors)

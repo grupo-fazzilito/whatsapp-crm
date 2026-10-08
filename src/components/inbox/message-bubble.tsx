@@ -18,6 +18,11 @@ import {
   RotateCw,
   Info,
   ArrowRightLeft,
+  ShoppingCart,
+  Receipt,
+  PackageCheck,
+  Wallet,
+  BadgeCheck,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useI18n } from "@/i18n/client";
@@ -35,6 +40,8 @@ interface MessageBubbleProps {
   agentName?: string | null;
   /** Resend a failed text message. */
   onRetry?: () => void;
+  /** Customer image the bot took as payment proof. */
+  isPaymentProof?: boolean;
 }
 
 function StatusIcon({ status }: { status: Message["status"] }) {
@@ -274,6 +281,98 @@ function InteractiveOptions({ message }: { message: Message }) {
   );
 }
 
+// ── Product carousel (read-only preview of what the customer saw) ──
+
+interface CardLike {
+  id?: string;
+  imageUrl?: string;
+  title?: string;
+  subtitle?: string;
+  buttons?: OptionLike[];
+}
+
+function readCards(metadata: Message["metadata"]): CardLike[] {
+  const cards = (metadata as Record<string, unknown> | null | undefined)?.cards;
+  return Array.isArray(cards)
+    ? (cards as CardLike[]).filter((c) => c && typeof c.title === "string")
+    : [];
+}
+
+function CardsPreview({ cards }: { cards: CardLike[] }) {
+  const { t } = useI18n();
+  return (
+    <ul
+      className="mt-1.5 flex max-w-72 snap-x gap-2 overflow-x-auto pb-1"
+      aria-label={t("inbox.bubble.carousel", { count: cards.length })}
+    >
+      {cards.map((c, i) => (
+        <li
+          key={c.id ?? i}
+          className="w-32 shrink-0 snap-start overflow-hidden rounded-lg bg-black/15"
+        >
+          {c.imageUrl && /^https?:\/\//.test(c.imageUrl) ? (
+            <img
+              src={c.imageUrl}
+              alt=""
+              loading="lazy"
+              className="aspect-[4/3] w-full object-cover"
+            />
+          ) : (
+            <div className="flex aspect-[4/3] w-full items-center justify-center bg-black/10">
+              <ImageOff className="h-5 w-5 opacity-50" />
+            </div>
+          )}
+          <div className="p-1.5">
+            <p className="line-clamp-2 text-xs font-medium">{c.title}</p>
+            {c.subtitle && <p className="truncate text-[11px] opacity-80">{c.subtitle}</p>}
+            {Array.isArray(c.buttons) && c.buttons.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {c.buttons.map((b, j) => (
+                  <span
+                    key={b.id ?? j}
+                    className="rounded border border-white/30 px-1 py-px text-[10px]"
+                  >
+                    {b.title}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ── Commerce events (cart / order / payment) ────────────────────────
+
+const COMMERCE_EVENTS = {
+  cart_summary: ShoppingCart,
+  order_placed: Receipt,
+  order_status: PackageCheck,
+  payment_options: Wallet,
+  payment_method: Wallet,
+  payment_proof: BadgeCheck,
+} as const;
+
+type CommerceEvent = keyof typeof COMMERCE_EVENTS;
+
+function commerceEvent(metadata: Message["metadata"]): CommerceEvent | null {
+  const ev = (metadata as Record<string, unknown> | null | undefined)?.event;
+  return typeof ev === "string" && ev in COMMERCE_EVENTS ? (ev as CommerceEvent) : null;
+}
+
+function EventBadge({ event }: { event: CommerceEvent }) {
+  const { t } = useI18n();
+  const Icon = COMMERCE_EVENTS[event];
+  return (
+    <span className="mb-1 inline-flex items-center gap-1 rounded bg-black/20 px-1.5 py-0.5 text-[10px] font-medium">
+      <Icon className="h-3 w-3" aria-hidden="true" />
+      {t(`inbox.bubble.events.${event}`)}
+    </span>
+  );
+}
+
 function MessageContent({ message }: { message: Message }) {
   const { t } = useI18n();
   const isOutbound = message.sender_type !== "customer";
@@ -363,11 +462,13 @@ function MessageContent({ message }: { message: Message }) {
       // Outbound: the bot's buttons / list — show the text and the
       // options as read-only chips. Inbound: the customer tapped one.
       if (isOutbound) {
+        const cards = readCards(message.metadata);
         return (
           <div>
             <p className="whitespace-pre-wrap break-words text-sm">
               {message.content_text}
             </p>
+            {cards.length > 0 && <CardsPreview cards={cards} />}
             <InteractiveOptions message={message} />
           </div>
         );
@@ -405,6 +506,7 @@ export function MessageBubble({
   onToggleReaction,
   agentName,
   onRetry,
+  isPaymentProof,
 }: MessageBubbleProps) {
   const { t } = useI18n();
   const time = format(new Date(message.created_at), "HH:mm");
@@ -444,6 +546,7 @@ export function MessageBubble({
   const failed = message.status === "failed";
   const meta = (message.metadata ?? {}) as Record<string, unknown>;
   const errorText = typeof meta.error === "string" ? meta.error : null;
+  const event = isAgent ? commerceEvent(message.metadata) : null;
 
   // Row alignment + width cap are owned by <MessageActions> so its hover
   // group matches the bubble's content area, not the full row.
@@ -473,6 +576,13 @@ export function MessageBubble({
       >
         {reply && (
           <ReplyQuote authorLabel={reply.authorLabel} preview={reply.preview} />
+        )}
+        {event && <EventBadge event={event} />}
+        {isPaymentProof && (
+          <span className="mb-1 inline-flex items-center gap-1 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
+            <BadgeCheck className="h-3 w-3" aria-hidden="true" />
+            {t("inbox.bubble.paymentProof")}
+          </span>
         )}
         <MessageContent message={message} />
         <div

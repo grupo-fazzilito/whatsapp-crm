@@ -11,6 +11,8 @@ import { businessWindows } from './slots'
 import { toMinutes, zonedNow } from './time'
 import { getProducts, searchProducts, type CatalogQuery } from '@/lib/catalog/search'
 import { formatMoney, moneyLocale } from '@/lib/workspace/countries'
+import { addToCart, cartItems, getOpenCart, setLineQuantity } from '@/lib/orders/service'
+import { ordersEnabled, sendCartSummary, sendProductCarousel, startCheckout, type CommerceCtx } from '@/lib/orders/chat'
 import type { AiAgentRow, BookingDraft, ConversationAiState } from './types'
 
 export const HANDOVER_PAUSE_MS = 12 * 60 * 60 * 1000
@@ -284,7 +286,13 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     .limit(5)
 
   const targets = transferTargets(agent, ctx)
+  const sells = agent.skills.includes('orders') && ordersEnabled(ctx.workspace)
+  const openCart = sells ? await getOpenCart(input.workspaceId, input.conversationId, input.contactId, false) : null
+  const openLines = openCart ? await cartItems(openCart.id) : []
   const promptInput = {
+    cart: openCart
+      ? { lines: openLines, subtotal: openLines.reduce((a, l) => a + l.unitPrice * l.quantity, 0) }
+      : null,
     ctx,
     agent,
     transferTargets: targets,
@@ -434,11 +442,76 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     await setState(input.conversationId, { ai_state: { ...state, booking: draft } })
   }
 
-  // 8) Plain answer (+ product photos the model chose to show).
-  await reply(input, agent, out.reply, false)
-  await sendProductCards(input, agent, ctx, out.show_product_ids)
+  // 8) Plain answer, then what the model asked the system to do:
+  //    cart changes, product carousel/photos, cart summary or checkout.
+  if (out.reply?.trim()) await reply(input, agent, out.reply, false)
+  const commerce: CommerceCtx = {
+    workspace: ctx.workspace,
+    channel: input.channel,
+    conversationId: input.conversationId,
+    contactId: input.contactId,
+    aiAgentId: agent.id,
+  }
+  if (sells && out.cart_ops?.length) await applyCartOps(commerce, out.cart_ops)
+  if (sells && out.show_product_ids?.length) {
+    const shown = await sendProductCarousel(commerce, out.show_product_ids)
+    if (!shown) await sendProductCards(input, agent, ctx, out.show_product_ids)
+  } else {
+    await sendProductCards(input, agent, ctx, out.show_product_ids)
+  }
+  if (sells && out.order_action === 'checkout') await startCheckout(commerce)
+  else if (sells && (out.order_action === 'show_cart' || out.cart_ops?.length)) {
+    await sendCartSummary(commerce, await getOpenCart(input.workspaceId, input.conversationId, input.contactId, false))
+  }
   await log(input, agent, out.reply, out.intent ?? 'other', out.confidence ?? 0)
   return true
+}
+
+const UUID_ANY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** Executes the model's cart changes; problems (stock, price) are told to the customer. */
+async function applyCartOps(c: CommerceCtx, ops: NonNullable<AgentOutput['cart_ops']>) {
+  const cart = await getOpenCart(c.workspace.id, c.conversationId, c.contactId, true)
+  if (!cart) return
+  const db = supabaseAdmin()
+  const problems: string[] = []
+  for (const op of ops.slice(0, 10)) {
+    if (!op?.product_id || !UUID_ANY.test(op.product_id)) continue
+    let variantId: string | null = null
+    if (op.variant_name?.trim()) {
+      const { data: variants } = await db.from('product_variants').select('id, name').eq('product_id', op.product_id).eq('is_active', true)
+      const want = norm(op.variant_name)
+      variantId = variants?.find((v) => norm(v.name) === want)?.id ?? variants?.find((v) => norm(v.name).includes(want))?.id ?? null
+    }
+    const qty = Math.max(0, Math.round(Number(op.quantity ?? 1)))
+    if (op.op === 'remove' || (op.op === 'set' && qty === 0)) {
+      await setLineQuantity(cart, op.product_id, variantId, 0)
+    } else if (op.op === 'set') {
+      await setLineQuantity(cart, op.product_id, variantId, qty)
+    } else {
+      const r = await addToCart(cart, op.product_id, variantId, qty || 1)
+      if (!r.ok) {
+        const lang = c.workspace.locale === 'en' ? 'en' : 'es'
+        problems.push(
+          r.reason === 'out_of_stock'
+            ? `${r.name}: ${lang === 'en' ? 'out of stock' : 'agotado'}`
+            : r.reason === 'not_enough'
+              ? `${r.name}: ${lang === 'en' ? `only ${r.available} left` : `solo quedan ${r.available}`}`
+              : r.reason === 'price_on_request'
+                ? `${r.name}: ${lang === 'en' ? 'price on request' : 'precio a consultar'}`
+                : lang === 'en' ? 'a product is no longer available' : 'un producto ya no está disponible',
+        )
+      }
+    }
+  }
+  if (problems.length) {
+    await sendMessage({
+      workspaceId: c.workspace.id,
+      conversationId: c.conversationId,
+      content: { type: 'text', text: `⚠️ ${problems.join(' · ')}` },
+      sender: { type: 'bot', aiAgentId: c.aiAgentId ?? null },
+    })
+  }
 }
 
 // \b doesn't work after accented letters ("sí"), so end on space/punctuation.
