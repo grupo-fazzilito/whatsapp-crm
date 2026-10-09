@@ -33,6 +33,7 @@ describe.skipIf(!pg)('platform webhooks on PostgreSQL', async () => {
   const secret = 'whsec_platform_test'
   let endpointId = ''
   let otherId = ''
+  const extra: string[] = []
   let ws: Awaited<ReturnType<typeof workspace>>
 
   beforeAll(async () => {
@@ -48,7 +49,7 @@ describe.skipIf(!pg)('platform webhooks on PostgreSQL', async () => {
   })
   afterAll(async () => {
     await cleanup(ws)
-    await prisma.platform_webhook_endpoints.deleteMany({ where: { id: { in: [endpointId, otherId] } } })
+    await prisma.platform_webhook_endpoints.deleteMany({ where: { id: { in: [endpointId, otherId, ...extra] } } })
     server.close()
     await prisma.$disconnect()
   })
@@ -93,8 +94,9 @@ describe.skipIf(!pg)('platform webhooks on PostgreSQL', async () => {
   it('delivers signed envelopes in order and records the result', async () => {
     const pending = await prisma.platform_webhook_deliveries.count({ where: { endpoint_id: { in: [endpointId, otherId] }, status: 'pending' } })
     const stats = await platform.processPlatformWebhookDeliveries(500)
-    expect(stats.delivered).toBe(pending)
-    expect(received.length).toBe(pending)
+    // >= : tests running in parallel may queue more events meanwhile.
+    expect(stats.delivered).toBeGreaterThanOrEqual(pending)
+    expect(received.length).toBe(stats.delivered)
     const first = received[0]
     expect(verifySignature(secret, first.body, first.signature)).toBeTruthy()
     const env = JSON.parse(first.body)
@@ -109,9 +111,13 @@ describe.skipIf(!pg)('platform webhooks on PostgreSQL', async () => {
     // A test ping does not count as an endpoint failure.
     expect((await prisma.platform_webhook_endpoints.findUnique({ where: { id: endpointId } }))!.failure_count).toBe(0)
 
+    // Own endpoint: other test files run in parallel and fill the '*' endpoint's queue.
+    const port = (server.address() as AddressInfo).port
+    const only = await prisma.platform_webhook_endpoints.create({ data: { url: `http://127.0.0.1:${port}/depleted`, events: ['tokens.depleted'], secret_encrypted: encrypt(secret) } })
+    extra.push(only.id)
     await platform.emitPlatformEvent(ws.workspaceId, 'tokens.depleted', { balance: 0 })
-    await platform.processPlatformWebhookDeliveries(50)
-    const failed = await prisma.platform_webhook_deliveries.findFirst({ where: { endpoint_id: endpointId, event_type: 'tokens.depleted' } })
+    await platform.processPlatformWebhookDeliveries(500)
+    const failed = await prisma.platform_webhook_deliveries.findFirst({ where: { endpoint_id: only.id, event_type: 'tokens.depleted' } })
     expect(failed).toMatchObject({ status: 'pending', attempts: 1, response_status: 500 })
 
     status = 200
