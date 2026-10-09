@@ -4,7 +4,7 @@ import { PrismaClient } from '@/generated/prisma/client'
 import { normalizeArgs } from './compat'
 import { resultCompat } from './result-compat'
 
-function createClient() {
+function createBaseClient(): PrismaClient {
   const connectionString = process.env.DATABASE_URL
   if (!connectionString) throw new Error('DATABASE_URL is not set')
   const adapter = new PrismaPg({
@@ -14,6 +14,10 @@ function createClient() {
     idleTimeoutMillis: 30_000,
   })
   return new PrismaClient({ adapter })
+}
+
+function createClient() {
+  return baseClient()
     .$extends({
       name: 'args-compat',
       query: {
@@ -31,7 +35,16 @@ function createClient() {
 export type Db = ReturnType<typeof createClient>
 
 // One connection pool per process (dev reloads reuse it).
-const globalForPrisma = globalThis as unknown as { prisma?: Db }
+const globalForPrisma = globalThis as unknown as { prisma?: Db; prismaBase?: PrismaClient }
+
+/**
+ * Plain Prisma client (no row reshaping): only for libraries that expect
+ * Prisma's own types, such as Better Auth's adapter. Shares the pool.
+ */
+export function baseClient(): PrismaClient {
+  if (!globalForPrisma.prismaBase) globalForPrisma.prismaBase = createBaseClient()
+  return globalForPrisma.prismaBase
+}
 
 function client(): Db {
   if (!globalForPrisma.prisma) globalForPrisma.prisma = createClient()
