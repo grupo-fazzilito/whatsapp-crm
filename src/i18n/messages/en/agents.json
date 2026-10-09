@@ -44,7 +44,9 @@
       "afterHoursPlaceholder": "e.g. We're closed right now; we'll reply tomorrow from 9:00.",
       "escalation": "Words that hand over to a person",
       "escalationPlaceholder": "Type and press Enter or comma",
-      "escalationHelp": "If the customer writes any of them, the agent stops replying and notifies your team."
+      "escalationHelp": "If the customer writes any of them, the agent stops replying and notifies your team.",
+      "training_context": "Training context",
+      "description": "What it handles"
     },
     "tone": {
       "friendly": "Friendly",
@@ -74,6 +76,75 @@
       "orders": "Takes orders and checks their status.",
       "handover": "Transfers the conversation to your team when needed.",
       "router": "Detects the intent and transfers to the right agent."
+    },
+    "create": {
+      "title": "New agent",
+      "description": "Pick a starting point. You can change everything later.",
+      "creating": "Creating…",
+      "templates": {
+        "receptionist": "Receptionist",
+        "sales": "Sales assistant",
+        "real_estate": "Real estate advisor",
+        "support": "Support",
+        "router": "Front desk (router)",
+        "blank": "Blank"
+      },
+      "blankDescription": "Start from scratch with your own instructions."
+    },
+    "page": {
+      "back": "Agents",
+      "tabs": {
+        "training": "Training",
+        "test": "Test",
+        "settings": "Settings"
+      },
+      "configure": "Edit settings",
+      "notFound": "We couldn't find this agent.",
+      "channels": "Answers on",
+      "noChannels": "It doesn't answer any channel yet.",
+      "assign": "Assign in Channels",
+      "disabled": "Disabled: it doesn't answer customers."
+    },
+    "training": {
+      "title": "Training context",
+      "description": "Write what the agent must know about your business: products or services, prices, policies, delivery areas, FAQs and how you want it to talk. It is its main source: it answers from this and doesn't invent beyond it.",
+      "placeholder": "Example:\n• We are a bakery downtown, open Monday to Saturday 9 am to 8 pm.\n• Custom cakes need 48 hours' notice and a 50% deposit.\n• Delivery to the north side for $5.\n• Sugar-free cakes: yes, on request.\n• Be friendly and use emojis sparingly.",
+      "counter": "{n} / {max} characters",
+      "tooLong": "Over the {max}-character limit.",
+      "save": "Save training",
+      "saved": "Training saved",
+      "tips": "Tips",
+      "tip1": "Use short, concrete sentences, one idea per line.",
+      "tip2": "Include exact prices, hours and conditions: the agent will repeat them as written.",
+      "tip3": "After saving, try it in the Test tab with real customer questions.",
+      "alsoUses": "Besides this text, the agent already knows the hours, services, catalog and FAQs set up in the system.",
+      "unsaved": "Unsaved changes"
+    },
+    "test": {
+      "title": "Test agent",
+      "description": "Write as if you were a customer. You'll see the answer exactly as the chosen channel would show it.",
+      "channel": "Channel",
+      "placeholder": "Type a message…",
+      "send": "Send",
+      "reset": "New conversation",
+      "cost": "Each test message uses {cost} token(s) · Balance: {balance}",
+      "noCredits": "You have no tokens left to test the agent.",
+      "topup": "Top up",
+      "thinking": "Typing…",
+      "empty": "Ask something a customer would ask to see how it answers.",
+      "handover": "The agent would hand the conversation to a team member.",
+      "transfer": "The agent would hand the conversation to {name}.",
+      "booking": "Booking details so far",
+      "searched": "Searched the catalog: {q}",
+      "error": "The agent couldn't answer. Try again.",
+      "noProvider": "No AI provider is configured on the platform.",
+      "customer": "Customer",
+      "noteWhatsapp": "This is how the customer sees it on WhatsApp.",
+      "noteInstagram": "Instagram shows no bold text and cuts messages at 1,000 characters.",
+      "noteMessenger": "Messenger shows no bold text; photos arrive without text, so name and price go in a separate message.",
+      "noteWebchat": "This is how it looks in your website chat.",
+      "online": "online",
+      "viewOptions": "View options"
     }
   }
 }

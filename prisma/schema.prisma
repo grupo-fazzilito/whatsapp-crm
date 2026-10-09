@@ -30,6 +30,7 @@ model ai_agents {
   updated_at          DateTime?       @default(now()) @db.Timestamptz(6)
   description         String?
   transfer_agent_ids  String[]        @default([]) @db.Uuid
+  training_context    String?
   users               users?          @relation(fields: [created_by], references: [id], onUpdate: NoAction)
   workspaces          workspaces      @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   ai_chat_logs        ai_chat_logs[]
@@ -808,6 +809,18 @@ model custom_fields {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model dashboard_layouts {
+  workspace_id String     @db.Uuid
+  user_id      String     @db.Uuid
+  widgets      Json       @default("[]")
+  updated_at   DateTime   @default(now()) @db.Timestamptz(6)
+  users        users      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([workspace_id, user_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model deals {
   id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id             String?         @default(dbgenerated("app_user_id()")) @db.Uuid
@@ -1513,6 +1526,7 @@ model profiles {
   business_type     String?
   is_platform_admin Boolean   @default(false)
   locale            String    @default("es")
+  tour_completed_at DateTime? @db.Timestamptz(6)
   deals             deals[]
   users             users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
@@ -1673,6 +1687,45 @@ model staff_services {
   @@id([staff_id, service_id])
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model support_ticket_messages {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticket_id       String          @db.Uuid
+  workspace_id    String          @db.Uuid
+  author_id       String?         @db.Uuid
+  author_role     String
+  body            String
+  attachments     Json            @default("[]")
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  users           users?          @relation(fields: [author_id], references: [id], onUpdate: NoAction)
+  support_tickets support_tickets @relation(fields: [ticket_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces      workspaces      @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([ticket_id, created_at], map: "idx_support_ticket_messages_ticket")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model support_tickets {
+  id                      String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  number                  BigInt                    @unique @default(autoincrement())
+  workspace_id            String                    @db.Uuid
+  user_id                 String?                   @db.Uuid
+  subject                 String
+  category                String                    @default("other")
+  priority                String                    @default("normal")
+  status                  String                    @default("open")
+  last_message_at         DateTime                  @default(now()) @db.Timestamptz(6)
+  closed_at               DateTime?                 @db.Timestamptz(6)
+  created_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  support_ticket_messages support_ticket_messages[]
+  users                   users?                    @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces              workspaces                @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status, last_message_at(sort: Desc)], map: "idx_support_tickets_status")
+  @@index([workspace_id, last_message_at(sort: Desc)], map: "idx_support_tickets_ws")
+}
+
 model tags {
   id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id           String?             @default(dbgenerated("app_user_id()")) @db.Uuid
@@ -1787,6 +1840,7 @@ model users {
   credit_ledger                                               credit_ledger[]
   credit_lots                                                 credit_lots[]
   custom_fields                                               custom_fields[]
+  dashboard_layouts                                           dashboard_layouts[]
   deals                                                       deals[]
   flow_runs                                                   flow_runs[]
   flows                                                       flows[]
@@ -1807,6 +1861,8 @@ model users {
   quick_replies                                               quick_replies[]
   real_estate_routing_rules                                   real_estate_routing_rules[]
   staff                                                       staff[]
+  support_ticket_messages                                     support_ticket_messages[]
+  support_tickets                                             support_tickets[]
   tags                                                        tags[]
   tasks_tasks_assignee_user_idTousers                         tasks[]                         @relation("tasks_assignee_user_idTousers")
   tasks_tasks_completed_byTousers                             tasks[]                         @relation("tasks_completed_byTousers")
@@ -1989,6 +2045,7 @@ model workspaces {
   credit_ledger                 credit_ledger[]
   credit_lots                   credit_lots[]
   custom_fields                 custom_fields[]
+  dashboard_layouts             dashboard_layouts[]
   deals                         deals[]
   faqs                          faqs[]
   feedback                      feedback[]
@@ -2023,6 +2080,8 @@ model workspaces {
   services                      services[]
   staff                         staff[]
   staff_services                staff_services[]
+  support_ticket_messages       support_ticket_messages[]
+  support_tickets               support_tickets[]
   tags                          tags[]
   tasks                         tasks[]
   team_members                  team_members[]

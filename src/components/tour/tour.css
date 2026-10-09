@@ -1,0 +1,53 @@
+/* Guided tour popover in the app's palette (light and dark). */
+.driver-popover.cnx-tour {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 20px 40px -12px rgb(0 0 0 / 0.35);
+  max-width: 340px;
+  padding: 18px;
+}
+.driver-popover.cnx-tour .driver-popover-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+.driver-popover.cnx-tour .driver-popover-description {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.driver-popover.cnx-tour .driver-popover-progress-text {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.driver-popover.cnx-tour .driver-popover-navigation-btns button {
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  text-shadow: none;
+}
+.driver-popover.cnx-tour .driver-popover-next-btn {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  border-color: var(--primary) !important;
+}
+.driver-popover.cnx-tour button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.driver-popover.cnx-tour .driver-popover-close-btn {
+  color: var(--muted-foreground);
+}
+.driver-popover.cnx-tour .driver-popover-arrow-side-left.driver-popover-arrow { border-left-color: var(--popover); }
+.driver-popover.cnx-tour .driver-popover-arrow-side-right.driver-popover-arrow { border-right-color: var(--popover); }
+.driver-popover.cnx-tour .driver-popover-arrow-side-top.driver-popover-arrow { border-top-color: var(--popover); }
+.driver-popover.cnx-tour .driver-popover-arrow-side-bottom.driver-popover-arrow { border-bottom-color: var(--popover); }
+@media (prefers-reduced-motion: reduce) {
+  .driver-popover.cnx-tour, .driver-overlay { transition: none !important; animation: none !important; }
+}

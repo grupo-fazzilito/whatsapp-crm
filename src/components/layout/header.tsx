@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { HelpMenu, TourButton } from "@/components/support/help-menu";
 import { AvailabilityMenuItem } from "@/components/notifications/availability-toggle";
 
 type Label = ReturnType<typeof useWorkspace>["label"];
@@ -37,6 +38,7 @@ function getPageTitle(pathname: string, t: T, label: Label): string {
     ["/automations", t("nav.automations")],
     ["/flows", t("nav.flows")],
     ["/reports", t("reports.navTitle")],
+    ["/support", t("support.page.title")],
     ["/settings", t("nav.settings")],
     ["/channels", t("channels.navTitle")],
     ["/agents", t("agents.navTitle")],
@@ -94,7 +96,9 @@ export function Header({ onOpenSidebar }: HeaderProps) {
         </h1>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <TourButton />
+        <HelpMenu />
         <NotificationBell />
         {/* Sun / Moon Toggle */}
         <button

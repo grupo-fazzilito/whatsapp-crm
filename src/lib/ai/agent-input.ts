@@ -9,6 +9,8 @@ export const AGENT_LANGUAGES = ['auto', 'es', 'en'] as const
 const TEXT_FIELDS = ['description', 'persona', 'instructions', 'greeting_message', 'after_hours_message'] as const
 const MAX_TEXT = 20_000
 const MAX_NAME = 120
+/** Training context (business knowledge written by the owner). */
+export const MAX_TRAINING_CONTEXT = 5000
 const MAX_LIST = 100
 const MAX_ITEM = 100
 
@@ -27,6 +29,7 @@ export interface AgentInput {
   enabled?: boolean
   model?: string | null
   transfer_agent_ids?: string[]
+  training_context?: string | null
 }
 
 type Parsed = { ok: true; value: AgentInput } | { ok: false; error: string }
@@ -60,6 +63,14 @@ export function parseAgentInput(body: Record<string, unknown>, partial: boolean)
       if (v.length > MAX_TEXT) return { ok: false, error: `${f} is too long` }
       value[f] = v.trim() ? v.trim() : null
     } else return { ok: false, error: `${f} must be text` }
+  }
+  if ('training_context' in body) {
+    const v = body.training_context
+    if (v === null) value.training_context = null
+    else if (typeof v === 'string') {
+      if (v.length > MAX_TRAINING_CONTEXT) return { ok: false, error: `training_context is limited to ${MAX_TRAINING_CONTEXT} characters` }
+      value.training_context = v.trim() ? v.trim() : null
+    } else return { ok: false, error: 'training_context must be text' }
   }
   if ('tone' in body) {
     if (typeof body.tone !== 'string' || !body.tone.trim() || body.tone.length > 50) return { ok: false, error: 'invalid tone' }

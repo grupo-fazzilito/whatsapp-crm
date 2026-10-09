@@ -19,6 +19,7 @@ export async function GET() {
   return NextResponse.json({
     balance,
     reply_cost: actionCost('reply', settings),
+    playground_cost: actionCost('playground', settings),
     next_expiry: next.data ? { at: next.data.expires_at, credits: next.data.credits_remaining } : null,
     enforce: settings.enforce,
     low: balance <= settings.low_credit_threshold,

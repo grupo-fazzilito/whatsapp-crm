@@ -1,6 +1,8 @@
 /*! ChatNexGen AI web chat widget
  * <script src="https://APP/widget.js" data-key="pk_xxx" async></script>
- * Optional: data-lang="es|en", data-open="true".
+ * Optional: data-lang="es|en", data-open="true", data-launcher="false" (no floating
+ * button: open it with the API), data-name / data-email / data-phone (known visitor:
+ * skips the pre-chat form).
  * API: window.ChatNexGenChat.open() / .close() / .toggle()
  */
 (function () {
@@ -18,6 +20,12 @@
   var API = BASE + '/api/webchat';
   var STORE_KEY = 'cnxwc:' + KEY;
   var POLL_MS = 4000;
+  var NO_LAUNCHER = script.getAttribute('data-launcher') === 'false';
+  var PREFILL = {};
+  ['name', 'email', 'phone'].forEach(function (f) {
+    var v = (script.getAttribute('data-' + f) || '').trim();
+    if (v) PREFILL[f] = v;
+  });
 
   // ---------------------------------------------------------------- i18n
   var STRINGS = {
@@ -218,6 +226,7 @@
       'aria-controls': 'cnx-panel', onclick: toggle
     });
     ui.launcher.innerHTML = ICON_CHAT;
+    if (NO_LAUNCHER) ui.launcher.style.display = 'none';
     ui.badge = el('span', { class: 'badge', hidden: true });
     ui.launcher.append(ui.badge);
 
@@ -331,7 +340,9 @@
 
   // ---------------------------------------------------------------- open/close
   function needsPrechat() {
-    return state.cfg.prechat_fields.length > 0 && !state.stored.p;
+    if (!state.cfg.prechat_fields.length || state.stored.p) return false;
+    // Known visitor (data-name/email/phone): no form when every asked field is given.
+    return !state.cfg.prechat_fields.every(function (f) { return !!PREFILL[f]; });
   }
 
   function open(e) {
@@ -698,6 +709,10 @@
       window.ChatNexGenChat = { open: function () { open(); }, close: function () { close(false); }, toggle: toggle };
       // Returning visitor with a conversation: reconnect so replies show as unread.
       if (state.stored.t && state.stored.c) startConversation();
+      // Known visitor: send who they are once, so the team sees name and email.
+      else if (Object.keys(PREFILL).length && !state.stored.p) {
+        ensureSession(PREFILL).then(function () { state.stored.p = 1; save(); }).catch(function () {});
+      }
       if (script.getAttribute('data-open') === 'true') open(false);
     }).catch(function (err) {
       console.warn('[webchat] disabled:', err && err.message);

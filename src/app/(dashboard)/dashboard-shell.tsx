@@ -8,6 +8,7 @@ import { useT } from "@/i18n/client";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { CreditsBanner } from "@/components/billing/credits-banner";
+import { TourProvider } from "@/components/tour/guided-tour";
 
 // Auth-gated dashboard shell. Extracted from the layout so the layout
 // itself can stay a server component and export metadata (noindex) —
@@ -78,7 +79,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <WorkspaceProvider>
-        <DashboardShellInner>{children}</DashboardShellInner>
+        <TourProvider>
+          <DashboardShellInner>{children}</DashboardShellInner>
+        </TourProvider>
       </WorkspaceProvider>
     </AuthProvider>
   );

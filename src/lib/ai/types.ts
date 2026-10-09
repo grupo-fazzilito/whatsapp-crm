@@ -8,6 +8,8 @@ export interface AiAgentRow {
   persona: string | null
   tone: string
   instructions: string | null
+  /** Business knowledge written by the owner (≤ 5,000 chars). */
+  training_context?: string | null
   language: 'auto' | 'es' | 'en'
   /** faq | bookings | catalog | orders | handover | router */
   skills: string[]

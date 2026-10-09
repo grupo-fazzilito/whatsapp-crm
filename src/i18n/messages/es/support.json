@@ -1,0 +1,157 @@
+{
+  "support": {
+    "help": "Ayuda y soporte",
+    "createTicket": "Crear ticket",
+    "chatOnline": "Chat online",
+    "myTickets": "Mis tickets",
+    "chatUnavailable": "El chat online no está disponible ahora. Crea un ticket y te responderemos.",
+    "whatsapp": "Escríbenos por WhatsApp",
+    "form": {
+      "title": "Crear ticket de soporte",
+      "description": "Cuéntanos qué pasa. Te responderemos por aquí y por correo.",
+      "subject": "Asunto",
+      "subjectPlaceholder": "Ej.: No llegan los mensajes de WhatsApp",
+      "category": "Categoría",
+      "priority": "Prioridad",
+      "body": "Descripción",
+      "bodyPlaceholder": "Describe el problema, qué esperabas que pasara y los pasos para reproducirlo.",
+      "attach": "Adjuntar archivos",
+      "send": "Enviar ticket",
+      "sending": "Enviando…",
+      "created": "Ticket #{n} creado. Te avisaremos cuando respondamos."
+    },
+    "category": {
+      "technical": "Problema técnico",
+      "billing": "Pagos y tokens",
+      "whatsapp": "WhatsApp y canales",
+      "ai": "Agentes de IA",
+      "account": "Cuenta y usuarios",
+      "other": "Otro"
+    },
+    "priority": {
+      "low": "Baja",
+      "normal": "Normal",
+      "high": "Alta"
+    },
+    "status": {
+      "open": "Abierto",
+      "in_progress": "En proceso",
+      "waiting_customer": "Esperando tu respuesta",
+      "closed": "Cerrado"
+    },
+    "page": {
+      "title": "Soporte",
+      "subtitle": "Tus tickets con el equipo de soporte.",
+      "empty": "Aún no tienes tickets.",
+      "new": "Nuevo ticket",
+      "reply": "Responder",
+      "replyPlaceholder": "Escribe tu respuesta…",
+      "send": "Enviar",
+      "close": "Cerrar ticket",
+      "closed": "Este ticket está cerrado. Si respondes, se vuelve a abrir.",
+      "you": "Tú",
+      "team": "Equipo de soporte",
+      "select": "Elige un ticket para ver la conversación.",
+      "back": "Volver"
+    },
+    "errors": {
+      "invalid_subject": "El asunto debe tener entre 3 y 160 caracteres.",
+      "invalid_body": "Escribe la descripción.",
+      "generic": "No se pudo completar la acción."
+    }
+  },
+  "tour": {
+    "button": "Visita guiada",
+    "next": "Siguiente",
+    "prev": "Anterior",
+    "done": "¡Listo!",
+    "progress": "{{current}} de {{total}}",
+    "welcome": {
+      "title": "¡Bienvenido a ChatNexGen! 👋",
+      "body": "Te mostramos en un minuto dónde está cada cosa. Puedes repetir esta visita cuando quieras desde el ícono de la brújula, arriba."
+    },
+    "workspace": {
+      "title": "Tu negocio",
+      "body": "Aquí cambias de negocio si administras más de uno."
+    },
+    "dashboard": {
+      "title": "Panel",
+      "body": "El resumen de tu negocio: conversaciones, contactos, ventas y tus tokens de IA."
+    },
+    "inbox": {
+      "title": "Bandeja",
+      "body": "Todas las conversaciones de WhatsApp, Instagram, Messenger y tu web en un solo lugar. Responde, asigna y etiqueta."
+    },
+    "contacts": {
+      "title": "Contactos",
+      "body": "Tu base de clientes con su historial, etiquetas y notas."
+    },
+    "pipelines": {
+      "title": "Embudos",
+      "body": "Sigue cada oportunidad de venta por etapas, del primer contacto al cierre."
+    },
+    "channels": {
+      "title": "Canales",
+      "body": "Conecta aquí tu WhatsApp, Instagram, Messenger o el chat de tu web. Es el primer paso para empezar a recibir mensajes."
+    },
+    "agents": {
+      "title": "Agentes de IA",
+      "body": "Crea agentes que responden por ti, entrénalos con la información de tu negocio y pruébalos antes de activarlos."
+    },
+    "business": {
+      "title": "Tu negocio",
+      "body": "Horarios, servicios, catálogo y preguntas frecuentes: lo que tus agentes usan para responder."
+    },
+    "reports": {
+      "title": "Reportes",
+      "body": "Tiempos de respuesta, volumen por canal, desempeño del equipo y de la IA."
+    },
+    "settings": {
+      "title": "Ajustes",
+      "body": "Tu equipo, plantillas, etiquetas, respuestas rápidas y la recarga de tokens."
+    },
+    "tourIcon": {
+      "title": "Repite la visita",
+      "body": "Cuando quieras volver a ver esta guía, pulsa aquí."
+    },
+    "help": {
+      "title": "¿Necesitas ayuda?",
+      "body": "Desde aquí abres un ticket o chateas en vivo con nuestro equipo de soporte."
+    }
+  },
+  "supportAdmin": {
+    "nav": "Soporte",
+    "title": "Tickets de soporte",
+    "subtitle": "Consultas de los negocios. Responde aquí: el cliente recibe aviso en su campana y por correo.",
+    "filters": {
+      "active": "Activos",
+      "open": "Abiertos",
+      "in_progress": "En proceso",
+      "waiting_customer": "Esperando al cliente",
+      "closed": "Cerrados",
+      "all": "Todos"
+    },
+    "empty": "No hay tickets.",
+    "select": "Elige un ticket.",
+    "requester": "Solicitante",
+    "reply": "Respuesta",
+    "replyPlaceholder": "Escribe la respuesta al cliente…",
+    "sendAs": "Enviar y marcar como",
+    "send": "Enviar",
+    "status": "Estado",
+    "customer": "Cliente",
+    "team": "Soporte (tú)",
+    "settings": {
+      "title": "Soporte a clientes",
+      "subtitle": "Cómo te contactan los negocios desde el botón \"?\".",
+      "chat": "Chat online",
+      "chatHelp": "Elige un canal de chat web de tu propio negocio de soporte. Los mensajes llegan a esa bandeja, donde puedes responder tú o un agente de IA.",
+      "none": "Sin chat online",
+      "whatsapp": "WhatsApp de soporte (opcional)",
+      "whatsappHelp": "Si no hay chat online, el botón abre WhatsApp con este número. Solo dígitos con código de país.",
+      "email": "Los tickets nuevos se avisan al correo de soporte de la sección \"Agencia\".",
+      "save": "Guardar",
+      "saved": "Guardado"
+    }
+  }
+}

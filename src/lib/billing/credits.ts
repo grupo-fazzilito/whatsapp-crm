@@ -100,14 +100,14 @@ export async function spend(workspaceId: string, action: BillableAction, opts: {
 
 const TEXTS = {
   es: {
-    low: (n: number) => ({ title: 'Te quedan pocos créditos de IA', body: `Quedan ${n} créditos. Recarga para que tus agentes de IA sigan respondiendo.` }),
-    depleted: () => ({ title: 'Se acabaron tus créditos de IA', body: 'Tus agentes de IA están en pausa y los mensajes llegan a la bandeja para tu equipo. Recarga créditos para reactivarlos.' }),
-    paid: (n: number) => ({ title: 'Recarga acreditada', body: `Se sumaron ${n} créditos a tu cuenta.` }),
+    low: (n: number) => ({ title: 'Te quedan pocos tokens de IA', body: `Quedan ${n} tokens. Recarga para que tus agentes de IA sigan respondiendo.` }),
+    depleted: () => ({ title: 'Se acabaron tus tokens de IA', body: 'Tus agentes de IA están en pausa y los mensajes llegan a la bandeja para tu equipo. Recarga tokens para reactivarlos.' }),
+    paid: (n: number) => ({ title: 'Recarga acreditada', body: `Se sumaron ${n} tokens a tu cuenta.` }),
   },
   en: {
-    low: (n: number) => ({ title: 'Your AI credits are running low', body: `${n} credits left. Top up so your AI agents keep replying.` }),
-    depleted: () => ({ title: 'You are out of AI credits', body: 'Your AI agents are paused and messages go to your team inbox. Top up to turn them back on.' }),
-    paid: (n: number) => ({ title: 'Top-up credited', body: `${n} credits were added to your account.` }),
+    low: (n: number) => ({ title: 'Your AI tokens are running low', body: `${n} tokens left. Top up so your AI agents keep replying.` }),
+    depleted: () => ({ title: 'You are out of AI tokens', body: 'Your AI agents are paused and messages go to your team inbox. Top up to turn them back on.' }),
+    paid: (n: number) => ({ title: 'Top-up credited', body: `${n} tokens were added to your account.` }),
   },
 }
 

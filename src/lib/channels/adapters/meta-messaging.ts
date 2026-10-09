@@ -2,6 +2,7 @@
 // token posts to /{page-id}/messages, and the recipient is a page-scoped
 // (PSID) or Instagram-scoped (IGSID) id.
 import { ChannelSendError, locationText, type ChannelAdapter, type ChannelType, type OutboundContent, type SendContext, type SendResult } from '../types'
+import { channelText, stripMarkup } from '../format'
 
 const GRAPH = 'https://graph.facebook.com/v21.0'
 // Messenger quick replies: max 13, title max 20 chars.
@@ -11,44 +12,52 @@ function numberedMenu(text: string, options: { title: string; description?: stri
   return [text, '', ...options.map((o, i) => `${i + 1}. ${o.title}${o.description ? ` — ${o.description}` : ''}`)].join('\n')
 }
 
-function toMessage(content: OutboundContent): Record<string, unknown> {
+/**
+ * Messages to post, in order. Messenger and Instagram show text literally
+ * (no *bold*), cap text length, and drop captions and carousel intros —
+ * so captions and intros go as their own text message.
+ */
+export function metaMessages(type: Extract<ChannelType, 'messenger' | 'instagram'>, content: OutboundContent): Record<string, unknown>[] {
+  const texts = (t: string) => channelText(type, t).map((text) => ({ text }))
   switch (content.type) {
     case 'text':
-      return { text: content.text }
+      return texts(content.text)
     case 'media': {
-      const type = content.mediaType === 'document' ? 'file' : content.mediaType
-      return { attachment: { type, payload: { url: content.url, is_reusable: true } } }
+      const kind = content.mediaType === 'document' ? 'file' : content.mediaType
+      const attachment = { attachment: { type: kind, payload: { url: content.url, is_reusable: true } } }
+      return content.caption?.trim() ? [attachment, ...texts(content.caption)] : [attachment]
     }
     case 'buttons':
     case 'list': {
       const options = content.type === 'buttons' ? content.options : content.sections.flatMap((s) => s.options)
+      const text = stripMarkup(content.text)
       if (options.length <= MAX_QUICK_REPLIES) {
-        return {
-          text: content.text,
-          quick_replies: options.map((o) => ({ content_type: 'text', title: o.title.slice(0, 20), payload: o.id })),
-        }
+        return [{ text, quick_replies: options.map((o) => ({ content_type: 'text', title: o.title.slice(0, 20), payload: o.id })) }]
       }
-      return { text: numberedMenu(content.text, options) }
+      return texts(numberedMenu(text, options))
     }
     case 'carousel':
-      // Generic template: up to 10 cards with image, title, subtitle and
-      // up to 3 postback buttons (Messenger and Instagram).
-      return {
-        attachment: {
-          type: 'template',
-          payload: {
-            template_type: 'generic',
-            elements: content.cards.slice(0, 10).map((c) => ({
-              title: c.title.slice(0, 80),
-              ...(c.subtitle ? { subtitle: c.subtitle.slice(0, 80) } : {}),
-              image_url: c.imageUrl,
-              buttons: c.buttons.slice(0, 3).map((b) => ({ type: 'postback', title: b.title.slice(0, 20), payload: b.id })),
-            })),
+      // Intro text, then a generic template: up to 10 cards with image,
+      // title, subtitle and up to 3 postback buttons.
+      return [
+        ...(content.text?.trim() ? texts(content.text) : []),
+        {
+          attachment: {
+            type: 'template',
+            payload: {
+              template_type: 'generic',
+              elements: content.cards.slice(0, 10).map((c) => ({
+                title: stripMarkup(c.title).slice(0, 80),
+                ...(c.subtitle ? { subtitle: stripMarkup(c.subtitle).slice(0, 80) } : {}),
+                image_url: c.imageUrl,
+                buttons: c.buttons.slice(0, 3).map((b) => ({ type: 'postback', title: b.title.slice(0, 20), payload: b.id })),
+              })),
+            },
           },
         },
-      }
+      ]
     case 'location':
-      return { text: locationText(content) }
+      return texts(locationText(content))
     case 'template':
       throw new ChannelSendError('Templates are only available on WhatsApp', 'unsupported')
   }
@@ -63,23 +72,28 @@ function makeAdapter(type: Extract<ChannelType, 'messenger' | 'instagram'>): Cha
       if (!token) throw new ChannelSendError(`${type} page token missing`, 'not_configured')
       // Instagram accounts are messaged through their linked Facebook page.
       const pageId = (ctx.channel.settings.page_id as string | undefined) ?? ctx.channel.external_id
-      const res = await fetch(`${GRAPH}/${pageId}/messages?access_token=${encodeURIComponent(token)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipient: { id: ctx.recipient },
-          messaging_type: 'RESPONSE',
-          message: toMessage(content),
-        }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        const msg: string = data?.error?.message ?? `Meta API error: ${res.status}`
-        // 10 / 2018278: outside the allowed messaging window.
-        const windowClosed = data?.error?.code === 10 || /outside of allowed window|2018278/i.test(msg)
-        throw new ChannelSendError(msg, windowClosed ? 'window_closed' : 'provider_error')
+      let first: string | null = null
+      for (const message of metaMessages(type, content)) {
+        const res = await fetch(`${GRAPH}/${pageId}/messages?access_token=${encodeURIComponent(token)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipient: { id: ctx.recipient }, messaging_type: 'RESPONSE', message }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          const msg: string = data?.error?.message ?? `Meta API error: ${res.status}`
+          // 10 / 2018278: outside the allowed messaging window.
+          const windowClosed = data?.error?.code === 10 || /outside of allowed window|2018278/i.test(msg)
+          // A follow-up part failing (caption, intro) must not hide that the main one went out.
+          if (first) {
+            console.warn(`[${type}] extra message part failed:`, msg)
+            break
+          }
+          throw new ChannelSendError(msg, windowClosed ? 'window_closed' : 'provider_error')
+        }
+        first ??= data.message_id ?? null
       }
-      return { externalId: data.message_id ?? null }
+      return { externalId: first }
     },
   }
 }
