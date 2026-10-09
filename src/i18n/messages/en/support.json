@@ -1,0 +1,157 @@
+{
+  "support": {
+    "help": "Help and support",
+    "createTicket": "Create ticket",
+    "chatOnline": "Live chat",
+    "myTickets": "My tickets",
+    "chatUnavailable": "Live chat isn't available right now. Create a ticket and we'll get back to you.",
+    "whatsapp": "Message us on WhatsApp",
+    "form": {
+      "title": "Create a support ticket",
+      "description": "Tell us what's going on. We'll reply here and by email.",
+      "subject": "Subject",
+      "subjectPlaceholder": "E.g. WhatsApp messages are not arriving",
+      "category": "Category",
+      "priority": "Priority",
+      "body": "Description",
+      "bodyPlaceholder": "Describe the problem, what you expected and the steps to reproduce it.",
+      "attach": "Attach files",
+      "send": "Send ticket",
+      "sending": "Sending…",
+      "created": "Ticket #{n} created. We'll let you know when we reply."
+    },
+    "category": {
+      "technical": "Technical issue",
+      "billing": "Payments and tokens",
+      "whatsapp": "WhatsApp and channels",
+      "ai": "AI agents",
+      "account": "Account and users",
+      "other": "Other"
+    },
+    "priority": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High"
+    },
+    "status": {
+      "open": "Open",
+      "in_progress": "In progress",
+      "waiting_customer": "Waiting for you",
+      "closed": "Closed"
+    },
+    "page": {
+      "title": "Support",
+      "subtitle": "Your tickets with the support team.",
+      "empty": "You have no tickets yet.",
+      "new": "New ticket",
+      "reply": "Reply",
+      "replyPlaceholder": "Write your reply…",
+      "send": "Send",
+      "close": "Close ticket",
+      "closed": "This ticket is closed. Replying reopens it.",
+      "you": "You",
+      "team": "Support team",
+      "select": "Pick a ticket to see the conversation.",
+      "back": "Back"
+    },
+    "errors": {
+      "invalid_subject": "The subject must be 3 to 160 characters.",
+      "invalid_body": "Write a description.",
+      "generic": "The action could not be completed."
+    }
+  },
+  "tour": {
+    "button": "Guided tour",
+    "next": "Next",
+    "prev": "Back",
+    "done": "Done!",
+    "progress": "{{current}} of {{total}}",
+    "welcome": {
+      "title": "Welcome to ChatNexGen! 👋",
+      "body": "Here's a one-minute tour of where everything is. Replay it anytime from the compass icon at the top."
+    },
+    "workspace": {
+      "title": "Your business",
+      "body": "Switch businesses here if you manage more than one."
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "body": "Your business at a glance: conversations, contacts, sales and your AI tokens."
+    },
+    "inbox": {
+      "title": "Inbox",
+      "body": "Every conversation from WhatsApp, Instagram, Messenger and your website in one place. Reply, assign and tag."
+    },
+    "contacts": {
+      "title": "Contacts",
+      "body": "Your customer base with history, tags and notes."
+    },
+    "pipelines": {
+      "title": "Pipelines",
+      "body": "Track every sales opportunity by stage, from first contact to close."
+    },
+    "channels": {
+      "title": "Channels",
+      "body": "Connect your WhatsApp, Instagram, Messenger or website chat here. It's the first step to start receiving messages."
+    },
+    "agents": {
+      "title": "AI agents",
+      "body": "Create agents that reply for you, train them with your business info and test them before going live."
+    },
+    "business": {
+      "title": "Your business",
+      "body": "Hours, services, catalog and FAQs: what your agents use to answer."
+    },
+    "reports": {
+      "title": "Reports",
+      "body": "Response times, volume per channel, team and AI performance."
+    },
+    "settings": {
+      "title": "Settings",
+      "body": "Your team, templates, tags, quick replies and token top-ups."
+    },
+    "tourIcon": {
+      "title": "Replay the tour",
+      "body": "Click here whenever you want to see this guide again."
+    },
+    "help": {
+      "title": "Need help?",
+      "body": "Open a ticket or chat live with our support team from here."
+    }
+  },
+  "supportAdmin": {
+    "nav": "Support",
+    "title": "Support tickets",
+    "subtitle": "Requests from businesses. Reply here: the customer gets a bell notification and an email.",
+    "filters": {
+      "active": "Active",
+      "open": "Open",
+      "in_progress": "In progress",
+      "waiting_customer": "Waiting for customer",
+      "closed": "Closed",
+      "all": "All"
+    },
+    "empty": "No tickets.",
+    "select": "Pick a ticket.",
+    "requester": "Requester",
+    "reply": "Reply",
+    "replyPlaceholder": "Write the reply to the customer…",
+    "sendAs": "Send and mark as",
+    "send": "Send",
+    "status": "Status",
+    "customer": "Customer",
+    "team": "Support (you)",
+    "settings": {
+      "title": "Customer support",
+      "subtitle": "How businesses reach you from the \"?\" button.",
+      "chat": "Live chat",
+      "chatHelp": "Pick a web chat channel of your own support business. Messages land in that inbox, where you or an AI agent can reply.",
+      "none": "No live chat",
+      "whatsapp": "Support WhatsApp (optional)",
+      "whatsappHelp": "Without live chat, the button opens WhatsApp with this number. Digits only, with country code.",
+      "email": "New tickets are emailed to the support address in the \"Agency\" section.",
+      "save": "Save",
+      "saved": "Saved"
+    }
+  }
+}

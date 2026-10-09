@@ -32,6 +32,8 @@ interface Profile {
    * #134 — but the column survives for future beta gates.
    */
   beta_features: string[];
+  /** When the guided tour was finished or skipped (null = show it). */
+  tour_completed_at: string | null;
 }
 
 interface AuthContextValue {

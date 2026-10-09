@@ -7,6 +7,7 @@ import { AiProvidersCard } from "./ai-providers-card";
 import { GoogleCalendarCard } from "./google-calendar-card";
 import { MetaWhatsAppCard } from "./meta-whatsapp-card";
 import { BillingCard } from "./billing-card";
+import { SupportCard } from "./support-card";
 import { AdminMercadoLibreCard } from "@/components/real-estate/portals/admin-mercadolibre-card";
 import { useI18n } from "@/i18n/client";
 
@@ -56,6 +57,8 @@ export default function AdminSettingsPage() {
         <AiProvidersCard />
 
         <BillingCard />
+
+        <SupportCard />
 
         <MetaWhatsAppCard />
 

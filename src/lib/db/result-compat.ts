@@ -303,6 +303,7 @@ export const resultCompat = Prisma.defineExtension({
     profiles: {
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
+      tour_completed_at: { needs: { tour_completed_at: true }, compute: (r) => r.tour_completed_at === null ? null : r.tour_completed_at.toISOString() },
     },
     property_captures: {
       area_m2: { needs: { area_m2: true }, compute: (r) => r.area_m2 === null ? null : r.area_m2.toNumber() },
@@ -333,6 +334,16 @@ export const resultCompat = Prisma.defineExtension({
       fee: { needs: { fee: true }, compute: (r) => r.fee === null ? null : r.fee.toNumber() },
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
+    },
+    support_ticket_messages: {
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+    },
+    support_tickets: {
+      number: { needs: { number: true }, compute: (r) => Number(r.number) },
+      last_message_at: { needs: { last_message_at: true }, compute: (r) => r.last_message_at.toISOString() },
+      closed_at: { needs: { closed_at: true }, compute: (r) => r.closed_at === null ? null : r.closed_at.toISOString() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
     },
     tags: {
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },

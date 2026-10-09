@@ -1159,6 +1159,7 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
   "profiles": {
     "created_at": "timestamp",
     "updated_at": "timestamp",
+    "tour_completed_at": "timestamp",
     "deals": {
       "rel": "deals"
     },
@@ -1265,6 +1266,34 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "staff": {
       "rel": "staff"
+    },
+    "workspaces": {
+      "rel": "workspaces"
+    }
+  },
+  "support_ticket_messages": {
+    "created_at": "timestamp",
+    "users": {
+      "rel": "users"
+    },
+    "support_tickets": {
+      "rel": "support_tickets"
+    },
+    "workspaces": {
+      "rel": "workspaces"
+    }
+  },
+  "support_tickets": {
+    "number": "bigint",
+    "last_message_at": "timestamp",
+    "closed_at": "timestamp",
+    "created_at": "timestamp",
+    "updated_at": "timestamp",
+    "support_ticket_messages": {
+      "rel": "support_ticket_messages"
+    },
+    "users": {
+      "rel": "users"
     },
     "workspaces": {
       "rel": "workspaces"
@@ -1473,6 +1502,12 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "staff": {
       "rel": "staff"
+    },
+    "support_ticket_messages": {
+      "rel": "support_ticket_messages"
+    },
+    "support_tickets": {
+      "rel": "support_tickets"
     },
     "tags": {
       "rel": "tags"
@@ -1769,6 +1804,12 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "staff_services": {
       "rel": "staff_services"
+    },
+    "support_ticket_messages": {
+      "rel": "support_ticket_messages"
+    },
+    "support_tickets": {
+      "rel": "support_tickets"
     },
     "tags": {
       "rel": "tags"
