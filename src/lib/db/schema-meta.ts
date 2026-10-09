@@ -1550,6 +1550,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "workspaces": {
       "rel": "workspaces"
+    },
+    "platform_webhook_endpoints": {
+      "rel": "platform_webhook_endpoints"
     }
   },
   "webhook_deliveries": {
@@ -1858,6 +1861,28 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "users": {
       "rel": "users"
+    }
+  },
+  "platform_webhook_endpoints": {
+    "disabled_at": "timestamp",
+    "last_success_at": "timestamp",
+    "last_failure_at": "timestamp",
+    "created_at": "timestamp",
+    "updated_at": "timestamp",
+    "platform_webhook_deliveries": {
+      "rel": "platform_webhook_deliveries"
+    },
+    "users": {
+      "rel": "users"
+    }
+  },
+  "platform_webhook_deliveries": {
+    "next_attempt_at": "timestamp",
+    "last_attempt_at": "timestamp",
+    "created_at": "timestamp",
+    "updated_at": "timestamp",
+    "platform_webhook_endpoints": {
+      "rel": "platform_webhook_endpoints"
     }
   }
 }

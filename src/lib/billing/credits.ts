@@ -4,6 +4,7 @@ import { tenantDb } from '@/lib/db/tenant'
 import { normalizeRaw } from '@/lib/db/compat'
 import { actionCost, type BillableAction } from './pricing'
 import { getBillingSettings } from './settings'
+import { emitPlatformEvent } from '@/lib/webhooks/platform'
 
 // Credit checks and spending for AI actions. The AI asks `canSpend` before
 // calling a model and `spend` once the action produced something for the
@@ -127,6 +128,7 @@ export async function notifyBilling(workspaceId: string, kind: 'low' | 'depleted
         data: { [column]: new Date() },
       })
       if (!claimed.count) return
+      await emitPlatformEvent(workspaceId, kind === 'low' ? 'tokens.low' : 'tokens.depleted', { balance: kind === 'low' ? credits : await creditBalance(workspaceId).catch(() => 0) })
     }
     const [ws, admins] = await Promise.all([
       db.workspaces.findFirst({ where: { id: workspaceId }, select: { locale: true } }),
