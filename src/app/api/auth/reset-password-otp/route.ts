@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isDevMode } from "@/lib/app-mode";
+import { prisma } from "@/lib/db/prisma";
 import { findUserByEmail, setPassword } from "@/lib/auth/users";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
@@ -33,6 +35,9 @@ export async function POST(req: NextRequest) {
     if (action === "send") {
       // 1. Generate 6-digit OTP code
       const code = crypto.randomInt(100000, 999999).toString();
+      // DEV hands the code to the browser, except for platform admins: the
+      // app may be public while in DEV and their accounts must not be taken over.
+      const exposeCode = isDevMode() && !(await isPlatformAdmin(email));
       
       // 2. Save code in our store with 10-minute validity
       otpStore.set(email, {
@@ -54,7 +59,7 @@ export async function POST(req: NextRequest) {
       const smtpFrom = cleanEnv(process.env.SMTP_FROM) || smtpUser || "chatnexgenai@gmail.com";
 
       // Developer Fallback: Log the verification code to the console
-      console.log(`\n--- [AUTH OTP] Verification code for ${email} is: ${code} ---\n`);
+      if (isDevMode()) console.log(`\n--- [AUTH OTP] Verification code for ${email} is: ${code} ---\n`);
 
       if (smtpHost && smtpUser && smtpPass) {
         const transporter = nodemailer.createTransport({
@@ -103,9 +108,10 @@ export async function POST(req: NextRequest) {
         } catch (mailErr: any) {
           console.error("Failed to send SMTP email:", mailErr);
           // In development mode, don't block the user if SMTP fails (since code is printed in terminal)
-          if (process.env.NODE_ENV === "development") {
+          if (isDevMode()) {
             return NextResponse.json({ 
-              success: true, 
+              success: true,
+              ...(exposeCode ? { devCode: code } : {}),
               note: "SMTP sending failed, but OTP logged in terminal for development." 
             });
           }
@@ -113,12 +119,12 @@ export async function POST(req: NextRequest) {
         }
       } else {
         // If SMTP credentials aren't configured, let development environment succeed using logged OTP
-        if (process.env.NODE_ENV !== "development") {
+        if (!isDevMode()) {
           return NextResponse.json({ error: "SMTP is not configured on the server." }, { status: 500 });
         }
       }
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json(exposeCode ? { success: true, devCode: code } : { success: true });
     }
 
     if (action === "verify") {
@@ -184,4 +190,11 @@ export async function POST(req: NextRequest) {
     console.error("OTP password reset error:", err);
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
   }
+}
+
+async function isPlatformAdmin(email: string): Promise<boolean> {
+  const user = await prisma.users.findFirst({ where: { email: { equals: String(email).trim(), mode: "insensitive" } }, select: { id: true } });
+  if (!user) return false;
+  const profile = await prisma.profiles.findFirst({ where: { user_id: user.id }, select: { is_platform_admin: true } });
+  return !!profile?.is_platform_admin;
 }
