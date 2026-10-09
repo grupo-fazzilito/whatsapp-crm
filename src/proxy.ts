@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { getSessionCookie } from 'better-auth/cookies'
+import { isPlatformAdmin } from '@/lib/admin/guard'
 import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from '@/i18n/config'
 import { isMarketingPath, localizedPath, splitLocale } from '@/i18n/marketing-routes'
 
@@ -45,16 +46,9 @@ export async function proxy(request: NextRequest) {
   }
 
   // Platform admin panel: a session whose profile is_platform_admin.
+  // Checked in-process (a fetch to our own /api/me fails behind Railway's proxy).
   if (path.startsWith('/admin-panel') && path !== '/admin-panel/login') {
-    let isAdmin = false
-    if (signedIn) {
-      const me = await fetch(new URL('/api/me', request.url), {
-        headers: { cookie: request.headers.get('cookie') ?? '' },
-        cache: 'no-store',
-      }).catch(() => null)
-      const body = me?.ok ? ((await me.json().catch(() => null)) as { profile?: { is_platform_admin?: boolean } } | null) : null
-      isAdmin = !!body?.profile?.is_platform_admin
-    }
+    const isAdmin = signedIn && (await isPlatformAdmin(request.headers).catch(() => false))
     if (!isAdmin) {
       const url = request.nextUrl.clone()
       url.pathname = '/admin-panel/login'
