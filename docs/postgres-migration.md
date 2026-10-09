@@ -27,7 +27,7 @@ Supabase, validado en local antes de desplegar.
 - [x] **P5 Tiempo real**: SSE + `LISTEN/NOTIFY` para bandeja, notificaciones, pedidos, tareas.
 - [x] **P6 Datos y limpieza**: (esquema base ya hecho en P0) script de copia de datos Supabase → Postgres (usuarios, negocios, mensajes, archivos); quitar `@supabase/*`.
 - [x] **P7 Validación completa** en Postgres puro: tsc, vitest, pruebas de aislamiento, build, e2e (IA real, pedidos, inmobiliaria, créditos, Meta, webhooks, API pública).
-- [ ] **P8 Railway**: guía y variables (`DATABASE_URL`, `BETTER_AUTH_SECRET`, S3, cron).
+- [x] **P8 Railway**: guía y variables (`DATABASE_URL`, `BETTER_AUTH_SECRET`, S3, cron) en `docs/railway-deploy.md`.
 
 ## Cómo correrlo en local (Postgres puro)
 
