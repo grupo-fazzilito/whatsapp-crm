@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCheck, Check, Phone, Video, MoreVertical, ArrowLeft, Sparkles, Smile, Paperclip, Mic, Signal, Wifi, BatteryFull } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/client";
 
 interface Message {
   id: string;
@@ -13,19 +14,24 @@ interface Message {
   status?: "sent" | "delivered" | "read";
 }
 
-const CONVERSATION: Omit<Message, "id">[] = [
-  { sender: "user", text: "Hey! I'm interested in your Enterprise plan. Can I get a demo?", time: "10:24", status: "read" },
-  { sender: "ai",   text: "Hi there! 👋 I'd love to help. What's your company name and monthly message volume?", time: "10:24" },
-  { sender: "user", text: "Acme Corp — we send about 50,000 messages a month.", time: "10:25", status: "read" },
-  { sender: "ai",   text: "Perfect! Based on your volume you qualify for our Premium Enterprise tier 🎉\n\nI've tagged you as *Enterprise Lead* and booked a call with Sarah Adams for May 28th at 2:00 PM.", time: "10:26" },
-  { sender: "system", text: "⚙️ Lead tagged: Enterprise · Routed → Sarah Adams · Demo booked", time: "10:26" },
+type VisibleMessage = Omit<Message, "text">;
+
+// Message text lives in the dictionary (mktHome.chat.m1..m5); it is resolved at
+// render time so a locale switch mid-animation updates bubbles already shown.
+const CONVERSATION: Omit<Message, "id" | "text">[] = [
+  { sender: "user", time: "10:24", status: "read" },
+  { sender: "ai",   time: "10:24" },
+  { sender: "user", time: "10:25", status: "read" },
+  { sender: "ai",   time: "10:26" },
+  { sender: "system", time: "10:26" },
 ];
 
 const DELAYS       = [0, 2000, 5000, 7000, 10500];
 const TYPING_AT    = new Set([1, 3]);
 
 export function AIChatSimulation() {
-  const [visible, setVisible] = useState<Message[]>([]);
+  const { t } = useI18n();
+  const [visible, setVisible] = useState<VisibleMessage[]>([]);
   const [typing,  setTyping]  = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -187,7 +193,7 @@ export function AIChatSimulation() {
                 Acme Concierge
               </p>
               <p style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", margin: 0, marginTop: 1 }}>
-                AI Agent · online
+                {t("mktHome.chat.status")}
               </p>
             </div>
             <div style={{ display: "flex", gap: 14, color: "rgba(255,255,255,0.85)" }}>
@@ -218,11 +224,12 @@ export function AIChatSimulation() {
                 fontSize: 9, background: "rgba(255,255,255,0.75)",
                 color: "#555", padding: "2px 10px", borderRadius: 10,
                 boxShadow: "0 1px 2px rgba(0,0,0,0.1)", fontWeight: 500,
-              }}>TODAY</span>
+              }}>{t("mktHome.chat.today")}</span>
             </div>
 
             <AnimatePresence initial={false}>
-              {visible.map((msg) => {
+              {visible.map((vm) => {
+                const msg: Message = { ...vm, text: t(`mktHome.chat.m${Number(vm.id) + 1}`) };
                 if (msg.sender === "system") {
                   return (
                     <motion.div key={msg.id}
@@ -275,7 +282,7 @@ export function AIChatSimulation() {
 
                       {!isUser && (
                         <p style={{ fontSize: 8, fontWeight: 700, color: "#25D366", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: 0.4 }}>
-                          AI Auto-Responder
+                          {t("mktHome.chat.autoResponder")}
                         </p>
                       )}
 
@@ -345,7 +352,7 @@ export function AIChatSimulation() {
               gap: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
             }}>
               <Smile size={16} color="#8696A0" />
-              <span style={{ fontSize: 10, color: "#8696A0", flex: 1 }}>Message</span>
+              <span style={{ fontSize: 10, color: "#8696A0", flex: 1 }}>{t("mktHome.chat.inputPlaceholder")}</span>
               <Paperclip size={15} color="#8696A0" />
             </div>
             <div style={{

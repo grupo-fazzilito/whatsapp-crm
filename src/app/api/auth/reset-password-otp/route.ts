@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isDevMode } from "@/lib/app-mode";
 import { prisma } from "@/lib/db/prisma";
 import { findUserByEmail, setPassword } from "@/lib/auth/users";
-import nodemailer from "nodemailer";
+import { emailConfigured, sendEmail } from "@/lib/email/send";
 import crypto from "crypto";
 
 
@@ -50,27 +50,13 @@ export async function POST(req: NextRequest) {
         if (!val) return "";
         return val.replace(/^["']|["']$/g, "");
       };
-
-      const smtpHost = cleanEnv(process.env.SMTP_HOST || process.env.EMAIL_HOST);
-      const rawPort = process.env.SMTP_PORT || process.env.EMAIL_PORT;
-      const smtpPort = rawPort ? parseInt(cleanEnv(rawPort)) : 587;
       const smtpUser = cleanEnv(process.env.SMTP_USER || process.env.EMAIL_USERNAME);
-      const smtpPass = cleanEnv(process.env.SMTP_PASS || process.env.EMAIL_PASSWORD);
       const smtpFrom = cleanEnv(process.env.SMTP_FROM) || smtpUser || "chatnexgenai@gmail.com";
 
       // Developer Fallback: Log the verification code to the console
       if (isDevMode()) console.log(`\n--- [AUTH OTP] Verification code for ${email} is: ${code} ---\n`);
 
-      if (smtpHost && smtpUser && smtpPass) {
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpPort === 465,
-          auth: {
-            user: smtpUser,
-            pass: smtpPass,
-          },
-        });
+      if (emailConfigured()) {
 
         const formattedFrom = smtpFrom.includes("<") ? smtpFrom : `Whasalia <${smtpFrom}>`;
         const mailOptions = {
@@ -104,7 +90,7 @@ export async function POST(req: NextRequest) {
         };
 
         try {
-          await transporter.sendMail(mailOptions);
+          await sendEmail({ to: mailOptions.to, subject: mailOptions.subject, text: mailOptions.text, html: mailOptions.html });
         } catch (mailErr: any) {
           console.error("Failed to send SMTP email:", mailErr);
           // In development mode, don't block the user if SMTP fails (since code is printed in terminal)

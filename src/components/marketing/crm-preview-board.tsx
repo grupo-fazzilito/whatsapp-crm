@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DollarSign, MessageCircle, TrendingUp, Sparkles, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/client";
 
 interface CRMLead {
   id: string;
@@ -16,6 +17,7 @@ interface CRMLead {
 }
 
 export function CRMPreviewBoard() {
+  const { t } = useI18n();
   const [leads, setLeads] = useState<CRMLead[]>([
     { id: "1", name: "David Kim", company: "Zeta Scale", value: 1200, score: 94, avatarColor: "bg-emerald-600", stage: 0 },
     { id: "2", name: "Elena Rostova", company: "Vostok D2C", value: 850, score: 88, avatarColor: "bg-teal-500", stage: 1 },
@@ -56,10 +58,10 @@ export function CRMPreviewBoard() {
   }, []);
 
   const columns = [
-    { title: "Lead Inbound", subtitle: "Incoming WhatsApp Threads", stage: 0 },
-    { title: "AI Qualified", subtitle: "Intent Verified > 80%", stage: 1 },
-    { title: "Meeting Booked", subtitle: "Demo Calendly sync", stage: 2 },
-    { title: "Closed Won", subtitle: "Payment Completed", stage: 3 },
+    { title: t("mktHome.board.c0Title"), subtitle: t("mktHome.board.c0Sub"), stage: 0 },
+    { title: t("mktHome.board.c1Title"), subtitle: t("mktHome.board.c1Sub"), stage: 1 },
+    { title: t("mktHome.board.c2Title"), subtitle: t("mktHome.board.c2Sub"), stage: 2 },
+    { title: t("mktHome.board.c3Title"), subtitle: t("mktHome.board.c3Sub"), stage: 3 },
   ];
 
   return (
@@ -68,17 +70,17 @@ export function CRMPreviewBoard() {
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 border-b border-[var(--m-border-glass)] pb-4">
         <div>
           <h4 className="text-sm font-semibold text-[var(--m-text-primary)] flex items-center gap-2">
-            Active WhatsApp Sales Pipeline <TrendingUp className="size-4 text-emerald-400" />
+            {t("mktHome.board.title")} <TrendingUp className="size-4 text-emerald-400" />
           </h4>
-          <p className="text-xs text-[var(--m-text-tertiary)] mt-0.5">Real-time status of lead conversions</p>
+          <p className="text-xs text-[var(--m-text-tertiary)] mt-0.5">{t("mktHome.board.subtitle")}</p>
         </div>
         <div className="flex gap-4">
           <div className="bg-[var(--m-bg-secondary)] border border-[var(--m-border-primary)] px-3 py-1.5 rounded-lg flex items-center gap-2">
-            <span className="text-[10px] uppercase text-[var(--m-text-tertiary)] font-medium">Pipeline Value</span>
+            <span className="text-[10px] uppercase text-[var(--m-text-tertiary)] font-medium">{t("mktHome.board.pipelineValue")}</span>
             <span className="text-xs font-bold text-[var(--m-text-primary)]">$7,550</span>
           </div>
           <div className="bg-emerald-950/30 border border-emerald-800/40 px-3 py-1.5 rounded-lg flex items-center gap-2">
-            <span className="text-[10px] uppercase text-emerald-400 font-medium">AI Qualified</span>
+            <span className="text-[10px] uppercase text-emerald-400 font-medium">{t("mktHome.board.aiQualified")}</span>
             <span className="text-xs font-bold text-emerald-400">92%</span>
           </div>
         </div>

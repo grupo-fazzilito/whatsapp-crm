@@ -50,6 +50,12 @@ import esDash from './messages/es/dashboard.json'
 import enDash from './messages/en/dashboard.json'
 import enSupport from './messages/en/support.json'
 import enBilling from './messages/en/billing.json'
+import esAuth from './messages/es/auth.json'
+import enAuth from './messages/en/auth.json'
+import esMktHome from './messages/es/marketing-home.json'
+import enMktHome from './messages/en/marketing-home.json'
+import esMktShell from './messages/es/marketing-shell.json'
+import enMktShell from './messages/en/marketing-shell.json'
 import type { AppLocale } from './config'
 
 // One file per area (core, channels, agents, webchat, inbox, business, routing) so features
@@ -58,8 +64,8 @@ import type { AppLocale } from './config'
 type Tree = { [key: string]: string | Tree }
 
 const DICTS: Record<AppLocale, Tree> = {
-  es: { ...esCore, ...esChannels, ...esAgents, ...esWebchat, ...esInbox, ...esBusiness, ...esRouting, ...esAdmin, ...esBookings, ...esCatalogImport, ...esCatalog, ...esFollowups, ...esOrders, ...esCrm, ...esReports, ...esInboxPro, ...esLeads, ...esRealEstate, ...esGcal, ...esPortals, ...esAiAssist, ...esMetaWa, ...esIntegrations, ...esBilling, ...esSupport, ...esDash },
-  en: { ...enCore, ...enChannels, ...enAgents, ...enWebchat, ...enInbox, ...enBusiness, ...enRouting, ...enAdmin, ...enBookings, ...enCatalogImport, ...enCatalog, ...enFollowups, ...enOrders, ...enCrm, ...enReports, ...enInboxPro, ...enLeads, ...enRealEstate, ...enGcal, ...enPortals, ...enAiAssist, ...enMetaWa, ...enIntegrations, ...enBilling, ...enSupport, ...enDash },
+  es: { ...esCore, ...esChannels, ...esAgents, ...esWebchat, ...esInbox, ...esBusiness, ...esRouting, ...esAdmin, ...esBookings, ...esCatalogImport, ...esCatalog, ...esFollowups, ...esOrders, ...esCrm, ...esReports, ...esInboxPro, ...esLeads, ...esRealEstate, ...esGcal, ...esPortals, ...esAiAssist, ...esMetaWa, ...esIntegrations, ...esBilling, ...esSupport, ...esDash, ...esMktShell, ...esAuth, ...esMktHome },
+  en: { ...enCore, ...enChannels, ...enAgents, ...enWebchat, ...enInbox, ...enBusiness, ...enRouting, ...enAdmin, ...enBookings, ...enCatalogImport, ...enCatalog, ...enFollowups, ...enOrders, ...enCrm, ...enReports, ...enInboxPro, ...enLeads, ...enRealEstate, ...enGcal, ...enPortals, ...enAiAssist, ...enMetaWa, ...enIntegrations, ...enBilling, ...enSupport, ...enDash, ...enMktShell, ...enAuth, ...enMktHome },
 }
 
 /** Dotted-path key into the message tree, e.g. "nav.inbox". */

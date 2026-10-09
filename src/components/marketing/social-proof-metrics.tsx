@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { motion, useInView } from "framer-motion";
+import { useI18n } from "@/i18n/client";
 
 interface MetricProps {
   value: number;
@@ -51,32 +52,33 @@ function Counter({ value, suffix = "", decimals = 0, duration = 2 }: MetricProps
 }
 
 export function SocialProofMetrics() {
+  const { t } = useI18n();
   const stats = [
     {
       value: 10000,
       suffix: "+",
-      label: "Businesses Served",
+      label: t("mktHome.metrics.businesses"),
       decimals: 0,
       glowColor: "var(--color-m-glow-emerald)"
     },
     {
       value: 50,
       suffix: "M+",
-      label: "Messages Sent",
+      label: t("mktHome.metrics.messages"),
       decimals: 0,
       glowColor: "rgba(20, 184, 166, 0.1)" // Teal glow
     },
     {
       value: 98,
       suffix: "%",
-      label: "Uptime Guarantee",
+      label: t("mktHome.metrics.uptime"),
       decimals: 0,
       glowColor: "var(--color-m-glow-emerald)" // Emerald glow
     },
     {
       value: 4.9,
       suffix: "/5",
-      label: "Customer Rating",
+      label: t("mktHome.metrics.rating"),
       decimals: 1,
       glowColor: "rgba(20, 184, 166, 0.1)" // Teal glow
     }

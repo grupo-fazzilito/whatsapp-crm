@@ -10,6 +10,8 @@ import { ThemeToggle } from "./theme-toggle";
 import { MagneticButton } from "./magnetic-button";
 import { BookDemoTrigger } from "./book-demo-trigger";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/client";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 function clamp01(v: number) { return Math.min(1, Math.max(0, v)); }
@@ -17,6 +19,7 @@ const SCROLL_RANGE = 120;
 
 export function GlassNavbar() {
   const pathname = usePathname();
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -56,22 +59,22 @@ export function GlassNavbar() {
   }, []);
 
   const navLinks = [
-    { name: "Home", href: "/" },
-    { name: "Features", href: "/features" },
-    { name: "AI Automation", href: "/ai-automation" },
-    { name: "Pricing", href: "/pricing" },
+    { name: t("mktShell.nav.home"), href: "/" },
+    { name: t("mktShell.nav.features"), href: "/features" },
+    { name: t("mktShell.nav.aiAutomation"), href: "/ai-automation" },
+    { name: t("mktShell.nav.pricing"), href: "/pricing" },
   ];
 
   const dropdownLinks = [
-    { name: "Shared Inbox", href: "/shared-team-inbox" },
-    { name: "CRM Engine", href: "/crm" },
-    { name: "Analytics Dashboard", href: "/analytics" },
-    { name: "Enterprise SaaS", href: "/enterprise" },
-    { name: "Security & GDPR", href: "/security" },
-    { name: "Customer Stories", href: "/customer-stories" },
-    { name: "About Us", href: "/about-us" },
-    { name: "Careers", href: "/careers" },
-    { name: "Blog Hacks", href: "/blog" },
+    { name: t("mktShell.nav.sharedInbox"), href: "/shared-team-inbox" },
+    { name: t("mktShell.nav.crm"), href: "/crm" },
+    { name: t("mktShell.nav.analytics"), href: "/analytics" },
+    { name: t("mktShell.nav.enterprise"), href: "/enterprise" },
+    { name: t("mktShell.nav.security"), href: "/security" },
+    { name: t("mktShell.nav.stories"), href: "/customer-stories" },
+    { name: t("mktShell.nav.about"), href: "/about-us" },
+    { name: t("mktShell.nav.careers"), href: "/careers" },
+    { name: t("mktShell.nav.blog"), href: "/blog" },
   ];
 
   const maxWidth    = lerp(1152, 920,  progress);
@@ -118,7 +121,7 @@ export function GlassNavbar() {
           <Link href="/" className="flex items-center gap-2 group shrink-0">
             <img
               src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
-              alt="Whasalia Logo"
+              alt="Whasalia"
               className="h-8 w-auto object-contain group-hover:scale-110 transition-transform"
             />
           </Link>
@@ -141,18 +144,19 @@ export function GlassNavbar() {
 
           {/* Desktop actions */}
           <div className="hidden md:flex items-center gap-2.5 shrink-0">
+            <LanguageSwitcher variant="marketing" />
             <ThemeToggle />
             <BookDemoTrigger
               className={cn("text-[11px] font-semibold transition-colors px-3 py-1.5 whitespace-nowrap cursor-pointer", linkCls)}
             >
-              Book Demo
+              {t("mktShell.bookDemo")}
             </BookDemoTrigger>
             <MagneticButton>
               <Link
                 href={isLoggedIn ? "/dashboard" : "/login"}
                 className="text-[11px] font-semibold bg-[#00DF82] hover:bg-[#00c673] text-slate-950 px-4 py-1.5 rounded-full transition-all shadow-[0_2px_12px_rgba(0,223,130,0.2)] whitespace-nowrap"
               >
-                {isLoggedIn ? "Dashboard" : "Sign In"}
+                {isLoggedIn ? t("mktShell.dashboard") : t("mktShell.signIn")}
               </Link>
             </MagneticButton>
           </div>
@@ -160,6 +164,7 @@ export function GlassNavbar() {
           {/* Mobile toggle */}
           <button
             onClick={() => setIsOpen((v) => !v)}
+            aria-label={t("mktShell.menu")}
             className="md:hidden w-8 h-8 rounded-full border flex items-center justify-center transition-colors bg-[var(--m-bg-secondary)] border-[var(--m-border-primary)] text-[var(--m-text-secondary)] hover:text-[var(--m-text-heading)]"
           >
             {isOpen ? <X className="size-4" /> : <Menu className="size-4" />}
@@ -173,7 +178,7 @@ export function GlassNavbar() {
           <div className="space-y-6">
             <div className="flex flex-col gap-4">
               <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--m-text-muted)]">
-                Navigation
+                {t("mktShell.navigation")}
               </span>
               {navLinks.map((link) => (
                 <Link
@@ -188,7 +193,7 @@ export function GlassNavbar() {
             </div>
             <div className="flex flex-col gap-3">
               <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--m-text-muted)]">
-                Solutions
+                {t("mktShell.solutions")}
               </span>
               <div className="grid grid-cols-2 gap-3">
                 {dropdownLinks.slice(0, 6).map((link) => (
@@ -205,18 +210,19 @@ export function GlassNavbar() {
             </div>
           </div>
           <div className="flex flex-col gap-3 mt-8">
-            <div className="flex justify-center py-1">
-              <ThemeToggle className="w-full justify-around" />
+            <div className="flex items-center justify-center gap-3 py-1">
+              <LanguageSwitcher variant="marketing" />
+              <ThemeToggle className="flex-1 justify-around" />
             </div>
             <BookDemoTrigger className="w-full text-center text-xs font-bold py-3 rounded-full border transition-colors border-[var(--m-border-primary)] bg-[var(--m-bg-tertiary)] text-[var(--m-text-primary)]">
-              Book Demo
+              {t("mktShell.bookDemo")}
             </BookDemoTrigger>
             <Link
               href={isLoggedIn ? "/dashboard" : "/login"}
               onClick={() => setIsOpen(false)}
               className="w-full text-center text-xs font-semibold bg-[#00DF82] text-slate-950 py-3 rounded-full hover:bg-[#00c673] transition-colors"
             >
-              {isLoggedIn ? "Dashboard" : "Sign In"}
+              {isLoggedIn ? t("mktShell.dashboard") : t("mktShell.signIn")}
             </Link>
           </div>
         </div>

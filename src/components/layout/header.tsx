@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { HelpMenu, TourButton } from "@/components/support/help-menu";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { AvailabilityMenuItem } from "@/components/notifications/availability-toggle";
 
 type Label = ReturnType<typeof useWorkspace>["label"];
@@ -100,6 +101,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
         <TourButton />
         <HelpMenu />
         <NotificationBell />
+        <LanguageSwitcher className="hidden sm:flex" />
         {/* Sun / Moon Toggle */}
         <button
           type="button"

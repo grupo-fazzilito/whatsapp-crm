@@ -3,24 +3,26 @@
 import React from "react";
 import Link from "next/link";
 import { useMarketingTheme } from "@/components/marketing/marketing-theme-provider";
+import { useI18n } from "@/i18n/client";
 
 export function Footer() {
   const { resolvedTheme } = useMarketingTheme();
+  const { t } = useI18n();
   const isLight = resolvedTheme === "light";
 
   const productLinks = [
-    { name: "Features", href: "/features" },
-    { name: "Pricing", href: "/pricing" },
-    { name: "AI Automation", href: "/ai-automation" },
-    { name: "Use Cases", href: "/" },
+    { name: t("mktShell.nav.features"), href: "/features" },
+    { name: t("mktShell.nav.pricing"), href: "/pricing" },
+    { name: t("mktShell.nav.aiAutomation"), href: "/ai-automation" },
+    { name: t("mktShell.footer.useCases"), href: "/" },
   ];
 
   const quickLinks = [
-    { name: "About Us", href: "/about-us" },
-    { name: "Contact Us", href: "/contact-us" },
-    { name: "Privacy Policy", href: "/privacy-policy" },
-    { name: "Terms & Conditions", href: "/terms-and-conditions" },
-    { name: "Refund Policy", href: "/refund-policy" },
+    { name: t("mktShell.nav.about"), href: "/about-us" },
+    { name: t("mktShell.footer.contact"), href: "/contact-us" },
+    { name: t("mktShell.footer.privacy"), href: "/privacy-policy" },
+    { name: t("mktShell.footer.terms"), href: "/terms-and-conditions" },
+    { name: t("mktShell.footer.refund"), href: "/refund-policy" },
   ];
 
   return (
@@ -34,23 +36,23 @@ export function Footer() {
           <Link href="/" className="inline-block">
             <img
               src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
-              alt="Whasalia Logo"
+              alt="Whasalia"
               className="h-8 w-auto object-contain"
             />
           </Link>
           <p className="text-xs text-[var(--m-text-tertiary)] leading-relaxed max-w-sm">
-            Whasalia is a premium AI-powered WhatsApp CRM and customer support automation platform. Automate business communication, configure smart chatbots, organize leads, and sync calendar reminders using the official WhatsApp Business API.
+            {t("mktShell.footer.about")}
           </p>
           <div className="pt-2">
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-emerald-500/25 bg-[var(--m-badge-bg)] text-emerald-500 text-[10px] font-extrabold uppercase tracking-wider">
-              Official Meta Business Partner
+              {t("mktShell.footer.partner")}
             </span>
           </div>
         </div>
 
         {/* Product Column */}
         <div className="col-span-1 space-y-4">
-          <h6 className="text-[10px] uppercase font-bold tracking-wider text-[var(--m-text-tertiary)]">Solutions</h6>
+          <h6 className="text-[10px] uppercase font-bold tracking-wider text-[var(--m-text-tertiary)]">{t("mktShell.solutions")}</h6>
           <ul className="space-y-2.5">
             {productLinks.map((link) => (
               <li key={link.name}>
@@ -64,7 +66,7 @@ export function Footer() {
 
         {/* Legal & Quick Links Column */}
         <div className="col-span-1 space-y-4">
-          <h6 className="text-[10px] uppercase font-bold tracking-wider text-[var(--m-text-tertiary)]">Quick Links</h6>
+          <h6 className="text-[10px] uppercase font-bold tracking-wider text-[var(--m-text-tertiary)]">{t("mktShell.footer.quickLinks")}</h6>
           <ul className="space-y-2.5">
             {quickLinks.map((link) => (
               <li key={link.name}>
@@ -78,7 +80,7 @@ export function Footer() {
 
         {/* Contact Us Column */}
         <div className="col-span-1 space-y-4">
-          <h6 className="text-[10px] uppercase font-bold tracking-wider text-[var(--m-text-tertiary)]">Contact Us</h6>
+          <h6 className="text-[10px] uppercase font-bold tracking-wider text-[var(--m-text-tertiary)]">{t("mktShell.footer.contact")}</h6>
           <ul className="space-y-2.5 text-xs text-[var(--m-text-muted)]">
             <li>Whasalia</li>
             <li>Pune, Maharashtra, India</li>
@@ -92,13 +94,13 @@ export function Footer() {
 
         {/* Trust signals Column */}
         <div className="col-span-1 space-y-4">
-          <h6 className="text-[10px] uppercase font-bold tracking-wider text-[var(--m-text-tertiary)]">Trust Signals</h6>
+          <h6 className="text-[10px] uppercase font-bold tracking-wider text-[var(--m-text-tertiary)]">{t("mktShell.footer.trust")}</h6>
           <ul className="space-y-2 text-[10px] text-[var(--m-text-muted)] font-semibold">
-            <li className="text-emerald-400">✓ Secure Platform</li>
-            <li className="text-emerald-400">✓ Data Encryption</li>
-            <li className="text-emerald-400">✓ Meta-Compliant</li>
-            <li className="text-emerald-400">✓ Role-Based Access</li>
-            <li className="text-emerald-400">✓ Business Support</li>
+            <li className="text-emerald-400">✓ {t("mktShell.footer.t1")}</li>
+            <li className="text-emerald-400">✓ {t("mktShell.footer.t2")}</li>
+            <li className="text-emerald-400">✓ {t("mktShell.footer.t3")}</li>
+            <li className="text-emerald-400">✓ {t("mktShell.footer.t4")}</li>
+            <li className="text-emerald-400">✓ {t("mktShell.footer.t5")}</li>
           </ul>
         </div>
       </div>
@@ -106,10 +108,10 @@ export function Footer() {
       {/* Meta API disclaimer & Copyright footer */}
       <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-[var(--m-border-primary)]/50 space-y-4 relative z-10 text-center">
         <p className="text-[10px] leading-relaxed text-[var(--m-text-muted)] max-w-3xl mx-auto">
-          "Whasalia uses WhatsApp Business API solutions in accordance with Meta and WhatsApp Business policies. Businesses are responsible for obtaining user consent before initiating communication."
+          {t("mktShell.footer.disclaimer")}
         </p>
         <div className="text-[10px] text-[var(--m-text-muted)] pt-2">
-          © 2026 Whasalia. All rights reserved.
+          {t("mktShell.footer.rights")}
         </div>
       </div>
     </footer>
