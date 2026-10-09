@@ -1,31 +1,24 @@
 import { MetadataRoute } from "next";
+import { LOCALES } from "@/i18n/config";
+import { MARKETING_PATHS, languageAlternates, localizedPath } from "@/i18n/marketing-routes";
 
+// Every public page in each language (/es/..., /en/...), each entry
+// listing its translations so search engines pair them (hreflang).
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001").replace(/\/+$/, "");
-  
-  const routes = [
-    "",
-    "/about-us",
-    "/contact-us",
-    "/privacy-policy",
-    "/terms-and-conditions",
-    "/refund-policy",
-    "/features",
-    "/pricing",
-    "/ai-automation",
-    "/shared-team-inbox",
-    "/crm",
-    "/analytics",
-    "/enterprise",
-    "/security",
-    "/customer-stories",
-    "/data-deletion",
-  ];
+  const legal = (route: string) => route.includes("-policy") || route.includes("terms-") || route === "/data-deletion";
 
-  return routes.map((route) => ({
-    url: `${baseUrl}${route}`,
-    lastModified: new Date(),
-    changeFrequency: "weekly",
-    priority: route === "" ? 1.0 : route.includes("-policy") || route.includes("-conditions") ? 0.3 : 0.8,
-  }));
+  return MARKETING_PATHS.flatMap((route) =>
+    LOCALES.map((locale) => ({
+      url: `${baseUrl}${localizedPath(locale, route)}`,
+      lastModified: new Date(),
+      changeFrequency: "weekly" as const,
+      priority: route === "" ? 1.0 : legal(route) ? 0.3 : 0.8,
+      alternates: {
+        languages: Object.fromEntries(
+          Object.entries(languageAlternates(route)).map(([lang, path]) => [lang, `${baseUrl}${path}`]),
+        ),
+      },
+    })),
+  );
 }

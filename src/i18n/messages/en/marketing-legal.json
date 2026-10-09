@@ -1,0 +1,220 @@
+{
+  "mktPrivacy": {
+    "badge": "Legal Document",
+    "title": "Privacy Policy",
+    "updated": "Last updated: June 23, 2026",
+    "intro": "This Privacy Policy (the \"Policy\") describes how Whasalia (\"we\", \"us\", or \"our\") collects, uses, maintains, and discloses information from users of our Platform. By accessing or using the Whasalia SaaS platform, you consent to the practices described in this Policy. If you do not agree, please do not use the Platform.",
+    "s1": {
+      "title": "1. User Data Collection",
+      "body": "We collect personal details that you provide directly to us during registration, setup, and support inquiries. This may include:",
+      "i1": "Your name, company name, billing address, and account details.",
+      "i2": "Email address (e.g., support details, correspondence logs).",
+      "i3": "WhatsApp Business Account (WABA) numbers and integration tokens."
+    },
+    "s2": {
+      "title": "2. CRM Data Storage",
+      "body": "All contact details, tags, logs, custom fields, and conversation histories uploaded or generated within the CRM dashboard are stored securely on our database. We employ advanced hosting architecture to ensure data isolation, high availability, and routine encrypted backups. Your customer records remain your property, and we act strictly as data processors for this information."
+    },
+    "s3": {
+      "title": "3. WhatsApp Communication",
+      "body": "To facilitate communications through the WhatsApp Business API, we transmit messaging payloads (text templates, quick-reply responses, dynamic variables, and rich media assets) directly to Meta's servers. These communications comply fully with the WhatsApp Business Platform policies. We do not inspect message contents except as technically required to render the service, trigger workflows, or debug API performance."
+    },
+    "s4": {
+      "title": "4. Cookies & Tracking Technologies",
+      "body": "We utilize persistent and session cookies to recognize authenticated user sessions, store dashboard configuration preferences, and monitor platform stability. You may opt to disable cookies in your browser settings, though doing so might affect platform performance and prevent access to certain interactive services."
+    },
+    "s5": {
+      "title": "5. Analytics & Usage Metrics",
+      "body": "To maintain high-quality uptime and diagnose performance anomalies, we track system parameters, browser types, log events, and screen interactions. These analytics help us optimize loading times, evaluate user flow effectiveness, and security-audit suspicious logins."
+    },
+    "s6": {
+      "title": "6. Security Practices",
+      "body": "Security is central to the Whasalia architecture. All data transfers between the browser and our servers are encrypted using TLS 1.3 (HTTPS). Core databases are isolated, and payment transactions are offloaded entirely to PCI-DSS compliant third-party payment gateways (e.g., Razorpay)."
+    },
+    "s7": {
+      "title": "7. User Rights & Data Portability",
+      "body": "Under relevant data protection regulations (including GDPR and Indian IT policies), you retain the right to request access to, correction of, or portable exportation of the personal information stored in your account. To retrieve your data files, contact our compliance officer."
+    },
+    "s8": {
+      "title": "8. Data Deletion Requests",
+      "before": "You may request complete and permanent deletion of your profile, CRM contact records, and metadata history at any time. Refer to our dynamic ",
+      "link": "Data Deletion Instructions",
+      "after": " page or email our support desk. Upon validation, deletion is processed within 7 business days."
+    },
+    "s9": {
+      "title": "9. Third-Party Integrations",
+      "body": "Whasalia integrates with third-party software (such as e-commerce systems, spreadsheet tools, and messaging networks). We are not responsible for the privacy policies of these external platforms. We advise checking their independent terms before configuring webhook endpoints or sync permissions."
+    },
+    "s10": {
+      "title": "10. Contact & Regulatory Information",
+      "body": "For questions or requests regarding your data, contact Whasalia:",
+      "department": "Compliance Department",
+      "location": "Pune, Maharashtra, India",
+      "emailLabel": "Email:"
+    }
+  },
+  "mktRefund": {
+    "badge": "Refund Policy",
+    "title": "Subscription & Refund Policy",
+    "updated": "Last updated: June 23, 2026",
+    "intro": "At Whasalia, we deliver professional WhatsApp CRM and communication automation services. This policy clarifies terms regarding recurring subscriptions, setup configurations, custom developments, consulting sessions, and billing queries.",
+    "s1": {
+      "title": "1. SaaS Subscriptions",
+      "body": "Our software platform is provided on a subscription basis (monthly or annually).",
+      "i1": "Subscribing plans carry a flat rate pass-through for Meta Business Platform usage fees without markups.",
+      "i2": "All subscription payments are non-refundable once the billing cycle begins.",
+      "i3": "You can cancel your subscription at any time to avoid future renewals; your dashboard access will remain active until the end of your prepaid period."
+    },
+    "s2": {
+      "title": "2. Account Onboarding & Setup Fees",
+      "body": "Setup and integration fees cover the direct labor involved in configuring your Meta Business Manager, applying for WhatsApp Business Account status, and mapping numbers.",
+      "i1": "These onboarding fees are non-refundable once configuration or account consultation has commenced."
+    },
+    "s3": {
+      "title": "3. Custom Development Workflows",
+      "body": "Fees collected for custom chatbot integrations, dedicated API plugins, webhook configurations, and customized flow building are governed by project-specific service level agreements (SLAs).",
+      "i1": "Since custom engineering involves dedicated development resources, these items are non-refundable once development milestones begin."
+    },
+    "s4": {
+      "title": "4. Consultation Services",
+      "body": "Fees for professional consultation sessions, strategy planning calls, and Meta compliance audits are earned upon booking. If you need to reschedule a consulting slot, you must contact your representative at least 24 hours in advance. No-shows or cancellations inside 24 hours are non-refundable."
+    },
+    "s5": {
+      "title": "5. Billing Disputes & Resolution",
+      "body": "If you identify a duplicate charge or billing error on your statement, you agree to raise an inquiry with our support department within 14 days of the invoice date.",
+      "i1": "We investigate all queries in good faith and correct verified platform glitches or billing errors immediately.",
+      "i2": "Initiating unauthorized chargebacks without contacting our billing desk will result in immediate workspace lockouts and possible collection procedures."
+    },
+    "s6": {
+      "title": "6. Contact Support",
+      "body": "For any queries regarding billing, invoice breakdowns, or cancellations, please contact our support desk:",
+      "emailLabel": "Email:"
+    }
+  },
+  "mktTermsConditions": {
+    "badge": "Legal Document",
+    "title": "Terms & Conditions",
+    "updated": "Last updated: June 23, 2026",
+    "intro": "Welcome to Whasalia. These Terms & Conditions (\"Terms\") govern your access to and use of the website, SaaS dashboard, automation engines, APIs, and customer relationship interfaces provided by Whasalia (\"we\", \"us\", or \"our\"). By subscribing to or utilizing our Platform, you agree to comply with and be bound by these Terms.",
+    "s1": {
+      "title": "1. SaaS Subscription & Billing",
+      "body": "Subscribing to Whasalia grants your business a non-exclusive, non-transferable, revocable license to access our platform services.",
+      "i1": "Subscriptions are billed monthly or annually in advance based on the plan selected.",
+      "i2": "Setup fees (if applicable) and custom configuration/consulting fees are collected prior to service provisioning.",
+      "i3": "Failure to pay active subscription invoices will result in account lockout and eventual data purge."
+    },
+    "s2": {
+      "title": "2. User Responsibilities & Acceptable Use",
+      "body": "You agree to use Whasalia only for lawful business operations and in absolute compliance with local, national, and international laws.",
+      "i1": "You must verify and manage the permissions of any team member added to your workspace.",
+      "i2": "You are responsible for obtaining explicit opt-in consent from end-users/customers before messaging them.",
+      "i3": "You are prohibited from using this Platform to distribute spam, fraudulent deals, threat messages, or unsolicited marketing material.",
+      "i4": "You must not reverse engineer, decompile, or attempt to disrupt the performance of our SaaS nodes."
+    },
+    "s3": {
+      "title": "3. Meta & WhatsApp Policy Compliance",
+      "body": "Whasalia operates using the official WhatsApp Business API provided by Meta. All customers must comply with Meta's developer policies and WhatsApp Business Platform guidelines.",
+      "i1": "You represent that your business profile, logos, and links submitted for verification are authentic.",
+      "i2": "Bulk blasting, automated message bombing, and scrapers are strictly prohibited.",
+      "i3": "You agree to comply with WhatsApp's template pre-approval workflows."
+    },
+    "s4": {
+      "title": "4. Account Suspension & Termination",
+      "body": "We reserve the right to suspend or permanently terminate your workspace access, without refund, under the following circumstances:",
+      "i1": "Detection of unauthorized bulk messaging or automated spam reports from WhatsApp users.",
+      "i2": "Suspension or termination of your WhatsApp Business Account (WABA) by Meta due to policy violations.",
+      "i3": "Non-compliance with acceptable usage policies or local governing regulations."
+    },
+    "s5": {
+      "title": "5. Intellectual Property",
+      "body": "All technology, graphic user interfaces, chatbot designs, workflow visualizations, logos, and custom code modules remain the exclusive intellectual property of Whasalia or its licensors. You may not distribute or copy any portion of our software."
+    },
+    "s6": {
+      "title": "6. Service Limitations & Disclaimers",
+      "body": "Whasalia is provided on an \"AS IS\" and \"AS AVAILABLE\" basis. While we maintain a high standard of platform stability, we do not warrant that service will be uninterrupted.",
+      "i1": "We are not responsible for delivery delays or downtime caused directly by Meta/WhatsApp API node failures.",
+      "i2": "We do not control client carrier connections or recipient network coverage."
+    },
+    "s7": {
+      "title": "7. Governing Law & Jurisdiction",
+      "body": "These Terms and any dispute arising from the use of this Platform shall be governed by, interpreted, and enforced in accordance with the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts located in Pune, Maharashtra, India."
+    },
+    "s8": {
+      "title": "8. Contact Us",
+      "body": "If you have questions regarding these Terms & Conditions, contact Whasalia:",
+      "location": "Pune, Maharashtra, India",
+      "emailLabel": "Email:"
+    }
+  },
+  "mktTermsService": {
+    "badge": "Legal Document",
+    "title": "Terms of Service",
+    "updated": "Last updated: March 10, 2026",
+    "intro": "These Terms of Service (\"Terms\") govern your use of Whasalia (the \"Platform\"), a WhatsApp automation SaaS, and any content, services, or features offered on or through the Platform. By accessing or using Whasalia, you agree to be bound by these Terms, our Privacy Policy, and any other policies referenced herein. If you do not agree, please do not use the Platform.",
+    "s1": {
+      "title": "1. Access and Registration",
+      "body": "You must be at least 18 years old, or have parental/guardian consent if between 13 and 18, to use Whasalia. By registering, you represent that all information provided is accurate and complete. You are responsible for maintaining the confidentiality of your account and password."
+    },
+    "s2": {
+      "title": "2. License to Use",
+      "body": "Whasalia grants you a limited, non-exclusive, non-transferable license to access and use the Platform for your personal or business WhatsApp account(s), subject to these Terms. You may not:",
+      "i1": "Resell, sublicense, or transfer your access to any third party.",
+      "i2": "Remove any copyright, trademark, or proprietary notices.",
+      "i3": "Reverse engineer, decompile, or attempt to extract the source code of the Platform.",
+      "i4": "Use the Platform for any unlawful, abusive, or unauthorized purpose, including spam or activity prohibited by WhatsApp/Meta.",
+      "i5": "Modify, copy, or create derivative works of any part of the Platform."
+    },
+    "s3": {
+      "title": "3. User Content & Conduct",
+      "body": "You are solely responsible for any content, messages, or data you send or automate using Whasalia. You agree not to use the Platform to harass, threaten, or violate the rights of others, or to post or transmit any unlawful, harmful, or offensive material. We reserve the right to suspend or terminate accounts for violations."
+    },
+    "s4": {
+      "title": "4. Payments & Refunds",
+      "body": "Access to certain features may require payment of a subscription fee. All payments are processed via third-party providers. All purchases are final and non-refundable, unless otherwise stated in our Refund Policy."
+    },
+    "s5": {
+      "title": "5. Intellectual Property",
+      "body": "All content, software, trademarks, and materials on Whasalia are the property of Whasalia or its licensors. You may not use, reproduce, or distribute any part of the Platform except as expressly permitted by these Terms."
+    },
+    "s6": {
+      "title": "6. Disclaimer",
+      "body": "THE PLATFORM IS PROVIDED \"AS IS\" AND \"AS AVAILABLE\" WITHOUT WARRANTY OF ANY KIND. WHASALIA DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE PLATFORM WILL BE UNINTERRUPTED, ERROR-FREE, OR SECURE."
+    },
+    "s7": {
+      "title": "7. Limitation of Liability",
+      "body": "To the maximum extent permitted by law, Whasalia shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or data, arising from your use of the Platform."
+    },
+    "s8": {
+      "title": "8. Indemnity",
+      "body": "You agree to indemnify and hold harmless Whasalia, its officers, directors, and employees from any claims, damages, or expenses arising from your use of the Platform or violation of these Terms."
+    },
+    "s9": {
+      "title": "9. Changes to Terms",
+      "body": "We may update these Terms at any time. Continued use of Whasalia after changes constitutes acceptance of the new Terms. Please review this page periodically."
+    },
+    "s10": {
+      "title": "10. Governing Law",
+      "body": "These Terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts in India."
+    },
+    "s11": {
+      "title": "11. Contact",
+      "before": "For questions or concerns about these Terms, please contact us at ",
+      "after": "."
+    }
+  },
+  "mktDataDeletion": {
+    "badge": "Data Deletion",
+    "title": "User Data Deletion Instructions",
+    "subtitle": "Whasalia Platform Guidelines",
+    "intro": "If you want to delete your personal data from the Whasalia platform, you can request data deletion using the steps below.",
+    "howTitle": "How to request data deletion",
+    "step1": "Log in to your account on the Whasalia platform.",
+    "step2": "Go to your Account Settings.",
+    "step3": "Click on Delete Account or request account deletion.",
+    "step4": "You can also contact our support team to request deletion of your data.",
+    "contactTitle": "Contact Support",
+    "emailLabel": "Support Email",
+    "whatsappLabel": "WhatsApp Support",
+    "footer": "Once we receive your request, your data will be permanently deleted from our system within 7 working days."
+  }
+}

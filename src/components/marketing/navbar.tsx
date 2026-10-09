@@ -10,7 +10,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { MagneticButton } from "./magnetic-button";
 import { BookDemoTrigger } from "./book-demo-trigger";
 import { cn } from "@/lib/utils";
-import { useI18n } from "@/i18n/client";
+import { useI18n, useLocalePath } from "@/i18n/client";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
@@ -20,6 +20,7 @@ const SCROLL_RANGE = 120;
 export function GlassNavbar() {
   const pathname = usePathname();
   const { t } = useI18n();
+  const lp = useLocalePath();
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -59,22 +60,22 @@ export function GlassNavbar() {
   }, []);
 
   const navLinks = [
-    { name: t("mktShell.nav.home"), href: "/" },
-    { name: t("mktShell.nav.features"), href: "/features" },
-    { name: t("mktShell.nav.aiAutomation"), href: "/ai-automation" },
-    { name: t("mktShell.nav.pricing"), href: "/pricing" },
+    { name: t("mktShell.nav.home"), href: lp("/") },
+    { name: t("mktShell.nav.features"), href: lp("/features") },
+    { name: t("mktShell.nav.aiAutomation"), href: lp("/ai-automation") },
+    { name: t("mktShell.nav.pricing"), href: lp("/pricing") },
   ];
 
   const dropdownLinks = [
-    { name: t("mktShell.nav.sharedInbox"), href: "/shared-team-inbox" },
-    { name: t("mktShell.nav.crm"), href: "/crm" },
-    { name: t("mktShell.nav.analytics"), href: "/analytics" },
-    { name: t("mktShell.nav.enterprise"), href: "/enterprise" },
-    { name: t("mktShell.nav.security"), href: "/security" },
-    { name: t("mktShell.nav.stories"), href: "/customer-stories" },
-    { name: t("mktShell.nav.about"), href: "/about-us" },
-    { name: t("mktShell.nav.careers"), href: "/careers" },
-    { name: t("mktShell.nav.blog"), href: "/blog" },
+    { name: t("mktShell.nav.sharedInbox"), href: lp("/shared-team-inbox") },
+    { name: t("mktShell.nav.crm"), href: lp("/crm") },
+    { name: t("mktShell.nav.analytics"), href: lp("/analytics") },
+    { name: t("mktShell.nav.enterprise"), href: lp("/enterprise") },
+    { name: t("mktShell.nav.security"), href: lp("/security") },
+    { name: t("mktShell.nav.stories"), href: lp("/customer-stories") },
+    { name: t("mktShell.nav.about"), href: lp("/about-us") },
+    { name: t("mktShell.nav.careers"), href: lp("/careers") },
+    { name: t("mktShell.nav.blog"), href: lp("/blog") },
   ];
 
   const maxWidth    = lerp(1152, 920,  progress);
@@ -118,7 +119,7 @@ export function GlassNavbar() {
           style={pillStyle}
         >
           {/* Brand */}
-          <Link href="/" className="flex items-center gap-2 group shrink-0">
+          <Link href={lp("/")} className="flex items-center gap-2 group shrink-0">
             <img
               src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
               alt="Whasalia"
