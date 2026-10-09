@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/api/", "/dashboard/", "/admin/", "/admin-panel/", "/login", "/signup"],
     },
-    sitemap: "https://chatnexgen.online/sitemap.xml",
+    sitemap: `${(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001").replace(/\/+$/, "")}/sitemap.xml`,
   };
 }

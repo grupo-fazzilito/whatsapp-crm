@@ -86,7 +86,7 @@
       "editTitle": "Editar endpoint",
       "addTitle": "Nuevo endpoint",
       "secretTitle": "Secreto de firma",
-      "secretBody": "Úsalo para verificar la cabecera X-ChatNexGen-Signature. No volveremos a mostrarlo.",
+      "secretBody": "Úsalo para verificar la cabecera X-Whasalia-Signature. No volveremos a mostrarlo.",
       "enable": "Activar",
       "disable": "Desactivar",
       "saved": "Endpoint guardado",

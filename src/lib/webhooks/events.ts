@@ -45,9 +45,9 @@ export function eventI18nKey(type: string): string {
 }
 
 export const WEBHOOK_HEADERS = {
-  event: 'X-ChatNexGen-Event',
-  delivery: 'X-ChatNexGen-Delivery',
-  signature: 'X-ChatNexGen-Signature',
+  event: 'X-Whasalia-Event',
+  delivery: 'X-Whasalia-Delivery',
+  signature: 'X-Whasalia-Signature',
 } as const
 
 /** Max endpoints per workspace. */

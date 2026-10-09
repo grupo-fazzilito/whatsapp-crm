@@ -131,7 +131,7 @@ async function send(endpoint: EndpointRow, delivery: DeliveryRow): Promise<PostR
   }
   return postJson(endpoint.url, body, {
     'Content-Type': 'application/json',
-    'User-Agent': 'ChatNexGen-Webhooks/1.0',
+    'User-Agent': 'Whasalia-Webhooks/1.0',
     [WEBHOOK_HEADERS.event]: delivery.event_type,
     [WEBHOOK_HEADERS.delivery]: delivery.id,
     [WEBHOOK_HEADERS.signature]: signatureHeader(secret, body),
@@ -406,7 +406,7 @@ export async function sendTestPing(workspaceId: string, endpointId: string): Pro
     type: 'ping',
     created_at: new Date().toISOString(),
     workspace_id: workspaceId,
-    data: { message: 'ChatNexGen webhook test', endpoint_id: endpointId },
+    data: { message: 'Whasalia webhook test', endpoint_id: endpointId },
   }
   const delivery = await insertDelivery({ workspace_id: workspaceId, endpoint_id: endpointId, event_id: eventId, event_type: 'ping', payload }, true)
   const out = await attemptDelivery(endpoint, delivery, { countFailures: false, retry: false })

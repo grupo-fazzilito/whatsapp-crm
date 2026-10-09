@@ -39,14 +39,14 @@ Notification sent to Super Admin: ${superAdmin}
         },
       });
 
-      const formattedFrom = smtpFrom.includes("<") ? smtpFrom : `ChatNexGen <${smtpFrom}>`;
+      const formattedFrom = smtpFrom.includes("<") ? smtpFrom : `Whasalia <${smtpFrom}>`;
 
       // 1. Confirmation Email to the user booking the demo
       const userMailOptions = {
         from: formattedFrom,
         to: email,
-        subject: "ChatNexGen Product Demo Confirmed!",
-        text: `Hi ${name},\n\nYour ChatNexGen product walkthrough has been scheduled for ${date} at ${time}.\n\nMeeting link: Google Meet (the link will be attached to your calendar invite).\n\nBest regards,\nThe ChatNexGen Team`,
+        subject: "Whasalia Product Demo Confirmed!",
+        text: `Hi ${name},\n\nYour Whasalia product walkthrough has been scheduled for ${date} at ${time}.\n\nMeeting link: Google Meet (the link will be attached to your calendar invite).\n\nBest regards,\nThe Whasalia Team`,
         html: `
           <div style="background-color: #f8fafc; padding: 40px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100%;">
             <div style="max-width: 460px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px 24px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);">
@@ -71,7 +71,7 @@ Notification sent to Super Admin: ${superAdmin}
               </p>
               
               <p style="font-size: 12px; color: #94a3b8; margin: 0; border-top: 1px solid #f1f5f9; padding-top: 20px;">
-                Best regards,<br>The ChatNexGen Team
+                Best regards,<br>The Whasalia Team
               </p>
             </div>
           </div>
@@ -83,7 +83,7 @@ Notification sent to Super Admin: ${superAdmin}
         from: formattedFrom,
         to: superAdmin,
         subject: `New Demo Walkthrough Booked: ${name}`,
-        text: `New ChatNexGen product demo booking.\n\nDetails:\nName: ${name}\nEmail: ${email}\nPhone: ${phone}\nSlot: ${date} at ${time}`,
+        text: `New Whasalia product demo booking.\n\nDetails:\nName: ${name}\nEmail: ${email}\nPhone: ${phone}\nSlot: ${date} at ${time}`,
         html: `
           <div style="background-color: #f8fafc; padding: 40px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100%;">
             <div style="max-width: 460px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);">
@@ -93,7 +93,7 @@ Notification sent to Super Admin: ${superAdmin}
               </div>
               
               <p style="font-size: 14px; line-height: 1.6; color: #475569; margin-top: 0; margin-bottom: 20px; text-align: center;">
-                A client has scheduled a ChatNexGen product walkthrough. Lead details:
+                A client has scheduled a Whasalia product walkthrough. Lead details:
               </p>
               
               <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px;">
@@ -120,7 +120,7 @@ Notification sent to Super Admin: ${superAdmin}
               </table>
               
               <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0; border-top: 1px solid #f1f5f9; padding-top: 20px;">
-                ChatNexGen Notification Engine
+                Whasalia Notification Engine
               </p>
             </div>
           </div>

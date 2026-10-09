@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isDevMode } from "@/lib/app-mode";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { acceptInvitation, findPendingInvitation } from "@/lib/workspace/invitations";
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
       const smtpFrom = cleanEnv(process.env.SMTP_FROM) || smtpUser || "chatnexgenai@gmail.com";
 
       // Developer Fallback: Log the verification code to the console
-      console.log(`\n--- [SIGNUP OTP] Verification code for ${email} is: ${code} ---\n`);
+      if (isDevMode()) console.log(`\n--- [SIGNUP OTP] Verification code for ${email} is: ${code} ---\n`);
 
       if (smtpHost && smtpUser && smtpPass) {
         const transporter = nodemailer.createTransport({
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        const formattedFrom = smtpFrom.includes("<") ? smtpFrom : `ChatNexGen <${smtpFrom}>`;
+        const formattedFrom = smtpFrom.includes("<") ? smtpFrom : `Whasalia <${smtpFrom}>`;
         const mailOptions = {
           from: formattedFrom,
           to: email,
@@ -101,9 +102,10 @@ export async function POST(req: NextRequest) {
         } catch (mailErr: any) {
           console.error("Failed to send SMTP registration email:", mailErr);
           // In development mode, don't block the user if SMTP fails (since code is printed in terminal)
-          if (process.env.NODE_ENV === "development") {
+          if (isDevMode()) {
             return NextResponse.json({
               success: true,
+              devCode: code,
               note: "SMTP sending failed, but OTP logged in terminal for development.",
             });
           }
@@ -114,12 +116,12 @@ export async function POST(req: NextRequest) {
         }
       } else {
         // If SMTP credentials aren't configured, let development environment succeed using logged OTP
-        if (process.env.NODE_ENV !== "development") {
+        if (!isDevMode()) {
           return NextResponse.json({ error: "SMTP is not configured on the server." }, { status: 500 });
         }
       }
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json(isDevMode() ? { success: true, devCode: code } : { success: true });
     }
 
     if (action === "register") {

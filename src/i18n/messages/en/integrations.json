@@ -86,7 +86,7 @@
       "editTitle": "Edit endpoint",
       "addTitle": "New endpoint",
       "secretTitle": "Signing secret",
-      "secretBody": "Use it to verify the X-ChatNexGen-Signature header. We won't show it again.",
+      "secretBody": "Use it to verify the X-Whasalia-Signature header. We won't show it again.",
       "enable": "Enable",
       "disable": "Disable",
       "saved": "Endpoint saved",

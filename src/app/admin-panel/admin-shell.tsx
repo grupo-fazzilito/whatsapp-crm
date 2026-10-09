@@ -45,8 +45,8 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         <div className="flex h-14 items-center justify-between gap-2 border-b border-slate-800 px-4">
           <Link href="/admin-panel" className="flex items-center gap-2.5">
             <img
-              src="/images/logo/chatnexgen-logo.png"
-              alt="ChatNexGen Logo"
+              src="/images/logo/whasalia-logo.png"
+              alt="Whasalia Logo"
               className="h-8 w-auto object-contain"
             />
             <div>

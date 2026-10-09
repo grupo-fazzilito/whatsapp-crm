@@ -21,7 +21,7 @@ type AuthInstance = ReturnType<typeof createAuth>
 
 function createAuth() {
   return betterAuth({
-    appName: 'ChatNexGen',
+    appName: 'Whasalia',
     baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001',
     secret: secret(),
     database: prismaAdapter(baseClient(), { provider: 'postgresql' }),

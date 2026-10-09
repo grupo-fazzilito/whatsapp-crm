@@ -3,7 +3,7 @@ import { I18nProvider } from "@/i18n/client";
 import { getLocale } from "@/i18n/server";
 
 export const metadata: Metadata = {
-  title: "Super Admin — ChatNexGen",
+  title: "Super Admin — Whasalia",
   robots: { index: false, follow: false },
 };
 

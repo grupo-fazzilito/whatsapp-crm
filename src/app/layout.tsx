@@ -5,32 +5,35 @@ import "./globals.css";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { DEFAULT_THEME, STORAGE_KEY, THEME_IDS } from "@/lib/themes";
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001").replace(/\/+$/, "");
+
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "ChatNexGen - AI Powered WhatsApp CRM & Automation Platform",
-    template: "%s — ChatNexGen",
+    default: "Whasalia - AI Powered WhatsApp CRM & Automation Platform",
+    template: "%s — Whasalia",
   },
-  description: "Manage leads, automate customer communication, and grow your business with ChatNexGen's AI-powered WhatsApp CRM platform.",
+  description: "Manage leads, automate customer communication, and grow your business with Whasalia's AI-powered WhatsApp CRM platform.",
   robots: {
     index: true,
     follow: true,
   },
   openGraph: {
-    title: "ChatNexGen - AI Powered WhatsApp CRM & Automation Platform",
-    description: "Manage leads, automate customer communication, and grow your business with ChatNexGen's AI-powered WhatsApp CRM platform.",
-    url: "https://chatnexgen.online",
-    siteName: "ChatNexGen",
+    title: "Whasalia - AI Powered WhatsApp CRM & Automation Platform",
+    description: "Manage leads, automate customer communication, and grow your business with Whasalia's AI-powered WhatsApp CRM platform.",
+    url: SITE_URL,
+    siteName: "Whasalia",
     images: [
       {
-        url: "https://chatnexgen.online/images/logo/chatnexgen-logo.png",
-        width: 1200,
-        height: 630,
-        alt: "ChatNexGen CRM Logo",
+        url: `${SITE_URL}/images/logo/whasalia-logo.png`,
+        width: 1544,
+        height: 338,
+        alt: "Whasalia CRM Logo",
       },
     ],
     locale: "en_US",
@@ -38,9 +41,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ChatNexGen - AI Powered WhatsApp CRM & Automation Platform",
-    description: "Manage leads, automate customer communication, and grow your business with ChatNexGen's AI-powered WhatsApp CRM platform.",
-    images: ["https://chatnexgen.online/images/logo/chatnexgen-logo.png"],
+    title: "Whasalia - AI Powered WhatsApp CRM & Automation Platform",
+    description: "Manage leads, automate customer communication, and grow your business with Whasalia's AI-powered WhatsApp CRM platform.",
+    images: [`${SITE_URL}/images/logo/whasalia-logo.png`],
   },
   icons: {
     icon: [{ url: "/favicon.png", type: "image/png" }],
@@ -129,10 +132,10 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              "name": "ChatNexGen Technologies",
-              "alternateName": "ChatNexGen",
-              "url": "https://chatnexgen.online",
-              "logo": "https://chatnexgen.online/images/logo/chatnexgen-logo.png",
+              "name": "Whasalia",
+              "alternateName": "Whasalia",
+              "url": SITE_URL,
+              "logo": `${SITE_URL}/images/logo/whasalia-logo.png`,
               "contactPoint": {
                 "@type": "ContactPoint",
                 "telephone": "+91-7745868073",

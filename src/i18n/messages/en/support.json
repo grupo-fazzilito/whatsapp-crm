@@ -67,7 +67,7 @@
     "done": "Done!",
     "progress": "{{current}} of {{total}}",
     "welcome": {
-      "title": "Welcome to ChatNexGen! 👋",
+      "title": "Welcome to Whasalia! 👋",
       "body": "Here's a one-minute tour of where everything is. Replay it anytime from the compass icon at the top."
     },
     "workspace": {

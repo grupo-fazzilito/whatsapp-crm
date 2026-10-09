@@ -121,7 +121,7 @@ async function openai(req: LlmRequest, key: string, defaultModel?: string): Prom
         'Content-Type': 'application/json',
         Authorization: `Bearer ${key}`,
         ...(viaOpenRouter
-          ? { 'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001', 'X-Title': 'ChatNexGen' }
+          ? { 'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001', 'X-Title': 'Whasalia' }
           : {}),
       },
       body: JSON.stringify({
@@ -591,7 +591,7 @@ async function openaiVision(
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${key}`,
-        ...(viaOpenRouter ? { 'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001', 'X-Title': 'ChatNexGen' } : {}),
+        ...(viaOpenRouter ? { 'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001', 'X-Title': 'Whasalia' } : {}),
       },
       body: JSON.stringify({
         model: viaOpenRouter ? `openai/${model}` : model,

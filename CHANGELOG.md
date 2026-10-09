@@ -1,6 +1,6 @@
 # Changelog
 
-User-visible changes in `ChatNexGen Ai`. Self-hosters: when pulling an update,
+User-visible changes in `Whasalia`. Self-hosters: when pulling an update,
 check this file for any **migration required** notes and apply the
 matching SQL files from `supabase/migrations/` against your Supabase
 project before restarting the app.

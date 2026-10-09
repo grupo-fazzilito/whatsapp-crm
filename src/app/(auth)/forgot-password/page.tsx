@@ -56,6 +56,7 @@ export default function ForgotPasswordPage() {
   const [step, setStep] = useState<ResetStep>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState<string[]>(Array(6).fill(""));
+  const [devFilled, setDevFilled] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -102,6 +103,7 @@ export default function ForgotPasswordPage() {
       setLoading(false);
       setStep("otp");
       setResendTimer(60);
+      applyDevCode(data.devCode);
       // Focus first input box after step transition completes
       setTimeout(() => {
         inputRefs.current[0]?.focus();
@@ -110,6 +112,14 @@ export default function ForgotPasswordPage() {
       setError(err.message || "An unexpected error occurred.");
       setLoading(false);
     }
+  };
+
+  // MODE=DEV: the server returns the code; fill the boxes and verify.
+  const applyDevCode = (code: unknown) => {
+    if (typeof code !== "string" || !/^\d{6}$/.test(code)) return;
+    setOtp(code.split(""));
+    setDevFilled(true);
+    setTimeout(() => handleVerifyOtp(code), 600);
   };
 
   const handleResendOtp = async () => {
@@ -126,6 +136,8 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
       if (!res.ok || data.error) {
         setError(data.error || "Failed to resend code.");
+      } else {
+        applyDevCode(data.devCode);
       }
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");
@@ -413,6 +425,11 @@ export default function ForgotPasswordPage() {
                 </CardDescription>
               </div>
               <CardContent className="flex flex-col items-center px-6 pb-6">
+                {devFilled && (
+                  <p className="mb-4 rounded-md border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-300">
+                    DEV mode: code filled in automatically
+                  </p>
+                )}
                 {error && (
                   <div className="w-full mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-xs text-red-400">
                     {error}

@@ -348,7 +348,7 @@ export default async function PropertyPage({ params }: Props) {
 
       {/* On phones the sticky CTA bar replaces the chat launcher; "Agendar visita" reveals the widget. */}
       {listing.webchatKey && (
-        <style>{`@media (max-width:1023px){[data-chatnexgen-webchat]:not([data-cnx-open]){display:none!important}}@media print{[data-chatnexgen-webchat]{display:none!important}}`}</style>
+        <style>{`@media (max-width:1023px){[data-whasalia-webchat]:not([data-cnx-open]){display:none!important}}@media print{[data-whasalia-webchat]{display:none!important}}`}</style>
       )}
       {hasCta && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden print:hidden">

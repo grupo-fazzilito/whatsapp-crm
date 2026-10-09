@@ -173,8 +173,8 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-sidebar-border px-4">
           <Link href="/dashboard" className="flex items-center gap-2">
             <img
-              src={isLight ? "/images/logo/chatnexgen-logo-light.png" : "/images/logo/chatnexgen-logo.png"}
-              alt="ChatNexGen Logo"
+              src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
+              alt="Whasalia Logo"
               className="h-8 w-auto object-contain"
             />
           </Link>

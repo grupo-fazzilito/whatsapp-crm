@@ -33,13 +33,13 @@ export function Footer() {
         <div className="col-span-1 md:col-span-2 space-y-4">
           <Link href="/" className="inline-block">
             <img
-              src={isLight ? "/images/logo/chatnexgen-logo-light.png" : "/images/logo/chatnexgen-logo.png"}
-              alt="ChatNexGen Logo"
+              src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
+              alt="Whasalia Logo"
               className="h-8 w-auto object-contain"
             />
           </Link>
           <p className="text-xs text-[var(--m-text-tertiary)] leading-relaxed max-w-sm">
-            ChatNexGen is a premium AI-powered WhatsApp CRM and customer support automation platform. Automate business communication, configure smart chatbots, organize leads, and sync calendar reminders using the official WhatsApp Business API.
+            Whasalia is a premium AI-powered WhatsApp CRM and customer support automation platform. Automate business communication, configure smart chatbots, organize leads, and sync calendar reminders using the official WhatsApp Business API.
           </p>
           <div className="pt-2">
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-emerald-500/25 bg-[var(--m-badge-bg)] text-emerald-500 text-[10px] font-extrabold uppercase tracking-wider">
@@ -80,7 +80,7 @@ export function Footer() {
         <div className="col-span-1 space-y-4">
           <h6 className="text-[10px] uppercase font-bold tracking-wider text-[var(--m-text-tertiary)]">Contact Us</h6>
           <ul className="space-y-2.5 text-xs text-[var(--m-text-muted)]">
-            <li>ChatNexGen Technologies</li>
+            <li>Whasalia</li>
             <li>Pune, Maharashtra, India</li>
             <li className="pt-1">
               <a href="mailto:chatnexgen@gmail.com" className="text-emerald-400 hover:underline">
@@ -106,10 +106,10 @@ export function Footer() {
       {/* Meta API disclaimer & Copyright footer */}
       <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-[var(--m-border-primary)]/50 space-y-4 relative z-10 text-center">
         <p className="text-[10px] leading-relaxed text-[var(--m-text-muted)] max-w-3xl mx-auto">
-          "ChatNexGen uses WhatsApp Business API solutions in accordance with Meta and WhatsApp Business policies. Businesses are responsible for obtaining user consent before initiating communication."
+          "Whasalia uses WhatsApp Business API solutions in accordance with Meta and WhatsApp Business policies. Businesses are responsible for obtaining user consent before initiating communication."
         </p>
         <div className="text-[10px] text-[var(--m-text-muted)] pt-2">
-          © 2026 ChatNexGen Technologies. All rights reserved.
+          © 2026 Whasalia. All rights reserved.
         </div>
       </div>
     </footer>

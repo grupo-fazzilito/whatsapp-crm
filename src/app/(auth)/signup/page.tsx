@@ -88,6 +88,7 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [otp, setOtp] = useState<string[]>(Array(6).fill(""));
+  const [devFilled, setDevFilled] = useState(false);
   const [focusedOtpIndex, setFocusedOtpIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -157,6 +158,7 @@ export default function SignupPage() {
       setLoading(false);
       setStep("otp");
       setResendTimer(60);
+      applyDevCode(data.devCode);
       setTimeout(() => {
         inputRefs.current[0]?.focus();
       }, 100);
@@ -164,6 +166,14 @@ export default function SignupPage() {
       setError(err.message || "An unexpected error occurred.");
       setLoading(false);
     }
+  };
+
+  // MODE=DEV: the server returns the code; fill the boxes and verify.
+  const applyDevCode = (code: unknown) => {
+    if (typeof code !== "string" || !/^\d{6}$/.test(code)) return;
+    setOtp(code.split(""));
+    setDevFilled(true);
+    setTimeout(() => handleRegister(code), 600);
   };
 
   const handleResendOtp = async () => {
@@ -180,6 +190,8 @@ export default function SignupPage() {
       const data = await res.json();
       if (!res.ok || data.error) {
         setError(data.error || "Failed to resend code.");
+      } else {
+        applyDevCode(data.devCode);
       }
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");
@@ -610,6 +622,11 @@ export default function SignupPage() {
                 </CardDescription>
               </div>
               <CardContent className="flex flex-col items-center px-6 pb-6">
+                {devFilled && (
+                  <p className="mb-4 rounded-md border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-300">
+                    DEV mode: code filled in automatically
+                  </p>
+                )}
                 {error && (
                   <div className="w-full mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-xs text-red-400">
                     {error}

@@ -28,7 +28,7 @@ export async function sendEmail(input: SendEmailInput): Promise<{ delivered: boo
 
   const transporter = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } })
   await transporter.sendMail({
-    from: from.includes('<') ? from : `ChatNexGen <${from}>`,
+    from: from.includes('<') ? from : `Whasalia <${from}>`,
     to: input.to,
     subject: input.subject,
     text: input.text,

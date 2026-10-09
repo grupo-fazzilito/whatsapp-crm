@@ -48,8 +48,8 @@ export default function AdminLoginPage() {
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
             <img
-              src="/images/logo/chatnexgen-logo.png"
-              alt="ChatNexGen Logo"
+              src="/images/logo/whasalia-logo.png"
+              alt="Whasalia Logo"
               className="h-14 w-auto object-contain mb-4"
             />
             <h1 className="text-xl font-bold text-white">Super Admin</h1>

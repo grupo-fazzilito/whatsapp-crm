@@ -18,13 +18,13 @@ export default function TermsAndConditionsPage() {
 
       <div className="space-y-8 text-xs sm:text-sm text-[var(--m-text-secondary)] leading-relaxed">
         <p>
-          Welcome to ChatNexGen. These Terms & Conditions (&quot;Terms&quot;) govern your access to and use of the website, SaaS dashboard, automation engines, APIs, and customer relationship interfaces provided by ChatNexGen Technologies (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;). By subscribing to or utilizing our Platform, you agree to comply with and be bound by these Terms.
+          Welcome to Whasalia. These Terms & Conditions (&quot;Terms&quot;) govern your access to and use of the website, SaaS dashboard, automation engines, APIs, and customer relationship interfaces provided by Whasalia (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;). By subscribing to or utilizing our Platform, you agree to comply with and be bound by these Terms.
         </p>
 
         <section className="space-y-3">
           <h3 className="text-lg font-bold text-[var(--m-text-heading)]">1. SaaS Subscription & Billing</h3>
           <p>
-            Subscribing to ChatNexGen grants your business a non-exclusive, non-transferable, revocable license to access our platform services.
+            Subscribing to Whasalia grants your business a non-exclusive, non-transferable, revocable license to access our platform services.
           </p>
           <ul className="list-disc pl-5 space-y-1 text-[var(--m-text-tertiary)]">
             <li>Subscriptions are billed monthly or annually in advance based on the plan selected.</li>
@@ -36,7 +36,7 @@ export default function TermsAndConditionsPage() {
         <section className="space-y-3">
           <h3 className="text-lg font-bold text-[var(--m-text-heading)]">2. User Responsibilities & Acceptable Use</h3>
           <p>
-            You agree to use ChatNexGen only for lawful business operations and in absolute compliance with local, national, and international laws.
+            You agree to use Whasalia only for lawful business operations and in absolute compliance with local, national, and international laws.
           </p>
           <ul className="list-disc pl-5 space-y-1 text-[var(--m-text-tertiary)]">
             <li>You must verify and manage the permissions of any team member added to your workspace.</li>
@@ -49,7 +49,7 @@ export default function TermsAndConditionsPage() {
         <section className="space-y-3">
           <h3 className="text-lg font-bold text-[var(--m-text-heading)]">3. Meta & WhatsApp Policy Compliance</h3>
           <p>
-            ChatNexGen operates using the official WhatsApp Business API provided by Meta. All customers must comply with Meta's developer policies and WhatsApp Business Platform guidelines.
+            Whasalia operates using the official WhatsApp Business API provided by Meta. All customers must comply with Meta's developer policies and WhatsApp Business Platform guidelines.
           </p>
           <ul className="list-disc pl-5 space-y-1 text-[var(--m-text-tertiary)]">
             <li>You represent that your business profile, logos, and links submitted for verification are authentic.</li>
@@ -73,14 +73,14 @@ export default function TermsAndConditionsPage() {
         <section className="space-y-3">
           <h3 className="text-lg font-bold text-[var(--m-text-heading)]">5. Intellectual Property</h3>
           <p>
-            All technology, graphic user interfaces, chatbot designs, workflow visualizations, logos, and custom code modules remain the exclusive intellectual property of ChatNexGen Technologies or its licensors. You may not distribute or copy any portion of our software.
+            All technology, graphic user interfaces, chatbot designs, workflow visualizations, logos, and custom code modules remain the exclusive intellectual property of Whasalia or its licensors. You may not distribute or copy any portion of our software.
           </p>
         </section>
 
         <section className="space-y-3">
           <h3 className="text-lg font-bold text-[var(--m-text-heading)]">6. Service Limitations & Disclaimers</h3>
           <p>
-            ChatNexGen is provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis. While we maintain a high standard of platform stability, we do not warrant that service will be uninterrupted.
+            Whasalia is provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis. While we maintain a high standard of platform stability, we do not warrant that service will be uninterrupted.
           </p>
           <ul className="list-disc pl-5 space-y-1 text-[var(--m-text-tertiary)]">
             <li>We are not responsible for delivery delays or downtime caused directly by Meta/WhatsApp API node failures.</li>
@@ -98,10 +98,10 @@ export default function TermsAndConditionsPage() {
         <section className="space-y-3 text-center pt-8 border-t border-[var(--m-border-primary)]/50">
           <h3 className="text-lg font-bold text-[var(--m-text-heading)]">8. Contact Us</h3>
           <p>
-            If you have questions regarding these Terms & Conditions, contact ChatNexGen Technologies:
+            If you have questions regarding these Terms & Conditions, contact Whasalia:
           </p>
           <div className="text-xs text-[var(--m-text-tertiary)] mt-3 space-y-1">
-            <p className="font-bold text-[var(--m-text-primary)]">ChatNexGen Technologies</p>
+            <p className="font-bold text-[var(--m-text-primary)]">Whasalia</p>
             <p>Pune, Maharashtra, India</p>
             <p>
               Email: <a href="mailto:chatnexgen@gmail.com" className="text-emerald-400 hover:underline">chatnexgen@gmail.com</a>
