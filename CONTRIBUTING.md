@@ -95,7 +95,7 @@ closed — open the issue first to align.
 
 ## If you maintain a public fork
 
-- Rebrand. The "ChatNexGen Ai" name, favicon, and
+- Rebrand. The "Whasalia" name, favicon, and
   associated domain URL belong to the project; please swap them
   for your own before putting your deployment in front of users.
 - Keep the MIT [`LICENSE`](./LICENSE) file — that's how the template's

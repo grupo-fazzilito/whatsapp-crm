@@ -5,7 +5,7 @@ import { CalendarCheck, Printer } from 'lucide-react';
 
 declare global {
   interface Window {
-    ChatNexGenChat?: { open: () => void; close: () => void; toggle: () => void };
+    WhasaliaChat?: { open: () => void; close: () => void; toggle: () => void };
   }
 }
 
@@ -22,7 +22,7 @@ export function PrintButton({ label, className }: { label: string; className?: s
 function prefillWidget(text: string) {
   const started = Date.now();
   const tick = () => {
-    const host = document.querySelector('[data-chatnexgen-webchat]');
+    const host = document.querySelector('[data-whasalia-webchat]');
     const input = host?.shadowRoot?.querySelector<HTMLTextAreaElement>('#cnx-input');
     if (input && input.isConnected) {
       if (!input.value.trim()) {
@@ -60,7 +60,7 @@ export function VisitButton({
 
   useEffect(() => {
     if (!webchatKey) return;
-    if (!window.ChatNexGenChat && !document.querySelector('script[data-cnx-listing]')) {
+    if (!window.WhasaliaChat && !document.querySelector('script[data-cnx-listing]')) {
       const s = document.createElement('script');
       s.src = '/widget.js';
       s.async = true;
@@ -70,7 +70,7 @@ export function VisitButton({
       document.body.appendChild(s);
     }
     const id = window.setInterval(() => {
-      if (window.ChatNexGenChat) {
+      if (window.WhasaliaChat) {
         setReady(true);
         window.clearInterval(id);
       }
@@ -84,8 +84,8 @@ export function VisitButton({
         type="button"
         disabled={!ready}
         onClick={() => {
-          document.querySelector('[data-chatnexgen-webchat]')?.setAttribute('data-cnx-open', '');
-          window.ChatNexGenChat?.open();
+          document.querySelector('[data-whasalia-webchat]')?.setAttribute('data-cnx-open', '');
+          window.WhasaliaChat?.open();
           prefillWidget(message);
         }}
         className={className}

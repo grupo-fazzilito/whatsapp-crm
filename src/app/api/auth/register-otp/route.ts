@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        const formattedFrom = smtpFrom.includes("<") ? smtpFrom : `ChatNexGen <${smtpFrom}>`;
+        const formattedFrom = smtpFrom.includes("<") ? smtpFrom : `Whasalia <${smtpFrom}>`;
         const mailOptions = {
           from: formattedFrom,
           to: email,

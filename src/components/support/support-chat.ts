@@ -5,15 +5,15 @@
 
 declare global {
   interface Window {
-    ChatNexGenChat?: { open: () => void; close: () => void; toggle: () => void };
+    WhasaliaChat?: { open: () => void; close: () => void; toggle: () => void };
   }
 }
 
 let loading: Promise<void> | null = null;
 
 export function openSupportChat(key: string, who: { name?: string | null; email?: string | null }): Promise<void> {
-  if (window.ChatNexGenChat) {
-    window.ChatNexGenChat.open();
+  if (window.WhasaliaChat) {
+    window.WhasaliaChat.open();
     return Promise.resolve();
   }
   if (!loading) {
@@ -30,10 +30,10 @@ export function openSupportChat(key: string, who: { name?: string | null; email?
         reject(new Error('widget failed to load'));
       };
       document.body.appendChild(s);
-      // The widget defines window.ChatNexGenChat after fetching its config.
+      // The widget defines window.WhasaliaChat after fetching its config.
       const started = Date.now();
       const wait = () => {
-        if (window.ChatNexGenChat) return resolve();
+        if (window.WhasaliaChat) return resolve();
         if (Date.now() - started > 15_000) {
           loading = null;
           return reject(new Error('widget did not start'));
@@ -43,5 +43,5 @@ export function openSupportChat(key: string, who: { name?: string | null; email?
       wait();
     });
   }
-  return loading.then(() => window.ChatNexGenChat?.open());
+  return loading.then(() => window.WhasaliaChat?.open());
 }

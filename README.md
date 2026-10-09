@@ -1,4 +1,4 @@
-# ⚡ ChatNexGen Ai
+# ⚡ Whasalia
 
 > The ultimate self-hostable CRM and no-code automation engine built for the official WhatsApp Business (Cloud) API. Empower your team with a real-time shared inbox, contact segmentation, visual Kanban pipelines, automated broadcasts, and an autonomous AI Healthcare Assistant.
 

@@ -28,8 +28,8 @@ export function ReferenceDashboard() {
           {/* Logo on Left */}
           <div className="flex items-center gap-2">
             <img
-              src={isLight ? "/images/logo/chatnexgen-logo-light.png" : "/images/logo/chatnexgen-logo.png"}
-              alt="ChatNexGen Logo"
+              src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
+              alt="Whasalia Logo"
               className="h-6 w-auto object-contain"
             />
           </div>

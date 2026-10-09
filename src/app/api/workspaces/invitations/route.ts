@@ -67,8 +67,8 @@ export async function POST(req: NextRequest) {
   const link = `${origin}/invite/${token}`
   const es = g.ctx.workspace.locale === 'es'
   const subject = es
-    ? `Te invitaron a ${g.ctx.workspace.name} en ChatNexGen`
-    : `You're invited to ${g.ctx.workspace.name} on ChatNexGen`
+    ? `Te invitaron a ${g.ctx.workspace.name} en Whasalia`
+    : `You're invited to ${g.ctx.workspace.name} on Whasalia`
   const text = es
     ? `Te invitaron a unirte a ${g.ctx.workspace.name}. Acepta la invitación aquí (vence en 7 días):\n${link}`
     : `You've been invited to join ${g.ctx.workspace.name}. Accept here (expires in 7 days):\n${link}`

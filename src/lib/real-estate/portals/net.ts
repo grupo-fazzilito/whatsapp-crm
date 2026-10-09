@@ -86,7 +86,7 @@ export async function safeFetch(
       const res = await fetch(url, {
         redirect: 'manual',
         signal: ctrl.signal,
-        headers: { accept: opts.accept ?? '*/*', 'user-agent': 'ChatNexGen-PortalImport/1.0' },
+        headers: { accept: opts.accept ?? '*/*', 'user-agent': 'Whasalia-PortalImport/1.0' },
       })
       if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
         url = new URL(res.headers.get('location')!, url)

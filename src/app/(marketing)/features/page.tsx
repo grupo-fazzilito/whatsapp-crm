@@ -58,7 +58,7 @@ export default function FeaturesPage() {
     },
     {
       name: "Projects & Tasks",
-      desc: "Stay organized without switching tools. Create, assign, and track follow-up tasks inside ChatNexGen Ai — so nothing slips, no matter how fast your business moves.",
+      desc: "Stay organized without switching tools. Create, assign, and track follow-up tasks inside Whasalia — so nothing slips, no matter how fast your business moves.",
       icon: <CheckSquare className="size-5 text-amber-400" />
     },
     {
@@ -163,7 +163,7 @@ export default function FeaturesPage() {
             How it works
           </h2>
           <p className="text-sm text-[var(--m-text-tertiary)] transition-colors duration-300">
-            Getting started with ChatNexGen Ai takes minutes, not months.
+            Getting started with Whasalia takes minutes, not months.
           </p>
         </motion.div>
 
@@ -256,7 +256,7 @@ export default function FeaturesPage() {
               Built on the official WhatsApp Business API
             </h4>
             <p className="text-xs md:text-sm leading-relaxed text-[var(--m-text-tertiary)]">
-              ChatNexGen Ai connects to the official WhatsApp Business API through Meta Business. Every message you send — automated chatbot replies, customer updates, and notifications — is delivered with enterprise-grade reliability and full Meta compliance. No workarounds. No grey-area tools.
+              Whasalia connects to the official WhatsApp Business API through Meta Business. Every message you send — automated chatbot replies, customer updates, and notifications — is delivered with enterprise-grade reliability and full Meta compliance. No workarounds. No grey-area tools.
             </p>
           </div>
           <div className="pt-2">

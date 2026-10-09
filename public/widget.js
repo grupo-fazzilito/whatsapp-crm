@@ -1,9 +1,9 @@
-/*! ChatNexGen AI web chat widget
+/*! Whasalia web chat widget
  * <script src="https://APP/widget.js" data-key="pk_xxx" async></script>
  * Optional: data-lang="es|en", data-open="true", data-launcher="false" (no floating
  * button: open it with the API), data-name / data-email / data-phone (known visitor:
  * skips the pre-chat form).
- * API: window.ChatNexGenChat.open() / .close() / .toggle()
+ * API: window.WhasaliaChat.open() / .close() / .toggle()
  */
 (function () {
   'use strict';
@@ -214,7 +214,7 @@
   var ui = {};
 
   function build(cfg) {
-    var host = el('div', { 'data-chatnexgen-webchat': '', style: 'all:initial' });
+    var host = el('div', { 'data-whasalia-webchat': '', style: 'all:initial' });
     var root = host.attachShadow ? host.attachShadow({ mode: 'open' }) : host;
     var brand = cfg.color || '#10b981';
     var wrap = el('div', { class: 'root ' + (cfg.position === 'left' ? 'left' : 'right'), lang: LANG });
@@ -263,7 +263,7 @@
 
     var foot = el('div', { class: 'foot' }, [
       document.createTextNode(T.powered + ' '),
-      el('a', { href: BASE, target: '_blank', rel: 'noopener noreferrer', text: 'ChatNexGen AI' })
+      el('a', { href: BASE, target: '_blank', rel: 'noopener noreferrer', text: 'Whasalia' })
     ]);
 
     ui.body = el('div', { style: 'display:contents' });
@@ -706,7 +706,9 @@
       cfg.prechat_fields = Array.isArray(cfg.prechat_fields) ? cfg.prechat_fields : [];
       state.cfg = cfg;
       build(cfg);
-      window.ChatNexGenChat = { open: function () { open(); }, close: function () { close(false); }, toggle: toggle };
+      window.WhasaliaChat = { open: function () { open(); }, close: function () { close(false); }, toggle: toggle };
+      // Old name, kept for pages that already call it.
+      window.ChatNexGenChat = window.WhasaliaChat;
       // Returning visitor with a conversation: reconnect so replies show as unread.
       if (state.stored.t && state.stored.c) startConversation();
       // Known visitor: send who they are once, so the team sees name and email.

@@ -117,8 +117,8 @@ export function GlassNavbar() {
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2 group shrink-0">
             <img
-              src={isLight ? "/images/logo/chatnexgen-logo-light.png" : "/images/logo/chatnexgen-logo.png"}
-              alt="ChatNexGen Logo"
+              src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
+              alt="Whasalia Logo"
               className="h-8 w-auto object-contain group-hover:scale-110 transition-transform"
             />
           </Link>

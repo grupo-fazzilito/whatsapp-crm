@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto'
 
 // Webhook signing. Header:
-//   X-ChatNexGen-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256(secret, "<t>.<raw body>")>
+//   X-Whasalia-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256(secret, "<t>.<raw body>")>
 // Receivers recompute the HMAC over the raw body and reject old
 // timestamps (default tolerance 5 minutes) to stop replays.
 

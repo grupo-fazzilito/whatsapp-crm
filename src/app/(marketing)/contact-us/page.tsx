@@ -46,7 +46,7 @@ export default function ContactUsPage() {
             <Building className="size-4 text-emerald-400 shrink-0" />
             <div>
               <span className="block font-bold text-[var(--m-text-primary)]">Company</span>
-              <span>ChatNexGen Technologies</span>
+              <span>Whasalia</span>
             </div>
           </div>
           <div className="flex items-center gap-3.5 text-xs text-[var(--m-text-tertiary)]">

@@ -27,41 +27,41 @@ export default function HomePage() {
       name: "Dr. Ananya Sharma",
       role: "Clinic Operations Director",
       company: "Aura Health Clinics",
-      content: "Switching to ChatNexGen automated our patient booking flow. Clients schedule check-ups directly on WhatsApp, and the AI resolves clinic FAQs instantly. Handovers to our front desk are perfectly seamless.",
+      content: "Switching to Whasalia automated our patient booking flow. Clients schedule check-ups directly on WhatsApp, and the AI resolves clinic FAQs instantly. Handovers to our front desk are perfectly seamless.",
       stars: 5,
     },
     {
       name: "Rohan Mehta",
       role: "Founder & CEO",
       company: "CraftedThreads E-Commerce",
-      content: "Our customer engagement rates skyrocketed with ChatNexGen's automated order status and shipping alerts. Using the official WhatsApp Business API ensures we maintain a solid reputation and perfect compliance.",
+      content: "Our customer engagement rates skyrocketed with Whasalia's automated order status and shipping alerts. Using the official WhatsApp Business API ensures we maintain a solid reputation and perfect compliance.",
       stars: 5,
     },
     {
       name: "Sneha Nair",
       role: "Lead Product Owner",
       company: "VentureScale SaaS",
-      content: "ChatNexGen's visual pipeline editor is custom-built for chat threads. We easily classify inbound leads, auto-assign tickets to support agents, and monitor drop-offs with absolute visual clarity.",
+      content: "Whasalia's visual pipeline editor is custom-built for chat threads. We easily classify inbound leads, auto-assign tickets to support agents, and monitor drop-offs with absolute visual clarity.",
       stars: 5,
     },
   ];
 
   const faqs: FAQItem[] = [
     {
-      q: "What is ChatNexGen and how does it work?",
-      a: "ChatNexGen is an AI-powered WhatsApp CRM and customer support platform that integrates with the official WhatsApp Business API. It allows your team to manage conversations in a shared inbox, automate responses via custom AI agents, track leads through kanban pipelines, and sync schedules directly via WhatsApp.",
+      q: "What is Whasalia and how does it work?",
+      a: "Whasalia is an AI-powered WhatsApp CRM and customer support platform that integrates with the official WhatsApp Business API. It allows your team to manage conversations in a shared inbox, automate responses via custom AI agents, track leads through kanban pipelines, and sync schedules directly via WhatsApp.",
     },
     {
-      q: "Is ChatNexGen compliant with WhatsApp policies?",
-      a: "Yes. ChatNexGen is fully compliant with Meta and WhatsApp Business Platform policies. We exclusively utilize official WhatsApp Business API endpoints. We do not support bulk messaging spam, contact scraping, or blast tools, ensuring your business number maintains high reliability.",
+      q: "Is Whasalia compliant with WhatsApp policies?",
+      a: "Yes. Whasalia is fully compliant with Meta and WhatsApp Business Platform policies. We exclusively utilize official WhatsApp Business API endpoints. We do not support bulk messaging spam, contact scraping, or blast tools, ensuring your business number maintains high reliability.",
     },
     {
       q: "Do I need a WhatsApp Business Account (WABA)?",
-      a: "Yes. To run active automation, you need a verified Meta Business Account and a clean phone number. ChatNexGen's support team guides you through the entire Meta Business Verification process to establish your official partner status.",
+      a: "Yes. To run active automation, you need a verified Meta Business Account and a clean phone number. Whasalia's support team guides you through the entire Meta Business Verification process to establish your official partner status.",
     },
     {
       q: "What are the subscription rates and API charges?",
-      a: "Our flat platform subscription starts at ₹2,999/month per WABA number. WhatsApp's conversation-based rates are charged directly by Meta; ChatNexGen passes through these official Meta charges with absolutely 0% markup.",
+      a: "Our flat platform subscription starts at ₹2,999/month per WABA number. WhatsApp's conversation-based rates are charged directly by Meta; Whasalia passes through these official Meta charges with absolutely 0% markup.",
     },
     {
       q: "How does the AI Assistant resolve queries?",

@@ -8,8 +8,8 @@ export default function APIDocsLanding() {
   const [lang, setLang] = useState<"curl" | "node" | "python">("curl");
 
   const codes = {
-    curl: `curl -X POST https://api.chatnexgenai.com/v1/messages \\
-  -H "Authorization: Bearer chatnexgenai_sec_live_..." \\
+    curl: `curl -X POST https://api.whasalia.com/v1/messages \\
+  -H "Authorization: Bearer cnx_live_..." \\
   -H "Content-Type: application/json" \\
   -d '{
     "to": "+15550199",
@@ -24,7 +24,7 @@ export default function APIDocsLanding() {
       }
     ]
   }'`,
-    node: `const client = require('@chatnexgenai/sdk')('chatnexgenai_sec_live_...');
+    node: `const client = require('@whasalia/sdk')('cnx_live_...');
 
 await client.messages.sendTemplate({
   to: '+15550199',
@@ -32,9 +32,9 @@ await client.messages.sendTemplate({
   languageCode: 'en',
   bodyParameters: ['Acme Partner']
 });`,
-    python: `import chatnexgenai
+    python: `import whasalia
 
-client = chatnexgenai.Client(api_key='chatnexgenai_sec_live_...')
+client = whasalia.Client(api_key='cnx_live_...')
 
 client.messages.send_template(
     to='+15550199',
