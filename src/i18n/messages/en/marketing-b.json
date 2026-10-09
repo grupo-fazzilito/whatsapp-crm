@@ -1,0 +1,180 @@
+{
+  "mktInbox": {
+    "badge": "Collaboration Control",
+    "titleLine1": "One Number.",
+    "titleLine2": "Unlimited Agents.",
+    "subtitle": "Stop sharing physical smartphones or web logins. Enable your entire support and sales teams to work from a single unified WhatsApp Business account. Assign threads, leave private internal notes, and automate message delegation.",
+    "mock": {
+      "title": "Shared Inbox Stream",
+      "subtitle": "Live conversation routing",
+      "tabCollision": "Collision Watch",
+      "tabNotes": "Team Notes",
+      "collisionTitle": "Collision Alert: John Doe",
+      "collisionBody": "Sarah Adams is currently typing a response. We've locked your edit access to prevent duplicate customer messaging.",
+      "assignedAgent": "Assigned Agent",
+      "noteBy": "Internal Note by Sarah",
+      "noteBody": "\"Spoke to client. Budget verified at $5k/mo. Move to 'Proposal Sent' once they reply to the pricing template.\"",
+      "notesHint": "Notes are visible only to your teammates — never sent to the customer.",
+      "autoRoutes": "Auto-routes new chats in 1.4s"
+    },
+    "features": {
+      "collisionTitle": "Collision Detection",
+      "collisionDesc": "Prevent double replies. Visual locks warn teammates when someone else is viewing or drafting a message in that thread.",
+      "mentionsTitle": "Internal Mentions",
+      "mentionsDesc": "Tag teammates inside chat threads using `@` comments. Discuss details, resolve queries, and transfer ownership easily.",
+      "assignmentTitle": "Rule-based Assignment",
+      "assignmentDesc": "Auto-delegate inbound conversations. Set rules to route chats based on language, product keyword interest, or sales timezone."
+    }
+  },
+  "mktCrm": {
+    "badge": "Pipeline Operations",
+    "titleLine1": "Built Specifically",
+    "titleLine2": "for WhatsApp Leads.",
+    "subtitle": "E-mails and forms are static. WhatsApp conversations are live. Our CRM tracks users, tags intent levels, maps pipeline milestones, and logs interaction histories directly from chat threads.",
+    "features": {
+      "revenueTitle": "Revenue Tracking",
+      "revenueDesc": "Assign deal values to contacts. Track total pipeline values and forecast conversions based on historical chat milestones.",
+      "fieldsTitle": "Custom Contact Fields",
+      "fieldsDesc": "Log custom attributes (company domain, target volume, region) and reference them dynamically inside your automated templates.",
+      "auditTitle": "Audit Logs & History",
+      "auditDesc": "Record every webhook delivery, user text, and AI automated tag. Maintain a full audit trail of contact history for compliance."
+    }
+  },
+  "mktAnalytics": {
+    "badge": "data insights",
+    "titleLine1": "Cinematic Analytics",
+    "titleLine2": "Powering High Growth.",
+    "subtitle": "Review read receipts, agent response times, and AI resolution rates in real-time. Make data-driven marketing decisions.",
+    "live": {
+      "badge": "Live conversion metrics",
+      "title": "Monitor Campaign Read Receipts.",
+      "desc": "Unlike emails that silently rot in spam, 98% of sent WhatsApp templates are opened. Track exact delivery timestamps, read confirmations, and quick reply clicks.",
+      "chartTitle": "Monthly Conversation Growth",
+      "chartBadge": "+24% Year Over Year"
+    },
+    "features": {
+      "refreshTitle": "Real-Time Refresh",
+      "refreshDesc": "Data refreshes automatically. Live metrics show user actions under 1 second. No manually refreshing required.",
+      "timersTitle": "Agent Performance Timers",
+      "timersDesc": "Review average response latency, deal resolution times, and team task completion metrics.",
+      "slaTitle": "SLA Auditing",
+      "slaDesc": "Validate sending rates, templates delivery reliability, and message queues to align with service guarantees."
+    }
+  },
+  "mktWaMarketing": {
+    "badge": "Campaign Broadcasts",
+    "titleLine1": "Broadcasting that",
+    "titleLine2": "Actually Gets Read.",
+    "subtitle": "Emails end up in spam folders. WhatsApp broadcasts reach screens instantly, generating an average 98% open rate. Send templates, personalization variables, and quick-reply buttons with compliance safety.",
+    "sim": {
+      "title": "Send Template Broadcast",
+      "subtitle": "Cloud API Send Engine",
+      "approved": "META APPROVED",
+      "campaignName": "Campaign Name",
+      "defaultCampaignName": "Acme Flash Sale 2026",
+      "bodyText": "Personalized Body Text",
+      "defaultTemplate": "Hi {{1}}! 🌟 Our annual flash sale is active. Use promo code {{2}} to redeem 20% off at check-out.",
+      "recipients": "Est. 12,500 recipients",
+      "dispatch": "Dispatch Now"
+    },
+    "features": {
+      "receiptsTitle": "Delivery Receipts",
+      "receiptsDesc": "Monitor delivery status in real-time. View exact statistics for sent, delivered, read, and reply rates across lists.",
+      "variablesTitle": "Personalized Variables",
+      "variablesDesc": "Map variables dynamically using CRM metadata (e.g. client first name, cart checkout URL, account manager name).",
+      "optoutTitle": "Opt-out Compliance",
+      "optoutDesc": "Automatically include opt-out quick reply buttons. Keep quality scores high and protect sending status limits."
+    }
+  },
+  "mktEnterprise": {
+    "badge": "enterprise readiness",
+    "titleLine1": "Scale Conversations",
+    "titleLine2": "with Global Safety.",
+    "subtitle": "Whasalia powers billions of chat events for hyper-growth teams. Ensure 99.9% uptime, data privacy compliance, and dedicated engineering support.",
+    "specs": {
+      "infraTitle": "Isolated Infrastructure",
+      "infraDesc": "For brands with strict regulatory guidelines, we deploy dedicated DB instances, isolated networking tunnels, and custom VPN keys.",
+      "ssoTitle": "SAML SSO & Roles",
+      "ssoDesc": "Configure standard directory syncs (Okta, Azure AD). Control agent access with strict permission policies.",
+      "modelsTitle": "Dedicated Models",
+      "modelsDesc": "Fine-tune customized LLM weight layers on your proprietary historical conversation logs. Keep memory safe and private."
+    },
+    "sla": {
+      "eyebrow": "Guaranteed Service Levels",
+      "title": "Uptime & Throughput SLA",
+      "desc": "We contractually guarantee 99.9% API uptime and dedicated sending rate capacity (up to 200 messages/sec).",
+      "uptime": "Uptime",
+      "support": "Support"
+    }
+  },
+  "mktSecurity": {
+    "badge": "security & compliance",
+    "titleLine1": "Trust & Compliance",
+    "titleLine2": "Built from Day One.",
+    "subtitle": "We protect your database boundaries with bank-grade encryption layers and compliance safety.",
+    "items": {
+      "gdprTitle": "GDPR Compliant",
+      "gdprDesc": "Fully compliant with European data privacy rules. Request data purges, access audits, and control region storage.",
+      "encryptionTitle": "End-to-End Encryption",
+      "encryptionDesc": "Data in transit is encrypted using TLS 1.3, and data at rest utilizes standard AES-256 block formats.",
+      "auditTitle": "Uptime Auditing",
+      "auditDesc": "Real-time audit log feeds register every API key update, webhook dispatch, and user console entry."
+    },
+    "whitepaper": {
+      "title": "Need our Security Whitepaper?",
+      "desc": "Get access to our complete SOC2 type-II audit logs, compliance document packages, and threat model reports.",
+      "cta": "Download Security Bundle"
+    }
+  },
+  "mktStories": {
+    "badge": "customer success",
+    "titleLine1": "Helping Startups",
+    "titleLine2": "Close 3x More Deals.",
+    "subtitle": "Read case studies and metrics of hyper-growth teams scaling their WhatsApp automation campaigns.",
+    "leadloop": {
+      "domain": "B2B Lead Agency",
+      "metric": "+42% Conversion",
+      "desc": "LeadLoop deployed our AI Auto-Responder on Facebook Ad redirect threads, qualifying 12,000 inbound leads without human intervention.",
+      "quote": "Whasalia completely transformed our sales team efficiency. We close 3x more deals with half the team size.",
+      "author": "Sarah Jenkins, VP Growth"
+    },
+    "pulse": {
+      "company": "Shopify Store 'Pulse'",
+      "domain": "D2C E-commerce",
+      "metric": "$24k Recovery Value",
+      "desc": "Pulse configured cart checkout drops to dispatch WhatsApp discount templates 15 minutes after checkout exit.",
+      "quote": "The open rates on WhatsApp are incredible. Emails get ignored, but WhatsApp recovery rates exceeded 22% in our first week.",
+      "author": "Marcus Vance, Founder"
+    }
+  },
+  "mktBlog": {
+    "badge": "article feed",
+    "titleLine1": "Editorial Insights",
+    "titleLine2": "for Modern Commerce.",
+    "subtitle": "Read guides on WhatsApp automation workflows, compliance safety rules, and AI sales tactics.",
+    "filters": {
+      "all": "All Insights",
+      "marketing": "Marketing Hacks",
+      "api": "API & Engineering"
+    },
+    "readArticle": "Read Article",
+    "readTime": "{min} min read",
+    "posts": {
+      "p1": {
+        "title": "Five WhatsApp Business API Templates to Drive E-commerce Recoveries",
+        "date": "May 24, 2026",
+        "desc": "Learn how to optimize quick-reply configurations and variables to bypass customer inbox fatigue and boost returns."
+      },
+      "p2": {
+        "title": "Avoiding Meta Number Bans: A Complete compliance Guideline",
+        "date": "May 18, 2026",
+        "desc": "Understand high-quality template scores, opt-out triggers, and official Meta policies to keep your business account active."
+      },
+      "p3": {
+        "title": "How to Fine-tune LLM Context for Inbound Intent Classification",
+        "date": "May 12, 2026",
+        "desc": "An engineering-first guide to training prompt memory, managing token boundaries, and handling hand-offs to human reps."
+      }
+    }
+  }
+}

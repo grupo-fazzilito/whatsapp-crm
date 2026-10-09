@@ -1,12 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/client";
 import { LOCALES, type AppLocale } from "@/i18n/config";
+import { isMarketingPath, localizedPath, splitLocale } from "@/i18n/marketing-routes";
 import { cn } from "@/lib/utils";
 
-// ES / EN pill. Spanish first (it is the default). Saves the choice in the
-// locale cookie and refreshes so server-rendered text switches too.
+// ES / EN pill. Spanish first (it is the default). On public pages it moves
+// to the same page under the other language's URL (/es/... ↔ /en/...);
+// elsewhere it saves the choice in the locale cookie and refreshes so
+// server-rendered text switches too.
 
 const LABELS: Record<AppLocale, { short: string; name: string }> = {
   es: { short: "ES", name: "Español" },
@@ -16,11 +19,17 @@ const LABELS: Record<AppLocale, { short: string; name: string }> = {
 export function LanguageSwitcher({ variant = "app", className }: { variant?: "app" | "marketing"; className?: string }) {
   const { locale, setLocale, t } = useI18n();
   const router = useRouter();
+  const pathname = usePathname();
 
   const choose = (l: AppLocale) => {
     if (l === locale) return;
     setLocale(l);
-    router.refresh();
+    const page = splitLocale(pathname);
+    if (page && isMarketingPath(page.path || "/")) {
+      router.push(`${localizedPath(l, page.path)}${window.location.search}${window.location.hash}`);
+    } else {
+      router.refresh();
+    }
   };
 
   return (

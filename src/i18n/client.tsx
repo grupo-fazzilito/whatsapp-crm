@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import { LOCALE_COOKIE, type AppLocale } from './config'
+import { localizedPath } from './marketing-routes'
 import { createTranslator, type Translator } from './translate'
 
 interface I18nValue {
@@ -31,4 +32,10 @@ export function useI18n(): I18nValue {
 
 export function useT(): Translator {
   return useI18n().t
+}
+
+/** Public-page link in the current language: lp('/pricing') → '/es/pricing'. */
+export function useLocalePath(): (path: string) => string {
+  const { locale } = useI18n()
+  return useCallback((path: string) => localizedPath(locale, path), [locale])
 }

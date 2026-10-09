@@ -1,0 +1,180 @@
+{
+  "mktInbox": {
+    "badge": "Control de colaboración",
+    "titleLine1": "Un solo número.",
+    "titleLine2": "Agentes ilimitados.",
+    "subtitle": "Deja de compartir celulares o sesiones web. Permite que todos tus equipos de soporte y ventas trabajen desde una sola cuenta unificada de WhatsApp Business. Asigna conversaciones, deja notas internas privadas y automatiza la delegación de mensajes.",
+    "mock": {
+      "title": "Flujo de bandeja compartida",
+      "subtitle": "Enrutamiento de conversaciones en vivo",
+      "tabCollision": "Vigilancia de colisiones",
+      "tabNotes": "Notas del equipo",
+      "collisionTitle": "Alerta de colisión: John Doe",
+      "collisionBody": "Sarah Adams está escribiendo una respuesta en este momento. Bloqueamos tu edición para evitar mensajes duplicados al cliente.",
+      "assignedAgent": "Agente asignado",
+      "noteBy": "Nota interna de Sarah",
+      "noteBody": "\"Hablé con el cliente. Presupuesto verificado en $5k/mes. Muévelo a 'Propuesta enviada' cuando responda a la plantilla de precios.\"",
+      "notesHint": "Las notas solo las ven tus compañeros de equipo — nunca se envían al cliente.",
+      "autoRoutes": "Enruta automáticamente chats nuevos en 1.4s"
+    },
+    "features": {
+      "collisionTitle": "Detección de colisiones",
+      "collisionDesc": "Evita respuestas duplicadas. Los bloqueos visuales avisan a tus compañeros cuando alguien más está viendo o redactando un mensaje en esa conversación.",
+      "mentionsTitle": "Menciones internas",
+      "mentionsDesc": "Etiqueta a tus compañeros dentro de las conversaciones con comentarios `@`. Comenta detalles, resuelve dudas y transfiere la responsabilidad fácilmente.",
+      "assignmentTitle": "Asignación por reglas",
+      "assignmentDesc": "Delega automáticamente las conversaciones entrantes. Define reglas para enrutar chats según idioma, interés en palabras clave de producto o zona horaria de ventas."
+    }
+  },
+  "mktCrm": {
+    "badge": "Operaciones de pipeline",
+    "titleLine1": "Creado específicamente",
+    "titleLine2": "para leads de WhatsApp.",
+    "subtitle": "Los correos y formularios son estáticos. Las conversaciones de WhatsApp son en vivo. Nuestro CRM da seguimiento a usuarios, etiqueta niveles de intención, mapea hitos del pipeline y registra el historial de interacciones directamente desde los chats.",
+    "features": {
+      "revenueTitle": "Seguimiento de ingresos",
+      "revenueDesc": "Asigna valores de negocio a tus contactos. Da seguimiento al valor total del pipeline y pronostica conversiones con base en los hitos históricos de chat.",
+      "fieldsTitle": "Campos de contacto personalizados",
+      "fieldsDesc": "Registra atributos personalizados (dominio de la empresa, volumen objetivo, región) y úsalos dinámicamente en tus plantillas automatizadas.",
+      "auditTitle": "Registros de auditoría e historial",
+      "auditDesc": "Registra cada entrega de webhook, texto del usuario y etiqueta automática de IA. Mantén un rastro de auditoría completo del historial de contactos para cumplimiento normativo."
+    }
+  },
+  "mktAnalytics": {
+    "badge": "datos e insights",
+    "titleLine1": "Analítica cinematográfica",
+    "titleLine2": "que impulsa el crecimiento.",
+    "subtitle": "Revisa confirmaciones de lectura, tiempos de respuesta de agentes y tasas de resolución con IA en tiempo real. Toma decisiones de marketing basadas en datos.",
+    "live": {
+      "badge": "Métricas de conversión en vivo",
+      "title": "Monitorea las confirmaciones de lectura de tus campañas.",
+      "desc": "A diferencia de los correos que se pierden en spam, el 98% de las plantillas de WhatsApp enviadas se abren. Da seguimiento a la hora exacta de entrega, confirmaciones de lectura y clics en respuestas rápidas.",
+      "chartTitle": "Crecimiento mensual de conversaciones",
+      "chartBadge": "+24% año contra año"
+    },
+    "features": {
+      "refreshTitle": "Actualización en tiempo real",
+      "refreshDesc": "Los datos se actualizan automáticamente. Las métricas en vivo muestran las acciones de los usuarios en menos de 1 segundo. Sin necesidad de recargar manualmente.",
+      "timersTitle": "Tiempos de desempeño de agentes",
+      "timersDesc": "Revisa la latencia promedio de respuesta, los tiempos de cierre de negocios y las métricas de tareas completadas por el equipo.",
+      "slaTitle": "Auditoría de SLA",
+      "slaDesc": "Valida tasas de envío, confiabilidad en la entrega de plantillas y colas de mensajes para cumplir con las garantías de servicio."
+    }
+  },
+  "mktWaMarketing": {
+    "badge": "Difusión de campañas",
+    "titleLine1": "Difusiones que",
+    "titleLine2": "sí se leen.",
+    "subtitle": "Los correos terminan en la carpeta de spam. Las difusiones de WhatsApp llegan a la pantalla al instante, con una tasa de apertura promedio del 98%. Envía plantillas, variables de personalización y botones de respuesta rápida cumpliendo las políticas.",
+    "sim": {
+      "title": "Enviar difusión de plantilla",
+      "subtitle": "Motor de envío de Cloud API",
+      "approved": "APROBADO POR META",
+      "campaignName": "Nombre de la campaña",
+      "defaultCampaignName": "Venta relámpago Acme 2026",
+      "bodyText": "Texto personalizado del mensaje",
+      "defaultTemplate": "¡Hola {{1}}! 🌟 Nuestra venta relámpago anual ya está activa. Usa el código promocional {{2}} para obtener 20% de descuento al pagar.",
+      "recipients": "Aprox. 12,500 destinatarios",
+      "dispatch": "Enviar ahora"
+    },
+    "features": {
+      "receiptsTitle": "Confirmaciones de entrega",
+      "receiptsDesc": "Monitorea el estado de entrega en tiempo real. Consulta estadísticas exactas de enviados, entregados, leídos y tasas de respuesta en todas tus listas.",
+      "variablesTitle": "Variables personalizadas",
+      "variablesDesc": "Mapea variables dinámicamente con los datos del CRM (p. ej., nombre del cliente, URL de pago del carrito, nombre del ejecutivo de cuenta).",
+      "optoutTitle": "Cumplimiento de bajas",
+      "optoutDesc": "Incluye automáticamente botones de respuesta rápida para darse de baja. Mantén altas tus calificaciones de calidad y protege tus límites de envío."
+    }
+  },
+  "mktEnterprise": {
+    "badge": "listo para empresas",
+    "titleLine1": "Escala tus conversaciones",
+    "titleLine2": "con seguridad global.",
+    "subtitle": "Whasalia procesa miles de millones de eventos de chat para equipos de hipercrecimiento. Asegura 99.9% de disponibilidad, cumplimiento en privacidad de datos y soporte de ingeniería dedicado.",
+    "specs": {
+      "infraTitle": "Infraestructura aislada",
+      "infraDesc": "Para marcas con lineamientos regulatorios estrictos, desplegamos instancias de base de datos dedicadas, túneles de red aislados y llaves VPN personalizadas.",
+      "ssoTitle": "SAML SSO y roles",
+      "ssoDesc": "Configura sincronizaciones de directorio estándar (Okta, Azure AD). Controla el acceso de los agentes con políticas de permisos estrictas.",
+      "modelsTitle": "Modelos dedicados",
+      "modelsDesc": "Ajusta capas de pesos de LLM personalizadas con tu propio historial de conversaciones. Mantén la memoria segura y privada."
+    },
+    "sla": {
+      "eyebrow": "Niveles de servicio garantizados",
+      "title": "SLA de disponibilidad y rendimiento",
+      "desc": "Garantizamos por contrato 99.9% de disponibilidad de la API y capacidad de envío dedicada (hasta 200 mensajes/seg).",
+      "uptime": "Disponibilidad",
+      "support": "Soporte"
+    }
+  },
+  "mktSecurity": {
+    "badge": "seguridad y cumplimiento",
+    "titleLine1": "Confianza y cumplimiento",
+    "titleLine2": "desde el primer día.",
+    "subtitle": "Protegemos los límites de tu base de datos con capas de cifrado de nivel bancario y cumplimiento normativo.",
+    "items": {
+      "gdprTitle": "Cumplimiento con GDPR",
+      "gdprDesc": "Cumplimiento total con las normas europeas de privacidad de datos. Solicita borrado de datos, auditorías de acceso y controla la región de almacenamiento.",
+      "encryptionTitle": "Cifrado de extremo a extremo",
+      "encryptionDesc": "Los datos en tránsito se cifran con TLS 1.3 y los datos en reposo usan el formato de bloque estándar AES-256.",
+      "auditTitle": "Auditoría de disponibilidad",
+      "auditDesc": "Los registros de auditoría en tiempo real guardan cada actualización de llaves de API, envío de webhook y acceso a la consola."
+    },
+    "whitepaper": {
+      "title": "¿Necesitas nuestro whitepaper de seguridad?",
+      "desc": "Accede a nuestros registros completos de auditoría SOC2 tipo II, paquetes de documentación de cumplimiento e informes de modelado de amenazas.",
+      "cta": "Descargar paquete de seguridad"
+    }
+  },
+  "mktStories": {
+    "badge": "casos de éxito",
+    "titleLine1": "Ayudamos a startups a",
+    "titleLine2": "cerrar 3x más negocios.",
+    "subtitle": "Lee casos de estudio y métricas de equipos de hipercrecimiento que escalan sus campañas de automatización en WhatsApp.",
+    "leadloop": {
+      "domain": "Agencia de leads B2B",
+      "metric": "+42% de conversión",
+      "desc": "LeadLoop implementó nuestro autorespondedor con IA en las conversaciones que llegan desde anuncios de Facebook, calificando 12,000 leads entrantes sin intervención humana.",
+      "quote": "Whasalia transformó por completo la eficiencia de nuestro equipo de ventas. Cerramos 3x más negocios con la mitad del equipo.",
+      "author": "Sarah Jenkins, VP de Crecimiento"
+    },
+    "pulse": {
+      "company": "Tienda Shopify 'Pulse'",
+      "domain": "E-commerce D2C",
+      "metric": "$24k recuperados",
+      "desc": "Pulse configuró sus carritos abandonados para enviar plantillas de descuento por WhatsApp 15 minutos después de salir del checkout.",
+      "quote": "Las tasas de apertura en WhatsApp son increíbles. Los correos se ignoran, pero la recuperación por WhatsApp superó el 22% en nuestra primera semana.",
+      "author": "Marcus Vance, Fundador"
+    }
+  },
+  "mktBlog": {
+    "badge": "artículos",
+    "titleLine1": "Ideas editoriales",
+    "titleLine2": "para el comercio moderno.",
+    "subtitle": "Lee guías sobre flujos de automatización en WhatsApp, reglas de cumplimiento y tácticas de ventas con IA.",
+    "filters": {
+      "all": "Todos los artículos",
+      "marketing": "Trucos de marketing",
+      "api": "API e ingeniería"
+    },
+    "readArticle": "Leer artículo",
+    "readTime": "{min} min de lectura",
+    "posts": {
+      "p1": {
+        "title": "Cinco plantillas de WhatsApp Business API para impulsar la recuperación en e-commerce",
+        "date": "24 de mayo de 2026",
+        "desc": "Aprende a optimizar configuraciones de respuesta rápida y variables para evitar la saturación en la bandeja de tus clientes y aumentar tus ventas."
+      },
+      "p2": {
+        "title": "Cómo evitar bloqueos de número en Meta: guía completa de cumplimiento",
+        "date": "18 de mayo de 2026",
+        "desc": "Entiende las calificaciones de calidad de plantillas, los disparadores de bajas y las políticas oficiales de Meta para mantener activa tu cuenta de negocio."
+      },
+      "p3": {
+        "title": "Cómo ajustar el contexto de un LLM para clasificar la intención de mensajes entrantes",
+        "date": "12 de mayo de 2026",
+        "desc": "Una guía con enfoque de ingeniería para entrenar la memoria del prompt, manejar los límites de tokens y gestionar el traspaso a agentes humanos."
+      }
+    }
+  }
+}

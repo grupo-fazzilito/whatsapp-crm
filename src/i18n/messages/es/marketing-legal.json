@@ -1,0 +1,220 @@
+{
+  "mktPrivacy": {
+    "badge": "Documento legal",
+    "title": "Política de privacidad",
+    "updated": "Última actualización: 23 de junio de 2026",
+    "intro": "Esta Política de privacidad (la \"Política\") describe cómo Whasalia (\"nosotros\" o \"nuestro\") recopila, usa, conserva y divulga la información de los usuarios de nuestra Plataforma. Al acceder a la plataforma SaaS de Whasalia o usarla, aceptas las prácticas descritas en esta Política. Si no estás de acuerdo, te pedimos que no uses la Plataforma.",
+    "s1": {
+      "title": "1. Recopilación de datos de usuario",
+      "body": "Recopilamos los datos personales que nos proporcionas directamente durante el registro, la configuración y las consultas de soporte. Esto puede incluir:",
+      "i1": "Tu nombre, el nombre de tu empresa, tu dirección de facturación y los datos de tu cuenta.",
+      "i2": "Dirección de correo electrónico (p. ej., datos de soporte, registros de correspondencia).",
+      "i3": "Números de tu cuenta de WhatsApp Business (WABA) y tokens de integración."
+    },
+    "s2": {
+      "title": "2. Almacenamiento de datos del CRM",
+      "body": "Todos los datos de contacto, etiquetas, registros, campos personalizados e historiales de conversación que se cargan o generan en el panel del CRM se almacenan de forma segura en nuestra base de datos. Empleamos una arquitectura de alojamiento avanzada para garantizar el aislamiento de los datos, una alta disponibilidad y copias de seguridad cifradas periódicas. Los registros de tus clientes siguen siendo de tu propiedad, y actuamos estrictamente como encargados del tratamiento de esta información."
+    },
+    "s3": {
+      "title": "3. Comunicación por WhatsApp",
+      "body": "Para facilitar las comunicaciones a través de la API de WhatsApp Business, transmitimos el contenido de los mensajes (plantillas de texto, respuestas rápidas, variables dinámicas y archivos multimedia) directamente a los servidores de Meta. Estas comunicaciones cumplen plenamente con las políticas de WhatsApp Business Platform. No inspeccionamos el contenido de los mensajes, salvo en la medida técnicamente necesaria para prestar el servicio, activar flujos de trabajo o depurar el rendimiento de la API."
+    },
+    "s4": {
+      "title": "4. Cookies y tecnologías de seguimiento",
+      "body": "Utilizamos cookies persistentes y de sesión para reconocer las sesiones de usuarios autenticados, guardar las preferencias de configuración del panel y supervisar la estabilidad de la plataforma. Puedes desactivar las cookies en la configuración de tu navegador, aunque hacerlo podría afectar el rendimiento de la plataforma e impedir el acceso a ciertos servicios interactivos."
+    },
+    "s5": {
+      "title": "5. Analítica y métricas de uso",
+      "body": "Para mantener una alta disponibilidad del servicio y diagnosticar anomalías de rendimiento, registramos parámetros del sistema, tipos de navegador, eventos de registro e interacciones en pantalla. Esta analítica nos ayuda a optimizar los tiempos de carga, evaluar la eficacia de los flujos de usuario y auditar la seguridad de los inicios de sesión sospechosos."
+    },
+    "s6": {
+      "title": "6. Prácticas de seguridad",
+      "body": "La seguridad es fundamental en la arquitectura de Whasalia. Todas las transferencias de datos entre el navegador y nuestros servidores se cifran con TLS 1.3 (HTTPS). Las bases de datos principales están aisladas, y las transacciones de pago se delegan por completo a pasarelas de pago de terceros que cumplen con PCI-DSS (p. ej., Razorpay)."
+    },
+    "s7": {
+      "title": "7. Derechos del usuario y portabilidad de datos",
+      "body": "Conforme a la normativa de protección de datos aplicable (incluidos el RGPD y las políticas de TI de la India), conservas el derecho a solicitar el acceso, la rectificación o la exportación portable de la información personal almacenada en tu cuenta. Para obtener tus archivos de datos, ponte en contacto con nuestro responsable de cumplimiento."
+    },
+    "s8": {
+      "title": "8. Solicitudes de eliminación de datos",
+      "before": "Puedes solicitar en cualquier momento la eliminación completa y permanente de tu perfil, de los registros de contactos del CRM y del historial de metadatos. Consulta nuestra página dinámica de ",
+      "link": "Instrucciones para eliminar datos",
+      "after": " o escribe por correo electrónico a nuestro equipo de soporte. Una vez validada la solicitud, la eliminación se procesa en un plazo de 7 días hábiles."
+    },
+    "s9": {
+      "title": "9. Integraciones de terceros",
+      "body": "Whasalia se integra con software de terceros (como sistemas de comercio electrónico, herramientas de hojas de cálculo y redes de mensajería). No somos responsables de las políticas de privacidad de estas plataformas externas. Te recomendamos revisar sus propios términos antes de configurar endpoints de webhook o permisos de sincronización."
+    },
+    "s10": {
+      "title": "10. Contacto e información regulatoria",
+      "body": "Si tienes preguntas o solicitudes sobre tus datos, ponte en contacto con Whasalia:",
+      "department": "Departamento de Cumplimiento",
+      "location": "Pune, Maharashtra, India",
+      "emailLabel": "Correo electrónico:"
+    }
+  },
+  "mktRefund": {
+    "badge": "Política de reembolso",
+    "title": "Política de suscripciones y reembolsos",
+    "updated": "Última actualización: 23 de junio de 2026",
+    "intro": "En Whasalia ofrecemos servicios profesionales de CRM para WhatsApp y de automatización de la comunicación. Esta política aclara las condiciones relativas a suscripciones recurrentes, configuraciones iniciales, desarrollos a medida, sesiones de consultoría y consultas de facturación.",
+    "s1": {
+      "title": "1. Suscripciones SaaS",
+      "body": "Nuestra plataforma de software se ofrece mediante suscripción (mensual o anual).",
+      "i1": "Los planes de suscripción trasladan las tarifas de uso de Meta Business Platform a precio fijo, sin recargos.",
+      "i2": "Ningún pago de suscripción es reembolsable una vez iniciado el ciclo de facturación.",
+      "i3": "Puedes cancelar tu suscripción en cualquier momento para evitar futuras renovaciones; tu acceso al panel seguirá activo hasta el final del periodo que ya pagaste."
+    },
+    "s2": {
+      "title": "2. Tarifas de alta y configuración de la cuenta",
+      "body": "Las tarifas de configuración e integración cubren el trabajo directo de configurar tu Meta Business Manager, solicitar el estatus de cuenta de WhatsApp Business y asignar los números.",
+      "i1": "Estas tarifas de alta no son reembolsables una vez iniciada la configuración o la consultoría de la cuenta."
+    },
+    "s3": {
+      "title": "3. Flujos de trabajo de desarrollo a medida",
+      "body": "Las tarifas cobradas por integraciones de chatbots a medida, plugins de API dedicados, configuraciones de webhooks y creación de flujos personalizados se rigen por acuerdos de nivel de servicio (SLA) específicos de cada proyecto.",
+      "i1": "Dado que la ingeniería a medida implica recursos de desarrollo dedicados, estos conceptos no son reembolsables una vez iniciados los hitos de desarrollo."
+    },
+    "s4": {
+      "title": "4. Servicios de consultoría",
+      "body": "Las tarifas de las sesiones de consultoría profesional, las llamadas de planificación estratégica y las auditorías de cumplimiento de Meta se devengan en el momento de la reserva. Si necesitas reprogramar una sesión de consultoría, debes contactar a tu representante con al menos 24 horas de antelación. Las inasistencias o cancelaciones con menos de 24 horas de antelación no son reembolsables."
+    },
+    "s5": {
+      "title": "5. Disputas de facturación y su resolución",
+      "body": "Si detectas un cargo duplicado o un error de facturación en tu estado de cuenta, te comprometes a presentar una consulta a nuestro departamento de soporte dentro de los 14 días siguientes a la fecha de la factura.",
+      "i1": "Investigamos todas las consultas de buena fe y corregimos de inmediato los fallos de la plataforma o errores de facturación que se verifiquen.",
+      "i2": "Iniciar contracargos no autorizados sin contactar a nuestro departamento de facturación dará lugar al bloqueo inmediato del espacio de trabajo y a posibles procedimientos de cobro."
+    },
+    "s6": {
+      "title": "6. Contactar con soporte",
+      "body": "Para cualquier consulta sobre facturación, desgloses de facturas o cancelaciones, contacta a nuestro equipo de soporte:",
+      "emailLabel": "Correo electrónico:"
+    }
+  },
+  "mktTermsConditions": {
+    "badge": "Documento legal",
+    "title": "Términos y condiciones",
+    "updated": "Última actualización: 23 de junio de 2026",
+    "intro": "Te damos la bienvenida a Whasalia. Estos Términos y condiciones (los \"Términos\") rigen tu acceso y uso del sitio web, el panel SaaS, los motores de automatización, las API y las interfaces de gestión de relaciones con clientes que ofrece Whasalia (\"nosotros\" o \"nuestro\"). Al suscribirte a nuestra Plataforma o utilizarla, aceptas cumplir estos Términos y quedar obligado por ellos.",
+    "s1": {
+      "title": "1. Suscripción SaaS y facturación",
+      "body": "La suscripción a Whasalia otorga a tu negocio una licencia no exclusiva, intransferible y revocable para acceder a los servicios de nuestra plataforma.",
+      "i1": "Las suscripciones se facturan por adelantado de forma mensual o anual, según el plan elegido.",
+      "i2": "Las tarifas de configuración inicial (si corresponden) y las de configuración a medida/consultoría se cobran antes de la prestación del servicio.",
+      "i3": "La falta de pago de las facturas de una suscripción activa dará lugar al bloqueo de la cuenta y, finalmente, a la eliminación de los datos."
+    },
+    "s2": {
+      "title": "2. Responsabilidades del usuario y uso aceptable",
+      "body": "Aceptas usar Whasalia únicamente para operaciones comerciales lícitas y en estricto cumplimiento de las leyes locales, nacionales e internacionales.",
+      "i1": "Debes verificar y gestionar los permisos de cualquier miembro del equipo que agregues a tu espacio de trabajo.",
+      "i2": "Eres responsable de obtener el consentimiento explícito (opt-in) de los usuarios finales/clientes antes de enviarles mensajes.",
+      "i3": "Tienes prohibido usar esta Plataforma para distribuir spam, ofertas fraudulentas, mensajes amenazantes o material publicitario no solicitado.",
+      "i4": "No debes aplicar ingeniería inversa, descompilar ni intentar alterar el rendimiento de nuestros nodos SaaS."
+    },
+    "s3": {
+      "title": "3. Cumplimiento de las políticas de Meta y WhatsApp",
+      "body": "Whasalia opera con la API oficial de WhatsApp Business proporcionada por Meta. Todos los clientes deben cumplir las políticas para desarrolladores de Meta y las directrices de WhatsApp Business Platform.",
+      "i1": "Declaras que el perfil de tu negocio, los logotipos y los enlaces que envíes para su verificación son auténticos.",
+      "i2": "Quedan estrictamente prohibidos los envíos masivos indiscriminados, el bombardeo automatizado de mensajes y los scrapers.",
+      "i3": "Aceptas cumplir los procesos de aprobación previa de plantillas de WhatsApp."
+    },
+    "s4": {
+      "title": "4. Suspensión y cancelación de la cuenta",
+      "body": "Nos reservamos el derecho de suspender o cancelar de forma permanente tu acceso al espacio de trabajo, sin reembolso, en las siguientes circunstancias:",
+      "i1": "Detección de mensajes masivos no autorizados o de denuncias automáticas de spam por parte de usuarios de WhatsApp.",
+      "i2": "Suspensión o cancelación de tu cuenta de WhatsApp Business (WABA) por parte de Meta debido a infracciones de sus políticas.",
+      "i3": "Incumplimiento de las políticas de uso aceptable o de la normativa local aplicable."
+    },
+    "s5": {
+      "title": "5. Propiedad intelectual",
+      "body": "Toda la tecnología, las interfaces gráficas de usuario, los diseños de chatbots, las visualizaciones de flujos de trabajo, los logotipos y los módulos de código a medida siguen siendo propiedad intelectual exclusiva de Whasalia o de sus licenciantes. No puedes distribuir ni copiar ninguna parte de nuestro software."
+    },
+    "s6": {
+      "title": "6. Limitaciones del servicio y exenciones de responsabilidad",
+      "body": "Whasalia se ofrece \"TAL CUAL\" y \"SEGÚN DISPONIBILIDAD\". Aunque mantenemos un alto nivel de estabilidad de la plataforma, no garantizamos que el servicio sea ininterrumpido.",
+      "i1": "No somos responsables de los retrasos en la entrega ni de las interrupciones causadas directamente por fallos de los nodos de la API de Meta/WhatsApp.",
+      "i2": "No controlamos las conexiones de los operadores de los clientes ni la cobertura de red de los destinatarios."
+    },
+    "s7": {
+      "title": "7. Ley aplicable y jurisdicción",
+      "body": "Estos Términos y cualquier controversia derivada del uso de esta Plataforma se regirán, interpretarán y harán cumplir de conformidad con las leyes de India. Toda controversia quedará sometida a la jurisdicción exclusiva de los tribunales ubicados en Pune, Maharashtra, India."
+    },
+    "s8": {
+      "title": "8. Contacto",
+      "body": "Si tienes preguntas sobre estos Términos y condiciones, ponte en contacto con Whasalia:",
+      "location": "Pune, Maharashtra, India",
+      "emailLabel": "Correo electrónico:"
+    }
+  },
+  "mktTermsService": {
+    "badge": "Documento legal",
+    "title": "Términos del servicio",
+    "updated": "Última actualización: 10 de marzo de 2026",
+    "intro": "Estos Términos del servicio (los \"Términos\") rigen tu uso de Whasalia (la \"Plataforma\"), un SaaS de automatización para WhatsApp, y de cualquier contenido, servicio o función que se ofrezca en la Plataforma o a través de ella. Al acceder a Whasalia o usarla, aceptas quedar obligado por estos Términos, nuestra Política de privacidad y cualquier otra política a la que aquí se haga referencia. Si no estás de acuerdo, te pedimos que no uses la Plataforma.",
+    "s1": {
+      "title": "1. Acceso y registro",
+      "body": "Para usar Whasalia debes tener al menos 18 años o, si tienes entre 13 y 18 años, contar con el consentimiento de tu madre, padre o tutor. Al registrarte, declaras que toda la información proporcionada es exacta y completa. Eres responsable de mantener la confidencialidad de tu cuenta y tu contraseña."
+    },
+    "s2": {
+      "title": "2. Licencia de uso",
+      "body": "Whasalia te otorga una licencia limitada, no exclusiva e intransferible para acceder a la Plataforma y usarla con tu(s) cuenta(s) de WhatsApp personal(es) o de empresa, con sujeción a estos Términos. No puedes:",
+      "i1": "Revender, sublicenciar ni transferir tu acceso a ningún tercero.",
+      "i2": "Eliminar ningún aviso de derechos de autor, marca registrada o propiedad.",
+      "i3": "Aplicar ingeniería inversa, descompilar ni intentar extraer el código fuente de la Plataforma.",
+      "i4": "Usar la Plataforma con fines ilícitos, abusivos o no autorizados, incluidos el spam o cualquier actividad prohibida por WhatsApp/Meta.",
+      "i5": "Modificar, copiar ni crear obras derivadas de ninguna parte de la Plataforma."
+    },
+    "s3": {
+      "title": "3. Contenido y conducta del usuario",
+      "body": "Eres el único responsable de cualquier contenido, mensaje o dato que envíes o automatices con Whasalia. Aceptas no usar la Plataforma para acosar, amenazar o vulnerar los derechos de otras personas, ni para publicar o transmitir material ilícito, dañino u ofensivo. Nos reservamos el derecho de suspender o cancelar cuentas por infracciones."
+    },
+    "s4": {
+      "title": "4. Pagos y reembolsos",
+      "body": "El acceso a ciertas funciones puede requerir el pago de una cuota de suscripción. Todos los pagos se procesan a través de proveedores externos. Todas las compras son definitivas y no reembolsables, salvo que nuestra Política de reembolso indique lo contrario."
+    },
+    "s5": {
+      "title": "5. Propiedad intelectual",
+      "body": "Todo el contenido, el software, las marcas comerciales y los materiales de Whasalia son propiedad de Whasalia o de sus licenciantes. No puedes usar, reproducir ni distribuir ninguna parte de la Plataforma, salvo en la medida en que estos Términos lo permitan expresamente."
+    },
+    "s6": {
+      "title": "6. Exención de responsabilidad",
+      "body": "LA PLATAFORMA SE OFRECE \"TAL CUAL\" Y \"SEGÚN DISPONIBILIDAD\", SIN GARANTÍA DE NINGÚN TIPO. WHASALIA RECHAZA TODA GARANTÍA, EXPRESA O IMPLÍCITA, INCLUIDAS LAS DE COMERCIABILIDAD, IDONEIDAD PARA UN FIN DETERMINADO Y NO INFRACCIÓN. NO GARANTIZAMOS QUE LA PLATAFORMA FUNCIONE DE FORMA ININTERRUMPIDA, SIN ERRORES O DE MANERA SEGURA."
+    },
+    "s7": {
+      "title": "7. Limitación de responsabilidad",
+      "body": "En la máxima medida permitida por la ley, Whasalia no será responsable de ningún daño indirecto, incidental, especial, consecuente o punitivo, ni de ninguna pérdida de beneficios o de datos, derivados de tu uso de la Plataforma."
+    },
+    "s8": {
+      "title": "8. Indemnización",
+      "body": "Aceptas indemnizar y mantener indemnes a Whasalia y a sus directivos, administradores y empleados frente a cualquier reclamación, daño o gasto derivado de tu uso de la Plataforma o del incumplimiento de estos Términos."
+    },
+    "s9": {
+      "title": "9. Cambios en los Términos",
+      "body": "Podemos actualizar estos Términos en cualquier momento. El uso continuado de Whasalia después de los cambios constituye la aceptación de los nuevos Términos. Te recomendamos revisar esta página periódicamente."
+    },
+    "s10": {
+      "title": "10. Ley aplicable",
+      "body": "Estos Términos se rigen por las leyes de la India. Toda controversia quedará sometida a la jurisdicción exclusiva de los tribunales de la India."
+    },
+    "s11": {
+      "title": "11. Contacto",
+      "before": "Si tienes preguntas o inquietudes sobre estos Términos, escríbenos a ",
+      "after": "."
+    }
+  },
+  "mktDataDeletion": {
+    "badge": "Eliminación de datos",
+    "title": "Instrucciones para eliminar los datos de usuario",
+    "subtitle": "Directrices de la plataforma Whasalia",
+    "intro": "Si quieres eliminar tus datos personales de la plataforma Whasalia, puedes solicitarlo siguiendo estos pasos.",
+    "howTitle": "Cómo solicitar la eliminación de datos",
+    "step1": "Inicia sesión en tu cuenta de la plataforma Whasalia.",
+    "step2": "Ve a la Configuración de tu cuenta.",
+    "step3": "Haz clic en Eliminar cuenta o solicita la eliminación de la cuenta.",
+    "step4": "También puedes contactar a nuestro equipo de soporte para solicitar la eliminación de tus datos.",
+    "contactTitle": "Contactar con soporte",
+    "emailLabel": "Correo de soporte",
+    "whatsappLabel": "Soporte por WhatsApp",
+    "footer": "Una vez que recibamos tu solicitud, tus datos se eliminarán de forma permanente de nuestro sistema en un plazo de 7 días hábiles."
+  }
+}

@@ -1,0 +1,217 @@
+{
+  "mktFeatures": {
+    "badge": "funcionalidades",
+    "titleLine1": "Todo lo que necesitas para",
+    "titleHighlight": "automatizar WhatsApp",
+    "subtitle": "Junto con las herramientas anteriores: conversaciones automatizadas, flujos de trabajo personalizados, analítica y más. Interactúa con tus clientes, nutre tus leads y escala sin escribir código.",
+    "caps": {
+      "contacts": {
+        "name": "Gestión de contactos y segmentos",
+        "desc": "Conoce exactamente quiénes son tus clientes. Etiqueta, segmenta y filtra contactos por comportamiento, campaña o atributo, y llega a las personas correctas con el mensaje correcto en el momento justo."
+      },
+      "drip": {
+        "name": "Campañas de goteo",
+        "desc": "Configúralo una vez y vende siempre. Las secuencias automatizadas nutren leads, reactivan contactos inactivos y entregan tu propuesta a tiempo, sin que tu equipo mueva un dedo."
+      },
+      "faq": {
+        "name": "Bot de preguntas frecuentes",
+        "desc": "Responde las preguntas más comunes antes de que tu equipo siquiera las vea. Configura los pares de pregunta y respuesta una sola vez: el bot las atiende automáticamente las 24 horas."
+      },
+      "api": {
+        "name": "API y webhooks",
+        "desc": "Envía mensajes de WhatsApp directamente desde tu servidor, tu CRM o cualquier plataforma low-code. Acceso completo a la API, configuración de webhooks y documentación para desarrolladores: conecta cualquier cosa que hable HTTP."
+      },
+      "integrations": {
+        "name": "Integraciones ilimitadas",
+        "desc": "Más de 27 integraciones nativas listas para usar: Shopify, Razorpay, Google Sheets, IndiaMart, JustDial, Calendly y más. Además, acceso abierto a la API y a webhooks para conectar cualquier herramienta, plataforma o sistema propio, sin límites."
+      },
+      "ctwa": {
+        "name": "Anuncios Click-to-WhatsApp",
+        "desc": "Convierte tus anuncios de Facebook e Instagram en conversaciones de WhatsApp. Los leads hacen clic en tu anuncio, llegan a WhatsApp y reciben tu respuesta automática al instante, mientras su interés sigue vivo."
+      },
+      "tasks": {
+        "name": "Proyectos y tareas",
+        "desc": "Mantente organizado sin cambiar de herramienta. Crea, asigna y da seguimiento a tareas dentro de Whasalia para que nada se te escape, sin importar lo rápido que avance tu negocio."
+      },
+      "media": {
+        "name": "Contenido multimedia",
+        "desc": "Las conversaciones profesionales no tienen que ser solo texto. Envía imágenes, videos, documentos y catálogos de productos. Haz que cada mensaje sea atractivo y fiel a tu marca."
+      },
+      "rbac": {
+        "name": "Control de acceso por roles",
+        "desc": "Dale a tu equipo el acceso justo, ni más ni menos. Asigna roles y permisos para que cada miembro vea lo que necesita y los datos sensibles permanezcan protegidos."
+      }
+    },
+    "how": {
+      "title": "Cómo funciona",
+      "subtitle": "Empezar con Whasalia toma minutos, no meses.",
+      "s1Title": "Conecta y configura, sin necesidad de desarrolladores",
+      "s1Desc": "Vincula tu número de WhatsApp, define los flujos de tu chatbot y establece tus reglas de automatización, todo desde un constructor visual sencillo. La mayoría de los negocios están operando en una sola tarde.",
+      "s2Title": "Tu negocio avanza. Las conversaciones van en piloto automático.",
+      "s2Desc": "Los leads reciben respuestas al instante. Los clientes reciben seguimiento. Los mensajes automatizados llegan a tu lista de inmediato. Todo funciona en segundo plano mientras tú te enfocas en crecer.",
+      "s3Title": "Ve exactamente qué te está generando ingresos",
+      "s3Desc": "Los paneles en tiempo real muestran tasas de apertura, de respuesta, conversiones y abandonos. Descubre qué funciona, apuesta más por ello y elimina lo que no. Cada semana es mejor que la anterior."
+    },
+    "meta": {
+      "badge": "🛡️ Socio oficial de Meta",
+      "title": "Integración con Meta Business",
+      "eyebrow": "Construido sobre la API oficial de WhatsApp Business",
+      "desc": "Whasalia se conecta a la API oficial de WhatsApp Business a través de Meta Business. Cada mensaje que envías (respuestas automáticas del chatbot, actualizaciones para clientes y notificaciones) se entrega con confiabilidad de nivel empresarial y pleno cumplimiento de las políticas de Meta. Sin atajos. Sin herramientas de dudosa legalidad.",
+      "viewPricing": "Ver precios",
+      "i1Title": "API oficial de WhatsApp Business",
+      "i1Desc": "Conexión directa a través de Meta Business: entrega de nivel empresarial, cumplimiento total y 99.9% de confiabilidad en los mensajes. Tus mensajes llegan, siempre.",
+      "i2Title": "Anuncios Click-to-WhatsApp",
+      "i2Desc": "Tus anuncios de Facebook e Instagram llevan a los leads directo a una conversación de WhatsApp, con una respuesta automática esperándolos antes de que terminen de leer tu anuncio.",
+      "i3Title": "Crea chatbots sin código",
+      "i3Desc": "Lanza bots de ventas, bots de soporte y flujos de calificación de leads en minutos, con un constructor de arrastrar y soltar que no requiere ningún desarrollador.",
+      "i4Title": "Analítica de campañas en tiempo real",
+      "i4Desc": "Ve exactamente qué está generando ingresos. Sigue en vivo las tasas de entrega, lectura, respuesta y conversión, y vuelve a impactar a los leads interesados antes de que se enfríen.",
+      "footerBadge": "Socio oficial de Meta Business"
+    }
+  },
+  "mktPricing": {
+    "badge": "precios",
+    "titleLine1": "Precios",
+    "titleHighlight": "Una plataforma. Tres formas de empezar.",
+    "subtitle": "Después de la configuración, todos los planes cuestan ₹2,999/WABA/mes, tarifa fija. La diferencia está en cuánta ayuda recibes desde el primer día. Tú eliges tu nivel de soporte.",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "tagline": "Control total. Tú lo operas.",
+        "subtext": "/WABA/mes",
+        "setupFee": "Sin costo de configuración",
+        "cta": "Comenzar",
+        "footer": "Acceso habilitado dentro de las 24 horas posteriores al pago."
+      },
+      "growth": {
+        "name": "Growth",
+        "tagline": "Nosotros te lanzamos. Tú lo controlas.",
+        "subtext": "el primer mes",
+        "setupFee": "Después, ₹2,999 /WABA/mes",
+        "cta": "Agenda una llamada",
+        "badge": "Recomendado • Lo hacemos por ti",
+        "footer": "El onboarding comienza en menos de 48 horas. Configuración completa en 7 días."
+      },
+      "managed": {
+        "name": "Managed",
+        "tagline": "Nosotros lo operamos. Tú revisas los resultados.",
+        "subtext": "el primer mes",
+        "setupFee": "Después, ₹2,999 /WABA/mes",
+        "cta": "Agenda una llamada",
+        "badge": "Lo hacemos por ti",
+        "footer": "Requiere solicitud. Mes piloto disponible: pregúntanos."
+      }
+    },
+    "gstNote": "*Precios sin GST incluido",
+    "compare": {
+      "title": "Compara las funciones de cada plan",
+      "subtitle": "Matriz detallada de funcionalidades en todos los niveles de configuración",
+      "colFeature": "Todos los planes · por WABA/mes",
+      "diy": "Por tu cuenta"
+    },
+    "sections": {
+      "platform": "La plataforma",
+      "setup": "Configuración y onboarding",
+      "support": "Soporte y estrategia"
+    },
+    "rows": {
+      "builder": "Constructor de automatizaciones sin código",
+      "aiAssistant": "Asistente de IA (entrenado con tus documentos)",
+      "inbox": "Bandeja de entrada compartida",
+      "integrations": "Más de 27 integraciones",
+      "markup": "0% de recargo por mensaje",
+      "ctwa": "Anuncios Click-to-WhatsApp (CTWA)",
+      "metaVerification": "Verificación de Meta Business",
+      "numberConnection": "Conexión del número de WhatsApp",
+      "coexistence": "Configuración de coexistencia de WhatsApp",
+      "platformConfig": "Configuración de la plataforma y acceso del equipo",
+      "kickoff": "Reunión de arranque",
+      "automationsBuilt": "Automatizaciones creadas por nosotros",
+      "templates": "Plantillas de mensajes redactadas y enviadas",
+      "integrationsWired": "Integraciones conectadas",
+      "supportGroup": "Grupo de soporte prioritario en WhatsApp",
+      "groupQa": "Sesión mensual grupal de preguntas con Lakshit",
+      "strategyCall": "Llamada de estrategia 1 a 1",
+      "fastTrack": "Aprobación acelerada de plantillas de Meta",
+      "accountManager": "Gerente de cuenta dedicado"
+    },
+    "values": {
+      "weConfigure": "Nosotros lo configuramos",
+      "coreAutomations": "2–3 automatizaciones clave",
+      "onboardingCall": "Llamada de onboarding incluida",
+      "monthlyDeepDive": "Revisión mensual a fondo (60 min)"
+    },
+    "notSure": "¿No sabes qué plan elegir? Habla con nosotros →"
+  },
+  "mktIntegrations": {
+    "badge": "sincronización nativa",
+    "titleLine1": "Conectado con las herramientas",
+    "titleHighlight": "que ya usas.",
+    "subtitle": "Sin migraciones complicadas. Conecta tu plataforma de e-commerce, tus webhooks o tu CRM en minutos.",
+    "filters": {
+      "all": "Todas",
+      "ecommerce": "E-commerce",
+      "crm": "CRM y pipelines",
+      "dev": "Herramientas para desarrolladores"
+    },
+    "searchPlaceholder": "Buscar integraciones...",
+    "syncTag": "Sync v2.0",
+    "connect": "Configurar conexión",
+    "items": {
+      "shopify": {
+        "name": "Shopify",
+        "desc": "Sincroniza carritos abandonados, envía recordatorios de pago por WhatsApp y despacha plantillas de envío automáticamente."
+      },
+      "hubspot": {
+        "name": "HubSpot",
+        "desc": "Envía automáticamente los chats de WhatsApp calificados, las etiquetas y las citas agendadas al historial de contactos de HubSpot."
+      },
+      "zapier": {
+        "name": "Zapier",
+        "desc": "Conecta los eventos de la API de WhatsApp con más de 5,000 apps. Activa flujos de trabajo a partir de los mensajes entrantes."
+      },
+      "webhooks": {
+        "name": "Webhooks para desarrolladores",
+        "desc": "Suscríbete a payloads JSON en vivo de mensajes entregados, confirmaciones de lectura de plantillas y conversaciones entrantes."
+      },
+      "salesforce": {
+        "name": "Salesforce",
+        "desc": "Sincronización de contactos de nivel empresarial. Dirige los leads de alto valor directamente a ejecutivos de cuenta dedicados."
+      },
+      "slack": {
+        "name": "Notificaciones de Slack",
+        "desc": "Publica avisos en tus canales cuando leads empresariales con alta intención de compra responden o agendan una cita."
+      }
+    }
+  },
+  "mktAiAutomation": {
+    "badge": "Agentes de chat con IA",
+    "titleLine1": "IA conversacional",
+    "titleHighlight": "que cierra ventas.",
+    "subtitle": "Deja de esperar a que tus agentes escriban cada respuesta. Despliega una capa de inteligencia autónoma directamente en WhatsApp. Califica el presupuesto de tus leads, identifica sus necesidades y responde al instante consultas sobre tu catálogo de productos.",
+    "playground": {
+      "eyebrow": "Laboratorio de agentes",
+      "title": "Personaliza tus prompts de IA.",
+      "desc": "Elige modelos estándar o conecta parámetros propios ajustados con fine-tuning. Define instrucciones, reglas de intención y contexto de datos personalizado de forma dinámica.",
+      "modelGpt": "Motor GPT-4o",
+      "modelClaude": "Claude 3.5 Sonnet",
+      "modelCustom": "LLM personalizado con fine-tuning",
+      "promptLabel": "Instrucciones del prompt de sistema",
+      "autoSave": "Se guarda automáticamente en la memoria del agente",
+      "active": "ACTIVO"
+    },
+    "prompts": {
+      "gpt4": "Eres un concierge amable de atención al cliente para Acme Corp. Evalúa si el volumen mensual de mensajes del usuario supera los 10,000 y, si es así, etiquétalo como 'Alto valor' y pide su correo electrónico para derivarlo a Sarah.",
+      "claude3": "Identifica si el cliente muestra interés en un SLA empresarial o en alojamiento regional de bases de datos. Etiquétalo como corresponda y sugiere agendar una reunión de ventas.",
+      "custom": "Analiza la respuesta del lead en el chat. Etiquétalo como 'Solicitud de soporte' si busca ayuda; de lo contrario, pregunta por su presupuesto para un CRM."
+    },
+    "benefits": {
+      "calendarTitle": "Integración con calendario",
+      "calendarDesc": "Deja que el agente de IA agende reuniones automáticamente. Sincroniza con tus calendarios y envía mensajes de confirmación al instante.",
+      "vectorTitle": "Sincronización vectorial semántica",
+      "vectorDesc": "Sincroniza tus preguntas frecuentes, catálogos de productos y artículos de ayuda con bases vectoriales para que el agente siempre hable con la voz de tu marca.",
+      "handoffTitle": "Traspaso híbrido a humanos",
+      "handoffDesc": "El agente detiene las respuestas automáticas en cuanto interviene una persona de tu equipo. Configura disparadores para recibir alertas de asistencia humana al instante."
+    }
+  }
+}

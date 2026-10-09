@@ -3,26 +3,27 @@
 import React from "react";
 import Link from "next/link";
 import { useMarketingTheme } from "@/components/marketing/marketing-theme-provider";
-import { useI18n } from "@/i18n/client";
+import { useI18n, useLocalePath } from "@/i18n/client";
 
 export function Footer() {
   const { resolvedTheme } = useMarketingTheme();
   const { t } = useI18n();
+  const lp = useLocalePath();
   const isLight = resolvedTheme === "light";
 
   const productLinks = [
-    { name: t("mktShell.nav.features"), href: "/features" },
-    { name: t("mktShell.nav.pricing"), href: "/pricing" },
-    { name: t("mktShell.nav.aiAutomation"), href: "/ai-automation" },
-    { name: t("mktShell.footer.useCases"), href: "/" },
+    { name: t("mktShell.nav.features"), href: lp("/features") },
+    { name: t("mktShell.nav.pricing"), href: lp("/pricing") },
+    { name: t("mktShell.nav.aiAutomation"), href: lp("/ai-automation") },
+    { name: t("mktShell.footer.useCases"), href: lp("/") },
   ];
 
   const quickLinks = [
-    { name: t("mktShell.nav.about"), href: "/about-us" },
-    { name: t("mktShell.footer.contact"), href: "/contact-us" },
-    { name: t("mktShell.footer.privacy"), href: "/privacy-policy" },
-    { name: t("mktShell.footer.terms"), href: "/terms-and-conditions" },
-    { name: t("mktShell.footer.refund"), href: "/refund-policy" },
+    { name: t("mktShell.nav.about"), href: lp("/about-us") },
+    { name: t("mktShell.footer.contact"), href: lp("/contact-us") },
+    { name: t("mktShell.footer.privacy"), href: lp("/privacy-policy") },
+    { name: t("mktShell.footer.terms"), href: lp("/terms-and-conditions") },
+    { name: t("mktShell.footer.refund"), href: lp("/refund-policy") },
   ];
 
   return (
@@ -33,7 +34,7 @@ export function Footer() {
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-6 gap-10 md:gap-8 relative z-10">
         {/* Brand Column */}
         <div className="col-span-1 md:col-span-2 space-y-4">
-          <Link href="/" className="inline-block">
+          <Link href={lp("/")} className="inline-block">
             <img
               src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
               alt="Whasalia"

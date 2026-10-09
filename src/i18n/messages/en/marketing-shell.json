@@ -38,6 +38,108 @@
       "t5": "Business Support",
       "disclaimer": "\"Whasalia uses WhatsApp Business API solutions in accordance with Meta and WhatsApp Business policies. Businesses are responsible for obtaining user consent before initiating communication.\"",
       "rights": "© 2026 Whasalia. All rights reserved."
+    },
+    "meta": {
+      "home": {
+        "title": "Whasalia - AI-powered WhatsApp CRM & automation platform",
+        "description": "Manage leads, automate customer conversations on WhatsApp, Instagram and Messenger, and grow your business with Whasalia's AI agents."
+      },
+      "features": {
+        "title": "Features",
+        "description": "Shared inbox, AI agents, CRM pipelines, automations, bookings, catalog and reports in one WhatsApp platform."
+      },
+      "pricing": {
+        "title": "Pricing",
+        "description": "Simple pricing for Whasalia: prepaid AI tokens and plans for every business size."
+      },
+      "integrations": {
+        "title": "Integrations",
+        "description": "Connect Whasalia with WhatsApp, Instagram, Messenger, Google Calendar, Google Sheets, webhooks and your own tools."
+      },
+      "aiAutomation": {
+        "title": "AI Automation",
+        "description": "AI agents that answer customers 24/7, book appointments, take orders and hand over to your team when needed."
+      },
+      "sharedTeamInbox": {
+        "title": "Shared Team Inbox",
+        "description": "One inbox for your whole team: WhatsApp, Instagram, Messenger and web chat with assignment and internal notes."
+      },
+      "crm": {
+        "title": "CRM",
+        "description": "Turn WhatsApp conversations into deals with pipelines, contact profiles, tags and follow-ups."
+      },
+      "analytics": {
+        "title": "Analytics",
+        "description": "Measure response times, conversations handled, leads and sales from every channel."
+      },
+      "whatsappMarketing": {
+        "title": "WhatsApp Marketing",
+        "description": "Send approved WhatsApp templates and campaigns to opted-in customers and track the results."
+      },
+      "enterprise": {
+        "title": "Enterprise",
+        "description": "Whasalia for larger teams: multiple workspaces, roles, API access and dedicated support."
+      },
+      "security": {
+        "title": "Security",
+        "description": "How Whasalia protects your data: encryption, role-based access and official Meta APIs."
+      },
+      "customerStories": {
+        "title": "Customer Stories",
+        "description": "How businesses use Whasalia to answer faster and sell more on WhatsApp."
+      },
+      "blog": {
+        "title": "Blog",
+        "description": "Guides and tips to sell and support customers on WhatsApp with AI."
+      },
+      "about": {
+        "title": "About",
+        "description": "Who we are and why we build Whasalia."
+      },
+      "aboutUs": {
+        "title": "About Us",
+        "description": "Who we are and why we build Whasalia."
+      },
+      "careers": {
+        "title": "Careers",
+        "description": "Join the Whasalia team."
+      },
+      "contact": {
+        "title": "Contact",
+        "description": "Get in touch with the Whasalia team."
+      },
+      "contactUs": {
+        "title": "Contact Us",
+        "description": "Get in touch with the Whasalia team."
+      },
+      "bookDemo": {
+        "title": "Book a Demo",
+        "description": "Book a free walkthrough of Whasalia with our team."
+      },
+      "apiDocs": {
+        "title": "API Docs",
+        "description": "Whasalia public API: send messages, manage contacts and receive webhooks."
+      },
+      "privacyPolicy": {
+        "title": "Privacy Policy",
+        "description": "How Whasalia collects, uses and protects personal data."
+      },
+      "refundPolicy": {
+        "title": "Refund Policy",
+        "description": "Whasalia's refund policy."
+      },
+      "termsAndConditions": {
+        "title": "Terms & Conditions",
+        "description": "Terms and conditions for using Whasalia."
+      },
+      "termsOfService": {
+        "title": "Terms of Service",
+        "description": "Terms of service for the Whasalia platform."
+      },
+      "dataDeletion": {
+        "title": "Data Deletion",
+        "description": "How to request deletion of your data from Whasalia."
+      }
     }
   }
 }
