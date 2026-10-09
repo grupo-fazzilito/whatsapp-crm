@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { uploadObject } from '@/lib/storage'
 import {
   anyOriginCors,
   clientIp,
@@ -68,11 +68,10 @@ export async function POST(req: Request) {
   if (!conversationId) return wcJson({ error: 'no_conversation' }, 409, v.cors)
 
   const path = `${v.channel.workspace_id}/webchat/${conversationId}/${randomUUID()}.${EXT[type]}`
-  const { error } = await supabaseAdmin()
-    .storage.from('attachments')
-    .upload(path, bytes, { contentType: type, upsert: false })
-  if (error) {
-    console.error('[webchat/upload] storage failed:', error.message)
+  try {
+    await uploadObject('attachments', path, bytes, type)
+  } catch (err) {
+    console.error('[webchat/upload] storage failed:', err instanceof Error ? err.message : err)
     return wcJson({ error: 'store_failed' }, 500, v.cors)
   }
   return wcJson({ path }, 200, v.cors)

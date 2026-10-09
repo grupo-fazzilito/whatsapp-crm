@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { Check, ExternalLink, Handshake, ListTodo, Loader2, Plus, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { useRealtimeChanges } from '@/lib/realtime/client';
+import { apiJson, qs } from '@/lib/crm/api-client';
 import { formatMoney, moneyLocale } from '@/lib/workspace/countries';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { CRM_CHANGED_EVENT, TASK_SELECT, sortTasks, type TaskRow } from '@/lib/crm/tasks';
+import { CRM_CHANGED_EVENT, sortTasks, type TaskRow } from '@/lib/crm/tasks';
 import { CompleteTaskDialog } from '@/components/tasks/complete-task-dialog';
 import { DueBadge, PriorityChip } from '@/components/tasks/task-ui';
 import { CloseDealDialog, type CloseStatus } from './close-deal-dialog';
@@ -54,20 +55,12 @@ export function ConversationCrmPanel({ conversationId, contactId, contactName, c
 
   const load = useCallback(async () => {
     if (!wsId || !contactId) return;
-    const db = createClient();
     const [d, tk] = await Promise.all([
-      db
-        .from('deals')
-        .select('id, title, value, currency, stage:pipeline_stages(name, color), pipeline:pipelines(name)')
-        .eq('workspace_id', wsId)
-        .eq('contact_id', contactId)
-        .eq('status', 'open')
-        .order('created_at', { ascending: false })
-        .limit(MAX_ROWS),
-      db.from('tasks').select(TASK_SELECT).eq('workspace_id', wsId).eq('contact_id', contactId).eq('status', 'open').limit(MAX_ROWS),
+      apiJson<{ deals: PanelDeal[] }>(`/api/crm/contacts/${contactId}/deals${qs({ status: 'open', limit: MAX_ROWS })}`).catch(() => null),
+      apiJson<{ tasks: TaskRow[] }>(`/api/tasks${qs({ status: 'open', contact_id: contactId, limit: MAX_ROWS })}`).catch(() => null),
     ]);
-    setDeals((d.data ?? []) as unknown as PanelDeal[]);
-    setTasks(sortTasks((tk.data ?? []) as TaskRow[]));
+    setDeals(d?.deals ?? []);
+    setTasks(sortTasks(tk?.tasks ?? []));
   }, [wsId, contactId]);
 
   useEffect(() => {
@@ -88,22 +81,23 @@ export function ConversationCrmPanel({ conversationId, contactId, contactName, c
     window.addEventListener(CRM_CHANGED_EVENT, onChange);
     return () => window.removeEventListener(CRM_CHANGED_EVENT, onChange);
   }, []);
-  useEffect(() => {
-    if (!wsId || !contactId) return;
-    const db = createClient();
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const channel = db
-      .channel(`crm-panel:${contactId}:${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `contact_id=eq.${contactId}` }, () => {
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => loadRef.current(), 300);
-      })
-      .subscribe();
-    return () => {
-      if (timer) clearTimeout(timer);
-      db.removeChannel(channel);
-    };
-  }, [wsId, contactId]);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+  useRealtimeChanges<{ id?: string; contact_id?: string | null }>({
+    workspaceId: wsId,
+    enabled: !!contactId,
+    tables: ['tasks'],
+    onChange: (change) => {
+      // This contact's tasks, or one we show that moved to another contact.
+      const cid = change.eventType === 'DELETE' ? change.old.contact_id : change.new.contact_id;
+      const id = change.new.id ?? change.old.id;
+      if (cid !== contactId && !(id && tasks?.some((tk) => tk.id === id))) return;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => loadRef.current(), 300);
+    },
+  });
 
   if (!contactId) return null;
 

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useI18n, useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { api } from '../api';
 import { PRESETS, getPreset, type IndustryLabels, type ModuleKey } from '@/lib/industries';
 import type { Workspace, WorkspaceSettings } from '@/lib/workspace/types';
 import { cn } from '@/lib/utils';
@@ -26,7 +26,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { invalidateAi } from '../shared';
 import { ProductAttributesEditor } from './product-attributes-editor';
 
 const MODULE_KEYS: ModuleKey[] = ['bookings', 'staff', 'services', 'products', 'orders', 'triage'];
@@ -110,19 +109,19 @@ export function IndustryForm({ workspace, readOnly }: { workspace: Workspace; re
       const entries = Object.entries(labels[loc]).filter(([, v]) => typeof v === 'string' && v.trim());
       if (entries.length) cleanLabels[loc] = Object.fromEntries(entries.map(([k, v]) => [k, (v as string).trim().slice(0, 40)]));
     }
-    const nextSettings: WorkspaceSettings = { ...settings, modules, labels: cleanLabels };
-    if (showCapacity) nextSettings.booking_capacity = Math.min(500, Math.max(1, Math.round(capacity) || 1));
+    // Merged by the server into the latest stored settings.
+    const settingsPatch: WorkspaceSettings = { modules, labels: cleanLabels };
+    if (showCapacity) settingsPatch.booking_capacity = Math.min(500, Math.max(1, Math.round(capacity) || 1));
 
-    const { error } = await createClient()
-      .from('workspaces')
-      .update({ industry, settings: nextSettings })
-      .eq('id', workspace.id);
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
+    try {
+      // The server drops the AI's cached business context.
+      await api('/api/business/workspace', { method: 'PATCH', body: { industry, settings: settingsPatch } });
+    } catch (err) {
+      setSaving(false);
+      toast.error(err instanceof Error ? err.message : String(err));
       return;
     }
-    await invalidateAi();
+    setSaving(false);
     await refresh();
     toast.success(t('business.common.saved'));
   };

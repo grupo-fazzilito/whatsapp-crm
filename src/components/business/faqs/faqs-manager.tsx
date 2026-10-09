@@ -5,14 +5,14 @@ import { toast } from 'sonner';
 import { Bot, FileQuestion, Pencil, Plus, Search, Sparkles, Trash2 } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { api } from '../api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { cn } from '@/lib/utils';
-import { EmptyState, LoadingBlock, Notice, PageHeader, invalidateAi, selectClass, type AgentRef, type Faq } from '../shared';
+import { EmptyState, LoadingBlock, Notice, PageHeader, selectClass, type AgentRef, type Faq } from '../shared';
 import { BulkImportDialog } from '../bulk-import-dialog';
 import { FaqEditor } from './faq-editor';
 
@@ -30,15 +30,12 @@ export function FaqsManager() {
   const [importOpen, setImportOpen] = useState(false);
 
   const load = useCallback(async () => {
-    const db = createClient();
     try {
-      const [fq, ag] = await Promise.all([
-        db.from('faqs').select('id, question, answer, keywords, ai_agent_ids').order('created_at', { ascending: true }),
-        db.from('ai_agents').select('id, name').order('created_at', { ascending: true }),
-      ]);
-      if (fq.error) toast.error(fq.error.message);
-      setFaqs((fq.data as Faq[]) ?? []);
-      setAgents((ag.data as AgentRef[]) ?? []);
+      const data = await api<{ faqs: Faq[]; agents: AgentRef[] }>('/api/business/faqs');
+      setFaqs(data.faqs);
+      setAgents(data.agents);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -61,13 +58,13 @@ export function FaqsManager() {
 
   const remove = async () => {
     if (!deleting) return;
-    const { error } = await createClient().from('faqs').delete().eq('id', deleting.id);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await api(`/api/business/faqs/${deleting.id}`, { method: 'DELETE' });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
       return;
     }
     toast.success(t('business.common.deleted'));
-    invalidateAi();
     load();
   };
 

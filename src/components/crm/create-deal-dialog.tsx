@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Handshake, Loader2 } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { apiJson } from '@/lib/crm/api-client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -94,21 +94,19 @@ export function CreateDealDialog({
   useEffect(() => {
     if (!open || !workspace) return;
     let cancelled = false;
-    const db = createClient();
     (async () => {
-      const [p, s, c] = await Promise.all([
-        db.from('pipelines').select('id, name').eq('workspace_id', workspace.id).order('created_at'),
-        db.from('pipeline_stages').select('id, name, position, pipeline_id').eq('workspace_id', workspace.id).order('position'),
+      const [p, c] = await Promise.all([
+        apiJson<{ pipelines: PipelineOpt[]; stages: StageOpt[] }>('/api/crm/pipelines').catch(() => null),
         contactName !== undefined
-          ? Promise.resolve({ data: { name: contactName, phone: null } })
-          : db.from('contacts').select('name, phone').eq('id', contactId).maybeSingle(),
+          ? Promise.resolve({ contact: { name: contactName, phone: null } })
+          : apiJson<{ contact: { name: string | null; phone: string | null } }>(`/api/crm/contacts/${contactId}`).catch(() => null),
       ]);
       if (cancelled) return;
-      const list = (p.data ?? []) as PipelineOpt[];
+      const list = p?.pipelines ?? [];
       setPipelines(list);
-      setStages((s.data ?? []) as StageOpt[]);
+      setStages(p?.stages ?? []);
       setPipelineId(list[0]?.id ?? '');
-      const contact = c.data as { name: string | null; phone: string | null } | null;
+      const contact = c?.contact ?? null;
       setTitle((contact?.name || contact?.phone || '').slice(0, 200));
       setValue('');
       setCloseDate('');
@@ -122,13 +120,11 @@ export function CreateDealDialog({
   useEffect(() => {
     if (!open || members.length === 0) return;
     let cancelled = false;
-    createClient()
-      .from('profiles')
-      .select('id, user_id, full_name, email')
-      .in('user_id', members.map((m) => m.userId))
-      .then(({ data }) => {
+    apiJson<{ profiles: ProfileOpt[] }>('/api/crm/owners')
+      .catch(() => null)
+      .then((data) => {
         if (cancelled) return;
-        const list = (data ?? []) as ProfileOpt[];
+        const list = data?.profiles ?? [];
         setProfiles(list);
         setOwnerId(list.find((pr) => pr.user_id === meId)?.id ?? '');
       });
@@ -152,10 +148,9 @@ export function CreateDealDialog({
       return;
     }
     setSaving(true);
-    const { data, error } = await createClient()
-      .from('deals')
-      .insert({
-        workspace_id: workspace.id,
+    const data = await apiJson<{ deal: CreatedDeal }>('/api/crm/deals', {
+      method: 'POST',
+      body: {
         pipeline_id: pipelineId,
         stage_id: stageId,
         contact_id: contactId,
@@ -165,17 +160,17 @@ export function CreateDealDialog({
         currency,
         assigned_to: ownerId || null,
         expected_close_date: closeDate || null,
-        status: 'open',
-      })
-      .select('id, title, value, currency, pipeline_id, stage_id, status')
-      .single();
+      },
+    })
+      .then((r) => r.deal)
+      .catch(() => null);
     setSaving(false);
-    if (error || !data) {
+    if (!data) {
       toast.error(t('crm.deals.errors.createFailed'));
       return;
     }
     toast.success(t('crm.deals.toast.created'));
-    onCreated?.(data as CreatedDeal);
+    onCreated?.(data);
     notifyCrmChanged();
     setOpen(false);
   };

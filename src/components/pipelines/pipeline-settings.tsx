@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { createClient } from "@/lib/supabase/client";
+import { ApiError, apiJson } from "@/lib/crm/api-client";
 import type { Pipeline, PipelineStage } from "@/types";
 import {
   Dialog,
@@ -71,7 +71,6 @@ export function PipelineSettings({
   onStagesChanged,
   onCreateNewPipeline,
 }: PipelineSettingsProps) {
-  const supabase = createClient();
   const { t } = useI18n();
   const { can } = useWorkspace();
 
@@ -113,25 +112,18 @@ export function PipelineSettings({
     // One upsert for all stages — batches N stage writes into a single
     // round-trip. Previous implementation did N sequential UPDATEs which
     // latency-scaled linearly with stage count.
-    const stageRows = localStages.map((s, i) => ({
-      id: s.id,
-      pipeline_id: s.pipeline_id,
-      name: s.name,
-      color: s.color,
-      position: i,
-    }));
-
-    const [renameRes, stagesRes] = await Promise.all([
-      supabase
-        .from("pipelines")
-        .update({ name: name.trim() })
-        .eq("id", pipeline.id),
-      supabase.from("pipeline_stages").upsert(stageRows, { onConflict: "id" }),
-    ]);
+    // Positions follow the list order.
+    const ok = await apiJson(`/api/crm/pipelines/${pipeline.id}`, {
+      method: "PUT",
+      body: { name: name.trim(), stages: localStages.map((s) => ({ id: s.id, name: s.name, color: s.color })) },
+    }).then(
+      () => true,
+      () => false,
+    );
 
     setSaving(false);
 
-    if (renameRes.error || stagesRes.error) {
+    if (!ok) {
       toast.error(t("crm.pipelines.errors.saveFailed"));
       return;
     }
@@ -145,41 +137,33 @@ export function PipelineSettings({
   async function handleAddStage() {
     const trimmed = newStageName.trim();
     if (!trimmed) return;
-    const { data, error } = await supabase
-      .from("pipeline_stages")
-      .insert({
-        pipeline_id: pipeline.id,
-        name: trimmed,
-        color: newStageColor,
-        position: localStages.length,
-      })
-      .select()
-      .single();
-    if (error || !data) {
+    const data = await apiJson<{ stage: PipelineStage }>(`/api/crm/pipelines/${pipeline.id}/stages`, {
+      method: "POST",
+      body: { name: trimmed, color: newStageColor, position: localStages.length },
+    })
+      .then((r) => r.stage)
+      .catch(() => null);
+    if (!data) {
       toast.error(t("crm.pipelines.errors.addStageFailed"));
       return;
     }
-    setLocalStages([...localStages, data as PipelineStage]);
+    setLocalStages([...localStages, data]);
     setNewStageName("");
     setNewStageColor(STAGE_COLORS[(localStages.length + 1) % STAGE_COLORS.length]);
   }
 
   async function handleRemoveStage(stageId: string) {
-    // Refuse to delete if deals still reference the stage (FK would fail).
-    const { count } = await supabase
-      .from("deals")
-      .select("id", { count: "exact", head: true })
-      .eq("stage_id", stageId);
-    if (count && count > 0) {
-      toast.error(t("crm.pipelines.errors.stageHasDeals"));
-      return;
-    }
-    const { error } = await supabase
-      .from("pipeline_stages")
-      .delete()
-      .eq("id", stageId);
+    // Refused (409) while deals still reference the stage (FK would fail).
+    const error = await apiJson(`/api/crm/stages/${stageId}`, { method: "DELETE" }).then(
+      () => null,
+      (err: unknown) => err,
+    );
     if (error) {
-      toast.error(t("crm.pipelines.errors.deleteStageFailed"));
+      toast.error(
+        error instanceof ApiError && error.code === "stage_has_deals"
+          ? t("crm.pipelines.errors.stageHasDeals")
+          : t("crm.pipelines.errors.deleteStageFailed"),
+      );
       return;
     }
     setLocalStages(localStages.filter((s) => s.id !== stageId));
@@ -188,12 +172,12 @@ export function PipelineSettings({
   async function handleDeletePipeline() {
     setDeleting(true);
     // ON DELETE CASCADE handles deals + stages.
-    const { error } = await supabase
-      .from("pipelines")
-      .delete()
-      .eq("id", pipeline.id);
+    const ok = await apiJson(`/api/crm/pipelines/${pipeline.id}`, { method: "DELETE" }).then(
+      () => true,
+      () => false,
+    );
     setDeleting(false);
-    if (error) {
+    if (!ok) {
       toast.error(t("crm.pipelines.errors.deleteFailed"));
       return;
     }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 import { isPlatformAdmin } from '@/lib/admin/guard'
 import { prisma } from '@/lib/db/prisma'
 import { creditBalance, grantCredits, spendCredits } from '@/lib/billing/credits'
@@ -18,9 +18,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'workspace_id and a non-zero whole number of credits are required' }, { status: 400 })
   }
   if (!note) return NextResponse.json({ error: 'note is required' }, { status: 400 })
-  const {
-    data: { user },
-  } = await (await createClient(null)).auth.getUser()
+  const user = await getSessionUser()
   // Platform client: the superadmin acts on any workspace by id.
   const ws = await prisma.workspaces.findUnique({ where: { id: body.workspace_id }, select: { id: true } }).catch(() => null)
   if (!ws) return NextResponse.json({ error: 'workspace not found' }, { status: 404 })

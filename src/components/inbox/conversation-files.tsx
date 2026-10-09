@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
 import { Download, ExternalLink, FileText, Film, ImageIcon, Music, Loader2, Paperclip } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { signFile } from "@/lib/storage/client";
 import { useI18n } from "@/i18n/client";
 import type { Message, Profile } from "@/types";
 import { attachmentPath, useMediaSrc } from "./message-bubble";
@@ -42,21 +42,22 @@ export function ConversationFiles({ conversationId, contactName, membersByUserId
 
   useEffect(() => {
     let cancelled = false;
-    createClient()
-      .from("messages")
-      .select("id, sender_type, sender_id, ai_agent_id, content_type, content_text, media_url, created_at")
-      .eq("conversation_id", conversationId)
-      .eq("is_internal", false)
-      .in("content_type", [...MEDIA_TYPES])
-      .not("media_url", "is", null)
-      .neq("status", "failed")
-      .order("created_at", { ascending: false })
-      .limit(300)
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) console.error("Failed to fetch files:", error.message);
-        setRows((data as FileRow[]) ?? []);
-      });
+    fetch(`/api/inbox/conversations/${conversationId}/messages?files=1`, { cache: "no-store" })
+      .then(async (res) => {
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+        return (body.messages ?? []) as FileRow[];
+      })
+      .then(
+        (data) => {
+          if (!cancelled) setRows(data);
+        },
+        (err) => {
+          if (cancelled) return;
+          console.error("Failed to fetch files:", err instanceof Error ? err.message : err);
+          setRows([]);
+        },
+      );
     return () => {
       cancelled = true;
     };
@@ -130,10 +131,8 @@ function FileItem({ row, sender, date }: { row: FileRow; sender: string; date: s
     try {
       let href = src ?? url;
       if (path) {
-        const { data } = await createClient()
-          .storage.from("attachments")
-          .createSignedUrl(path, 600, { download: name });
-        if (data?.signedUrl) href = data.signedUrl;
+        const signed = await signFile("attachments", path, { expiresIn: 600, download: name });
+        if (signed) href = signed;
       }
       const a = document.createElement("a");
       a.href = href;

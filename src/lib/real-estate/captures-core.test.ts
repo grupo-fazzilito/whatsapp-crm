@@ -81,10 +81,18 @@ describe('photo references', () => {
     expect(normalizePhotoRef(ok)).toBe('sb://attachments/ws1/webchat/c1/ab.jpg')
     expect(normalizePhotoRef('sb://attachments/../etc/passwd')).toBeNull()
   })
+  it('stores /api/files attachment URLs (signed or relative) as sb:// refs', () => {
+    expect(normalizePhotoRef('https://app.test/api/files/attachments/ws1/captures/x.jpg?exp=1&sig=abc')).toBe('sb://attachments/ws1/captures/x.jpg')
+    expect(normalizePhotoRef('/api/files/attachments/ws1/captures/x.jpg?exp=1&sig=abc')).toBe('sb://attachments/ws1/captures/x.jpg')
+    expect(normalizePhotoRef('https://app.test/api/files/attachments/ws1/a%20b.jpg?exp=1&sig=abc')).toBeNull()
+    // Public catalog URLs stay URLs.
+    expect(normalizePhotoRef('https://app.test/api/files/catalog/ws1/products/a.jpg')).toBe('https://app.test/api/files/catalog/ws1/products/a.jpg')
+  })
   it('classifies refs', () => {
     expect(classifyPhotoRef('sb://attachments/ws1/captures/x.jpg')).toEqual({ kind: 'attachment', path: 'ws1/captures/x.jpg' })
     expect(classifyPhotoRef('/api/media/ch1/m1')).toMatchObject({ kind: 'proxy', channelId: 'ch1', mediaId: 'm1' })
     expect(classifyPhotoRef('http://127.0.0.1:54321/storage/v1/object/public/catalog/ws1/products/a.jpg')).toMatchObject({ kind: 'catalog', path: 'ws1/products/a.jpg' })
+    expect(classifyPhotoRef('https://app.test/api/files/catalog/ws1/products/a%20b.jpg')).toMatchObject({ kind: 'catalog', path: 'ws1/products/a b.jpg' })
     expect(classifyPhotoRef('https://cdn.example.com/a.jpg')).toEqual({ kind: 'external', url: 'https://cdn.example.com/a.jpg' })
     expect(classifyPhotoRef('ftp://x')).toBeNull()
   })

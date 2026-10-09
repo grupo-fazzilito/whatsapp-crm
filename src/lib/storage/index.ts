@@ -41,10 +41,10 @@ function checkKey(key: string) {
 }
 
 function localDriver(): Driver {
-  const root = path.resolve(process.env.STORAGE_DIR || '.storage')
+  const root = path.resolve(/*turbopackIgnore: true*/ process.cwd(), process.env.STORAGE_DIR || '.storage')
   const file = (key: string) => {
     checkKey(key)
-    const full = path.resolve(root, key)
+    const full = path.resolve(/*turbopackIgnore: true*/ root, key)
     if (!full.startsWith(root + path.sep)) throw new StorageError('invalid object path', 'invalid')
     return full
   }

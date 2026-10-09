@@ -8,8 +8,15 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { createClient } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { authClient } from "@/lib/auth/client";
+
+/** Signed-in account (fields the UI reads; same names Supabase used). */
+export interface User {
+  id: string;
+  email: string;
+  created_at: string | null;
+  user_metadata: { full_name?: string };
+}
 
 interface Profile {
   id: string;
@@ -56,152 +63,49 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 /**
  * AuthProvider — wrap this around the dashboard layout.
- * Makes ONE getSession() call for the whole tree instead of one per
- * component, avoiding internal lock contention in the Supabase client.
+ * One /api/me call for the whole tree (session + profile together).
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  // Tracked separately from `loading`. The session settles fast (one
-  // local cookie read); the profile fetch crosses the network and
-  // settles later. Callers that gate on `profile.*` need to know which
-  // window they're in — see the type doc above.
   const [profileLoading, setProfileLoading] = useState(true);
 
-  // Shared across init, auth-state-change listener, and the exposed
-  // refreshProfile() callback. Reads the current session's user id and
-  // pulls the matching profile row.
-  const fetchProfile = useCallback(async (userId: string) => {
-    const supabase = createClient();
-    setProfileLoading(true);
+  const load = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, email, avatar_url, role, beta_features, is_platform_admin, locale")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (error) {
-        console.error("[AuthProvider] fetchProfile error:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        });
+      const res = await fetch("/api/me", { cache: "no-store" });
+      if (!res.ok) {
+        setUser(null);
+        setProfile(null);
         return;
       }
-
-      if (data) {
-        // `beta_features` is `NOT NULL DEFAULT ARRAY[]` in the DB, but
-        // narrow defensively in case the column hasn't been migrated yet
-        // (older deployments running 011 lazily) — `null` reads as no
-        // opt-ins, which is the safe default for any future beta gate.
-        setProfile({
-          ...data,
-          beta_features: data.beta_features ?? [],
-        });
-      }
+      const data = (await res.json()) as { user: User; profile: Profile | null };
+      setUser(data.user);
+      setProfile(data.profile ? { ...data.profile, beta_features: data.profile.beta_features ?? [] } : null);
     } catch (err) {
-      console.error("[AuthProvider] fetchProfile threw:", err);
+      console.error("[AuthProvider] /api/me failed:", err);
     } finally {
+      setLoading(false);
       setProfileLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const supabase = createClient();
-    let mounted = true;
-    let currentUserId: string | null = null;
-
-    const safetyTimer = setTimeout(() => {
-      if (mounted) {
-        console.warn("[AuthProvider] getSession() timed out after 3s");
-        setLoading(false);
-        setProfileLoading(false);
-      }
-    }, 3000);
-
-    const init = async () => {
-      try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
-
-        if (error) console.error("[AuthProvider] getSession error:", error.message);
-
-        if (!mounted) return;
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        currentUserId = currentUser?.id ?? null;
-
-        if (currentUser) {
-          // Don't block session loading on profile fetch — chrome
-          // (header, sidebar) can render from the user object alone,
-          // profile enriches async. Callers that need to branch on
-          // profile data gate on `profileLoading` instead.
-          fetchProfile(currentUser.id);
-        } else {
-          // No user → no profile to load. Flip profileLoading off so
-          // pages that gate on it don't wait forever on the logged-out
-          // path (the route guard or redirect should fire instead).
-          setProfileLoading(false);
-        }
-      } catch (err) {
-        console.error("[AuthProvider] init threw:", err);
-      } finally {
-        if (mounted) setLoading(false);
-        clearTimeout(safetyTimer);
-      }
-    };
-
-    init();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return;
-      const currentUser = session?.user ?? null;
-
-      if (currentUserId === currentUser?.id) {
-        // User identity hasn't changed. Do not fetch profile or trigger state updates.
-        setLoading(false);
-        return;
-      }
-
-      currentUserId = currentUser?.id ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        fetchProfile(currentUser.id);
-      } else {
-        setProfile(null);
-        setProfileLoading(false);
-      }
-
-      setLoading(false);
-    });
-
-    return () => {
-      mounted = false;
-      clearTimeout(safetyTimer);
-      subscription.unsubscribe();
-    };
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial session load
+    void load();
+  }, [load]);
 
   const signOut = useCallback(async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await authClient.signOut().catch(() => {});
     setUser(null);
     setProfile(null);
     window.location.href = "/login";
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    if (!user?.id) return;
-    await fetchProfile(user.id);
-  }, [user?.id, fetchProfile]);
+    setProfileLoading(true);
+    await load();
+  }, [load]);
 
   return (
     <AuthContext.Provider

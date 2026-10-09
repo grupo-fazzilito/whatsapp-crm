@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Loader2, Minus, Plus, Search, Trash2, X } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { apiJson, qs } from '@/lib/crm/api-client';
 import { getPreset } from '@/lib/industries';
 import { formatMoney, moneyLocale } from '@/lib/workspace/countries';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -78,10 +78,8 @@ export function NewOrderDialog({ open, onOpenChange, onCreated }: Props) {
     const s = clean(contactQ);
     let cancelled = false;
     const id = setTimeout(async () => {
-      let q = createClient().from('contacts').select('id, name, phone');
-      if (s) q = q.or(`name.ilike.%${s}%,phone.ilike.%${s}%`);
-      const { data } = await q.order('updated_at', { ascending: false }).limit(8);
-      if (!cancelled) setContacts((data ?? []) as ContactHit[]);
+      const data = await apiJson<{ contacts: ContactHit[] }>(`/api/crm/contacts/search${qs({ q: s, sort: 'recent', limit: 8 })}`).catch(() => null);
+      if (!cancelled) setContacts(data?.contacts ?? []);
     }, 250);
     return () => {
       cancelled = true;
@@ -93,13 +91,9 @@ export function NewOrderDialog({ open, onOpenChange, onCreated }: Props) {
     const s = clean(productQ);
     let cancelled = false;
     const id = setTimeout(async () => {
-      let q = createClient().from('products').select('id, name, price, product_variants(id, name, price, is_active)').eq('is_active', true);
-      if (s) q = q.ilike('name', `%${s}%`);
-      // Orders are in the business currency: skip products priced in another one.
-      const cur = workspace?.currency;
-      if (cur && /^[A-Z]{3}$/.test(cur)) q = q.or(`currency.is.null,currency.eq.${cur}`);
-      const { data } = await q.order('name').limit(8);
-      if (!cancelled) setProducts((data ?? []) as ProductHit[]);
+      // Active products priced in the business currency (the route filters).
+      const data = await apiJson<{ products: ProductHit[] }>(`/api/orders/products${qs({ q: s })}`).catch(() => null);
+      if (!cancelled) setProducts(data?.products ?? []);
     }, 250);
     return () => {
       cancelled = true;

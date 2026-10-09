@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import {
   MessageSquare,
   UserPlus,
@@ -9,13 +8,6 @@ import {
   Send,
 } from 'lucide-react'
 
-import {
-  loadActivity,
-  loadConversationsSeries,
-  loadMetrics,
-  loadPipelineDonut,
-  loadResponseTime,
-} from '@/lib/dashboard/queries'
 import type {
   ActivityItem,
   ConversationsSeriesPoint,
@@ -35,6 +27,15 @@ import { CreditsCard } from '@/components/billing/credits-card'
 import { useWorkspace } from '@/hooks/use-workspace'
 
 type RangeDays = 7 | 30 | 90
+
+/** One section of GET /api/dashboard, in the viewer's time zone. */
+async function loadSection<T>(section: string, key: string, params: Record<string, string> = {}): Promise<T> {
+  const qs = new URLSearchParams({ section, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, ...params })
+  const res = await fetch(`/api/dashboard?${qs}`, { cache: 'no-store' })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
+  return body[key] as T
+}
 
 export default function DashboardPage() {
   const { can } = useWorkspace()
@@ -63,27 +64,25 @@ export default function DashboardPage() {
   const [activityLoading, setActivityLoading] = useState(true)
 
   const loadAll = useCallback(() => {
-    const db = createClient()
-
     // Kick everything off in parallel. Each block has its own
     // setState + finally so a slow query doesn't hold up faster
     // sections — each widget shows its own skeleton independently.
-    void loadMetrics(db)
+    void loadSection<MetricsBundle>('metrics', 'metrics')
       .then((m) => setMetrics(m))
       .catch((err) => console.error('[dashboard] metrics failed:', err))
       .finally(() => setMetricsLoading(false))
 
-    void loadConversationsSeries(db, 30)
+    void loadSection<ConversationsSeriesPoint[]>('series', 'series', { range: '30' })
       .then((s) => setSeries((prev) => ({ ...prev, 30: s })))
       .catch((err) => console.error('[dashboard] series failed:', err))
       .finally(() => setSeriesLoading(false))
 
-    void loadPipelineDonut(db)
+    void loadSection<PipelineDonutData>('pipeline', 'pipeline')
       .then((p) => setPipeline(p))
       .catch((err) => console.error('[dashboard] pipeline failed:', err))
       .finally(() => setPipelineLoading(false))
 
-    void loadResponseTime(db)
+    void loadSection<ResponseTimeSummary>('response-time', 'responseTime')
       .then((r) => setResponseTime(r))
       .catch((err) => console.error('[dashboard] response time failed:', err))
       .finally(() => setResponseTimeLoading(false))
@@ -91,7 +90,7 @@ export default function DashboardPage() {
     // Fetch up to 50 so the biggest page-size option in the feed
     // (50 rows) is already in memory — switching sizes then becomes
     // a pure client-side slice with no extra round trip.
-    void loadActivity(db, 50)
+    void loadSection<ActivityItem[]>('activity', 'activity', { limit: '50' })
       .then((a) => setActivity(a))
       .catch((err) => console.error('[dashboard] activity failed:', err))
       .finally(() => setActivityLoading(false))
@@ -110,8 +109,7 @@ export default function DashboardPage() {
       setRange(r)
       if (series[r] !== null) return
       setSeriesLoading(true)
-      const db = createClient()
-      loadConversationsSeries(db, r)
+      loadSection<ConversationsSeriesPoint[]>('series', 'series', { range: String(r) })
         .then((s) => setSeries((prev) => ({ ...prev, [r]: s })))
         .catch((err) => console.error('[dashboard] series failed:', err))
         .finally(() => setSeriesLoading(false))

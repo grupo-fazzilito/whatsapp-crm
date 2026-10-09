@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import type { Conversation, Message, Contact } from "@/types";
 import { useRealtime, type ConversationTagRow } from "@/hooks/use-realtime";
 import { ConversationList } from "@/components/inbox/conversation-list";
@@ -14,9 +13,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/i18n/client";
 import { useInboxDirectory } from "@/components/inbox/use-inbox-directory";
 import { useInboxExtras } from "@/components/inbox/use-inbox-extras";
-import { CONVERSATION_LIST_SELECT } from "@/components/inbox/conversation-list";
 import { OPEN_CONVERSATION_EVENT } from "@/components/notifications/events";
 import { cn } from "@/lib/utils";
+
+/** One conversation in the inbox list shape (contact + tags), or null. */
+async function fetchInboxConversation(id: string): Promise<Conversation | null> {
+  const res = await fetch(`/api/inbox/conversations?id=${encodeURIComponent(id)}`, { cache: "no-store" });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`);
+  return ((body.conversations ?? []) as Conversation[])[0] ?? null;
+}
 
 export default function InboxPage() {
   const router = useRouter();
@@ -90,23 +96,10 @@ export default function InboxPage() {
     if (hydratingConvIdsRef.current.has(convId)) return;
     hydratingConvIdsRef.current.add(convId);
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("conversations")
-        .select(CONVERSATION_LIST_SELECT)
-        .eq("id", convId)
-        .maybeSingle();
-      if (error) {
-        // Supabase errors have non-enumerable properties — log fields
-        // explicitly so the console message isn't just `{}`.
-        console.error("Failed to hydrate conversation:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        });
-        return;
-      }
+      const data = await fetchInboxConversation(convId).catch((err: unknown) => {
+        console.error("Failed to hydrate conversation:", err instanceof Error ? err.message : err);
+        return null;
+      });
       if (!data) return;
       const fetched = data as unknown as Conversation;
       setConversations((prev) => {
@@ -466,11 +459,7 @@ export default function InboxPage() {
         return;
       }
       void (async () => {
-        const { data } = await createClient()
-          .from("conversations")
-          .select(CONVERSATION_LIST_SELECT)
-          .eq("id", id)
-          .maybeSingle();
+        const data = await fetchInboxConversation(id).catch(() => null);
         if (!data) return;
         const row = data as unknown as Conversation;
         setConversations((prev) => (prev.some((c) => c.id === row.id) ? prev : [row, ...prev]));

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bot, ChevronDown, Menu, X, Sparkles } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth/client";
 import { useMarketingTheme } from "@/components/marketing/marketing-theme-provider";
 import { ThemeToggle } from "./theme-toggle";
 import { MagneticButton } from "./magnetic-button";
@@ -23,14 +23,13 @@ export function GlassNavbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { resolvedTheme } = useMarketingTheme();
   const isLight = resolvedTheme === "light";
-  const supabase = createClient();
   const rafRef = useRef<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsLoggedIn(!!session);
+      const { data } = await authClient.getSession();
+      setIsLoggedIn(!!data?.session);
     };
     checkUser();
 
@@ -54,7 +53,7 @@ export function GlassNavbar() {
       document.removeEventListener("mousedown", onClickOutside);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [supabase]);
+  }, []);
 
   const navLinks = [
     { name: "Home", href: "/" },

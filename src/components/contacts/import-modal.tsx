@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { apiJson } from '@/lib/crm/api-client';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -78,7 +78,6 @@ function parseCSV(text: string): ParsedRow[] {
 }
 
 export function ImportModal({ open, onOpenChange, onImported }: ImportModalProps) {
-  const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -136,23 +135,13 @@ export function ImportModal({ open, onOpenChange, onImported }: ImportModalProps
           company: row.company || null,
         }));
 
-        const { data, error } = await supabase
-          .from('contacts')
-          .insert(rows)
-          .select('id');
-
-        if (error) {
-          // Try individual inserts for this chunk
-          for (const row of rows) {
-            const { error: singleErr } = await supabase.from('contacts').insert(row);
-            if (singleErr) {
-              failed++;
-            } else {
-              imported++;
-            }
-          }
+        // The route inserts the chunk, falling back to row by row.
+        const res = await apiJson<{ imported: number; failed: number }>('/api/crm/contacts/import', { method: 'POST', body: { rows } }).catch(() => null);
+        if (res) {
+          imported += res.imported;
+          failed += res.failed;
         } else {
-          imported += data?.length ?? chunk.length;
+          failed += rows.length;
         }
       }
 

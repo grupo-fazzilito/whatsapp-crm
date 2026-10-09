@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 import { isPlatformAdmin } from '@/lib/admin/guard'
 import { maskedGoogleSettings, updateGoogleSettings } from '@/lib/integrations/google/config'
 
@@ -31,9 +31,7 @@ export async function PUT(req: NextRequest) {
       update.client_secret = v.trim()
     }
   }
-  const {
-    data: { user },
-  } = await (await createClient(null)).auth.getUser()
+  const user = await getSessionUser()
   await updateGoogleSettings(update, user?.id ?? null)
   return NextResponse.json(await maskedGoogleSettings())
 }

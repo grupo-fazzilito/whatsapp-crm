@@ -1,21 +1,18 @@
 import 'server-only'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import type { SupabaseClient, User } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser, type AppUser } from '@/lib/auth/session'
 import { prisma } from '@/lib/db/prisma'
 import { tenantDb, type TenantDb } from '@/lib/db/tenant'
 import { WORKSPACE_COOKIE, hasRole, isUuid, type WorkspaceRole } from './constants'
 import type { Workspace } from './types'
 
 export interface WorkspaceContext {
-  user: User
+  user: AppUser
   workspace: Workspace
   role: WorkspaceRole
   /** Prisma client confined to `workspace` (use this). */
   db: TenantDb
-  /** @deprecated Cookie client scoped (RLS) to `workspace`; removed with Supabase. */
-  supabase: SupabaseClient
 }
 
 export interface Membership {
@@ -42,10 +39,7 @@ export async function listMemberships(userId: string): Promise<Membership[]> {
  * the user has no workspace at all.
  */
 export async function getWorkspaceContext(): Promise<WorkspaceContext | null> {
-  const authClient = await createClient(null)
-  const {
-    data: { user },
-  } = await authClient.auth.getUser()
+  const user = await getSessionUser()
   if (!user) return null
 
   const memberships = await listMemberships(user.id)
@@ -61,7 +55,6 @@ export async function getWorkspaceContext(): Promise<WorkspaceContext | null> {
     workspace: active.workspace,
     role: active.role,
     db: tenantDb(active.workspace.id),
-    supabase: await createClient(active.workspace.id),
   }
 }
 

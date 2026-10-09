@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
+import { signFile } from "@/lib/storage/client";
+import { storagePathFromUrl } from "@/lib/storage/paths";
 import type { Message, MessageReaction } from "@/types";
 import {
   Clock,
@@ -69,18 +70,9 @@ function isProxyUrl(url: string): boolean {
   return url.startsWith("/api/whatsapp/media/") || url.startsWith("/api/media/");
 }
 
-const ATTACHMENT_SIGN_MARKER = "/storage/v1/object/sign/attachments/";
-
-/** Object path inside the private `attachments` bucket, if `url` points there. */
+/** Object path inside the private `attachments` bucket, if `url` points there (new or legacy URL). */
 export function attachmentPath(url: string): string | null {
-  const idx = url.indexOf(ATTACHMENT_SIGN_MARKER);
-  if (idx < 0) return null;
-  const rest = url.slice(idx + ATTACHMENT_SIGN_MARKER.length).split("?")[0];
-  try {
-    return decodeURIComponent(rest);
-  } catch {
-    return rest;
-  }
+  return storagePathFromUrl(url, "attachments");
 }
 
 /**
@@ -118,12 +110,10 @@ export function useMediaSrc(url: string | undefined) {
         }
         const path = attachmentPath(url);
         if (path) {
-          const { data, error } = await createClient()
-            .storage.from("attachments")
-            .createSignedUrl(path, 3600);
+          const signed = await signFile("attachments", path, { expiresIn: 3600 });
           if (cancelled) return;
-          if (error || !data?.signedUrl) throw error ?? new Error("sign failed");
-          setState({ src: data.signedUrl, error: false, loading: false });
+          if (!signed) throw new Error("sign failed");
+          setState({ src: signed, error: false, loading: false });
           return;
         }
         if (!cancelled) setState({ src: url, error: false, loading: false });

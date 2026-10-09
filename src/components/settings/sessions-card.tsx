@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Loader2, LogOut } from 'lucide-react';
 
-import { createClient } from '@/lib/supabase/client';
+import { authClient } from '@/lib/auth/client';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/dialog';
 
 export function SessionsCard() {
-  const supabase = createClient();
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -33,11 +32,13 @@ export function SessionsCard() {
       // scope: 'global' revokes every refresh token for this user
       // across all devices; the next auth-state change on this tab
       // triggers the usual redirect.
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      // Revoke every session of this account (all devices), then this one.
+      const { error } = await authClient.revokeSessions();
       if (error) {
-        toast.error(`Sign-out failed: ${error.message}`);
+        toast.error(`Sign-out failed: ${error.message ?? ''}`);
         return;
       }
+      await authClient.signOut().catch(() => {});
       window.location.href = '/login';
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';

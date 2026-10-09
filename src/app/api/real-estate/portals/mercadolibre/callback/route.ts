@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 import { listMemberships } from '@/lib/workspace/context'
 import { hasRole } from '@/lib/workspace/constants'
 import { getMlConfig } from '@/lib/real-estate/portals/mercadolibre/config'
@@ -31,9 +31,7 @@ export async function GET(request: NextRequest) {
   const code = params.get('code')
   if (!code || code.length > 500) return back('no_code')
 
-  const {
-    data: { user },
-  } = await (await createClient(null)).auth.getUser()
+  const user = await getSessionUser()
   if (!user || user.id !== state.u) return back('session')
   const membership = (await listMemberships(user.id)).find((m) => m.workspace.id === state.w)
   if (!membership || !hasRole(membership.role, 'admin') || membership.workspace.industry !== 'real_estate') return back('forbidden')

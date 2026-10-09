@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,7 +51,7 @@ const nullIfEmpty = (s: string | null) => (s && s.trim() ? s.trim() : null);
 
 export function AgentEditor({ agent, allAgents, readOnly, onClose, onSaved }: Props) {
   const t = useT();
-  const { modules, workspace } = useWorkspace();
+  const { modules } = useWorkspace();
   const [draft, setDraft] = useState<AgentDraft>(() => toDraft(agent));
   const [saving, setSaving] = useState(false);
   const set = <K extends keyof AgentDraft>(k: K, v: AgentDraft[K]) => setDraft((d) => ({ ...d, [k]: v }));
@@ -85,14 +84,23 @@ export function AgentEditor({ agent, allAgents, readOnly, onClose, onSaved }: Pr
     };
     if (!row.name) return;
     setSaving(true);
-    const supabase = createClient();
-    const query = agent
-      ? supabase.from('ai_agents').update(row).eq('id', agent.id).select('*').single()
-      : supabase.from('ai_agents').insert({ ...row, workspace_id: workspace?.id }).select('*').single();
-    const { data, error } = await query;
+    let data: AiAgent | null = null;
+    let error: string | null = null;
+    try {
+      const res = await fetch(agent ? `/api/agents/${agent.id}` : '/api/agents', {
+        method: agent ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(row),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) data = (body.agent as AiAgent) ?? null;
+      else error = body.error ?? `HTTP ${res.status}`;
+    } catch (err) {
+      error = err instanceof Error ? err.message : null;
+    }
     setSaving(false);
     if (error || !data) {
-      toast.error(error?.message ?? t('common.error'));
+      toast.error(error ?? t('common.error'));
       return;
     }
     toast.success(agent ? t('agents.saved') : t('agents.created', { name: row.name }));

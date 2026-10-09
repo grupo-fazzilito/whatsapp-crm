@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 import { workspaceCookieOptions } from '@/lib/workspace/context'
 import { WORKSPACE_COOKIE } from '@/lib/workspace/constants'
 import { acceptInvitation, findPendingInvitation } from '@/lib/workspace/invitations'
@@ -17,9 +17,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 // POST — signed-in user accepts. The account email must match the invite.
 export async function POST(_req: NextRequest, { params }: Params) {
   const { token } = await params
-  const {
-    data: { user },
-  } = await (await createClient(null)).auth.getUser()
+  const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const inv = await findPendingInvitation(token)

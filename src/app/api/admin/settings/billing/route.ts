@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 import { isPlatformAdmin } from '@/lib/admin/guard'
 import { normalizeBilling, type BillingSettings } from '@/lib/billing/pricing'
 import { getBillingSettings, maskedPaymentLatam, saveBillingSettings, updatePaymentLatam, validBaseUrl, type PaymentLatamUpdate } from '@/lib/billing/settings'
@@ -23,9 +23,7 @@ export async function PUT(req: Request) {
   if (!(await isPlatformAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const body = (await req.json().catch(() => null)) as { billing?: Partial<BillingSettings>; payment_latam?: Record<string, unknown> } | null
   if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
-  const {
-    data: { user },
-  } = await (await createClient(null)).auth.getUser()
+  const user = await getSessionUser()
 
   if (body.billing && typeof body.billing === 'object') {
     const current = await getBillingSettings()

@@ -26,7 +26,7 @@ import { notificationText } from '@/lib/inbox/texts'
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireWorkspace('agent')
   if (!guard.ok) return guard.response
-  const { supabase, user, workspace } = guard.ctx
+  const { db, user, workspace } = guard.ctx
 
   const { id } = await params
   if (!isUuid(id)) return NextResponse.json({ error: 'Invalid conversation id' }, { status: 400 })
@@ -46,12 +46,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
   const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 500) : ''
 
-  const { data: current } = await supabase
-    .from('conversations')
-    .select('id, assigned_agent_id, team_id')
-    .eq('id', id)
-    .eq('workspace_id', workspace.id)
-    .maybeSingle()
+  const current = await db.conversations.findFirst({
+    select: { id: true, assigned_agent_id: true, team_id: true },
+    where: { id, workspace_id: workspace.id },
+  })
   if (!current) return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
 
   const team = teamIdRaw ? await teamOf(workspace.id, teamIdRaw as string) : null
@@ -67,23 +65,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const now = new Date().toISOString()
-  const { data, error } = await supabase
-    .from('conversations')
-    .update({
-      assigned_agent_id: toUser,
-      ...(team ? { team_id: team.id } : {}),
-      // A transferred conversation is active again.
-      status: 'open',
-      resolved_at: null,
-      resolved_by: null,
-      updated_at: now,
+  let data
+  let failure: string | undefined
+  try {
+    const [row] = await db.conversations.updateManyAndReturn({
+      where: { id, workspace_id: workspace.id },
+      data: {
+        assigned_agent_id: toUser,
+        ...(team ? { team_id: team.id } : {}),
+        // A transferred conversation is active again.
+        status: 'open',
+        resolved_at: null,
+        resolved_by: null,
+        updated_at: now,
+      },
     })
-    .eq('id', id)
-    .eq('workspace_id', workspace.id)
-    .select('*')
-    .maybeSingle()
-  if (error || !data) {
-    console.error('[conversations/transfer] update failed:', error?.message)
+    data = row
+  } catch (err) {
+    failure = err instanceof Error ? err.message : String(err)
+  }
+  if (!data) {
+    console.error('[conversations/transfer] update failed:', failure)
     return NextResponse.json({ error: 'Failed to transfer conversation' }, { status: 500 })
   }
 

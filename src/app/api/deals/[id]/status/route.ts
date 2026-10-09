@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import type { Prisma } from '@/generated/prisma/client'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { isUuid } from '@/lib/workspace/constants'
 
@@ -14,7 +15,7 @@ const clip = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v
 export async function POST(request: Request, ctx: RouteContext<'/api/deals/[id]/status'>) {
   const guard = await requireWorkspace('agent')
   if (!guard.ok) return guard.response
-  const { supabase, workspace } = guard.ctx
+  const { db, workspace } = guard.ctx
 
   const { id } = await ctx.params
   if (!isUuid(id)) return NextResponse.json({ error: 'not_found' }, { status: 404 })
@@ -26,18 +27,21 @@ export async function POST(request: Request, ctx: RouteContext<'/api/deals/[id]/
   const note = typeof body?.note === 'string' && body.note.trim() ? body.note.trim().slice(0, 2000) : null
   if (status === 'lost' && !reason) return NextResponse.json({ error: 'reason_required' }, { status: 400 })
 
-  const patch: Record<string, unknown> = { status }
+  const patch: Prisma.dealsUpdateManyMutationInput = { status }
   if (status === 'lost') Object.assign(patch, { lost_reason: reason, close_note: note })
   if (status === 'won') Object.assign(patch, { close_note: note })
 
-  const { data, error } = await supabase
-    .from('deals')
-    .update(patch)
-    .eq('id', id)
-    .eq('workspace_id', workspace.id)
-    .select('id, status, won_at, lost_at, lost_reason, close_note')
-    .maybeSingle()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  let data
+  try {
+    const [row] = await db.deals.updateManyAndReturn({
+      where: { id, workspace_id: workspace.id },
+      data: patch,
+      select: { id: true, status: true, won_at: true, lost_at: true, lost_reason: true, close_note: true },
+    })
+    data = row ?? null
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to update deal' }, { status: 500 })
+  }
   if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 })
   return NextResponse.json({ deal: data })
 }

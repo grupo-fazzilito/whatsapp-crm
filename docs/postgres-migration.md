@@ -21,12 +21,12 @@ Supabase, validado en local antes de desplegar.
 
 - [x] **P0 Base**: Postgres local sin Supabase (`docker-compose.postgres.yml`), Prisma configurado, `schema.prisma` introspectado, cliente con guardia de workspace, scripts.
 - [x] **P1 Servidor → Prisma**: `src/lib/**` y `src/app/api/**` dejan `supabaseAdmin()`/`createClient()` por Prisma, módulo por módulo. Mientras tanto Prisma apunta a la BD local de Supabase (mismo esquema `public`), así la app sigue funcionando con el login actual; no usar la relación `users` hasta P3.
-- [ ] **P2 Navegador → API**: los 77 componentes que consultan directo pasan a rutas de API / Server Actions.
-- [ ] **P3 Login**: Better Auth; tabla `users` propia reemplaza `auth.users` (FKs, triggers de alta de workspace, superadmin, invitaciones, OTP); script de migración de usuarios.
-- [ ] **P4 Archivos**: driver S3 (y disco local para desarrollo); script que copia los archivos existentes.
-- [ ] **P5 Tiempo real**: SSE + `LISTEN/NOTIFY` para bandeja, notificaciones, pedidos, tareas.
-- [ ] **P6 Datos y limpieza**: (esquema base ya hecho en P0) script de copia de datos Supabase → Postgres (usuarios, negocios, mensajes, archivos); quitar `@supabase/*`.
-- [ ] **P7 Validación completa** en Postgres puro: tsc, vitest, pruebas de aislamiento, build, e2e (IA real, pedidos, inmobiliaria, créditos, Meta, webhooks, API pública).
+- [x] **P2 Navegador → API**: los 77 componentes que consultan directo pasan a rutas de API / Server Actions.
+- [x] **P3 Login**: Better Auth; tabla `users` propia reemplaza `auth.users` (FKs, triggers de alta de workspace, superadmin, invitaciones, OTP); script de migración de usuarios.
+- [x] **P4 Archivos**: driver S3 (y disco local para desarrollo); script que copia los archivos existentes.
+- [x] **P5 Tiempo real**: SSE + `LISTEN/NOTIFY` para bandeja, notificaciones, pedidos, tareas.
+- [x] **P6 Datos y limpieza**: (esquema base ya hecho en P0) script de copia de datos Supabase → Postgres (usuarios, negocios, mensajes, archivos); quitar `@supabase/*`.
+- [x] **P7 Validación completa** en Postgres puro: tsc, vitest, pruebas de aislamiento, build, e2e (IA real, pedidos, inmobiliaria, créditos, Meta, webhooks, API pública).
 - [ ] **P8 Railway**: guía y variables (`DATABASE_URL`, `BETTER_AUTH_SECRET`, S3, cron).
 
 ## Cómo correrlo en local (Postgres puro)
@@ -61,6 +61,27 @@ TEST_DATABASE_URL=postgresql://crm:crm@127.0.0.1:5434/crm npx vitest run src/lib
 - No tocar `tom@tom.com`, `admin@victoria.com` ni el workspace "Fazzil" (solo copiarlos).
 - Cada fase termina con commit en `feat/postgres`; nada se sube a `main` hasta P7.
 - Toda consulta de una tabla de negocio pasa por el cliente con guardia de workspace; el cliente sin guardia (`prisma`) solo para crons, webhooks y tareas de plataforma.
+
+## Estado (2026-10-09)
+
+La app ya no usa Supabase: datos con Prisma, login con Better Auth, archivos en
+disco local o S3, tiempo real por SSE. Validado sobre Postgres puro con los datos
+copiados de Supabase y sin ninguna variable de Supabase (`scripts`: e2e de login,
+aislamiento entre negocios, 16 páginas × 2 industrias, 28 APIs, archivos, tiempo
+real, créditos con Payment Latam simulado, respuesta real de IA, superadmin,
+registro con código y login del superadmin migrado). 756 tests contra Postgres.
+
+### Copiar los datos de Supabase a Postgres
+
+```bash
+DATABASE_URL=<postgres nuevo> npx prisma migrate deploy
+SOURCE_DATABASE_URL=<supabase> TARGET_DATABASE_URL=<postgres nuevo> SITE_URL=<url pública> \
+SUPABASE_URL=<url supabase> SUPABASE_SERVICE_ROLE_KEY=<clave> STORAGE_DRIVER=s3 S3_...=... \
+node scripts/postgres/migrate-data.mjs            # --dry-run para probar sin escribir
+```
+
+La carpeta `supabase/` queda solo como historial (sus migraciones están consolidadas
+en `prisma/migrations/0_baseline`); los cambios de esquema nuevos van en `prisma/migrations`.
 
 ## Guía de conversión (P1)
 

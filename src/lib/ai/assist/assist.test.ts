@@ -22,12 +22,18 @@ describe('classifyMediaUrl', () => {
       kind: 'attachment',
       path: 'ws1/webchat/c1/a.jpg',
     })
+    expect(classifyMediaUrl('https://app.example.com/api/files/attachments/ws1/webchat/c1/a.jpg?exp=1&sig=x')).toEqual({
+      kind: 'attachment',
+      path: 'ws1/webchat/c1/a.jpg',
+    })
+    expect(classifyMediaUrl('/api/files/attachments/ws1/inbox/a%20b.pdf?exp=1&sig=x')).toEqual({ kind: 'attachment', path: 'ws1/inbox/a b.pdf' })
     expect(classifyMediaUrl('https://scontent.xx.fbcdn.net/v/a.jpg')).toEqual({ kind: 'external', url: 'https://scontent.xx.fbcdn.net/v/a.jpg' })
   })
   it('rejects anything else', () => {
     expect(classifyMediaUrl('http://169.254.169.254/latest')).toBeNull()
     expect(classifyMediaUrl('file:///etc/passwd')).toBeNull()
     expect(classifyMediaUrl('https://x/storage/v1/object/sign/attachments/../etc?x')).toBeNull()
+    expect(classifyMediaUrl('/api/files/attachments/ws1/%2e%2e/x')).toBeNull()
     expect(classifyMediaUrl(null)).toBeNull()
   })
 })

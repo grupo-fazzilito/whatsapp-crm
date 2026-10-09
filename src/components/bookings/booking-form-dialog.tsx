@@ -5,7 +5,7 @@ import { AlertTriangle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n/client'
 import { useWorkspace } from '@/hooks/use-workspace'
-import { createClient } from '@/lib/supabase/client'
+import { api } from '@/components/business/api'
 import type { BookingField } from '@/lib/industries'
 import { safeTimeZone, zonedNow } from '@/lib/ai/time'
 import type { BusinessHoursRow } from '@/lib/ai/slots'
@@ -204,33 +204,24 @@ export function BookingFormDialog(props: BookingFormProps) {
     }
 
     setSaving(true)
-    const db = createClient()
     const whenChanged = !!booking && (booking.booking_date !== payload.booking_date || booking.booking_time !== payload.booking_time)
-    const res = booking
-      ? await db
-          .from('bookings')
-          .update({
-            ...payload,
-            // A new date/time deserves fresh reminders.
-            ...(whenChanged ? { reminder_24h_sent: false, reminder_4h_sent: false, reminder_2h_sent: false } : {}),
-          })
-          .eq('id', booking.id)
-          .select('id')
-          .single()
-      : await db
-          .from('bookings')
-          .insert({ ...payload, workspace_id: workspace.id, source: 'manual' })
-          .select('id')
-          .single()
-    setSaving(false)
-    if (res.error) {
-      toast.error(res.error.message)
+    let savedId: string
+    try {
+      // The server resets the reminder flags when the date/time changes.
+      const res = booking
+        ? await api<{ id: string }>(`/api/bookings/${booking.id}`, { method: 'PATCH', body: payload })
+        : await api<{ id: string }>('/api/bookings', { method: 'POST', body: payload })
+      savedId = res.id
+    } catch (err) {
+      setSaving(false)
+      toast.error(err instanceof Error ? err.message : String(err))
       return
     }
+    setSaving(false)
     toast.success(booking ? t('bookings.toast.updated') : t('bookings.toast.created'))
-    pushGoogleSync(res.data.id)
+    pushGoogleSync(savedId)
     const meaningful = !booking || whenChanged || booking.status !== form.status
-    props.onSaved(res.data.id, form.notify && meaningful)
+    props.onSaved(savedId, form.notify && meaningful)
     onOpenChange(false)
   }
 

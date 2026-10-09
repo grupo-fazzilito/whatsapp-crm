@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { BadgeCheck, ExternalLink, Flame, Home, Loader2, Pencil, Send, Snowflake, Sun } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { useRealtimeChanges } from '@/lib/realtime/client';
 import { formatMoney, moneyLocale } from '@/lib/workspace/countries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -128,22 +128,21 @@ export function LeadPanel({ contactId, conversationId, className }: LeadPanelPro
   useEffect(() => {
     loadRef.current = load;
   });
-  useEffect(() => {
-    if (!contactId || !workspace?.id) return;
-    const db = createClient();
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const channel = db
-      .channel(`lead-panel:${contactId}:${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_profiles', filter: `contact_id=eq.${contactId}` }, () => {
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => void loadRef.current(), 400);
-      })
-      .subscribe();
-    return () => {
-      if (timer) clearTimeout(timer);
-      db.removeChannel(channel);
-    };
-  }, [contactId, workspace?.id]);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+  useRealtimeChanges<{ contact_id?: string | null }>({
+    workspaceId: workspace?.id,
+    enabled: !!contactId,
+    tables: ['lead_profiles'],
+    onChange: (change) => {
+      const cid = change.eventType === 'DELETE' ? change.old.contact_id : change.new.contact_id;
+      if (cid !== contactId) return;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => void loadRef.current(), 400);
+    },
+  });
 
   if (!contactId) return null;
 

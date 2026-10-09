@@ -1,6 +1,6 @@
 import { isPlatformAdmin } from "@/lib/admin/guard";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { listUsersForAdmin } from "@/lib/auth/users";
 import { prisma } from "@/lib/db/prisma";
 
 async function isAuthed(): Promise<boolean> {
@@ -11,9 +11,7 @@ export async function GET() {
   if (!(await isAuthed()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Auth users still come from Supabase Auth (moves with the login, P3).
-  const { data: authData } = await supabaseAdmin().auth.admin.listUsers({ perPage: 500 });
-  const users = (authData?.users ?? []) as { id: string; created_at?: string; email_confirmed_at?: string }[];
+  const users = await listUsersForAdmin().catch(() => []);
 
   const now = new Date();
   const monthlySignups: { month: string; count: number }[] = [];

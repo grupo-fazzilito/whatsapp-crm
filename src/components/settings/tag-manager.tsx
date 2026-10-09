@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Plus, X, Loader2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +30,6 @@ const PRESET_COLORS = [
 ];
 
 export function TagManager() {
-  const supabase = createClient();
   const { workspace, loading: workspaceLoading } = useWorkspace();
 
   const [loading, setLoading] = useState(true);
@@ -58,13 +56,10 @@ export function TagManager() {
     try {
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from('tags')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setTags(data || []);
+      const res = await fetch('/api/tags', { cache: 'no-store' });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`);
+      setTags(body.tags || []);
     } catch (err) {
       console.error('Failed to fetch tags:', err);
       toast.error('Failed to load tags');
@@ -86,15 +81,15 @@ export function TagManager() {
         return;
       }
 
-      const { error } = await supabase
-        .from('tags')
-        .insert({
-          workspace_id: workspace.id,
-          name: newTagName.trim(),
-          color: selectedColor,
-        });
-
-      if (error) throw error;
+      const res = await fetch('/api/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newTagName.trim(), color: selectedColor }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      }
 
       toast.success('Tag created successfully');
       setDialogOpen(false);
@@ -119,12 +114,11 @@ export function TagManager() {
 
     try {
       setDeleting(true);
-      const { error } = await supabase
-        .from('tags')
-        .delete()
-        .eq('id', tagToDelete.id);
-
-      if (error) throw error;
+      const res = await fetch(`/api/tags/${tagToDelete.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      }
 
       toast.success('Tag deleted');
       setTags((prev) => prev.filter((t) => t.id !== tagToDelete.id));

@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 import { completeOAuth } from '@/lib/integrations/google/connect'
 import { siteUrl } from '@/lib/integrations/google/endpoints'
 
 /** Google redirects here after consent (Authorized redirect URI). */
 export async function GET(request: Request) {
   const url = new URL(request.url)
-  const {
-    data: { user },
-  } = await (await createClient(null)).auth.getUser()
+  const user = await getSessionUser()
 
   const outcome = await completeOAuth({
     code: url.searchParams.get('code'),

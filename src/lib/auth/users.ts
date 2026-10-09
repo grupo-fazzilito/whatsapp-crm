@@ -56,3 +56,31 @@ export async function setBanned(userId: string, banned: boolean) {
 export async function deleteUser(userId: string) {
   await prisma.users.delete({ where: { id: userId } })
 }
+
+/** Account as the admin panel reads it (same field names Supabase's admin API used). */
+export interface AdminUserView {
+  id: string
+  email: string
+  created_at: string
+  last_sign_in_at: string | null
+  email_confirmed_at: string | null
+  banned_until: string | null
+  user_metadata: { full_name?: string }
+  app_metadata: { provider: string }
+}
+
+const FOREVER = '2999-12-31T00:00:00.000Z'
+
+export async function listUsersForAdmin(): Promise<AdminUserView[]> {
+  const rows = await prisma.users.findMany({ orderBy: { created_at: 'desc' } })
+  return rows.map((u) => ({
+    id: u.id,
+    email: u.email,
+    created_at: u.created_at,
+    last_sign_in_at: u.last_sign_in_at,
+    email_confirmed_at: u.email_verified ? u.created_at : null,
+    banned_until: u.banned ? FOREVER : null,
+    user_metadata: { full_name: u.name || undefined },
+    app_metadata: { provider: 'email' },
+  }))
+}

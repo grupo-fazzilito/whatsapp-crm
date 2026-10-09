@@ -5,9 +5,10 @@ import { toast } from 'sonner';
 import { ArrowDown, ArrowUp, ImagePlus, Loader2, Pencil, Plus, QrCode, Trash2, X } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { uploadFile } from '@/lib/storage/client';
+import { api } from '../api';
 import { getPreset } from '@/lib/industries';
-import type { Workspace, WorkspaceSettings } from '@/lib/workspace/types';
+import type { Workspace } from '@/lib/workspace/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,9 +17,9 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CATALOG_BUCKET, IMAGE_TYPES, MAX_IMAGE_BYTES, storagePathFromUrl } from '@/components/catalog/types';
+import { IMAGE_TYPES, MAX_IMAGE_BYTES } from '@/components/catalog/types';
 import { FULFILLMENTS, PAYMENT_METHOD_TYPES, type Fulfillment, type PaymentMethod, type PaymentMethodType } from '@/components/orders/types';
-import { invalidateAi, selectClass } from '../shared';
+import { selectClass } from '../shared';
 
 interface RawOrderSettings {
   fulfillment?: Fulfillment[];
@@ -68,33 +69,27 @@ function OrderSettingsCard({ workspace, readOnly }: { workspace: Workspace; read
       return;
     }
     setSaving(true);
-    const db = createClient();
-    // Re-read so we merge into the latest settings instead of a stale copy.
-    const { data: current, error: readError } = await db.from('workspaces').select('settings').eq('id', workspace.id).single();
-    if (readError) {
+    try {
+      // Merged by the server into the latest settings (other keys of `orders` are kept).
+      await api('/api/business/workspace', {
+        method: 'PATCH',
+        body: {
+          settings: {
+            orders: {
+              fulfillment,
+              delivery_fee: Math.round(fee * 100) / 100,
+              min_order: Math.round(min * 100) / 100,
+              notify_status: notify,
+            },
+          },
+        },
+      });
+    } catch (err) {
       setSaving(false);
-      toast.error(readError.message);
+      toast.error(err instanceof Error ? err.message : String(err));
       return;
     }
-    const base = (current?.settings ?? {}) as WorkspaceSettings;
-    const prevOrders = (base.orders ?? {}) as Record<string, unknown>;
-    const next: WorkspaceSettings = {
-      ...base,
-      orders: {
-        ...prevOrders,
-        fulfillment,
-        delivery_fee: Math.round(fee * 100) / 100,
-        min_order: Math.round(min * 100) / 100,
-        notify_status: notify,
-      },
-    };
-    const { error } = await db.from('workspaces').update({ settings: next }).eq('id', workspace.id);
     setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    await invalidateAi();
     await refresh();
     toast.success(t('business.common.saved'));
   };
@@ -168,20 +163,20 @@ function PaymentMethodsCard({ workspace, readOnly }: { workspace: Workspace; rea
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const { data, error } = await createClient()
-      .from('payment_methods')
-      .select('id, name, type, instructions, qr_image_url, requires_proof, is_active, sort_order')
-      .eq('workspace_id', workspace.id)
-      .order('sort_order')
-      .order('name');
-    if (error) toast.error(error.message);
-    setMethods((data ?? []) as PaymentMethod[]);
-  }, [workspace.id]);
+    try {
+      setMethods((await api<{ methods: PaymentMethod[] }>('/api/business/payment-methods')).methods);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+      setMethods([]);
+    }
+  }, []);
 
+  // Reloads when the active workspace changes.
+  const workspaceId = workspace.id;
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
-  }, [load]);
+    if (workspaceId) load();
+  }, [load, workspaceId]);
 
   const move = async (idx: number, dir: -1 | 1) => {
     if (!methods) return;
@@ -191,41 +186,38 @@ function PaymentMethodsCard({ workspace, readOnly }: { workspace: Workspace; rea
     [next[idx], next[j]] = [next[j], next[idx]];
     setMethods(next);
     setBusy(true);
-    const db = createClient();
-    // Renumber everything so ties from older rows don't make swaps no-ops.
-    const results = await Promise.all(next.map((m, i) => (m.sort_order === i ? null : db.from('payment_methods').update({ sort_order: i }).eq('id', m.id))));
+    try {
+      // Renumbers everything so ties from older rows don't make swaps no-ops.
+      await api('/api/business/payment-methods/reorder', { method: 'POST', body: { ids: next.map((m) => m.id) } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
     setBusy(false);
-    const err = results.find((r) => r?.error)?.error;
-    if (err) toast.error(err.message);
     await load();
-    await invalidateAi();
   };
 
   const toggleActive = async (m: PaymentMethod, on: boolean) => {
     setMethods((prev) => prev?.map((x) => (x.id === m.id ? { ...x, is_active: on } : x)) ?? prev);
-    const { error } = await createClient().from('payment_methods').update({ is_active: on }).eq('id', m.id);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await api(`/api/business/payment-methods/${m.id}`, { method: 'PATCH', body: { is_active: on } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
       await load();
-      return;
     }
-    await invalidateAi();
   };
 
   const remove = async () => {
     if (!deleting) return;
-    const db = createClient();
-    const { error } = await db.from('payment_methods').delete().eq('id', deleting.id);
-    if (error) {
-      toast.error(error.message);
+    try {
+      // The server also deletes the QR image file.
+      await api(`/api/business/payment-methods/${deleting.id}`, { method: 'DELETE' });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
       return;
     }
-    const path = deleting.qr_image_url ? storagePathFromUrl(deleting.qr_image_url) : null;
-    if (path) await db.storage.from(CATALOG_BUCKET).remove([path]);
     setDeleting(null);
     toast.success(t('orders.methods.deleted'));
     await load();
-    await invalidateAi();
   };
 
   return (
@@ -291,14 +283,11 @@ function PaymentMethodsCard({ workspace, readOnly }: { workspace: Workspace; rea
       </CardContent>
       {editing && (
         <MethodEditor
-          workspaceId={workspace.id}
           method={editing === 'new' ? null : editing}
-          nextSort={methods?.length ?? 0}
           onClose={() => setEditing(null)}
           onSaved={async () => {
             setEditing(null);
             await load();
-            await invalidateAi();
           }}
         />
       )}
@@ -316,15 +305,11 @@ function PaymentMethodsCard({ workspace, readOnly }: { workspace: Workspace; rea
 }
 
 function MethodEditor({
-  workspaceId,
   method,
-  nextSort,
   onClose,
   onSaved,
 }: {
-  workspaceId: string;
   method: PaymentMethod | null;
-  nextSort: number;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -364,16 +349,14 @@ function MethodEditor({
       return;
     }
     setSaving(true);
-    const db = createClient();
-    let uploadedPath: string | null = null;
     try {
       let finalUrl = qrUrl;
       if (file) {
-        const ext = (file.file.name.split('.').pop() || file.file.type.split('/')[1] || 'png').toLowerCase().replace(/[^a-z0-9]/g, '');
-        uploadedPath = `${workspaceId}/payments/${crypto.randomUUID()}.${ext}`;
-        const { error } = await db.storage.from(CATALOG_BUCKET).upload(uploadedPath, file.file, { contentType: file.file.type, upsert: false });
-        if (error) throw new Error(t('orders.methods.uploadFailed', { reason: error.message }));
-        finalUrl = db.storage.from(CATALOG_BUCKET).getPublicUrl(uploadedPath).data.publicUrl;
+        try {
+          finalUrl = (await uploadFile('catalog', file.file, { folder: 'payments' })).url;
+        } catch (err) {
+          throw new Error(t('orders.methods.uploadFailed', { reason: err instanceof Error ? err.message : String(err) }));
+        }
       }
       const row = {
         name: name.trim().slice(0, 60),
@@ -383,18 +366,12 @@ function MethodEditor({
         requires_proof: requiresProof,
         is_active: active,
       };
-      const { error } = method
-        ? await db.from('payment_methods').update(row).eq('id', method.id)
-        : await db.from('payment_methods').insert({ ...row, workspace_id: workspaceId, sort_order: nextSort });
-      if (error) throw new Error(error.message);
-      // Old image replaced or removed: drop its object.
-      const oldPath = method?.qr_image_url ? storagePathFromUrl(method.qr_image_url) : null;
-      if (oldPath && method?.qr_image_url !== finalUrl) await db.storage.from(CATALOG_BUCKET).remove([oldPath]);
-      uploadedPath = null;
+      // The server deletes a replaced/removed QR file (or the new one if saving fails).
+      if (method) await api(`/api/business/payment-methods/${method.id}`, { method: 'PATCH', body: row });
+      else await api('/api/business/payment-methods', { method: 'POST', body: row });
       toast.success(t('business.common.saved'));
       onSaved();
     } catch (err) {
-      if (uploadedPath) await db.storage.from(CATALOG_BUCKET).remove([uploadedPath]);
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);

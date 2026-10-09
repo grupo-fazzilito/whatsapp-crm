@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { FileText, Film, ImageIcon, Loader2, Music, Paperclip, Pencil, Plus, Search, Trash2, X, Zap } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { uploadFile } from '@/lib/storage/client';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { useAuth } from '@/hooks/use-auth';
 import { useI18n } from '@/i18n/client';
@@ -44,6 +44,15 @@ const EXAMPLES = [1, 2, 3] as const;
 function safeFileName(name: string): string {
   const cleaned = name.normalize('NFKD').replace(/[^\w.\-]+/g, '_').replace(/_+/g, '_');
   return cleaned.slice(-80) || 'file';
+}
+
+/** Deletes uploaded quick-reply files no reply references any more (best effort). */
+async function removeQuickReplyFiles(paths: string[]): Promise<void> {
+  await fetch('/api/quick-replies/attachments', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paths }),
+  }).catch(() => null);
 }
 
 export function QuickRepliesManager() {
@@ -109,7 +118,7 @@ export function QuickRepliesManager() {
     const keepPaths = new Set(keep.map((a) => a.path));
     const orphan = sessionUploads.current.filter((p) => !keepPaths.has(p));
     sessionUploads.current = [];
-    if (orphan.length) await createClient().storage.from('attachments').remove(orphan);
+    if (orphan.length) await removeQuickReplyFiles(orphan);
   };
 
   const closeDialog = () => {
@@ -151,11 +160,10 @@ export function QuickRepliesManager() {
           continue;
         }
         const path = `${workspace.id}/quick-replies/${crypto.randomUUID()}-${safeFileName(file.name)}`;
-        const { error } = await createClient()
-          .storage.from('attachments')
-          .upload(path, file, { contentType: file.type, upsert: false });
-        if (error) {
-          toast.error(t('inbox.composer.uploadFailed', { reason: error.message }));
+        try {
+          await uploadFile('attachments', file, { path });
+        } catch (err) {
+          toast.error(t('inbox.composer.uploadFailed', { reason: err instanceof Error ? err.message : String(err) }));
           continue;
         }
         sessionUploads.current.push(path);
@@ -197,7 +205,7 @@ export function QuickRepliesManager() {
         const before = items.find((i) => i.id === draft.id)?.attachments ?? [];
         const kept = new Set(draft.attachments.map((a) => a.path));
         const removed = before.map((a) => a.path).filter((p): p is string => !!p && !kept.has(p));
-        if (removed.length) await createClient().storage.from('attachments').remove(removed);
+        if (removed.length) await removeQuickReplyFiles(removed);
       }
       sessionUploads.current = [];
       toast.success(t('inboxpro.quickReplies.saved'));

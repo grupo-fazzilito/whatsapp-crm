@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,7 +94,6 @@ export default function SignupPage() {
   const [resendTimer, setResendTimer] = useState(0);
   const [isShaking, setIsShaking] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const supabase = createClient();
 
   // Password Validation
   const isLengthValid = password.length >= 6;
@@ -275,10 +274,7 @@ export default function SignupPage() {
       }
 
       // Automatically sign in the user
-      const { error: loginErr } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error: loginErr } = await authClient.signIn.email({ email, password });
 
       if (loginErr) {
         console.error("Auto-login failed:", loginErr);

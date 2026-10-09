@@ -82,9 +82,6 @@ export interface PaymentMethod {
   sort_order: number;
 }
 
-export const ORDER_LIST_SELECT =
-  'id, number, status, fulfillment, customer_name, customer_phone, contact_id, conversation_id, channel_id, address, address_reference, notes, currency, subtotal, delivery_fee, discount, total, payment_status, payment_method_id, payment_method_name, payment_proof_url, paid_at, source, created_at, updated_at, contact:contacts(name, phone), channel:channels(type, name), order_items(count)';
-
 export interface NextAction {
   status: OrderStatus;
   /** i18n key under orders.actions */

@@ -5,8 +5,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, RotateCcw, X } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { useWorkspace } from "@/hooks/use-workspace";
-import { createClient } from "@/lib/supabase/client";
-import type { WorkspaceSettings } from "@/lib/workspace/types";
+import { apiJson } from "@/lib/crm/api-client";
 import { DEFAULT_LOST_REASONS, MAX_LOST_REASONS, MAX_REASON_LENGTH, lostReasons, normalizeReasons } from "@/lib/crm/reasons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,21 +36,13 @@ export function LostReasonsEditor() {
   const save = async (next: string[] | null) => {
     if (!workspace) return;
     setSaving(true);
-    const db = createClient();
-    // Merge into the latest settings so other tabs' changes are kept.
-    const { data, error: readErr } = await db.from("workspaces").select("settings").eq("id", workspace.id).single();
-    if (readErr) {
-      setSaving(false);
-      toast.error(t("crm.reasons.saveFailed"));
-      return;
-    }
-    const base = (data?.settings ?? {}) as WorkspaceSettings;
-    const crm = { ...((base.crm as Record<string, unknown> | undefined) ?? {}) };
-    if (next) crm.lost_reasons = next;
-    else delete crm.lost_reasons;
-    const { error } = await db.from("workspaces").update({ settings: { ...base, crm } }).eq("id", workspace.id);
+    // The route merges into the latest settings so other tabs' changes are kept.
+    const ok = await apiJson("/api/crm/lost-reasons", { method: "PUT", body: { reasons: next } }).then(
+      () => true,
+      () => false,
+    );
     setSaving(false);
-    if (error) {
+    if (!ok) {
       toast.error(t("crm.reasons.saveFailed"));
       return;
     }

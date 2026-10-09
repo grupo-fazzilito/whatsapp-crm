@@ -9,8 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { readWorkspaceCookie } from "@/lib/supabase/client";
-import { hasRole, type WorkspaceRole } from "@/lib/workspace/constants";
+import { WORKSPACE_COOKIE, hasRole, isUuid, type WorkspaceRole } from "@/lib/workspace/constants";
 import type { Workspace } from "@/lib/workspace/types";
 import { industryLabel, resolveIndustry, type IndustryLabels, type ModuleKey } from "@/lib/industries";
 import { useI18n } from "@/i18n/client";
@@ -38,8 +37,15 @@ interface WorkspaceContextValue {
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
-// The browser Supabase client reads the workspace cookie once, when it is
-// created. Remember what it saw so we can reload if the server corrects it.
+function readWorkspaceCookie(): string | null {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${WORKSPACE_COOKIE}=([^;]*)`));
+  const value = match ? decodeURIComponent(match[1]) : null;
+  return isUuid(value) ? value : null;
+}
+
+// Browser code (data clients, the realtime stream) is scoped to the
+// workspace cookie seen at page load. Remember it so we can reload if
+// the server corrects it.
 const cookieAtBoot = typeof document !== "undefined" ? readWorkspaceCookie() : null;
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {

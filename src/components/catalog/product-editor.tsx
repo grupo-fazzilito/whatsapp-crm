@@ -5,7 +5,8 @@ import { toast } from 'sonner';
 import { Check, Loader2, Plus, X } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { ApiError, apiJson } from '@/lib/crm/api-client';
+import { uploadFile } from '@/lib/storage/client';
 import type { AttributeField } from '@/lib/industries';
 import { validateAttributes } from '@/lib/catalog/attributes';
 import { PRODUCT_CURRENCIES } from '@/lib/catalog/currency';
@@ -21,7 +22,7 @@ import { ImageManager, type ImageItem } from './image-manager';
 import { VariantsEditor, toVariantDraft, type VariantDraft } from './variants-editor';
 import { LISTING_EXTRA_KEYS, ListingExtras, validateListingExtras } from './listing-extras';
 import { isHiddenStatus, listingStatusOf } from '@/lib/real-estate/listing/status';
-import { CATALOG_BUCKET, VARIANT_INDUSTRIES, storagePathFromUrl, type Category, type Product, type Variant } from './types';
+import { CATALOG_BUCKET, VARIANT_INDUSTRIES, type Category, type Product, type Variant } from './types';
 
 interface Props {
   product: Product | null;
@@ -90,15 +91,11 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
   useEffect(() => {
     if (!product) return;
     let cancelled = false;
-    createClient()
-      .from('product_variants')
-      .select('*')
-      .eq('product_id', product.id)
-      .order('sort_order')
-      .order('name')
-      .then(({ data }) => {
+    apiJson<{ variants: Variant[] }>(`/api/catalog/products/${product.id}/variants`)
+      .catch(() => null)
+      .then((data) => {
         if (cancelled || !data) return;
-        const list = data as Variant[];
+        const list = data.variants;
         setVariants(list.map(toVariantDraft));
         setLoadedVariantIds(list.map((v) => v.id));
         if (list.length) setHasVariants(true);
@@ -127,17 +124,18 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
       setNewCat(null);
       return;
     }
-    const { data, error } = await createClient()
-      .from('product_categories')
-      .insert({ workspace_id: workspace.id, name: name.slice(0, 80), sort_order: categories.length })
-      .select('*')
-      .single();
-    if (error) {
-      toast.error(error.message);
+    let data: Category;
+    try {
+      ({ category: data } = await apiJson<{ category: Category }>('/api/catalog/categories', {
+        method: 'POST',
+        body: { name: name.slice(0, 80), sort_order: categories.length },
+      }));
+    } catch (err) {
+      toast.error(err instanceof ApiError && err.code === 'duplicate' ? t('catalog.categories.duplicate') : err instanceof Error ? err.message : String(err));
       return;
     }
-    onCategoryCreated(data as Category);
-    set('category_id', (data as Category).id);
+    onCategoryCreated(data);
+    set('category_id', data.id);
     setNewCat(null);
   };
 
@@ -172,25 +170,26 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
     }
 
     setSaving(true);
-    const db = createClient();
     const uploaded: string[] = [];
     try {
-      // 1. Upload new images.
+      // 1. Upload new images (public catalog URLs).
       const urls: string[] = [];
       for (const img of images) {
         if (img.kind === 'url') {
           urls.push(img.url);
           continue;
         }
-        const ext = (img.file.name.split('.').pop() || img.file.type.split('/')[1] || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const path = `${workspace.id}/products/${crypto.randomUUID()}.${ext}`;
-        const { error } = await db.storage.from(CATALOG_BUCKET).upload(path, img.file, { contentType: img.file.type, upsert: false });
-        if (error) throw new Error(t('catalog.images.uploadFailed', { reason: error.message }));
-        uploaded.push(path);
-        urls.push(db.storage.from(CATALOG_BUCKET).getPublicUrl(path).data.publicUrl);
+        try {
+          const res = await uploadFile(CATALOG_BUCKET, img.file, { folder: 'products' });
+          uploaded.push(res.path);
+          urls.push(res.url);
+        } catch (err) {
+          throw new Error(t('catalog.images.uploadFailed', { reason: err instanceof Error ? err.message : String(err) }));
+        }
       }
 
-      // 2. Product row.
+      // 2. Product row + variants (deleted / updated / inserted) in one request.
+      // The route also removes storage objects of images that were dropped.
       const row = {
         name: draft.name.trim().slice(0, 200),
         description: trimOrNull(draft.description),
@@ -207,49 +206,37 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
         images: urls,
         attributes: values,
       };
-      const res = product
-        ? await db.from('products').update(row).eq('id', product.id).select('id').single()
-        : await db.from('products').insert({ ...row, workspace_id: workspace.id }).select('id').single();
-      if (res.error) {
-        throw new Error(res.error.code === '23505' ? t('catalog.error.skuTaken') : res.error.message);
-      }
-      const productId = (res.data as { id: string }).id;
-
-      // 3. Variants: delete removed, update existing, insert new.
       const keepIds = variantRows.filter((v) => v.id).map((v) => v.id!);
-      const removed = loadedVariantIds.filter((id) => !keepIds.includes(id));
-      if (removed.length) {
-        const { error } = await db.from('product_variants').delete().in('id', removed);
-        if (error) throw new Error(error.message);
+      const variantPayload = variantRows.map((v, i) => ({
+        id: v.id ?? null,
+        name: v.name.trim().slice(0, 120),
+        options: Object.fromEntries(v.options.filter((o) => o.k.trim() && o.v.trim()).map((o) => [o.k.trim().toLowerCase(), o.v.trim()])),
+        sku: trimOrNull(v.sku),
+        price: numOrNull(v.price),
+        stock: draft.track_stock ? numOrNull(v.stock) : null,
+        is_active: v.is_active,
+        sort_order: i,
+      }));
+      try {
+        if (product) {
+          await apiJson(`/api/catalog/products/${product.id}`, {
+            method: 'PATCH',
+            body: { product: row, variants: variantPayload, removed_variant_ids: loadedVariantIds.filter((id) => !keepIds.includes(id)) },
+          });
+        } else {
+          await apiJson('/api/catalog/products', { method: 'POST', body: { product: row, variants: variantPayload } });
+        }
+      } catch (err) {
+        throw new Error(err instanceof ApiError && err.code === 'sku_taken' ? t('catalog.error.skuTaken') : err instanceof Error ? err.message : String(err));
       }
-      for (const [i, v] of variantRows.entries()) {
-        const options = Object.fromEntries(v.options.filter((o) => o.k.trim() && o.v.trim()).map((o) => [o.k.trim().toLowerCase(), o.v.trim()]));
-        const vrow = {
-          name: v.name.trim().slice(0, 120),
-          options,
-          sku: trimOrNull(v.sku),
-          price: numOrNull(v.price),
-          stock: draft.track_stock ? numOrNull(v.stock) : null,
-          is_active: v.is_active,
-          sort_order: i,
-        };
-        const { error } = v.id
-          ? await db.from('product_variants').update(vrow).eq('id', v.id)
-          : await db.from('product_variants').insert({ ...vrow, product_id: productId, workspace_id: workspace.id });
-        if (error) throw new Error(error.message);
-      }
-
-      // 4. Drop storage objects of images that were removed.
-      const before = (product?.images ?? []).map(storagePathFromUrl).filter((p): p is string => !!p);
-      const after = new Set(urls.map(storagePathFromUrl));
-      const orphans = before.filter((p) => !after.has(p));
-      if (orphans.length) await db.storage.from(CATALOG_BUCKET).remove(orphans);
 
       await invalidateAi();
       toast.success(t('catalog.saved'));
       onSaved();
     } catch (err) {
-      if (uploaded.length && !product) await db.storage.from(CATALOG_BUCKET).remove(uploaded);
+      if (uploaded.length && !product) {
+        await apiJson('/api/catalog/images', { method: 'DELETE', body: { paths: uploaded } }).catch(() => undefined);
+      }
       toast.error(err instanceof Error ? err.message : t('catalog.error.generic'));
     } finally {
       setSaving(false);

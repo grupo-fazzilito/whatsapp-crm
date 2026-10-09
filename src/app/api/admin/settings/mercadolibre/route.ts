@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 import { isPlatformAdmin } from '@/lib/admin/guard'
 import { getPlatformSetting } from '@/lib/platform/settings'
 import { getMlConfig, maskedMlSettings, updateMlSettings, type MlSettingsUpdate, type StoredMlSettings } from '@/lib/real-estate/portals/mercadolibre/config'
@@ -48,9 +48,7 @@ export async function PUT(req: NextRequest) {
     update.pkce = body.pkce
   }
 
-  const {
-    data: { user },
-  } = await (await createClient(null)).auth.getUser()
+  const user = await getSessionUser()
   await updateMlSettings(update, user?.id ?? null)
   return NextResponse.json(await view())
 }

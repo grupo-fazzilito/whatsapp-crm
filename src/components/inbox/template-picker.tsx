@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import type { MessageTemplate } from "@/types";
 import { useI18n } from "@/i18n/client";
 import { Button } from "@/components/ui/button";
@@ -69,26 +68,27 @@ export function TemplatePicker({
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const supabase = createClient();
-
       // Only Approved templates are sendable through Meta — anything else
-      // would 400 on the send route. Hide them rather than letting the
-      // user pick a template that will be rejected.
-      let query = supabase
-        .from("message_templates")
-        .select("*")
-        .eq("status", "Approved");
-      if (channelId) {
-        query = query.or(`channel_id.eq.${channelId},channel_id.is.null`);
+      // would 400 on the send route. The API hides them rather than
+      // letting the user pick a template that will be rejected.
+      const qs = channelId ? `?channel_id=${encodeURIComponent(channelId)}` : "";
+      let data: MessageTemplate[] | null = null;
+      let error: unknown = null;
+      try {
+        const res = await fetch(`/api/inbox/templates${qs}`, { cache: "no-store" });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+        data = (body.templates ?? []) as MessageTemplate[];
+      } catch (err) {
+        error = err;
       }
-      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (cancelled) return;
       if (error) {
         console.error("Failed to fetch templates:", error);
         setTemplates([]);
       } else {
-        setTemplates((data as MessageTemplate[]) ?? []);
+        setTemplates(data ?? []);
       }
       setLoading(false);
     })();

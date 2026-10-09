@@ -1,13 +1,9 @@
 import { isPlatformAdmin } from "@/lib/admin/guard";
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { deleteUser, listUsersForAdmin, setBanned } from "@/lib/auth/users";
 import { prisma } from "@/lib/db/prisma";
 
-// Auth users (list, ban, delete) still go through Supabase Auth until the
-// login moves (P3); every data query uses the platform Prisma client.
-function adminClient() {
-  return supabaseAdmin();
-}
+// Accounts (list, ban, delete) via src/lib/auth/users; data via the platform Prisma client.
 
 async function isAuthed(): Promise<boolean> {
   return isPlatformAdmin();
@@ -41,9 +37,13 @@ export async function GET() {
   }
   if (!workspaces || workspaces.length === 0) return NextResponse.json({ clients: [] });
 
-  const { data: authData, error: authErr } = await adminClient().auth.admin.listUsers({ perPage: 500 });
-  if (authErr) return NextResponse.json({ error: authErr.message }, { status: 500 });
-  const userMap = new Map((authData?.users ?? []).map(u => [u.id, u]));
+  let authUsers: Awaited<ReturnType<typeof listUsersForAdmin>>;
+  try {
+    authUsers = await listUsersForAdmin();
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
+  const userMap = new Map(authUsers.map(u => [u.id, u]));
 
   const wsIds = workspaces.map(w => w.id);
 
@@ -113,8 +113,7 @@ export async function GET() {
     const profile = ownerId ? profileMap.get(ownerId) : undefined;
     const wa      = waMap.get(w.id);
     const clinic  = clinicMap.get(w.id);
-    const isBanned = !!(u as any)?.banned_until &&
-      new Date((u as any).banned_until) > new Date();
+    const isBanned = !!u?.banned_until && new Date(u.banned_until) > new Date();
 
     return {
       id:              w.id,
@@ -128,7 +127,7 @@ export async function GET() {
       // Account status (owner's auth account)
       is_active:       !!u && !isBanned && !!u.email_confirmed_at,
       is_banned:       isBanned,
-      banned_until:    (u as any)?.banned_until ?? null,
+      banned_until:    u?.banned_until ?? null,
       confirmed:       !!u?.email_confirmed_at,
       provider:        u?.app_metadata?.provider ?? "email",
       // Timestamps
@@ -167,21 +166,12 @@ export async function PATCH(req: NextRequest) {
   if (!id || !action)
     return NextResponse.json({ error: "Missing id or action" }, { status: 400 });
 
-  const db = adminClient();
   const userId = await resolveOwnerUserId(id);
-
-  if (action === "deactivate") {
-    // Ban for 100 years = effectively permanent until manually lifted
-    const { error } = await db.auth.admin.updateUserById(userId, {
-      ban_duration: "876000h", // 100 years
-    });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  } else {
-    // Lift ban
-    const { error } = await db.auth.admin.updateUserById(userId, {
-      ban_duration: "none",
-    });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    // Deactivate = banned until lifted (also ends their sessions).
+    await setBanned(userId, action === "deactivate");
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });
@@ -195,9 +185,11 @@ export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-  const db = adminClient();
-  const { error } = await db.auth.admin.deleteUser(await resolveOwnerUserId(id));
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    await deleteUser(await resolveOwnerUserId(id));
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

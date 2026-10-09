@@ -6,13 +6,13 @@ import { toast } from 'sonner';
 import { Check, CheckCircle2, ListTodo, Loader2, MessageSquare, Plus, RotateCcw, Search, User } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { useRealtimeChanges } from '@/lib/realtime/client';
+import { apiJson, qs } from '@/lib/crm/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EmptyState, LoadingBlock, PageHeader, selectClass } from '@/components/business/shared';
 import { cn } from '@/lib/utils';
 import {
-  TASK_SELECT,
   TASK_VIEWS,
   groupByDue,
   inView,
@@ -89,20 +89,18 @@ export function TasksManager() {
 
   const load = useCallback(async () => {
     if (!wsId || (effectiveScope === 'mine' && !meId)) return;
-    const db = createClient();
-    let qOpen = db.from('tasks').select(TASK_SELECT).eq('workspace_id', wsId).eq('status', 'open');
-    if (effectiveScope === 'mine') qOpen = qOpen.eq('assignee_user_id', meId!);
-    const { data, error } = await qOpen.order('due_at', { ascending: true, nullsFirst: false }).limit(OPEN_LIMIT);
-    if (error) {
-      toast.error(error.message);
+    const mine = effectiveScope === 'mine';
+    try {
+      const { tasks } = await apiJson<{ tasks: TaskRow[] }>(`/api/tasks${qs({ status: 'open', mine, limit: OPEN_LIMIT })}`);
+      setOpen(tasks ?? []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
       setOpen([]);
-    } else setOpen((data ?? []) as TaskRow[]);
+    }
 
     if (view === 'done') {
-      let qDone = db.from('tasks').select(TASK_SELECT).eq('workspace_id', wsId).eq('status', 'done');
-      if (effectiveScope === 'mine') qDone = qDone.eq('assignee_user_id', meId!);
-      const res = await qDone.order('completed_at', { ascending: false }).limit(DONE_LIMIT);
-      setDone((res.data ?? []) as TaskRow[]);
+      const res = await apiJson<{ tasks: TaskRow[] }>(`/api/tasks${qs({ status: 'done', mine, limit: DONE_LIMIT })}`).catch(() => null);
+      setDone(res?.tasks ?? []);
     }
   }, [wsId, effectiveScope, meId, view]);
 
@@ -116,22 +114,18 @@ export function TasksManager() {
   useEffect(() => {
     loadRef.current = load;
   });
-  useEffect(() => {
-    if (!wsId) return;
-    const db = createClient();
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const channel = db
-      .channel(`tasks-page:${wsId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `workspace_id=eq.${wsId}` }, () => {
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => loadRef.current(), 400);
-      })
-      .subscribe();
-    return () => {
-      if (timer) clearTimeout(timer);
-      db.removeChannel(channel);
-    };
-  }, [wsId]);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+  useRealtimeChanges({
+    workspaceId: wsId,
+    tables: ['tasks'],
+    onChange: () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => loadRef.current(), 400);
+    },
+  });
 
   const matches = useCallback(
     (task: TaskRow) => {
@@ -159,16 +153,19 @@ export function TasksManager() {
   const quickAdd = async () => {
     if (!wsId || !newTitle.trim()) return;
     setAdding(true);
-    const { error } = await createClient()
-      .from('tasks')
-      .insert({
-        workspace_id: wsId,
+    const ok = await apiJson('/api/tasks', {
+      method: 'POST',
+      body: {
         title: newTitle.trim().slice(0, 300),
         due_at: presetDue(newDue)?.toISOString() ?? null,
         assignee_user_id: meId,
-      });
+      },
+    }).then(
+      () => true,
+      () => false,
+    );
     setAdding(false);
-    if (error) {
+    if (!ok) {
       toast.error(t('crm.tasks.errors.createFailed'));
       return;
     }
@@ -178,8 +175,11 @@ export function TasksManager() {
   };
 
   const reopen = async (task: TaskRow) => {
-    const { error } = await createClient().from('tasks').update({ status: 'open', result: null }).eq('id', task.id).eq('workspace_id', task.workspace_id);
-    if (error) toast.error(t('crm.tasks.errors.saveFailed'));
+    const ok = await apiJson(`/api/tasks/${task.id}`, { method: 'PATCH', body: { status: 'open', result: null } }).then(
+      () => true,
+      () => false,
+    );
+    if (!ok) toast.error(t('crm.tasks.errors.saveFailed'));
     else toast.success(t('crm.tasks.toast.reopened'));
     load();
   };

@@ -1,6 +1,6 @@
 import 'server-only'
 import { randomUUID } from 'node:crypto'
-import { supabaseAdmin } from '@/lib/supabase/admin' // Storage only (P4)
+import { downloadObject, publicUrl, removeObjects, signedUrl, uploadObject } from '@/lib/storage'
 import { tenantDb } from '@/lib/db/tenant'
 import { isPrismaError } from '@/lib/db/errors'
 import type { Prisma } from '@/generated/prisma/client'
@@ -22,8 +22,6 @@ import {
 
 export * from './captures-core'
 
-const CATALOG_BUCKET = 'catalog'
-const ATTACHMENTS_BUCKET = 'attachments'
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024
 
 export interface CreateCaptureInput {
@@ -205,17 +203,16 @@ export async function updateCapture(
 
 /** URLs the browser can show for each stored photo reference (signed for private ones). */
 export async function displayPhotoUrls(refs: string[]): Promise<string[]> {
-  const db = supabaseAdmin()
-  const attachmentPaths = refs.map((r) => classifyPhotoRef(r)).filter((p) => p?.kind === 'attachment').map((p) => (p as { path: string }).path)
-  const signed = new Map<string, string>()
-  if (attachmentPaths.length) {
-    const { data } = await db.storage.from(ATTACHMENTS_BUCKET).createSignedUrls(attachmentPaths, 3600)
-    for (const s of data ?? []) if (s.path && s.signedUrl) signed.set(s.path, s.signedUrl)
-  }
   return refs.map((r) => {
     const p = classifyPhotoRef(r)
     if (!p) return ''
-    if (p.kind === 'attachment') return signed.get(p.path) ?? ''
+    if (p.kind === 'attachment') {
+      try {
+        return signedUrl('attachments', p.path, 3600)
+      } catch {
+        return ''
+      }
+    }
     return p.url
   })
 }
@@ -247,14 +244,12 @@ function fetchableExternal(url: string): boolean {
 async function photoBytes(workspaceId: string, ref: string): Promise<Uint8Array | null> {
   const p = classifyPhotoRef(ref)
   if (!p) return null
-  const db = supabaseAdmin()
   try {
     if (p.kind === 'attachment' || p.kind === 'catalog') {
       // Only objects of this workspace.
       if (!p.path.startsWith(`${workspaceId}/`)) return null
-      const { data, error } = await db.storage.from(p.kind === 'attachment' ? ATTACHMENTS_BUCKET : CATALOG_BUCKET).download(p.path)
-      if (error || !data) return null
-      return new Uint8Array(await data.arrayBuffer())
+      const { body } = await downloadObject(p.kind === 'attachment' ? 'attachments' : 'catalog', p.path)
+      return new Uint8Array(body)
     }
     if (p.kind === 'proxy') {
       const channel = await loadChannel(workspaceId, p.channelId)
@@ -277,7 +272,6 @@ async function photoBytes(workspaceId: string, ref: string): Promise<Uint8Array 
 
 /** Copies the capture photos into the public catalog bucket. Returns public URLs + failures count. */
 async function copyPhotosToCatalog(workspaceId: string, refs: string[]): Promise<{ urls: string[]; paths: string[]; failed: number }> {
-  const db = supabaseAdmin()
   const urls: string[] = []
   const paths: string[] = []
   let failed = 0
@@ -289,13 +283,14 @@ async function copyPhotosToCatalog(workspaceId: string, refs: string[]): Promise
       continue
     }
     const path = `${workspaceId}/products/${randomUUID()}.${kind.ext}`
-    const { error } = await db.storage.from(CATALOG_BUCKET).upload(path, bytes, { contentType: kind.type, upsert: false })
-    if (error) {
+    try {
+      await uploadObject('catalog', path, bytes, kind.type)
+    } catch {
       failed++
       continue
     }
     paths.push(path)
-    urls.push(db.storage.from(CATALOG_BUCKET).getPublicUrl(path).data.publicUrl)
+    urls.push(publicUrl('catalog', path))
   }
   return { urls, paths, failed }
 }
@@ -332,7 +327,7 @@ export async function publishCapture(workspaceId: string, captureId: string, use
   const { values: attributes } = validateAttributes(fields, captureAttributes(c))
 
   const photos = await copyPhotosToCatalog(workspaceId, c.photos ?? [])
-  const storage = supabaseAdmin().storage
+  const dropCopies = () => (photos.paths.length ? removeObjects('catalog', photos.paths).catch(() => undefined) : undefined)
   let product: { id: string }
   try {
     product = await db.products.create({
@@ -350,7 +345,7 @@ export async function publishCapture(workspaceId: string, captureId: string, use
       select: { id: true },
     })
   } catch (err) {
-    if (photos.paths.length) await storage.from(CATALOG_BUCKET).remove(photos.paths)
+    await dropCopies()
     return { ok: false, error: 'failed', detail: err instanceof Error ? err.message : String(err) }
   }
 
@@ -363,7 +358,7 @@ export async function publishCapture(workspaceId: string, captureId: string, use
     .catch(() => null)
   if (!updated) {
     await db.products.deleteMany({ where: { id: product.id } }).catch(() => undefined)
-    if (photos.paths.length) await storage.from(CATALOG_BUCKET).remove(photos.paths)
+    await dropCopies()
     return { ok: false, error: 'already_published' }
   }
   invalidateBusinessContext(workspaceId)

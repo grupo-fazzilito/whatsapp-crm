@@ -1,5 +1,5 @@
 import 'server-only'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 import { prisma } from '@/lib/db/prisma'
 
 /**
@@ -8,9 +8,7 @@ import { prisma } from '@/lib/db/prisma'
  * promoted on first check, which bootstraps the first admin.
  */
 export async function isPlatformAdmin(): Promise<boolean> {
-  const {
-    data: { user },
-  } = await (await createClient(null)).auth.getUser()
+  const user = await getSessionUser()
   if (!user) return false
 
   const data = await prisma.profiles

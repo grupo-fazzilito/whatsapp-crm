@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 import { prisma } from '@/lib/db/prisma'
 import { tenantDb } from '@/lib/db/tenant'
 import { getWorkspaceContext, listMemberships, workspaceCookieOptions } from '@/lib/workspace/context'
@@ -10,9 +10,7 @@ import { INDUSTRY_IDS } from '@/lib/industries'
 export async function GET() {
   const ctx = await getWorkspaceContext()
   if (!ctx) {
-    const {
-      data: { user },
-    } = await (await createClient(null)).auth.getUser()
+    const user = await getSessionUser()
     return NextResponse.json(
       { error: user ? 'No workspace' : 'Unauthorized' },
       { status: user ? 404 : 401 },
@@ -34,9 +32,7 @@ export async function GET() {
 
 // POST — create another workspace owned by the caller and switch to it.
 export async function POST(req: NextRequest) {
-  const {
-    data: { user },
-  } = await (await createClient(null)).auth.getUser()
+  const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))

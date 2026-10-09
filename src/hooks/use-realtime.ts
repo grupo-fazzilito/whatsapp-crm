@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { useRealtimeChanges, useRealtimeConnected } from "@/lib/realtime/client";
+import type { RealtimeChange } from "@/lib/realtime/types";
 import type { Message, Conversation } from "@/types";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 
 interface RealtimeEvent<T> {
   eventType: "INSERT" | "UPDATE" | "DELETE";
@@ -12,7 +12,7 @@ interface RealtimeEvent<T> {
   old: Partial<T>;
 }
 
-/** conversation_tags row (DELETE payloads only carry the id under RLS). */
+/** conversation_tags row (DELETE payloads only carry the key columns). */
 export interface ConversationTagRow {
   id: string;
   conversation_id?: string;
@@ -20,6 +20,7 @@ export interface ConversationTagRow {
 }
 
 interface UseRealtimeOptions {
+  /** Kept for callers; the app-wide stream (/api/realtime) needs no channel name. */
   channelName: string;
   onMessageEvent?: (event: RealtimeEvent<Message>) => void;
   onConversationEvent?: (event: RealtimeEvent<Conversation>) => void;
@@ -28,23 +29,26 @@ interface UseRealtimeOptions {
   enabled?: boolean;
 }
 
+const TABLES = ["messages", "conversations", "conversation_tags"] as const;
+
+/**
+ * Inbox row changes of the active workspace (messages, conversations,
+ * conversation tags) over the shared realtime stream.
+ */
 export function useRealtime({
-  channelName,
   onMessageEvent,
   onConversationEvent,
   onConversationTagEvent,
   enabled = true,
 }: UseRealtimeOptions) {
-  const channelRef = useRef<RealtimeChannel | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id;
+  const [stopped, setStopped] = useState(false);
+  const streamConnected = useRealtimeConnected();
+  const active = enabled && !stopped && !!workspaceId;
 
-  // Store latest callbacks in refs to avoid re-subscribing when the
-  // parent re-renders with fresh closures. Assigned inside an effect
-  // so the mutation doesn't happen during render (React 19's refs
-  // rule) — subscribers only read `.current` inside async Realtime
-  // callbacks, which always run after the render that updates it.
+  // Latest callbacks in refs so a parent re-render with fresh closures
+  // doesn't matter (assigned in an effect: React 19 refs rule).
   const onMessageRef = useRef(onMessageEvent);
   const onConversationRef = useRef(onConversationEvent);
   const onConversationTagRef = useRef(onConversationTagEvent);
@@ -54,83 +58,32 @@ export function useRealtime({
     onConversationTagRef.current = onConversationTagEvent;
   });
 
-  useEffect(() => {
-    if (!enabled || !workspaceId) return;
-
-    const supabase = createClient();
-    // Realtime doesn't carry the x-workspace-id header, so scope each
-    // subscription to the active workspace explicitly.
-    const filter = `workspace_id=eq.${workspaceId}`;
-
-    const channel = supabase
-      .channel(`${channelName}:${workspaceId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "messages", filter },
-        (payload) => {
-          onMessageRef.current?.({
-            eventType: payload.eventType as RealtimeEvent<Message>["eventType"],
-            new: payload.new as Message,
-            old: payload.old as Partial<Message>,
-          });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "conversations", filter },
-        (payload) => {
-          onConversationRef.current?.({
-            eventType: payload.eventType as RealtimeEvent<Conversation>["eventType"],
-            new: payload.new as Conversation,
-            old: payload.old as Partial<Conversation>,
-          });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "conversation_tags", filter },
-        (payload) => {
-          onConversationTagRef.current?.({
-            eventType: "INSERT",
-            new: payload.new as ConversationTagRow,
-            old: {},
-          });
-        }
-      )
-      // DELETE events can't be filtered; under RLS they only carry the
-      // row id, which the inbox matches against the ids it holds.
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "conversation_tags" },
-        (payload) => {
+  useRealtimeChanges({
+    workspaceId,
+    tables: [...TABLES],
+    enabled: active,
+    onChange: (change: RealtimeChange) => {
+      const event = { eventType: change.eventType, new: change.new, old: change.old };
+      if (change.table === "messages") {
+        onMessageRef.current?.(event as unknown as RealtimeEvent<Message>);
+      } else if (change.table === "conversations") {
+        onConversationRef.current?.(event as unknown as RealtimeEvent<Conversation>);
+      } else if (change.table === "conversation_tags") {
+        // Only additions and removals matter to the inbox chips.
+        if (change.eventType === "INSERT") {
+          onConversationTagRef.current?.({ eventType: "INSERT", new: change.new as unknown as ConversationTagRow, old: {} });
+        } else if (change.eventType === "DELETE") {
           onConversationTagRef.current?.({
             eventType: "DELETE",
             new: {} as ConversationTagRow,
-            old: payload.old as Partial<ConversationTagRow>,
+            old: change.old as Partial<ConversationTagRow>,
           });
         }
-      )
-      .subscribe((status) => {
-        setIsConnected(status === "SUBSCRIBED");
-      });
+      }
+    },
+  });
 
-    channelRef.current = channel;
+  const unsubscribe = useCallback(() => setStopped(true), []);
 
-    return () => {
-      supabase.removeChannel(channel);
-      channelRef.current = null;
-      setIsConnected(false);
-    };
-  }, [channelName, enabled, workspaceId]);
-
-  const unsubscribe = useCallback(() => {
-    if (channelRef.current) {
-      const supabase = createClient();
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-      setIsConnected(false);
-    }
-  }, []);
-
-  return { isConnected, unsubscribe };
+  return { isConnected: active && streamConnected, unsubscribe };
 }

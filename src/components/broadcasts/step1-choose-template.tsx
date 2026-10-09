@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { MessageTemplate } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText, ArrowRight } from 'lucide-react';
@@ -19,6 +18,14 @@ interface Step1Props {
   onBack: () => void;
 }
 
+/** GET /api/broadcasts/setup with the given parts; throws with the server's message. */
+async function fetchSetup<T>(include: string): Promise<T> {
+  const res = await fetch(`/api/broadcasts/setup?include=${include}`, { cache: 'no-store' });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+  return body as T;
+}
+
 export function Step1ChooseTemplate({ selectedTemplate, onSelect, onNext, onBack }: Step1Props) {
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,14 +34,8 @@ export function Step1ChooseTemplate({ selectedTemplate, onSelect, onNext, onBack
   useEffect(() => {
     async function fetchTemplates() {
       try {
-        const supabase = createClient();
-        const { data, error: fetchError } = await supabase
-          .from('message_templates')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (fetchError) throw fetchError;
-        setTemplates(data ?? []);
+        const data = await fetchSetup<{ templates?: MessageTemplate[] }>('templates');
+        setTemplates(data.templates ?? []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load templates');
       } finally {

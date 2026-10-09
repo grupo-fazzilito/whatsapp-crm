@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { BriefcaseBusiness, Pencil, Plus, Search, Sparkles, Trash2 } from 'lucide-react';
 import { useI18n, useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { api } from '../api';
 import { formatMoney } from '@/lib/workspace/countries';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { moneyLocale, EmptyState, LoadingBlock, Notice, PageHeader, invalidateAi, selectClass, type Service } from '../shared';
+import { moneyLocale, EmptyState, LoadingBlock, Notice, PageHeader, selectClass, type Service } from '../shared';
 import { BulkImportDialog } from '../bulk-import-dialog';
 import { ServiceEditor } from './service-editor';
 
@@ -33,9 +33,9 @@ export function ServicesManager() {
 
   const load = useCallback(async () => {
     try {
-      const { data, error } = await createClient().from('services').select('*').order('category', { nullsFirst: false }).order('name');
-      if (error) toast.error(error.message);
-      setServices((data as Service[]) ?? []);
+      setServices((await api<{ services: Service[] }>('/api/business/services')).services);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -67,24 +67,23 @@ export function ServicesManager() {
 
   const toggleActive = async (s: Service, is_active: boolean) => {
     setServices((list) => list.map((x) => (x.id === s.id ? { ...x, is_active } : x)));
-    const { error } = await createClient().from('services').update({ is_active }).eq('id', s.id);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await api(`/api/business/services/${s.id}`, { method: 'PATCH', body: { is_active } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
       load();
-      return;
     }
-    invalidateAi();
   };
 
   const remove = async () => {
     if (!deleting) return;
-    const { error } = await createClient().from('services').delete().eq('id', deleting.id);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await api(`/api/business/services/${deleting.id}`, { method: 'DELETE' });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
       return;
     }
     toast.success(t('business.common.deleted'));
-    invalidateAi();
     load();
   };
 

@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { ArrowRightLeft, Bot, Eye, FlaskConical, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,6 +17,18 @@ import type { ChannelType } from '@/lib/channels/types';
 import { AgentEditor } from './agent-editor';
 import { AgentPlayground } from './agent-playground';
 import { AGENT_TONES, transferTargetsOf, type AgentChannelRef, type AiAgent } from './types';
+
+/** PATCH/DELETE an agent; returns the error message, or null when it worked. */
+async function agentRequest(url: string, init: RequestInit): Promise<string | null> {
+  try {
+    const res = await fetch(url, { ...init, headers: { 'Content-Type': 'application/json' } });
+    if (res.ok) return null;
+    const body = await res.json().catch(() => ({}));
+    return body.error ?? `HTTP ${res.status}`;
+  } catch (err) {
+    return err instanceof Error ? err.message : 'error';
+  }
+}
 
 export function AgentsManager() {
   const t = useT();
@@ -33,13 +44,11 @@ export function AgentsManager() {
 
   const load = useCallback(async () => {
     try {
-      const [ag, ch] = await Promise.all([
-        createClient().from('ai_agents').select('*').order('created_at', { ascending: true }),
-        createClient().from('channels').select('id, name, type, ai_agent_id').order('created_at', { ascending: true }),
-      ]);
-      if (ag.error) toast.error(ag.error.message);
-      setAgents((ag.data as AiAgent[]) ?? []);
-      setChannels((ch.data as AgentChannelRef[]) ?? []);
+      const res = await fetch('/api/agents', { cache: 'no-store' }).catch(() => null);
+      const body = ((await res?.json().catch(() => null)) ?? {}) as { agents?: AiAgent[]; channels?: AgentChannelRef[]; error?: string };
+      if (!res?.ok) toast.error(body.error ?? (res ? `HTTP ${res.status}` : 'Network error'));
+      setAgents(body.agents ?? []);
+      setChannels(body.channels ?? []);
     } finally {
       setLoading(false);
     }
@@ -51,18 +60,18 @@ export function AgentsManager() {
 
   const toggleEnabled = async (agent: AiAgent, enabled: boolean) => {
     setAgents((list) => list.map((a) => (a.id === agent.id ? { ...a, enabled } : a)));
-    const { error } = await createClient().from('ai_agents').update({ enabled }).eq('id', agent.id);
+    const error = await agentRequest(`/api/agents/${agent.id}`, { method: 'PATCH', body: JSON.stringify({ enabled }) });
     if (error) {
-      toast.error(error.message);
+      toast.error(error);
       load();
     }
   };
 
   const remove = async () => {
     if (!deleting) return;
-    const { error } = await createClient().from('ai_agents').delete().eq('id', deleting.id);
+    const error = await agentRequest(`/api/agents/${deleting.id}`, { method: 'DELETE' });
     if (error) {
-      toast.error(error.message);
+      toast.error(error);
       return;
     }
     toast.success(t('agents.deleted'));

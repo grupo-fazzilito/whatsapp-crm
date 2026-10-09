@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Conversation, ConversationStatus, Profile, Tag } from "@/types";
 import { Search, ChevronDown, ArrowUpDown, Tag as TagIcon, Flag, X } from "lucide-react";
@@ -38,7 +37,11 @@ import { initialsOf } from "./use-inbox-directory";
 import { PriorityIndicator, PRIORITY_STYLE } from "./priority";
 import { TagChip } from "./tag-chip";
 
-/** Select used for every conversation row the inbox holds (list + hydrate). */
+/**
+ * Shape of every conversation row the inbox holds (list + hydrate), as the
+ * old PostgREST select. GET /api/inbox/conversations[?id=] returns rows in
+ * exactly this shape; kept for callers that still reference it.
+ */
 export const CONVERSATION_LIST_SELECT =
   "*, contact:contacts(*, contact_tags(tag_id)), conversation_tags(id, tag_id)";
 
@@ -157,30 +160,25 @@ export function ConversationList({
   });
 
   useEffect(() => {
-    const supabase = createClient();
     let cancelled = false;
 
     (async () => {
-      const { data, error } = await supabase
-        .from("conversations")
-        .select(CONVERSATION_LIST_SELECT)
-        .order("last_message_at", { ascending: false });
-
-      if (cancelled) return;
-
-      if (error) {
-        // Supabase errors have non-enumerable properties — log fields explicitly
-        console.error("Failed to fetch conversations:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        });
+      let data: Conversation[] | null = null;
+      try {
+        const res = await fetch("/api/inbox/conversations", { cache: "no-store" });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+        data = (body.conversations ?? []) as Conversation[];
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Failed to fetch conversations:", error instanceof Error ? error.message : error);
         setLoading(false);
         return;
       }
 
-      onConversationsLoadedRef.current((data ?? []) as unknown as Conversation[]);
+      if (cancelled) return;
+
+      onConversationsLoadedRef.current(data);
       setLoading(false);
     })();
 

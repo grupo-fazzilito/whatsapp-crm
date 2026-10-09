@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Activity, Loader2, MessageSquare, Phone, Stethoscope } from 'lucide-react'
 import { useI18n } from '@/i18n/client'
 import { useWorkspace } from '@/hooks/use-workspace'
-import { createClient } from '@/lib/supabase/client'
+import { api } from '@/components/business/api'
 import { formatBookingDate, formatBookingTime } from '@/lib/bookings/messages'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
@@ -47,18 +47,16 @@ export function CustomerHistoryDialog({
   useEffect(() => {
     if (!contactId) return
     let cancelled = false
-    const db = createClient()
-    Promise.all([
-      modules.triage
-        ? db.from('patient_intake').select('*').eq('contact_id', contactId).order('created_at', { ascending: false })
-        : Promise.resolve({ data: [] }),
-      db.from('feedback').select('id, rating, feedback_text, created_at').eq('contact_id', contactId).order('created_at', { ascending: false }),
-    ]).then(([i, f]) => {
-      if (cancelled) return
-      setIntakes((i.data ?? []) as Intake[])
-      setFeedback((f.data ?? []) as Feedback[])
-      setLoading(false)
-    })
+    api<{ intakes: Intake[]; feedback: Feedback[] }>(
+      `/api/bookings/history?contact_id=${encodeURIComponent(contactId)}${modules.triage ? '&intakes=1' : ''}`,
+    )
+      .catch(() => ({ intakes: [] as Intake[], feedback: [] as Feedback[] }))
+      .then((d) => {
+        if (cancelled) return
+        setIntakes(d.intakes)
+        setFeedback(d.feedback)
+        setLoading(false)
+      })
     return () => {
       cancelled = true
     }

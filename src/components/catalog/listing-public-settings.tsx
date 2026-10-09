@@ -5,8 +5,7 @@ import { toast } from 'sonner';
 import { Globe } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
-import type { WorkspaceSettings } from '@/lib/workspace/types';
+import { apiJson } from '@/lib/crm/api-client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
@@ -24,23 +23,15 @@ export function ListingPublicSettings() {
 
   const save = async (value: boolean) => {
     setSaving(true);
-    const db = createClient();
-    // Merge into the latest settings so other tabs' changes are kept.
-    const { data, error: readErr } = await db.from('workspaces').select('settings').eq('id', workspace.id).single();
-    if (readErr) {
+    // The route merges into the latest settings so other tabs' changes are kept.
+    try {
+      await apiJson('/api/real-estate/listing-settings', { method: 'PATCH', body: { listing_noindex: value } });
+    } catch (err) {
       setSaving(false);
-      toast.error(readErr.message);
+      toast.error(err instanceof Error ? err.message : String(err));
       return;
     }
-    const prev = (data?.settings as WorkspaceSettings) ?? {};
-    const re = prev.real_estate && typeof prev.real_estate === 'object' ? (prev.real_estate as Record<string, unknown>) : {};
-    const settings: WorkspaceSettings = { ...prev, real_estate: { ...re, listing_noindex: value } };
-    const { error } = await db.from('workspaces').update({ settings }).eq('id', workspace.id);
     setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
     await refresh();
     toast.success(t('realestate.listing.settingsSaved'));
   };
