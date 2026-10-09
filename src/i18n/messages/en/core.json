@@ -56,7 +56,7 @@
     "agent": "Agent"
   },
   "team": {
-    "tab": "Team",
+    "tab": "Members",
     "title": "Team members",
     "description": "Invite your team to handle conversations together. Agents answer chats; admins can also configure the business.",
     "invite": "Invite",
