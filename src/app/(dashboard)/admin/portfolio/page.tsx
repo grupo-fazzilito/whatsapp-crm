@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Custom brand icons using inline SVGs to bypass Lucide version incompatibilities
 function GithubIcon({ className }: { className?: string }) {
@@ -239,40 +240,17 @@ function ShowcaseModal({ item, onSave, onClose }: ShowcaseModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/75 backdrop-blur-md"
-        onClick={onClose}
-      />
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        transition={{ type: "spring", stiffness: 350, damping: 30 }}
-        className="relative w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl p-6 text-foreground"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-border mb-6">
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Sparkles className="size-5 text-primary" />
-              {item?.id ? "Edit Showcase Item" : "Create Showcase Item"}
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Provide project details, tags, urls, and thumbnail uploads.
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold flex items-center gap-2">
+            <Sparkles className="size-5 text-primary" />
+            {item?.id ? "Edit Showcase Item" : "Create Showcase Item"}
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            Provide project details, tags, urls, and thumbnail uploads.
+          </DialogDescription>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Main Info */}
@@ -587,7 +565,7 @@ function ShowcaseModal({ item, onSave, onClose }: ShowcaseModalProps) {
           </div>
 
           {/* Submit Footer */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-8">
+          <DialogFooter className="mt-8">
             <button
               type="button"
               onClick={onClose}
@@ -611,10 +589,10 @@ function ShowcaseModal({ item, onSave, onClose }: ShowcaseModalProps) {
                 "Create Item"
               )}
             </button>
-          </div>
+          </DialogFooter>
         </form>
-      </motion.div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1090,47 +1068,33 @@ export default function AdminPortfolioPage() {
         )}
 
         {/* Delete Confirmation Dialog */}
-        {deletingId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setDeletingId(null)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 text-center"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
-                <Trash2 className="size-6 text-red-400" />
-              </div>
-              <div>
-                <h3 className="font-bold text-foreground">Delete Showcase Item?</h3>
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  This action is permanent. The showcase item metadata and link integrations will be removed.
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setDeletingId(null)}
-                  className="flex-1 py-2 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => deletingId && handleDeleteItem(deletingId)}
-                  className="flex-1 py-2 rounded-xl bg-red-500 text-white hover:bg-red-400 text-xs font-semibold transition-colors"
-                >
-                  Confirm Delete
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
+        <Dialog open={!!deletingId} onOpenChange={(o) => !o && setDeletingId(null)}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Trash2 className="size-5 text-red-400" />
+                Delete Showcase Item?
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                This action is permanent. The showcase item metadata and link integrations will be removed.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <button
+                onClick={() => setDeletingId(null)}
+                className="flex-1 py-2 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deletingId && handleDeleteItem(deletingId)}
+                className="flex-1 py-2 rounded-xl bg-red-500 text-white hover:bg-red-400 text-xs font-semibold transition-colors"
+              >
+                Confirm Delete
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </AnimatePresence>
     </div>
   );

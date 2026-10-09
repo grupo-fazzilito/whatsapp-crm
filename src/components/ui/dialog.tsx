@@ -31,12 +31,32 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-black/30 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs",
         className
       )}
       {...props}
     />
   )
+}
+
+// Every modal opens as a panel from the right (same look as Sheet), full
+// height. The panel scrolls; DialogHeader sticks to the top and
+// DialogFooter to the bottom, so the title and the actions never leave
+// the screen however long the content is.
+
+/**
+ * Classes of the old centered modals that the side panel ignores: layout
+ * (size, position, padding, scroll) and colors, so every modal looks the
+ * same. Width classes (sm:max-w-*) are kept.
+ */
+const CENTERED_LAYOUT =
+  /^(?:max-h-|min-h-|h-|overflow-|overscroll-|rounded|top-|left-|right-|bottom-|inset-|-?translate-|zoom-|p-|px-|py-|pt-|pb-|pl-|pr-|grid$|flex$|flex-col$|gap-|shadow|bg-|border|text-|ring)/
+
+function panelClasses(className: string | undefined): string {
+  return (className ?? "")
+    .split(/\s+/)
+    .filter((c) => c && !CENTERED_LAYOUT.test(c.replace(/^[a-z0-9-]+:/, "")))
+    .join(" ")
 }
 
 function DialogContent({
@@ -53,28 +73,36 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          className
+          "fixed inset-y-0 right-0 z-50 h-dvh w-full overflow-y-auto overscroll-contain border-l bg-popover text-sm text-popover-foreground shadow-2xl outline-none transition duration-200 ease-in-out data-ending-style:translate-x-10 data-ending-style:opacity-0 data-starting-style:translate-x-10 data-starting-style:opacity-0 sm:max-w-md",
+          typeof className === "string" ? panelClasses(className) : className
         )}
         {...props}
       >
-        {children}
         {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-2 right-2"
-                size="icon-sm"
+          <div className="sticky top-0 z-20 flex h-0 justify-end">
+            <DialogPrimitive.Close
+              data-slot="dialog-close"
+              render={
+                <Button
+                  variant="ghost"
+                  className="mt-3 mr-3"
+                  size="icon-sm"
+                />
+              }
+            >
+              <XIcon
               />
-            }
-          >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          </div>
         )}
+        {/* A form that holds the footer fills the panel so the footer sits at the bottom. */}
+        <div
+          data-slot="dialog-body"
+          className="flex min-h-full flex-col gap-4 p-6 [&>form:has([data-slot=dialog-footer])]:flex [&>form:has([data-slot=dialog-footer])]:flex-1 [&>form:has([data-slot=dialog-footer])]:flex-col"
+        >
+          {children}
+        </div>
       </DialogPrimitive.Popup>
     </DialogPortal>
   )
@@ -84,7 +112,10 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
+      className={cn(
+        "sticky top-0 z-10 -mx-6 -mt-6 flex flex-col gap-2 border-b bg-popover px-6 pt-6 pb-4 pr-14",
+        className
+      )}
       {...props}
     />
   )
@@ -102,7 +133,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        "sticky bottom-0 z-10 -mx-6 -mb-6 mt-auto flex flex-col-reverse gap-2 border-t bg-popover px-6 py-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}
