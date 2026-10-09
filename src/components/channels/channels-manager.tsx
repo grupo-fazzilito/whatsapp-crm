@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { Bot, Loader2, Plus, Radio } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { apiJson, type AgentOption, type ChannelDTO, type ChannelFeatures } from './channel-types';
@@ -50,11 +49,11 @@ export function ChannelsManager() {
     try {
       const [ch, ag] = await Promise.all([
         apiJson<{ channels: ChannelDTO[]; features: ChannelFeatures }>('/api/channels'),
-        createClient().from('ai_agents').select('id, name, enabled').order('created_at', { ascending: true }),
+        apiJson<{ agents: AgentOption[] }>('/api/agents').catch(() => ({ agents: [] as AgentOption[] })),
       ]);
       setChannels(ch.channels);
       setFeatures(ch.features);
-      setAgents((ag.data as AgentOption[]) ?? []);
+      setAgents((ag.agents ?? []).map((a) => ({ id: a.id, name: a.name, enabled: a.enabled })));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('common.error'));
     } finally {

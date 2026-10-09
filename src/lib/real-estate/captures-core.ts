@@ -2,6 +2,7 @@
 // the API and the UI. Table: property_captures (migration 036).
 
 import { getPreset, type Locale } from '@/lib/industries'
+import { storagePathFromUrl } from '@/lib/storage/paths'
 
 export const CAPTURE_STATUSES = ['new', 'contacted', 'evaluated', 'signed', 'rejected', 'published'] as const
 export type CaptureStatus = (typeof CAPTURE_STATUSES)[number]
@@ -200,9 +201,8 @@ export function normalizeCaptureFields(raw: Record<string, unknown> | null | und
 // Photo references
 // ------------------------------------------------------------------
 
+/** Stored form of a private attachment photo (stable; signed on display). */
 export const ATTACHMENTS_REF_PREFIX = 'sb://attachments/'
-const SIGNED_ATTACHMENT_MARKER = '/storage/v1/object/sign/attachments/'
-const PUBLIC_CATALOG_MARKER = '/storage/v1/object/public/catalog/'
 export const MAX_CAPTURE_PHOTOS = 30
 
 export type PhotoRef =
@@ -212,24 +212,19 @@ export type PhotoRef =
   | { kind: 'external'; url: string }
 
 /**
- * Stable form of a photo reference. Signed attachment URLs expire, so
- * they are stored as `sb://attachments/<path>`; WhatsApp proxy paths and
- * http(s) URLs are kept. Anything else returns null.
+ * Stable form of a photo reference. Signed attachment URLs expire (both
+ * /api/files/attachments/… and legacy Supabase ones), so they are stored
+ * as `sb://attachments/<path>`; WhatsApp proxy paths and http(s) URLs are
+ * kept. Anything else returns null.
  */
 export function normalizePhotoRef(v: unknown): string | null {
   if (typeof v !== 'string') return null
   const s = v.trim()
   if (!s || s.length > 2000) return null
   if (s.startsWith(ATTACHMENTS_REF_PREFIX)) return safePath(s.slice(ATTACHMENTS_REF_PREFIX.length)) ? s : null
-  const signed = s.indexOf(SIGNED_ATTACHMENT_MARKER)
-  if (signed >= 0) {
-    let path = s.slice(signed + SIGNED_ATTACHMENT_MARKER.length).split('?')[0]
-    try {
-      path = decodeURIComponent(path)
-    } catch {
-      /* keep raw */
-    }
-    return safePath(path) ? ATTACHMENTS_REF_PREFIX + path : null
+  if (/^https?:\/\//i.test(s) || s.startsWith('/api/files/')) {
+    const path = storagePathFromUrl(s, 'attachments')
+    if (path) return safePath(path) ? ATTACHMENTS_REF_PREFIX + path : null
   }
   if (/^\/api\/media\/[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/.test(s)) return s
   if (/^https?:\/\/[^\s]+$/i.test(s)) return s
@@ -258,8 +253,8 @@ export function classifyPhotoRef(ref: string): PhotoRef | null {
   const proxy = ref.match(/^\/api\/media\/([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)$/)
   if (proxy) return { kind: 'proxy', channelId: proxy[1], mediaId: proxy[2], url: ref }
   if (!/^https?:\/\//i.test(ref)) return null
-  const i = ref.indexOf(PUBLIC_CATALOG_MARKER)
-  if (i >= 0) return { kind: 'catalog', path: decodeURIComponent(ref.slice(i + PUBLIC_CATALOG_MARKER.length).split('?')[0]), url: ref }
+  const path = storagePathFromUrl(ref, 'catalog')
+  if (path) return { kind: 'catalog', path, url: ref }
   return { kind: 'external', url: ref }
 }
 

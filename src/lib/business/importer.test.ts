@@ -1,11 +1,15 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { pgTest } from '@/lib/test-utils/pg'
 
 vi.mock('server-only', () => ({}))
-vi.mock('@/lib/supabase/admin', () => ({ supabaseAdmin: vi.fn() }))
 const completeJson = vi.fn()
 vi.mock('@/lib/ai/llm', async (orig) => ({ ...(await orig<typeof import('@/lib/ai/llm')>()), completeJson: (...a: unknown[]) => completeJson(...a) }))
 
-import { extract, faqsPrompt, normalizeFaqs, normalizeServices, servicesPrompt, SERVICES_SCHEMA } from './importer'
+const pg = await pgTest()
+// Without a test database the pure tests still load the module: the Prisma
+// client only connects on its first query.
+process.env.DATABASE_URL ??= 'postgresql://unused@127.0.0.1:1/unused'
+const { extract, faqsPrompt, normalizeFaqs, normalizeServices, saveFaqs, saveServices, servicesPrompt, SERVICES_SCHEMA } = await import('./importer')
 import type { Workspace } from '@/lib/workspace/types'
 
 const ws = (over: Partial<Workspace> = {}) =>
@@ -62,5 +66,33 @@ describe('extract', () => {
         meter: { workspaceId: 'ws-1', purpose: 'import' },
       }),
     )
+  })
+})
+
+// Real PostgreSQL (skipped without TEST_DATABASE_URL).
+describe.skipIf(!pg)('saveServices / saveFaqs', () => {
+  let made: Awaited<ReturnType<NonNullable<typeof pg>['workspace']>>
+  beforeAll(async () => {
+    made = await pg!.workspace({ businessType: 'barbershop' })
+  })
+  afterAll(async () => {
+    if (made) await pg!.cleanup(made)
+  })
+
+  it('insert into the workspace and return how many were saved', async () => {
+    expect(await saveServices(made.workspaceId, [])).toBe(0)
+    const before = await made.db.services.count()
+    expect(
+      await saveServices(made.workspaceId, [
+        { name: 'Corte', description: '', category: 'Cabello', price: 1200, price_is_from: true, duration_minutes: 45 },
+        { name: 'Barba', description: 'Con toalla', category: '', price: 99.5, price_is_from: false, duration_minutes: 30 },
+      ]),
+    ).toBe(2)
+    expect(await made.db.services.count()).toBe(before + 2)
+    const barba = await made.db.services.findFirstOrThrow({ where: { name: 'Barba' } })
+    expect(barba).toMatchObject({ description: 'Con toalla', category: null, price: 99.5, is_active: true, workspace_id: made.workspaceId })
+
+    expect(await saveFaqs(made.workspaceId, [{ question: '¿Abren?', answer: 'Sí', keywords: '' }])).toBe(1)
+    expect(await made.db.faqs.findFirstOrThrow({ where: { question: '¿Abren?' } })).toMatchObject({ answer: 'Sí', keywords: null })
   })
 })

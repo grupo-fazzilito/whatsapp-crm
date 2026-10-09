@@ -1,7 +1,8 @@
 import type { AttributeField } from '@/lib/industries';
 import type { AttributeValue } from '@/lib/catalog/attributes';
+import { storagePathFromUrl as bucketPathFromUrl } from '@/lib/storage/paths';
 
-export const CATALOG_BUCKET = 'catalog';
+export const CATALOG_BUCKET = 'catalog' as const;
 export const PAGE_SIZE = 50;
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -51,11 +52,9 @@ export interface Variant {
 /** Industries where variants (size, color, portion...) are shown by default. */
 export const VARIANT_INDUSTRIES = ['store', 'restaurant'];
 
-/** Path inside the catalog bucket for a public object URL, or null if it is external. */
+/** Path inside the catalog bucket for an object URL (new /api/files or legacy Supabase), or null if it is external. */
 export function storagePathFromUrl(url: string): string | null {
-  const marker = `/storage/v1/object/public/${CATALOG_BUCKET}/`;
-  const i = url.indexOf(marker);
-  return i >= 0 ? decodeURIComponent(url.slice(i + marker.length).split('?')[0]) : null;
+  return bucketPathFromUrl(url, CATALOG_BUCKET);
 }
 
 /** Human text for one attribute value, using option labels and units. */
@@ -74,26 +73,4 @@ export function formatAttribute(field: AttributeField, value: AttributeValue | u
     default:
       return String(value);
   }
-}
-
-/** Escape LIKE wildcards in user input. */
-export const likeEscape = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
-
-/**
- * PostgREST `or` filter for the catalog search box: name or SKU substring
- * (ILIKE) or a prefix match on every word against products.search, which
- * is stored lowercase and without accents ("organica" finds "Orgánica").
- */
-export function productSearchFilter(text: string): string {
-  const safe = text.replace(/["\\]/g, ' ').trim();
-  const words = safe
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .split(' ')
-    .filter((w) => w.length > 1);
-  const like = `"%${likeEscape(safe)}%"`;
-  const byName = `name.ilike.${like},sku.ilike.${like}`;
-  return words.length ? `${byName},search.fts(simple).${words.map((w) => `${w}:*`).join('&')}` : byName;
 }

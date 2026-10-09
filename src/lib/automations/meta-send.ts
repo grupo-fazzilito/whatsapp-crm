@@ -1,5 +1,5 @@
 import type { OutboundContent } from '@/lib/channels'
-import { supabaseAdmin } from './admin-client'
+import { tenantDb } from '@/lib/db/tenant'
 
 // ------------------------------------------------------------
 // Automation-side sender.
@@ -56,30 +56,24 @@ async function engineSend(
   ids: { workspaceId: string; conversationId: string; contactId: string; extra?: EngineSendExtra },
   content: OutboundContent,
 ): Promise<{ whatsapp_message_id: string }> {
-  const db = supabaseAdmin()
+  const db = tenantDb(ids.workspaceId)
 
   // Scope the contact / conversation lookups by workspace_id. The engine
-  // uses the service-role client (bypassing RLS), and the public
+  // uses a server-side client (no RLS), and the public
   // /api/automations/engine endpoint accepts contact_id and
   // conversation_id from the request body — without these filters, an
   // authenticated member could fire their workspace's automations
   // against another tenant's contact. Cheap defense-in-depth.
-  const { data: contact, error: contactErr } = await db
-    .from('contacts')
-    .select('id')
-    .eq('id', ids.contactId)
-    .eq('workspace_id', ids.workspaceId)
-    .maybeSingle()
-  if (contactErr || !contact) {
+  const contact = await db.contacts
+    .findFirst({ select: { id: true }, where: { id: ids.contactId, workspace_id: ids.workspaceId } })
+    .catch(() => null)
+  if (!contact) {
     throw new Error('contact not found for this workspace')
   }
 
-  const { data: conversation } = await db
-    .from('conversations')
-    .select('id')
-    .eq('id', ids.conversationId)
-    .eq('workspace_id', ids.workspaceId)
-    .maybeSingle()
+  const conversation = await db.conversations
+    .findFirst({ select: { id: true }, where: { id: ids.conversationId, workspace_id: ids.workspaceId } })
+    .catch(() => null)
   if (!conversation) {
     throw new Error('conversation not found for this workspace')
   }

@@ -1,8 +1,9 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
 import { decrypt, encrypt } from '@/lib/whatsapp/encryption'
 import { hasRole, type WorkspaceRole } from '@/lib/workspace/constants'
-import { CONNECTION_COLUMNS, loadSecrets, stopChannel, type CalendarConnection } from './api'
+import { CONNECTION_SELECT, loadSecrets, stopChannel, type CalendarConnection } from './api'
 import { getGoogleConfig } from './config'
 import { exchangeCode, fetchUserEmail, revokeToken, GoogleApiError } from './oauth'
 import { queueUpcomingBookings, setupWatch, syncConnectionChanges, syncPendingBookings, runAfterResponse } from './sync'
@@ -17,24 +18,18 @@ export async function canManageStaffCalendar(
   staffId: string,
   user: { id: string; role: WorkspaceRole },
 ): Promise<{ ok: true; staff: { id: string; name: string; member_user_id: string | null } } | { ok: false; status: 403 | 404 }> {
-  const { data: staff } = await supabaseAdmin()
-    .from('staff')
-    .select('id, name, member_user_id')
-    .eq('id', staffId)
-    .eq('workspace_id', workspaceId)
-    .maybeSingle()
+  const staff = await tenantDb(workspaceId)
+    .staff.findFirst({ select: { id: true, name: true, member_user_id: true }, where: { id: staffId } })
+    .catch(() => null)
   if (!staff) return { ok: false, status: 404 }
   if (hasRole(user.role, 'admin') || staff.member_user_id === user.id) return { ok: true, staff }
   return { ok: false, status: 403 }
 }
 
 export async function getConnectionForStaff(workspaceId: string, staffId: string): Promise<CalendarConnection | null> {
-  const { data } = await supabaseAdmin()
-    .from('calendar_connections')
-    .select(CONNECTION_COLUMNS)
-    .eq('workspace_id', workspaceId)
-    .eq('staff_id', staffId)
-    .maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .calendar_connections.findFirst({ select: CONNECTION_SELECT, where: { staff_id: staffId } })
+    .catch(() => null)
   return (data as CalendarConnection | null) ?? null
 }
 
@@ -61,15 +56,11 @@ export async function completeOAuth(params: {
   if (!params.userId || params.userId !== st.u) return { ok: false, error: 'session', back }
   if (!params.code) return { ok: false, error: 'code', back }
 
-  const db = supabaseAdmin()
   // Re-check membership and permission now (the state is 10 minutes old at most).
-  const { data: member } = await db
-    .from('workspace_members')
-    .select('role')
-    .eq('workspace_id', st.w)
-    .eq('user_id', st.u)
-    .eq('status', 'active')
-    .maybeSingle()
+  // Platform read: the workspace comes from the signed state, not a session.
+  const member = await prisma.workspace_members
+    .findFirst({ select: { role: true }, where: { workspace_id: st.w, user_id: st.u, status: 'active' } })
+    .catch(() => null)
   if (!member) return { ok: false, error: 'forbidden', back }
   const allowed = await canManageStaffCalendar(st.w, st.s, { id: st.u, role: member.role as WorkspaceRole })
   if (!allowed.ok) return { ok: false, error: 'forbidden', back }
@@ -110,31 +101,30 @@ export async function completeOAuth(params: {
     }
   }
 
+  const db = tenantDb(st.w)
   const expiresAt = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString()
-  const { data: conn, error } = await db
-    .from('calendar_connections')
-    .upsert(
-      {
-        workspace_id: st.w,
-        staff_id: st.s,
-        connected_by: st.u,
-        provider: 'google',
-        google_email: email,
-        calendar_id: 'primary',
-        token_expires_at: expiresAt,
-        watch_channel_id: null,
-        watch_resource_id: null,
-        watch_expires_at: null,
-        status: 'active',
-        last_error: null,
-        last_synced_at: null,
-      },
-      { onConflict: 'staff_id' },
-    )
-    .select(CONNECTION_COLUMNS)
-    .single()
-  if (error || !conn) return { ok: false, error: 'db', back }
-  const { error: secErr } = await db.from('calendar_connection_secrets').upsert({
+  const row = {
+    workspace_id: st.w,
+    staff_id: st.s,
+    connected_by: st.u,
+    provider: 'google',
+    google_email: email,
+    calendar_id: 'primary',
+    token_expires_at: expiresAt,
+    watch_channel_id: null,
+    watch_resource_id: null,
+    watch_expires_at: null,
+    status: 'active',
+    last_error: null,
+    last_synced_at: null,
+  }
+  let conn
+  try {
+    conn = await db.calendar_connections.upsert({ where: { staff_id: st.s }, create: row, update: row, select: CONNECTION_SELECT })
+  } catch {
+    return { ok: false, error: 'db', back }
+  }
+  const secrets = {
     connection_id: conn.id,
     workspace_id: st.w,
     access_token: encrypt(tokens.access_token),
@@ -142,11 +132,15 @@ export async function completeOAuth(params: {
     sync_token: null,
     watch_token: null,
     updated_at: new Date().toISOString(),
-  })
-  if (secErr) return { ok: false, error: 'db', back }
+  }
+  try {
+    await db.calendar_connection_secrets.upsert({ where: { connection_id: conn.id }, create: secrets, update: secrets })
+  } catch {
+    return { ok: false, error: 'db', back }
+  }
 
   const connection = conn as CalendarConnection
-  const { data: ws } = await db.from('workspaces').select('timezone').eq('id', st.w).maybeSingle()
+  const ws = await db.workspaces.findFirst({ select: { timezone: true }, where: { id: st.w } }).catch(() => null)
   await queueUpcomingBookings(connection, ws?.timezone ?? 'UTC')
 
   runAfterResponse(async () => {

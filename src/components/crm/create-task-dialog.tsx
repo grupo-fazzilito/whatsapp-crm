@@ -5,13 +5,13 @@ import { toast } from 'sonner';
 import { ListTodo, Loader2 } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { apiJson, qs } from '@/lib/crm/api-client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { selectClass } from '@/components/business/shared';
-import { TASK_SELECT, notifyCrmChanged, presetDue, type TaskPriority, type TaskRow } from '@/lib/crm/tasks';
+import { notifyCrmChanged, presetDue, type TaskPriority, type TaskRow } from '@/lib/crm/tasks';
 import { AssigneeSelect, DueField, PrioritySelect } from '@/components/tasks/task-fields';
 import { useMembers } from './use-members';
 
@@ -80,16 +80,10 @@ export function CreateTaskDialog({
   useEffect(() => {
     if (!open || !contactId || !workspace) return;
     let cancelled = false;
-    createClient()
-      .from('deals')
-      .select('id, title')
-      .eq('workspace_id', workspace.id)
-      .eq('contact_id', contactId)
-      .eq('status', 'open')
-      .order('created_at', { ascending: false })
-      .limit(20)
-      .then(({ data }) => {
-        if (!cancelled) setDeals((data ?? []) as { id: string; title: string }[]);
+    apiJson<{ deals: { id: string; title: string }[] }>(`/api/crm/contacts/${contactId}/deals${qs({ status: 'open', limit: 20 })}`)
+      .catch(() => null)
+      .then((data) => {
+        if (!cancelled) setDeals((data?.deals ?? []).map((d) => ({ id: d.id, title: d.title })));
       });
     return () => {
       cancelled = true;
@@ -99,10 +93,9 @@ export function CreateTaskDialog({
   const submit = async () => {
     if (!workspace || !title.trim()) return;
     setSaving(true);
-    const { data, error } = await createClient()
-      .from('tasks')
-      .insert({
-        workspace_id: workspace.id,
+    const data = await apiJson<{ task: TaskRow }>('/api/tasks', {
+      method: 'POST',
+      body: {
         title: title.trim().slice(0, 300),
         description: description.trim() || null,
         due_at: dueAt,
@@ -111,16 +104,17 @@ export function CreateTaskDialog({
         contact_id: contactId || null,
         conversation_id: conversationId || null,
         deal_id: deal || null,
-      })
-      .select(TASK_SELECT)
-      .single();
+      },
+    })
+      .then((r) => r.task)
+      .catch(() => null);
     setSaving(false);
-    if (error || !data) {
+    if (!data) {
       toast.error(t('crm.tasks.errors.createFailed'));
       return;
     }
     toast.success(t('crm.tasks.toast.created'));
-    onCreated?.(data as TaskRow);
+    onCreated?.(data);
     notifyCrmChanged();
     setOpen(false);
   };

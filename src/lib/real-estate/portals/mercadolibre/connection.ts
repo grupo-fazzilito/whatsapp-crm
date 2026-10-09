@@ -1,5 +1,6 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
 import { decrypt, encrypt } from '@/lib/whatsapp/encryption'
 import type { MlConfig } from './config'
 import { MlApiError, refreshTokens, type MlTokenResponse } from './client'
@@ -26,16 +27,31 @@ export interface MlConnectionRow {
   created_at: string
 }
 
-const COLS = 'id, workspace_id, external_user_id, nickname, site_id, access_token, refresh_token, expires_at, status, last_error, auto_import, last_import_at, created_at'
+const COLS = {
+  id: true,
+  workspace_id: true,
+  external_user_id: true,
+  nickname: true,
+  site_id: true,
+  access_token: true,
+  refresh_token: true,
+  expires_at: true,
+  status: true,
+  last_error: true,
+  auto_import: true,
+  last_import_at: true,
+  created_at: true,
+} as const
+
+const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export async function getMlConnection(workspaceId: string): Promise<MlConnectionRow | null> {
-  const { data, error } = await supabaseAdmin()
-    .from('portal_connections')
-    .select(COLS)
-    .eq('workspace_id', workspaceId)
-    .eq('provider', 'mercadolibre')
-    .maybeSingle()
-  if (error) throw new Error(error.message)
+  let data
+  try {
+    data = await tenantDb(workspaceId).portal_connections.findFirst({ select: COLS, where: { provider: 'mercadolibre' } })
+  } catch (e) {
+    throw new Error(errMsg(e))
+  }
   return (data as MlConnectionRow | null) ?? null
 }
 
@@ -47,35 +63,43 @@ export async function saveMlConnection(
   me: { nickname?: string | null; site_id?: string | null },
   userId: string,
 ): Promise<void> {
-  const { error } = await supabaseAdmin()
-    .from('portal_connections')
-    .upsert(
-      {
-        workspace_id: workspaceId,
-        provider: 'mercadolibre',
-        external_user_id: String(tokens.user_id),
-        nickname: me.nickname ?? null,
-        site_id: me.site_id ?? null,
-        access_token: encrypt(tokens.access_token),
-        refresh_token: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
-        expires_at: expiry(tokens),
-        scope: tokens.scope ?? null,
-        status: 'active',
-        last_error: null,
-        connected_by: userId,
-      },
-      { onConflict: 'workspace_id,provider' },
-    )
-  if (error) throw new Error(error.message)
+  const row = {
+    workspace_id: workspaceId,
+    provider: 'mercadolibre',
+    external_user_id: String(tokens.user_id),
+    nickname: me.nickname ?? null,
+    site_id: me.site_id ?? null,
+    access_token: encrypt(tokens.access_token),
+    refresh_token: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
+    expires_at: expiry(tokens),
+    scope: tokens.scope ?? null,
+    status: 'active',
+    last_error: null,
+    connected_by: userId,
+  }
+  try {
+    await tenantDb(workspaceId).portal_connections.upsert({
+      where: { workspace_id_provider: { workspace_id: workspaceId, provider: 'mercadolibre' } },
+      create: row,
+      update: row,
+      select: { id: true },
+    })
+  } catch (e) {
+    throw new Error(errMsg(e))
+  }
 }
 
 export async function deleteMlConnection(workspaceId: string): Promise<void> {
-  const { error } = await supabaseAdmin().from('portal_connections').delete().eq('workspace_id', workspaceId).eq('provider', 'mercadolibre')
-  if (error) throw new Error(error.message)
+  try {
+    await tenantDb(workspaceId).portal_connections.deleteMany({ where: { provider: 'mercadolibre' } })
+  } catch (e) {
+    throw new Error(errMsg(e))
+  }
 }
 
 export async function markMlConnection(id: string, patch: Partial<Pick<MlConnectionRow, 'status' | 'last_error' | 'last_import_at' | 'auto_import'>>) {
-  await supabaseAdmin().from('portal_connections').update(patch).eq('id', id)
+  // By primary key only (callers pass just the connection id), as before.
+  await prisma.portal_connections.updateMany({ where: { id }, data: patch }).catch(() => undefined)
 }
 
 const SKEW_MS = 5 * 60 * 1000
@@ -104,16 +128,19 @@ export async function mlAccessToken(cfg: MlConfig, conn: MlConnectionRow, now = 
   // Our refresh succeeded, so these are the newest tokens ML issued (a
   // concurrent refresh with the same single-use token would have failed):
   // store them unconditionally.
-  const { error } = await supabaseAdmin()
-    .from('portal_connections')
-    .update({
-      access_token: encrypt(tokens.access_token),
-      refresh_token: tokens.refresh_token ? encrypt(tokens.refresh_token) : conn.refresh_token,
-      expires_at: expiry(tokens),
-      status: 'active',
-      last_error: null,
+  try {
+    await tenantDb(conn.workspace_id).portal_connections.updateMany({
+      where: { id: conn.id },
+      data: {
+        access_token: encrypt(tokens.access_token),
+        refresh_token: tokens.refresh_token ? encrypt(tokens.refresh_token) : conn.refresh_token,
+        expires_at: expiry(tokens),
+        status: 'active',
+        last_error: null,
+      },
     })
-    .eq('id', conn.id)
-  if (error) throw new Error(error.message)
+  } catch (e) {
+    throw new Error(errMsg(e))
+  }
   return tokens.access_token
 }

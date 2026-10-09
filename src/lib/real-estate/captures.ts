@@ -1,6 +1,9 @@
 import 'server-only'
 import { randomUUID } from 'node:crypto'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { downloadObject, publicUrl, removeObjects, signedUrl, uploadObject } from '@/lib/storage'
+import { tenantDb } from '@/lib/db/tenant'
+import { isPrismaError } from '@/lib/db/errors'
+import type { Prisma } from '@/generated/prisma/client'
 import { loadChannel } from '@/lib/channels/store'
 import { getMediaUrl, downloadMedia } from '@/lib/whatsapp/meta-api'
 import { productAttributesFor, validateAttributes } from '@/lib/catalog/attributes'
@@ -19,8 +22,6 @@ import {
 
 export * from './captures-core'
 
-const CATALOG_BUCKET = 'catalog'
-const ATTACHMENTS_BUCKET = 'attachments'
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024
 
 export interface CreateCaptureInput {
@@ -49,9 +50,9 @@ export type CreateCaptureResult =
  * Owner name/phone default to the contact's.
  */
 export async function createCapture(input: CreateCaptureInput): Promise<CreateCaptureResult> {
-  const db = supabaseAdmin()
   const ws = input.workspaceId
   if (!isUuid(ws)) return { ok: false, error: 'not_found' }
+  const db = tenantDb(ws)
   const source: CaptureSource = input.source === 'ai' ? 'ai' : 'manual'
   const { values, errors } = normalizeCaptureFields(input.fields ?? {})
   if (Object.keys(errors).length) return { ok: false, error: 'invalid', errors }
@@ -62,45 +63,35 @@ export async function createCapture(input: CreateCaptureInput): Promise<CreateCa
   }
   if (values.status === 'published') delete values.status
 
-  const { data: workspace } = await db.from('workspaces').select('id, currency').eq('id', ws).maybeSingle()
+  const workspace = await db.workspaces.findFirst({ select: { id: true, currency: true }, where: { id: ws } }).catch(() => null)
   if (!workspace) return { ok: false, error: 'not_found' }
 
   // Links must belong to the workspace.
   let contactId = isUuid(input.contactId ?? null) ? input.contactId! : null
   const conversationId = isUuid(input.conversationId ?? null) ? input.conversationId! : null
   if (conversationId) {
-    const { data: conv } = await db.from('conversations').select('id, contact_id').eq('workspace_id', ws).eq('id', conversationId).maybeSingle()
+    const conv = await db.conversations.findFirst({ select: { id: true, contact_id: true }, where: { id: conversationId } }).catch(() => null)
     if (!conv) return { ok: false, error: 'not_found', detail: 'conversation' }
     contactId = contactId ?? conv.contact_id ?? null
   }
   let contact: { name: string | null; phone: string | null } | null = null
   if (contactId) {
-    const { data } = await db.from('contacts').select('id, name, phone').eq('workspace_id', ws).eq('id', contactId).maybeSingle()
+    const data = await db.contacts.findFirst({ select: { id: true, name: true, phone: true }, where: { id: contactId } }).catch(() => null)
     if (!data) return { ok: false, error: 'not_found', detail: 'contact' }
     contact = { name: data.name ?? null, phone: data.phone ?? null }
   }
   if (values.assigned_user_id) {
-    const { data: m } = await db
-      .from('workspace_members')
-      .select('user_id')
-      .eq('workspace_id', ws)
-      .eq('user_id', values.assigned_user_id)
-      .eq('status', 'active')
-      .maybeSingle()
+    const m = await db.workspace_members
+      .findFirst({ select: { user_id: true }, where: { user_id: values.assigned_user_id, status: 'active' } })
+      .catch(() => null)
     if (!m) return { ok: false, error: 'invalid', errors: { assigned_user_id: 'invalid' } }
   }
 
   // Merge into the open capture of the same conversation.
   if (conversationId) {
-    const { data: open } = await db
-      .from('property_captures')
-      .select('*')
-      .eq('workspace_id', ws)
-      .eq('conversation_id', conversationId)
-      .in('status', OPEN_CAPTURE_STATUSES)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    const open = await db.property_captures
+      .findFirst({ where: { conversation_id: conversationId, status: { in: OPEN_CAPTURE_STATUSES } }, orderBy: { created_at: 'desc' } })
+      .catch(() => null)
     if (open) {
       const patch: Record<string, unknown> = {}
       for (const [k, v] of Object.entries(values)) {
@@ -111,9 +102,12 @@ export async function createCapture(input: CreateCaptureInput): Promise<CreateCa
         patch.photos = [...new Set([...(open.photos ?? []), ...values.photos])].slice(0, 30)
       }
       if (!Object.keys(patch).length) return { ok: true, capture: open as PropertyCapture, created: false }
-      const { data, error } = await db.from('property_captures').update(patch).eq('id', open.id).eq('workspace_id', ws).select('*').single()
-      if (error) return { ok: false, error: 'failed', detail: error.message }
-      return { ok: true, capture: data as PropertyCapture, created: false }
+      try {
+        const data = await db.property_captures.update({ where: { id: open.id }, data: patch as Prisma.property_capturesUpdateInput })
+        return { ok: true, capture: data as PropertyCapture, created: false }
+      } catch (err) {
+        return { ok: false, error: 'failed', detail: err instanceof Error ? err.message : String(err) }
+      }
     }
   }
 
@@ -129,9 +123,12 @@ export async function createCapture(input: CreateCaptureInput): Promise<CreateCa
     source,
     created_by: input.createdBy ?? null,
   }
-  const { data, error } = await db.from('property_captures').insert(row).select('*').single()
-  if (error) return { ok: false, error: 'failed', detail: error.message }
-  const capture = data as PropertyCapture
+  let capture: PropertyCapture
+  try {
+    capture = (await db.property_captures.create({ data: row as Prisma.property_capturesUncheckedCreateInput })) as PropertyCapture
+  } catch (err) {
+    return { ok: false, error: 'failed', detail: err instanceof Error ? err.message : String(err) }
+  }
   if (input.notify ?? source === 'ai') await notifyNewCapture(capture, input.createdBy ?? null)
   return { ok: true, capture, created: true }
 }
@@ -139,10 +136,10 @@ export async function createCapture(input: CreateCaptureInput): Promise<CreateCa
 /** In-app notification for admins/owners (and the assignee) about a new capture. Never throws. */
 async function notifyNewCapture(c: PropertyCapture, actorId: string | null): Promise<void> {
   try {
-    const db = supabaseAdmin()
-    const [{ data: members }, { data: ws }] = await Promise.all([
-      db.from('workspace_members').select('user_id, role').eq('workspace_id', c.workspace_id).eq('status', 'active'),
-      db.from('workspaces').select('locale').eq('id', c.workspace_id).maybeSingle(),
+    const db = tenantDb(c.workspace_id)
+    const [members, ws] = await Promise.all([
+      db.workspace_members.findMany({ select: { user_id: true, role: true }, where: { status: 'active' } }),
+      db.workspaces.findFirst({ select: { locale: true }, where: { id: c.workspace_id } }),
     ])
     const locale: Locale = ws?.locale === 'en' ? 'en' : 'es'
     const targets = new Set<string>()
@@ -152,8 +149,8 @@ async function notifyNewCapture(c: PropertyCapture, actorId: string | null): Pro
     if (!targets.size) return
     const title = locale === 'en' ? 'New property intake' : 'Nueva captación de propiedad'
     const body = [c.owner_name, captureTitle(c, locale)].filter(Boolean).join(' — ')
-    await db.from('notifications').insert(
-      [...targets].map((userId) => ({
+    await db.notifications.createMany({
+      data: [...targets].map((userId) => ({
         workspace_id: c.workspace_id,
         user_id: userId,
         type: 'system',
@@ -163,7 +160,7 @@ async function notifyNewCapture(c: PropertyCapture, actorId: string | null): Pro
         conversation_id: c.conversation_id,
         actor_id: actorId,
       })),
-    )
+    })
   } catch (err) {
     console.warn('[captures] notify failed:', err instanceof Error ? err.message : err)
   }
@@ -179,26 +176,25 @@ export async function updateCapture(
   const { values, errors } = normalizeCaptureFields(raw)
   if (values.status === 'published') errors.status = 'invalid'
   if (Object.keys(errors).length) return { ok: false, error: 'invalid', errors }
-  const db = supabaseAdmin()
+  const db = tenantDb(workspaceId)
   if (values.assigned_user_id) {
-    const { data: m } = await db
-      .from('workspace_members')
-      .select('user_id')
-      .eq('workspace_id', workspaceId)
-      .eq('user_id', values.assigned_user_id)
-      .eq('status', 'active')
-      .maybeSingle()
+    const m = await db.workspace_members
+      .findFirst({ select: { user_id: true }, where: { user_id: values.assigned_user_id, status: 'active' } })
+      .catch(() => null)
     if (!m) return { ok: false, error: 'invalid', errors: { assigned_user_id: 'invalid' } }
   }
   const patch = values as Record<string, unknown>
   if (!Object.keys(patch).length) {
-    const { data } = await db.from('property_captures').select('*').eq('workspace_id', workspaceId).eq('id', id).maybeSingle()
+    const data = await db.property_captures.findFirst({ where: { id } }).catch(() => null)
     return data ? { ok: true, capture: data as PropertyCapture } : { ok: false, error: 'not_found' }
   }
-  const { data, error } = await db.from('property_captures').update(patch).eq('workspace_id', workspaceId).eq('id', id).select('*').maybeSingle()
-  if (error) return { ok: false, error: 'failed' }
-  if (!data) return { ok: false, error: 'not_found' }
-  return { ok: true, capture: data as PropertyCapture }
+  try {
+    const data = await db.property_captures.update({ where: { id }, data: patch as Prisma.property_capturesUpdateInput })
+    return { ok: true, capture: data as PropertyCapture }
+  } catch (err) {
+    if (isPrismaError(err, 'P2025')) return { ok: false, error: 'not_found' }
+    return { ok: false, error: 'failed' }
+  }
 }
 
 // ------------------------------------------------------------------
@@ -207,17 +203,16 @@ export async function updateCapture(
 
 /** URLs the browser can show for each stored photo reference (signed for private ones). */
 export async function displayPhotoUrls(refs: string[]): Promise<string[]> {
-  const db = supabaseAdmin()
-  const attachmentPaths = refs.map((r) => classifyPhotoRef(r)).filter((p) => p?.kind === 'attachment').map((p) => (p as { path: string }).path)
-  const signed = new Map<string, string>()
-  if (attachmentPaths.length) {
-    const { data } = await db.storage.from(ATTACHMENTS_BUCKET).createSignedUrls(attachmentPaths, 3600)
-    for (const s of data ?? []) if (s.path && s.signedUrl) signed.set(s.path, s.signedUrl)
-  }
   return refs.map((r) => {
     const p = classifyPhotoRef(r)
     if (!p) return ''
-    if (p.kind === 'attachment') return signed.get(p.path) ?? ''
+    if (p.kind === 'attachment') {
+      try {
+        return signedUrl('attachments', p.path, 3600)
+      } catch {
+        return ''
+      }
+    }
     return p.url
   })
 }
@@ -249,14 +244,12 @@ function fetchableExternal(url: string): boolean {
 async function photoBytes(workspaceId: string, ref: string): Promise<Uint8Array | null> {
   const p = classifyPhotoRef(ref)
   if (!p) return null
-  const db = supabaseAdmin()
   try {
     if (p.kind === 'attachment' || p.kind === 'catalog') {
       // Only objects of this workspace.
       if (!p.path.startsWith(`${workspaceId}/`)) return null
-      const { data, error } = await db.storage.from(p.kind === 'attachment' ? ATTACHMENTS_BUCKET : CATALOG_BUCKET).download(p.path)
-      if (error || !data) return null
-      return new Uint8Array(await data.arrayBuffer())
+      const { body } = await downloadObject(p.kind === 'attachment' ? 'attachments' : 'catalog', p.path)
+      return new Uint8Array(body)
     }
     if (p.kind === 'proxy') {
       const channel = await loadChannel(workspaceId, p.channelId)
@@ -279,7 +272,6 @@ async function photoBytes(workspaceId: string, ref: string): Promise<Uint8Array 
 
 /** Copies the capture photos into the public catalog bucket. Returns public URLs + failures count. */
 async function copyPhotosToCatalog(workspaceId: string, refs: string[]): Promise<{ urls: string[]; paths: string[]; failed: number }> {
-  const db = supabaseAdmin()
   const urls: string[] = []
   const paths: string[] = []
   let failed = 0
@@ -291,13 +283,14 @@ async function copyPhotosToCatalog(workspaceId: string, refs: string[]): Promise
       continue
     }
     const path = `${workspaceId}/products/${randomUUID()}.${kind.ext}`
-    const { error } = await db.storage.from(CATALOG_BUCKET).upload(path, bytes, { contentType: kind.type, upsert: false })
-    if (error) {
+    try {
+      await uploadObject('catalog', path, bytes, kind.type)
+    } catch {
       failed++
       continue
     }
     paths.push(path)
-    urls.push(db.storage.from(CATALOG_BUCKET).getPublicUrl(path).data.publicUrl)
+    urls.push(publicUrl('catalog', path))
   }
   return { urls, paths, failed }
 }
@@ -315,10 +308,10 @@ export type PublishResult =
  */
 export async function publishCapture(workspaceId: string, captureId: string, userId: string | null): Promise<PublishResult> {
   if (!isUuid(captureId)) return { ok: false, error: 'not_found' }
-  const db = supabaseAdmin()
-  const [{ data: cap }, { data: ws }] = await Promise.all([
-    db.from('property_captures').select('*').eq('workspace_id', workspaceId).eq('id', captureId).maybeSingle(),
-    db.from('workspaces').select('id, industry, currency, locale, settings').eq('id', workspaceId).maybeSingle(),
+  const db = tenantDb(workspaceId)
+  const [cap, ws] = await Promise.all([
+    db.property_captures.findFirst({ where: { id: captureId } }).catch(() => null),
+    db.workspaces.findFirst({ select: { id: true, industry: true, currency: true, locale: true, settings: true }, where: { id: workspaceId } }).catch(() => null),
   ])
   if (!cap || !ws) return { ok: false, error: 'not_found' }
   const c = cap as PropertyCapture
@@ -330,42 +323,42 @@ export async function publishCapture(workspaceId: string, captureId: string, use
   const currency = price !== null && cur && cur !== ws.currency ? cur : null
   const description = c.description?.trim() || null
 
-  const fields = productAttributesFor(ws.industry, ws.settings)
+  const fields = productAttributesFor(ws.industry, ws.settings as Parameters<typeof productAttributesFor>[1])
   const { values: attributes } = validateAttributes(fields, captureAttributes(c))
 
   const photos = await copyPhotosToCatalog(workspaceId, c.photos ?? [])
-  const { data: product, error } = await db
-    .from('products')
-    .insert({
-      workspace_id: workspaceId,
-      name: captureTitle(c, locale),
-      description,
-      price,
-      currency,
-      images: photos.urls,
-      attributes,
-      is_active: true,
-      created_by: userId,
+  const dropCopies = () => (photos.paths.length ? removeObjects('catalog', photos.paths).catch(() => undefined) : undefined)
+  let product: { id: string }
+  try {
+    product = await db.products.create({
+      data: {
+        workspace_id: workspaceId,
+        name: captureTitle(c, locale),
+        description,
+        price,
+        currency,
+        images: photos.urls,
+        attributes: attributes as Prisma.InputJsonValue,
+        is_active: true,
+        created_by: userId,
+      },
+      select: { id: true },
     })
-    .select('id')
-    .single()
-  if (error || !product) {
-    if (photos.paths.length) await db.storage.from(CATALOG_BUCKET).remove(photos.paths)
-    return { ok: false, error: 'failed', detail: error?.message }
+  } catch (err) {
+    await dropCopies()
+    return { ok: false, error: 'failed', detail: err instanceof Error ? err.message : String(err) }
   }
 
   // Link only if still unpublished (concurrent publish → keep the first).
-  const { data: updated } = await db
-    .from('property_captures')
-    .update({ product_id: product.id, status: 'published', published_at: new Date().toISOString() })
-    .eq('workspace_id', workspaceId)
-    .eq('id', captureId)
-    .is('product_id', null)
-    .select('*')
-    .maybeSingle()
+  const updated = await db.property_captures
+    .update({
+      where: { id: captureId, product_id: null },
+      data: { product_id: product.id, status: 'published', published_at: new Date().toISOString() },
+    })
+    .catch(() => null)
   if (!updated) {
-    await db.from('products').delete().eq('workspace_id', workspaceId).eq('id', product.id)
-    if (photos.paths.length) await db.storage.from(CATALOG_BUCKET).remove(photos.paths)
+    await db.products.deleteMany({ where: { id: product.id } }).catch(() => undefined)
+    await dropCopies()
     return { ok: false, error: 'already_published' }
   }
   invalidateBusinessContext(workspaceId)

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { CustomField, Tag } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -77,6 +76,14 @@ const OPERATOR_OPTIONS: { value: CustomFieldOperator; label: string }[] = [
   { value: 'contains', label: 'contains' },
 ];
 
+/** GET /api/broadcasts/setup with the given parts; throws with the server's message. */
+async function fetchSetup<T>(include: string): Promise<T> {
+  const res = await fetch(`/api/broadcasts/setup?include=${include}`, { cache: 'no-store' });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+  return body as T;
+}
+
 export function Step2SelectAudience({
   audience,
   onUpdate,
@@ -96,9 +103,8 @@ export function Step2SelectAudience({
     async function fetchTags() {
       setLoadingTags(true);
       try {
-        const supabase = createClient();
-        const { data } = await supabase.from('tags').select('*').order('name');
-        setTags(data ?? []);
+        const data = await fetchSetup<{ tags?: Tag[] }>('tags').catch(() => ({ tags: [] as Tag[] }));
+        setTags(data.tags ?? []);
       } finally {
         setLoadingTags(false);
       }
@@ -112,12 +118,10 @@ export function Step2SelectAudience({
     async function fetchFields() {
       setLoadingFields(true);
       try {
-        const supabase = createClient();
-        const { data } = await supabase
-          .from('custom_fields')
-          .select('*')
-          .order('field_name');
-        setCustomFields(data ?? []);
+        const data = await fetchSetup<{ custom_fields?: CustomField[] }>('custom_fields').catch(() => ({
+          custom_fields: [] as CustomField[],
+        }));
+        setCustomFields(data.custom_fields ?? []);
       } finally {
         setLoadingFields(false);
       }
@@ -128,74 +132,33 @@ export function Step2SelectAudience({
   const fetchEstimatedCount = useCallback(async () => {
     setLoadingCount(true);
     try {
-      const supabase = createClient();
-
-      // Base query — produces the superset before exclude is applied.
-      let baseIds: Set<string> | null = null; // null means "all contacts"
-
-      if (audience.type === 'all') {
-        // Handled below — full-table count adjusted by excludes.
-      } else if (
-        audience.type === 'tags' &&
-        audience.tagIds &&
-        audience.tagIds.length > 0
-      ) {
-        const { data } = await supabase
-          .from('contact_tags')
-          .select('contact_id')
-          .in('tag_id', audience.tagIds);
-        baseIds = new Set((data ?? []).map((r) => r.contact_id));
-      } else if (
-        audience.type === 'custom_field' &&
-        audience.customField?.fieldId &&
-        audience.customField.value
-      ) {
-        const { fieldId, operator, value } = audience.customField;
-        let q = supabase
-          .from('contact_custom_values')
-          .select('contact_id')
-          .eq('custom_field_id', fieldId);
-        if (operator === 'is') q = q.eq('value', value);
-        else if (operator === 'is_not') q = q.neq('value', value);
-        else q = q.ilike('value', `%${value}%`);
-        const { data } = await q;
-        baseIds = new Set((data ?? []).map((r) => r.contact_id));
-      } else if (
-        audience.type === 'csv' &&
-        audience.csvContacts &&
-        audience.csvContacts.length > 0
-      ) {
-        setEstimatedCount(audience.csvContacts.length);
+      // CSV needs no lookup; partially-configured audiences show nothing.
+      if (audience.type === 'csv') {
+        setEstimatedCount(audience.csvContacts?.length ? audience.csvContacts.length : null);
         return;
-      } else {
-        // Partially-configured audience — wait for the user to finish.
+      }
+      if (
+        (audience.type === 'tags' && !audience.tagIds?.length) ||
+        (audience.type === 'custom_field' && !(audience.customField?.fieldId && audience.customField.value))
+      ) {
         setEstimatedCount(null);
         return;
       }
-
-      // Apply exclude tags
-      let excludeSet: Set<string> | null = null;
-      if (audience.excludeTagIds && audience.excludeTagIds.length > 0) {
-        const { data: excludeRows } = await supabase
-          .from('contact_tags')
-          .select('contact_id')
-          .in('tag_id', audience.excludeTagIds);
-        excludeSet = new Set((excludeRows ?? []).map((r) => r.contact_id));
-      }
-
-      if (baseIds) {
-        const effective = [...baseIds].filter(
-          (id) => !excludeSet?.has(id),
-        );
-        setEstimatedCount(effective.length);
-      } else {
-        // "All" — fetch the total, then subtract exclude set if any.
-        const { count } = await supabase
-          .from('contacts')
-          .select('*', { count: 'exact', head: true });
-        const total = count ?? 0;
-        setEstimatedCount(excludeSet ? Math.max(0, total - excludeSet.size) : total);
-      }
+      const res = await fetch('/api/broadcasts/audience', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          audience: {
+            type: audience.type,
+            tagIds: audience.tagIds,
+            customField: audience.customField,
+            excludeTagIds: audience.excludeTagIds,
+          },
+        }),
+      }).catch(() => null);
+      if (!res) return;
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) setEstimatedCount(typeof body.count === 'number' ? body.count : null);
     } finally {
       setLoadingCount(false);
     }

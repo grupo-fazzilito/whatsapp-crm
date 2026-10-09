@@ -4,7 +4,7 @@ import { useEffect, useId, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { apiJson, qs } from '@/lib/crm/api-client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -35,14 +35,8 @@ export function ContactPicker({ value, onChange }: { value: ContactLite | null; 
     }
     let cancelled = false;
     const timer = setTimeout(async () => {
-      const { data } = await createClient()
-        .from('contacts')
-        .select('id, name, phone')
-        .eq('workspace_id', workspace.id)
-        .or(`name.ilike.%${s}%,phone.ilike.%${s}%`)
-        .order('name')
-        .limit(8);
-      if (!cancelled) setHits((data ?? []) as ContactLite[]);
+      const data = await apiJson<{ contacts: ContactLite[] }>(`/api/crm/contacts/search${qs({ q: s, sort: 'name', limit: 8 })}`).catch(() => null);
+      if (!cancelled) setHits(data?.contacts ?? []);
     }, 250);
     return () => {
       cancelled = true;

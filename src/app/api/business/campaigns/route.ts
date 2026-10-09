@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireWorkspace } from '@/lib/workspace/context'
+import { isUuid } from '@/lib/workspace/constants'
 import { createTranslator } from '@/i18n/translate'
 import { industryLabel, resolveIndustry, type ModuleKey } from '@/lib/industries'
 import { addDays, safeTimeZone, zonedNow } from '@/lib/ai/time'
@@ -69,7 +69,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const guard = await requireWorkspace()
   if (!guard.ok) return guard.response
-  const ws = guard.ctx.workspace
+  const { workspace: ws, db } = guard.ctx
 
   const body = await request.json().catch(() => null)
   if (!body || typeof body.template_id !== 'string') {
@@ -85,30 +85,29 @@ export async function POST(request: Request) {
   // {{name}} is per recipient: unless given, leave it for the broadcast to fill.
   const rendered = template.template.replace(/\{\{(\w+)\}\}/g, (m, k: string) => values[k] ?? (k === 'name' ? m : ''))
 
-  const db = supabaseAdmin()
   const segment: string = ['recent', 'inactive'].includes(body.segment_filter) ? body.segment_filter : 'all'
   let targets: string[] = Array.isArray(body.contact_ids) ? body.contact_ids.filter((x: unknown) => typeof x === 'string') : []
 
   if (targets.length > 0) {
     // Only contacts of this workspace.
-    const { data } = await db.from('contacts').select('id').eq('workspace_id', ws.id).in('id', targets.slice(0, 1000))
-    targets = (data ?? []).map((c) => c.id)
+    // (A malformed id failed the whole PostgREST query: no targets.)
+    const wanted = targets.slice(0, 1000)
+    const data = wanted.every(isUuid) ? await db.contacts.findMany({ select: { id: true }, where: { id: { in: wanted } } }) : []
+    targets = data.map((c) => c.id)
   } else {
     const today = zonedNow(safeTimeZone(ws.timezone)).date
     const bookedSince = async (days: number) => {
-      const { data } = await db
-        .from('bookings')
-        .select('contact_id')
-        .eq('workspace_id', ws.id)
-        .gte('booking_date', addDays(today, -days))
-        .not('contact_id', 'is', null)
-      return new Set((data ?? []).map((b) => b.contact_id as string))
+      const data = await db.bookings.findMany({
+        select: { contact_id: true },
+        where: { booking_date: { gte: addDays(today, -days) } }, // contact_id is NOT NULL
+      })
+      return new Set(data.map((b) => b.contact_id as string))
     }
     if (segment === 'recent') {
       targets = [...(await bookedSince(90))]
     } else {
-      const { data: all } = await db.from('contacts').select('id').eq('workspace_id', ws.id)
-      const ids = (all ?? []).map((c) => c.id)
+      const all = await db.contacts.findMany({ select: { id: true } })
+      const ids = all.map((c) => c.id)
       if (segment === 'inactive') {
         const recent = await bookedSince(180)
         targets = ids.filter((id) => !recent.has(id))

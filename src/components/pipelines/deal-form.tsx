@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { apiJson } from "@/lib/crm/api-client";
 import type { Contact, Deal, PipelineStage, Profile } from "@/types";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,6 @@ export function DealForm({
   onSaved,
   onRequestClose,
 }: DealFormProps) {
-  const supabase = createClient();
   const { t, locale } = useI18n();
   const { workspace } = useWorkspace();
   const { members } = useMembers();
@@ -108,31 +107,28 @@ export function DealForm({
     if (!open) return;
     let cancelled = false;
     (async () => {
-      const c = await supabase.from("contacts").select("*").order("name").limit(1000);
+      const c = await apiJson<{ contacts: Contact[] }>("/api/crm/contacts").catch(() => null);
       if (cancelled) return;
-      setContacts((c.data ?? []) as Contact[]);
+      setContacts(c?.contacts ?? []);
     })();
     return () => {
       cancelled = true;
     };
-  }, [open, supabase]);
+  }, [open]);
 
   // Owners: profiles of this workspace's active members.
   useEffect(() => {
     if (!open || members.length === 0) return;
     let cancelled = false;
-    supabase
-      .from("profiles")
-      .select("*")
-      .in("user_id", members.map((m) => m.userId))
-      .order("full_name")
-      .then(({ data }) => {
-        if (!cancelled) setProfiles((data ?? []) as Profile[]);
+    apiJson<{ profiles: Profile[] }>("/api/crm/owners")
+      .catch(() => null)
+      .then((data) => {
+        if (!cancelled) setProfiles(data?.profiles ?? []);
       });
     return () => {
       cancelled = true;
     };
-  }, [open, members, supabase]);
+  }, [open, members]);
 
   // Chat to open: the deal's own conversation, else the contact's latest.
   useEffect(() => {
@@ -147,20 +143,14 @@ export function DealForm({
     }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("conversations")
-        .select("id")
-        .eq("contact_id", contactId)
-        .order("last_message_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const data = await apiJson<{ id: string | null }>(`/api/crm/contacts/${contactId}/conversation`).catch(() => null);
       if (cancelled) return;
-      setLinkedConversationId((data as { id: string } | null)?.id ?? null);
+      setLinkedConversationId(data?.id ?? null);
     })();
     return () => {
       cancelled = true;
     };
-  }, [open, contactId, deal?.conversation_id, deal?.contact_id, supabase]);
+  }, [open, contactId, deal?.conversation_id, deal?.contact_id]);
 
   async function handleSave() {
     if (!title.trim() || !contactId || !stageId) {
@@ -182,17 +172,21 @@ export function DealForm({
     };
 
     if (deal) {
-      const { error } = await supabase.from("deals").update(payload).eq("id", deal.id);
-      if (error) {
+      const ok = await apiJson(`/api/crm/deals/${deal.id}`, { method: "PATCH", body: payload }).then(
+        () => true,
+        () => false,
+      );
+      if (!ok) {
         toast.error(t("crm.deals.errors.saveFailed"));
         setSaving(false);
         return;
       }
     } else {
-      const { error } = await supabase
-        .from("deals")
-        .insert({ ...payload, conversation_id: linkedConversationId, status: "open" });
-      if (error) {
+      const ok = await apiJson("/api/crm/deals", { method: "POST", body: { ...payload, conversation_id: linkedConversationId } }).then(
+        () => true,
+        () => false,
+      );
+      if (!ok) {
         toast.error(t("crm.deals.errors.createFailed"));
         setSaving(false);
         return;
@@ -223,9 +217,12 @@ export function DealForm({
   async function handleDelete() {
     if (!deal) return;
     setDeleting(true);
-    const { error } = await supabase.from("deals").delete().eq("id", deal.id);
+    const ok = await apiJson(`/api/crm/deals/${deal.id}`, { method: "DELETE" }).then(
+      () => true,
+      () => false,
+    );
     setDeleting(false);
-    if (error) {
+    if (!ok) {
       toast.error(t("crm.deals.errors.deleteFailed"));
       return;
     }

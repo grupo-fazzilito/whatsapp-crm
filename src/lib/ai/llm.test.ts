@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
+// Pure helpers only: no database client needed.
+vi.mock('@/lib/db/prisma', () => ({ prisma: {} }))
+vi.mock('@/lib/db/tenant', () => ({ tenantDb: () => ({}) }))
 // Panel settings are read from the DB; tests pass configs explicitly.
 vi.mock('@/lib/platform/settings', async (orig) => {
   const real = await orig<typeof import('@/lib/platform/settings')>()

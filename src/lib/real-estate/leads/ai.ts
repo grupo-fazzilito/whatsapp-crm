@@ -4,7 +4,8 @@ import { getLeadProfile, saveLeadProfile } from './service'
 import type { LeadProfile } from './types'
 import type { CaptureOutput } from './prompt-section'
 import { createCapture } from '@/lib/real-estate/captures'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
+import type { Prisma } from '@/generated/prisma/client'
 
 // Glue between the AI engine and the lead module. Every function here
 // swallows its errors: lead bookkeeping must never break a reply.
@@ -91,11 +92,9 @@ export async function applyAiCapture(input: {
     }
     if (!known || input.state.capture_id !== res.capture.id) {
       input.state.capture_id = res.capture.id
-      await supabaseAdmin()
-        .from('conversations')
-        .update({ ai_state: input.state })
-        .eq('id', input.conversationId)
-        .eq('workspace_id', input.workspaceId)
+      await tenantDb(input.workspaceId)
+        .conversations.updateMany({ where: { id: input.conversationId }, data: { ai_state: input.state as Prisma.InputJsonValue } })
+        .catch(() => undefined)
     }
     if (process.env.AI_DEBUG) console.log('[leads] capture saved:', res.capture.id, res.created ? 'created' : 'updated')
     return res.capture.id

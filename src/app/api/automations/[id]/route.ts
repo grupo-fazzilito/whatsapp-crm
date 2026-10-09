@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/automations/admin-client'
 import {
   loadStepsTree,
   replaceSteps,
@@ -22,17 +21,14 @@ export async function GET(
   const { id } = await params
   const guard = await requireWorkspace()
   if (!guard.ok) return guard.response
-  const { workspace } = guard.ctx
+  const { workspace, db } = guard.ctx
 
-  const admin = supabaseAdmin()
-  const { data: automation, error } = await admin
-    .from('automations')
-    .select('*')
-    .eq('id', id)
-    .eq('workspace_id', workspace.id)
-    .maybeSingle()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  let automation
+  try {
+    automation = await db.automations.findFirst({ where: { id, workspace_id: workspace.id } })
+  } catch (error) {
+    return NextResponse.json({ error: errMessage(error) }, { status: 500 })
+  }
   if (!automation) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const steps = await loadStepsTree(id, workspace.id)
@@ -46,21 +42,19 @@ export async function PATCH(
   const { id } = await params
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
-  const { workspace } = guard.ctx
+  const { workspace, db } = guard.ctx
 
   const body = await request.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
 
-  const admin = supabaseAdmin()
-
   // Ownership check before we touch anything. Load the fields we need
   // to compute the post-patch "effective" state for validation.
-  const { data: existing } = await admin
-    .from('automations')
-    .select('id, is_active, trigger_type, trigger_config')
-    .eq('id', id)
-    .eq('workspace_id', workspace.id)
-    .maybeSingle()
+  const existing = await db.automations
+    .findFirst({
+      select: { id: true, is_active: true, trigger_type: true, trigger_config: true },
+      where: { id, workspace_id: workspace.id },
+    })
+    .catch(() => null)
   if (!existing) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
@@ -89,7 +83,9 @@ export async function PATCH(
     const mergedSteps = Array.isArray(body.steps)
       ? (body.steps as { step_type: string; step_config: Record<string, unknown> }[])
       : await loadStepsTree(id, workspace.id)
-    const { data: channels } = await admin.from('channels').select('id, type').eq('workspace_id', workspace.id)
+    const channels = await db.channels
+      .findMany({ select: { id: true, type: true }, where: { workspace_id: workspace.id } })
+      .catch(() => null)
     const { errors, warnings: w } = partitionIssues([
       ...validateTriggerForActivation(mergedTriggerType, mergedTriggerConfig),
       ...validateStepsForActivation(mergedSteps),
@@ -114,12 +110,11 @@ export async function PATCH(
   }
 
   if (Object.keys(update).length > 0) {
-    const { error: updErr } = await admin
-      .from('automations')
-      .update(update)
-      .eq('id', id)
-      .eq('workspace_id', workspace.id)
-    if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 })
+    try {
+      await db.automations.updateMany({ where: { id, workspace_id: workspace.id }, data: update })
+    } catch (updErr) {
+      return NextResponse.json({ error: errMessage(updErr) }, { status: 500 })
+    }
   }
 
   if (Array.isArray(body.steps)) {
@@ -137,13 +132,16 @@ export async function DELETE(
   const { id } = await params
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
-  const { workspace } = guard.ctx
+  const { workspace, db } = guard.ctx
 
-  const { error } = await supabaseAdmin()
-    .from('automations')
-    .delete()
-    .eq('id', id)
-    .eq('workspace_id', workspace.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  try {
+    await db.automations.deleteMany({ where: { id, workspace_id: workspace.id } })
+  } catch (error) {
+    return NextResponse.json({ error: errMessage(error) }, { status: 500 })
+  }
   return NextResponse.json({ ok: true })
+}
+
+function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }

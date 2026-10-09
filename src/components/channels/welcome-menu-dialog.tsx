@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { ArrowDown, ArrowUp, Bot, List, Loader2, Plus, Trash2, Users } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -92,11 +91,14 @@ export function WelcomeMenuDialog({ channel, agents, readOnly, onClose, onSaved 
     if (!workspace) return;
     let cancelled = false;
     (async () => {
-      const supabase = createClient();
-      const { data: rows } = await supabase.from('workspace_members').select('user_id').eq('workspace_id', workspace.id).eq('status', 'active');
-      const ids = (rows ?? []).map((r) => r.user_id as string);
-      if (!ids.length) return;
-      const { data: profiles } = await supabase.from('profiles').select('user_id, full_name, email').in('user_id', ids);
+      let profiles: { user_id: string; full_name: string | null; email: string | null }[] = [];
+      try {
+        const res = await fetch('/api/inbox/members', { cache: 'no-store' });
+        if (res.ok) profiles = ((await res.json()).members ?? []) as typeof profiles;
+      } catch {
+        // offline — the picker stays empty
+      }
+      if (!profiles.length) return;
       if (cancelled) return;
       setMembers(
         (profiles ?? []).map((p) => ({ user_id: p.user_id as string, name: (p.full_name as string) || (p.email as string) || '—' })),

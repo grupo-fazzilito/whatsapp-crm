@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-vi.mock('@/lib/supabase/admin', () => ({ supabaseAdmin: vi.fn() }))
+vi.mock('@/lib/db/tenant', () => ({ tenantDb: vi.fn() }))
 vi.mock('./ingest', () => ({ findOrCreateContact: vi.fn(), findOrCreateConversation: vi.fn() }))
 
 import { COEX_SOURCE, coexMessageRow, groupByCustomer, isPlaceholderName, mediaUrlFor } from './echo'

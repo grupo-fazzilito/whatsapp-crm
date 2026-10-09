@@ -5,7 +5,8 @@ import { toast } from 'sonner';
 import { Bell, BellOff, ChevronRight, Columns3, List, Loader2, Plus, Search, ShoppingBag, X } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { useRealtimeChanges } from '@/lib/realtime/client';
+import { apiJson, qs } from '@/lib/crm/api-client';
 import { formatMoney, moneyLocale } from '@/lib/workspace/countries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +19,6 @@ import { NewOrderDialog } from './new-order-dialog';
 import { usePendingOrders } from './use-pending-orders';
 import {
   BOARD_STATUSES,
-  ORDER_LIST_SELECT,
   ORDER_STATUSES,
   PAYMENT_FILTERS,
   PAYMENT_FILTER_STATUSES,
@@ -129,26 +129,25 @@ export function OrdersManager() {
 
   const load = useCallback(async () => {
     if (!workspaceId) return;
-    let q = createClient().from('orders').select(ORDER_LIST_SELECT).eq('workspace_id', workspaceId);
-    if (view === 'list' && status !== 'all') q = q.eq('status', status);
-    if (view === 'board') q = q.neq('status', 'cancelled');
-    if (payment !== 'all') q = q.in('payment_status', PAYMENT_FILTER_STATUSES[payment]);
-    const s = cleanSearch(debounced);
-    if (s) {
-      const num = s.replace(/^#/, '');
-      if (/^\d+$/.test(num) && num.length < 10) q = q.or(`number.eq.${num},customer_phone.ilike.%${num}%`);
-      else q = q.or(`customer_name.ilike.%${s}%,customer_phone.ilike.%${s}%`);
-    }
-    if (from) q = q.gte('created_at', new Date(`${from}T00:00:00`).toISOString());
-    if (to) q = q.lte('created_at', new Date(`${to}T23:59:59.999`).toISOString());
-    const { data, error } = await q.order('created_at', { ascending: false }).limit(LIMIT);
-    if (error) {
-      toast.error(error.message);
+    let data: { orders: OrderRow[]; truncated: boolean };
+    try {
+      data = await apiJson(
+        `/api/orders${qs({
+          status: view === 'list' && status !== 'all' ? status : '',
+          board: view === 'board',
+          payment: payment !== 'all' ? PAYMENT_FILTER_STATUSES[payment].join(',') : '',
+          q: cleanSearch(debounced),
+          from: from ? new Date(`${from}T00:00:00`).toISOString() : '',
+          to: to ? new Date(`${to}T23:59:59.999`).toISOString() : '',
+        })}`,
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
       setOrders([]);
       return;
     }
-    setOrders((data ?? []) as unknown as OrderRow[]);
-    setTruncated((data?.length ?? 0) >= LIMIT);
+    setOrders(data.orders ?? []);
+    setTruncated(!!data.truncated || (data.orders?.length ?? 0) >= LIMIT);
   }, [workspaceId, view, status, payment, debounced, from, to]);
 
   useEffect(() => {
@@ -165,38 +164,34 @@ export function OrdersManager() {
     soundRef.current = sound;
     selectedRef.current = selected;
   });
-  useEffect(() => {
-    if (!workspaceId) return;
-    const supabase = createClient();
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const channel = supabase
-      .channel(`orders-page:${workspaceId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `workspace_id=eq.${workspaceId}` }, (payload) => {
-        const row = payload.new as Partial<OrderRow> | null;
-        if (payload.eventType === 'INSERT' && row?.id && row.status === 'pending') {
-          const id = row.id;
-          toast(t('orders.toast.new', { number: row.number ?? '' }), {
-            description: row.customer_name ?? undefined,
-            action: { label: t('orders.toast.view'), onClick: () => openOrder(id) },
-          });
-          if (soundRef.current) chime();
-          setFresh((prev) => new Set(prev).add(id));
-          setTimeout(() => setFresh((prev) => {
-            const next = new Set(prev);
-            next.delete(id);
-            return next;
-          }), 8000);
-        }
-        if (row?.id && row.id === selectedRef.current) setRefreshKey((k) => k + 1);
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => loadRef.current(), 300);
-      })
-      .subscribe();
-    return () => {
-      if (timer) clearTimeout(timer);
-      supabase.removeChannel(channel);
-    };
-  }, [workspaceId, t, openOrder]);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+  useRealtimeChanges<Partial<OrderRow>>({
+    workspaceId,
+    tables: ['orders'],
+    onChange: (change) => {
+      const row = change.eventType === 'DELETE' ? (change.old as Partial<OrderRow>) : change.new;
+      if (change.eventType === 'INSERT' && row?.id && row.status === 'pending') {
+        const id = row.id;
+        toast(t('orders.toast.new', { number: row.number ?? '' }), {
+          description: row.customer_name ?? undefined,
+          action: { label: t('orders.toast.view'), onClick: () => openOrder(id) },
+        });
+        if (soundRef.current) chime();
+        setFresh((prev) => new Set(prev).add(id));
+        setTimeout(() => setFresh((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        }), 8000);
+      }
+      if (row?.id && row.id === selectedRef.current) setRefreshKey((k) => k + 1);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => loadRef.current(), 300);
+    },
+  });
 
   const money = useCallback(
     (o: OrderRow) => formatMoney(Number(o.total), o.currency, moneyLocale({ locale, country: workspace?.country })),

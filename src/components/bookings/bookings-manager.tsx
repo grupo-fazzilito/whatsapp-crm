@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
+import { api } from '@/components/business/api'
 import { toast } from 'sonner'
 import { BookingCalendar } from './booking-calendar'
 import { BookingDetailsDialog } from './booking-details-dialog'
@@ -109,9 +109,10 @@ export function BookingsManager() {
 
   const remove = async () => {
     if (!deleting) return
-    const { error } = await createClient().from('bookings').delete().eq('id', deleting.id)
-    if (error) {
-      toast.error(error.message)
+    try {
+      await api(`/api/bookings/${deleting.id}`, { method: 'DELETE' })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
       return
     }
     toast.success(t('bookings.toast.deleted'))

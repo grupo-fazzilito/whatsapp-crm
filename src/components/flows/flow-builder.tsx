@@ -76,7 +76,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/i18n/client";
 import {
   validateFlowForActivation,
@@ -470,12 +469,11 @@ export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
   const [agents, setAgents] = useState<FlowAgent[] | null>(null);
   useEffect(() => {
     let cancelled = false;
-    void createClient()
-      .from("ai_agents")
-      .select("id, name, enabled")
-      .order("created_at", { ascending: true })
-      .then(({ data }) => {
-        if (!cancelled) setAgents((data as FlowAgent[] | null) ?? []);
+    void fetch("/api/agents", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : {}))
+      .catch(() => ({}))
+      .then((body: { agents?: FlowAgent[] }) => {
+        if (!cancelled) setAgents((body.agents ?? []).map((a) => ({ id: a.id, name: a.name, enabled: a.enabled })));
       });
     return () => {
       cancelled = true;

@@ -1,14 +1,15 @@
 import 'server-only'
 import crypto from 'crypto'
 import { after } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
 import { safeTimeZone, zonedNow } from '@/lib/ai/time'
 import { industryLabel } from '@/lib/industries'
 import { sendMessage } from '@/lib/messaging/send'
 import { sendToContact } from '@/lib/messaging/conversations'
 import type { WorkspaceSettings } from '@/lib/workspace/types'
 import {
-  CONNECTION_COLUMNS,
+  CONNECTION_SELECT,
   deleteEvent,
   insertEvent,
   listEvents,
@@ -71,33 +72,45 @@ interface BookingForSync {
   } | null
 }
 
-const BOOKING_SELECT = `
-  id, workspace_id, staff_id, contact_id, conversation_id, status, booking_date, booking_time, duration_minutes,
-  customer_name, notes, google_event_id, google_calendar_connection_id, google_sync_state, google_sync_version, google_sync_attempts,
-  contact:contacts(name, phone),
-  product:products(name, attributes),
-  service:services(name),
-  workspace:workspaces(id, timezone, locale, industry, settings, address, city)
-`
+const BOOKING_SELECT = {
+  id: true,
+  workspace_id: true,
+  staff_id: true,
+  contact_id: true,
+  conversation_id: true,
+  status: true,
+  booking_date: true,
+  booking_time: true,
+  duration_minutes: true,
+  customer_name: true,
+  notes: true,
+  google_event_id: true,
+  google_calendar_connection_id: true,
+  google_sync_state: true,
+  google_sync_version: true,
+  google_sync_attempts: true,
+  contacts: { select: { name: true, phone: true } },
+  products: { select: { name: true, attributes: true } },
+  services: { select: { name: true } },
+  workspaces: { select: { id: true, timezone: true, locale: true, industry: true, settings: true, address: true, city: true } },
+} as const
 
 function errText(err: unknown): string {
   return (err instanceof Error ? err.message : String(err)).slice(0, 500)
 }
 
 async function connectionById(workspaceId: string, id: string): Promise<CalendarConnection | null> {
-  const { data } = await supabaseAdmin().from('calendar_connections').select(CONNECTION_COLUMNS).eq('id', id).eq('workspace_id', workspaceId).maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .calendar_connections.findFirst({ select: CONNECTION_SELECT, where: { id } })
+    .catch(() => null)
   return (data as CalendarConnection | null) ?? null
 }
 
 async function connectionForStaff(workspaceId: string, staffId: string | null): Promise<CalendarConnection | null> {
   if (!staffId) return null
-  const { data } = await supabaseAdmin()
-    .from('calendar_connections')
-    .select(CONNECTION_COLUMNS)
-    .eq('workspace_id', workspaceId)
-    .eq('staff_id', staffId)
-    .neq('status', 'revoked')
-    .maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .calendar_connections.findFirst({ select: CONNECTION_SELECT, where: { staff_id: staffId, status: { not: 'revoked' } } })
+    .catch(() => null)
   return (data as CalendarConnection | null) ?? null
 }
 
@@ -170,12 +183,22 @@ async function upsertEvent(conn: CalendarConnection, b: BookingForSync): Promise
 
 /** Pushes one booking to Google. Returns the resulting state. */
 export async function syncBooking(bookingId: string, workspaceId?: string): Promise<'synced' | 'skipped' | 'error'> {
-  const db = supabaseAdmin()
-  let q = db.from('bookings').select(BOOKING_SELECT).eq('id', bookingId)
-  if (workspaceId) q = q.eq('workspace_id', workspaceId)
-  const { data } = await q.maybeSingle()
-  const b = data as unknown as BookingForSync | null
+  // Platform read (the workspace may be unknown); writes go through the tenant client.
+  const row = await prisma.bookings
+    .findFirst({ select: BOOKING_SELECT, where: { id: bookingId, ...(workspaceId ? { workspace_id: workspaceId } : {}) } })
+    .catch(() => null)
+  const b: BookingForSync | null = row
+    ? (({ contacts, products, services, workspaces, ...rest }) => ({
+        ...rest,
+        status: rest.status as string,
+        contact: contacts,
+        product: products as BookingForSync['product'],
+        service: services,
+        workspace: workspaces as BookingForSync['workspace'],
+      }))(row)
+    : null
   if (!b || !b.workspace) return 'skipped'
+  const db = tenantDb(b.workspace_id)
   if (b.google_sync_state !== 'pending' && b.google_sync_state !== 'error') return 'skipped'
   const version = b.google_sync_version
 
@@ -198,40 +221,44 @@ export async function syncBooking(bookingId: string, workspaceId?: string): Prom
     }
 
     const now = new Date().toISOString()
-    await db
-      .from('bookings')
-      .update({ google_event_id: eventId, google_calendar_connection_id: connId, google_synced_at: now })
-      .eq('id', b.id)
-      .eq('workspace_id', b.workspace_id)
-    await db
-      .from('bookings')
-      .update({ google_sync_state: eventId ? 'synced' : null, google_sync_error: null, google_sync_attempts: 0, google_synced_at: new Date(Date.now() + 1).toISOString() })
-      .eq('id', b.id)
-      .eq('workspace_id', b.workspace_id)
-      .eq('google_sync_version', version)
+    await db.bookings
+      .updateMany({ where: { id: b.id }, data: { google_event_id: eventId, google_calendar_connection_id: connId, google_synced_at: now } })
+      .catch(() => undefined)
+    await db.bookings
+      .updateMany({
+        where: { id: b.id, google_sync_version: version },
+        data: { google_sync_state: eventId ? 'synced' : null, google_sync_error: null, google_sync_attempts: 0, google_synced_at: new Date(Date.now() + 1).toISOString() },
+      })
+      .catch(() => undefined)
     return 'synced'
   } catch (err) {
     console.warn(`[google] sync of booking ${b.id} failed:`, errText(err))
-    await db
-      .from('bookings')
-      .update({
-        google_sync_state: 'error',
-        google_sync_error: errText(err),
-        google_sync_attempts: b.google_sync_attempts + 1,
-        google_synced_at: new Date().toISOString(),
+    await db.bookings
+      .updateMany({
+        where: { id: b.id, google_sync_version: version },
+        data: {
+          google_sync_state: 'error',
+          google_sync_error: errText(err),
+          google_sync_attempts: b.google_sync_attempts + 1,
+          google_synced_at: new Date().toISOString(),
+        },
       })
-      .eq('id', b.id)
-      .eq('workspace_id', b.workspace_id)
-      .eq('google_sync_version', version)
+      .catch(() => undefined)
     return 'error'
   }
 }
 
 /** Pending bookings of a workspace (or all), oldest first. */
 export async function syncPendingBookings(workspaceId?: string, limit = 25): Promise<{ synced: number; failed: number }> {
-  let q = supabaseAdmin().from('bookings').select('id, workspace_id').eq('google_sync_state', 'pending').order('updated_at').limit(limit)
-  if (workspaceId) q = q.eq('workspace_id', workspaceId)
-  const { data } = await q
+  // Platform query: one workspace or all of them (cron).
+  const data = await prisma.bookings
+    .findMany({
+      select: { id: true, workspace_id: true },
+      where: { google_sync_state: 'pending', ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+      orderBy: { updated_at: 'asc' },
+      take: limit,
+    })
+    .catch(() => null)
   let synced = 0
   let failed = 0
   for (const row of data ?? []) {
@@ -261,26 +288,29 @@ export function scheduleBookingSync(bookingId: string, workspaceId: string) {
 // Deleted bookings
 // ------------------------------------------------------------
 export async function processEventDeletions(limit = 25, workspaceId?: string): Promise<{ deleted: number; failed: number }> {
-  const db = supabaseAdmin()
-  let q = db
-    .from('calendar_event_deletions')
-    .select('id, workspace_id, connection_id, google_event_id, attempts')
-    .lt('attempts', MAX_ATTEMPTS)
-    .order('created_at')
-    .limit(limit)
-  if (workspaceId) q = q.eq('workspace_id', workspaceId)
-  const { data } = await q
+  // Platform query: one workspace or all of them (cron).
+  const data = await prisma.calendar_event_deletions
+    .findMany({
+      select: { id: true, workspace_id: true, connection_id: true, google_event_id: true, attempts: true },
+      where: { attempts: { lt: MAX_ATTEMPTS }, ...(workspaceId ? { workspace_id: workspaceId } : {}) },
+      orderBy: { created_at: 'asc' },
+      take: limit,
+    })
+    .catch(() => null)
   let deleted = 0
   let failed = 0
   for (const row of data ?? []) {
     const conn = await connectionById(row.workspace_id, row.connection_id)
+    const db = tenantDb(row.workspace_id)
     try {
       if (conn && conn.status !== 'revoked') await deleteEvent(conn, row.google_event_id)
-      await db.from('calendar_event_deletions').delete().eq('id', row.id)
+      await db.calendar_event_deletions.deleteMany({ where: { id: row.id } }).catch(() => undefined)
       if (conn) invalidateStaffBusy(conn.id)
       deleted++
     } catch (err) {
-      await db.from('calendar_event_deletions').update({ attempts: row.attempts + 1, last_error: errText(err) }).eq('id', row.id)
+      await db.calendar_event_deletions
+        .updateMany({ where: { id: row.id }, data: { attempts: row.attempts + 1, last_error: errText(err) } })
+        .catch(() => undefined)
       failed++
     }
   }
@@ -325,19 +355,32 @@ export interface InboundResult {
 export async function applyInboundEvents(conn: CalendarConnection, events: GoogleEvent[]): Promise<InboundResult> {
   const result: InboundResult = { moved: 0, cancelled: 0 }
   if (!events.length) return result
-  const db = supabaseAdmin()
+  const db = tenantDb(conn.workspace_id)
   const ids = [...new Set(events.map((e) => e.id))]
   // Only bookings whose event we created in THIS calendar: a copied
   // booking_id in someone else's event can't touch a booking.
-  const { data: rows } = await db
-    .from('bookings')
-    .select('id, workspace_id, contact_id, conversation_id, customer_name, status, booking_date, booking_time, duration_minutes, google_event_id')
-    .eq('workspace_id', conn.workspace_id)
-    .eq('google_calendar_connection_id', conn.id)
-    .in('google_event_id', ids)
+  const rows = await db.bookings
+    .findMany({
+      select: {
+        id: true,
+        workspace_id: true,
+        contact_id: true,
+        conversation_id: true,
+        customer_name: true,
+        status: true,
+        booking_date: true,
+        booking_time: true,
+        duration_minutes: true,
+        google_event_id: true,
+      },
+      where: { google_calendar_connection_id: conn.id, google_event_id: { in: ids } },
+    })
+    .catch(() => null)
   if (!rows?.length) return result
 
-  const { data: ws } = await db.from('workspaces').select('id, timezone, locale, industry, settings').eq('id', conn.workspace_id).maybeSingle()
+  const ws = await db.workspaces
+    .findFirst({ select: { id: true, timezone: true, locale: true, industry: true, settings: true }, where: { id: conn.workspace_id } })
+    .catch(() => null)
   if (!ws) return result
   const timeZone = safeTimeZone(ws.timezone)
   const locale: 'es' | 'en' = ws.locale === 'en' ? 'en' : 'es'
@@ -352,37 +395,33 @@ export async function applyInboundEvents(conn: CalendarConnection, events: Googl
     const change = mapInboundEvent(ev, b, timeZone)
     const now = new Date().toISOString()
     if (change.kind === 'moved') {
-      const { data: updated } = await db
-        .from('bookings')
-        .update({
-          booking_date: change.date,
-          booking_time: change.time,
-          duration_minutes: change.durationMinutes,
-          google_sync_state: 'synced',
-          google_sync_error: null,
-          google_synced_at: now,
+      const updated = await db.bookings
+        .updateMany({
+          where: { id: b.id, booking_date: b.booking_date, booking_time: b.booking_time, status: { in: [...ACTIVE] } },
+          data: {
+            booking_date: change.date,
+            booking_time: change.time,
+            duration_minutes: change.durationMinutes,
+            google_sync_state: 'synced',
+            google_sync_error: null,
+            google_synced_at: now,
+          },
         })
-        .eq('id', b.id)
-        .eq('workspace_id', b.workspace_id)
-        .eq('booking_date', b.booking_date)
-        .eq('booking_time', b.booking_time)
-        .in('status', [...ACTIVE])
-        .select('id')
-      if (!updated?.length) continue
+        .catch(() => null)
+      if (!updated?.count) continue
       result.moved++
       const startChanged = change.date !== b.booking_date || change.time !== b.booking_time.slice(0, 5)
       if (startChanged && change.date >= today) {
         await notifyCustomer(b, rescheduledText({ locale, booking: noun, customerName: b.customer_name, date: change.date, time: change.time }), 'google_rescheduled')
       }
     } else if (change.kind === 'cancelled') {
-      const { data: updated } = await db
-        .from('bookings')
-        .update({ status: 'cancelled', google_event_id: null, google_calendar_connection_id: null, google_sync_state: null, google_synced_at: now })
-        .eq('id', b.id)
-        .eq('workspace_id', b.workspace_id)
-        .in('status', [...ACTIVE])
-        .select('id')
-      if (!updated?.length) continue
+      const updated = await db.bookings
+        .updateMany({
+          where: { id: b.id, status: { in: [...ACTIVE] } },
+          data: { status: 'cancelled', google_event_id: null, google_calendar_connection_id: null, google_sync_state: null, google_synced_at: now },
+        })
+        .catch(() => null)
+      if (!updated?.count) continue
       result.cancelled++
       if (b.booking_date >= today) {
         await notifyCustomer(b, cancelledText({ locale, booking: noun, customerName: b.customer_name, date: b.booking_date, time: b.booking_time.slice(0, 5) }), 'google_cancelled')
@@ -406,7 +445,7 @@ const MAX_PAGES = 20
  * reconciled too.
  */
 export async function syncConnectionChanges(conn: CalendarConnection): Promise<InboundResult & { full: boolean }> {
-  const db = supabaseAdmin()
+  const db = tenantDb(conn.workspace_id)
   const secrets = await loadSecrets(conn)
   if (!secrets) throw new Error('connection has no tokens')
   let syncToken = secrets.sync_token
@@ -438,7 +477,9 @@ export async function syncConnectionChanges(conn: CalendarConnection): Promise<I
   }
   const result = await applyInboundEvents(conn, events)
   if (nextSyncToken) {
-    await db.from('calendar_connection_secrets').update({ sync_token: nextSyncToken, updated_at: new Date().toISOString() }).eq('connection_id', conn.id)
+    await db.calendar_connection_secrets
+      .updateMany({ where: { connection_id: conn.id }, data: { sync_token: nextSyncToken, updated_at: new Date().toISOString() } })
+      .catch(() => undefined)
   }
   await markConnection(conn, { last_synced_at: new Date().toISOString(), last_error: null, ...(conn.status === 'error' ? { status: 'active' } : {}) })
   invalidateStaffBusy(conn.id)
@@ -455,9 +496,9 @@ export async function setupWatch(conn: CalendarConnection): Promise<boolean> {
   if (!pushSupported()) return false
   const id = crypto.randomUUID()
   const token = crypto.randomBytes(32).toString('base64url')
-  const db = supabaseAdmin()
+  const db = tenantDb(conn.workspace_id)
   // Store the token first so an immediate 'sync' notification validates.
-  await db.from('calendar_connection_secrets').update({ watch_token: token }).eq('connection_id', conn.id)
+  await db.calendar_connection_secrets.updateMany({ where: { connection_id: conn.id }, data: { watch_token: token } }).catch(() => undefined)
   const prev = conn.watch_channel_id && conn.watch_resource_id ? { id: conn.watch_channel_id, resourceId: conn.watch_resource_id } : null
   await markConnection(conn, { watch_channel_id: id, watch_resource_id: null })
   const res = await watchEvents(conn, { id, token, address: webhookUrl(), ttlSeconds: WATCH_TTL_SECONDS })
@@ -470,7 +511,7 @@ export async function setupWatch(conn: CalendarConnection): Promise<boolean> {
 
 /** Stops the push channel, revokes the grant and removes the connection. */
 export async function disconnectConnection(conn: CalendarConnection): Promise<void> {
-  const db = supabaseAdmin()
+  const db = tenantDb(conn.workspace_id)
   const secrets = await loadSecrets(conn)
   if (conn.watch_channel_id && conn.watch_resource_id && conn.status !== 'revoked') {
     await stopChannel(conn, conn.watch_channel_id, conn.watch_resource_id).catch((err) => console.warn('[google] stop channel:', errText(err)))
@@ -484,32 +525,31 @@ export async function disconnectConnection(conn: CalendarConnection): Promise<vo
     }
   }
   // Events stay in the advisor's calendar; bookings just forget them.
-  await db
-    .from('bookings')
-    .update({ google_event_id: null, google_calendar_connection_id: null, google_sync_state: null, google_sync_error: null, google_synced_at: new Date().toISOString() })
-    .eq('workspace_id', conn.workspace_id)
-    .eq('google_calendar_connection_id', conn.id)
-  await db.from('calendar_connections').delete().eq('id', conn.id).eq('workspace_id', conn.workspace_id)
+  await db.bookings
+    .updateMany({
+      where: { google_calendar_connection_id: conn.id },
+      data: { google_event_id: null, google_calendar_connection_id: null, google_sync_state: null, google_sync_error: null, google_synced_at: new Date().toISOString() },
+    })
+    .catch(() => undefined)
+  await db.calendar_connections.deleteMany({ where: { id: conn.id } }).catch(() => undefined)
   invalidateStaffBusy(conn.id)
 }
 
 /** Queues the staff member's upcoming active bookings for a first push. */
 export async function queueUpcomingBookings(conn: CalendarConnection, timeZone: string): Promise<number> {
-  const db = supabaseAdmin()
+  const db = tenantDb(conn.workspace_id)
   const today = zonedNow(safeTimeZone(timeZone)).date
-  const { data } = await db
-    .from('bookings')
-    .select('id, google_sync_version')
-    .eq('workspace_id', conn.workspace_id)
-    .eq('staff_id', conn.staff_id)
-    .gte('booking_date', today)
-    .in('status', [...ACTIVE])
-    .limit(200)
+  const data = await db.bookings
+    .findMany({
+      select: { id: true, google_sync_version: true },
+      where: { staff_id: conn.staff_id, booking_date: { gte: today }, status: { in: [...ACTIVE] } },
+      take: 200,
+    })
+    .catch(() => null)
   for (const row of data ?? []) {
-    await db
-      .from('bookings')
-      .update({ google_sync_state: 'pending', google_sync_attempts: 0, google_sync_version: (row.google_sync_version ?? 0) + 1 })
-      .eq('id', row.id)
+    await db.bookings
+      .updateMany({ where: { id: row.id }, data: { google_sync_state: 'pending', google_sync_attempts: 0, google_sync_version: (row.google_sync_version ?? 0) + 1 } })
+      .catch(() => undefined)
   }
   return data?.length ?? 0
 }
@@ -527,11 +567,14 @@ export function retryDelayMs(attempts: number): number {
 }
 
 export async function runGoogleCalendarCron() {
-  const db = supabaseAdmin()
+  // Cron across every workspace: platform client.
+  const db = prisma
   const now = Date.now()
   const out = { watchesRenewed: 0, polled: 0, moved: 0, cancelled: 0, pushed: 0, retried: 0, failed: 0, deletions: 0, errors: [] as string[] }
 
-  const { data: conns } = await db.from('calendar_connections').select(CONNECTION_COLUMNS).in('status', ['active', 'error']).limit(500)
+  const conns = await db.calendar_connections
+    .findMany({ select: CONNECTION_SELECT, where: { status: { in: ['active', 'error'] } }, take: 500 })
+    .catch(() => null)
   for (const conn of (conns ?? []) as CalendarConnection[]) {
     try {
       const watched = !!conn.watch_channel_id && !!conn.watch_expires_at && new Date(conn.watch_expires_at).getTime() > now
@@ -558,12 +601,13 @@ export async function runGoogleCalendarCron() {
   out.pushed = pending.synced
   out.failed += pending.failed
 
-  const { data: failed } = await db
-    .from('bookings')
-    .select('id, workspace_id, google_sync_attempts, google_synced_at')
-    .eq('google_sync_state', 'error')
-    .lt('google_sync_attempts', MAX_ATTEMPTS)
-    .limit(50)
+  const failed = await db.bookings
+    .findMany({
+      select: { id: true, workspace_id: true, google_sync_attempts: true, google_synced_at: true },
+      where: { google_sync_state: 'error', google_sync_attempts: { lt: MAX_ATTEMPTS } },
+      take: 50,
+    })
+    .catch(() => null)
   for (const row of failed ?? []) {
     const last = row.google_synced_at ? new Date(row.google_synced_at).getTime() : 0
     if (now - last < retryDelayMs(row.google_sync_attempts)) continue

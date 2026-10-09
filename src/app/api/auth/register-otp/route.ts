@@ -1,22 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { acceptInvitation, findPendingInvitation } from "@/lib/workspace/invitations";
-
-// Server-side admin client to bypass RLS and create users
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-}
+import { createUserWithPassword, findUserByEmail } from "@/lib/auth/users";
 
 interface OtpEntry {
   code: string;
@@ -37,29 +23,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    const db = adminClient();
-
     if (action === "send") {
-      // 1. Check if email is already registered in the profiles table
-      const { data: profile, error: profileErr } = await db
-        .from("profiles")
-        .select("id")
-        .eq("email", email)
-        .maybeSingle();
-
-      if (profile) {
+      // 1. Already registered?
+      if (await findUserByEmail(email)) {
         return NextResponse.json({ error: "Email is already registered" }, { status: 400 });
-      }
-
-      // 2. Fallback / double-check in auth.users via admin.listUsers
-      const { data: usersData, error: listErr } = await db.auth.admin.listUsers();
-      if (!listErr && usersData?.users) {
-        const matchedUser = usersData.users.find(
-          (u) => u.email?.toLowerCase() === email.toLowerCase()
-        );
-        if (matchedUser) {
-          return NextResponse.json({ error: "Email is already registered" }, { status: 400 });
-        }
       }
 
       // 3. Generate 6-digit OTP code
@@ -189,26 +156,22 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid verification code. Please try again." }, { status: 400 });
       }
 
-      // 2. Double-check if email is already registered in the profiles table (prevents race conditions)
-      const { data: profileExists } = await db
-        .from("profiles")
-        .select("id")
-        .eq("email", email)
-        .maybeSingle();
-
-      if (profileExists) {
+      // 2. Double-check the email is still free (prevents races)
+      if (await findUserByEmail(email)) {
         signupOtpStore.delete(email);
         return NextResponse.json({ error: "Email is already registered" }, { status: 400 });
       }
 
-      // 3. Create the user using admin client (auto-confirm email!)
-      const { data: newUser, error: createErr } = await db.auth.admin.createUser({
+      // 3. Create the user (email already verified by the code)
+      let newUser: { id: string; email: string };
+      try {
+        newUser = await createUserWithPassword({
         email,
         password,
-        email_confirm: true,
+        emailVerified: true,
         // handle_new_user() (migration 021) creates the profile and, unless
         // `invite` is set, the workspace with this user as owner.
-        user_metadata: invitation
+        meta: invitation
           ? { full_name: fullName, invite: true, locale }
           : {
               full_name: fullName,
@@ -219,24 +182,23 @@ export async function POST(req: NextRequest) {
               timezone,
               locale,
             },
-      });
-
-      if (createErr) {
-        console.error("Supabase user creation failed via Admin SDK:", createErr);
+        });
+      } catch (createErr) {
+        console.error("User creation failed:", createErr);
         return NextResponse.json(
-          { error: `Registration failed: ${createErr.message}` },
+          { error: `Registration failed: ${createErr instanceof Error ? createErr.message : String(createErr)}` },
           { status: 500 }
         );
       }
 
-      if (invitation && newUser.user) {
-        await acceptInvitation(invitation, newUser.user.id);
+      if (invitation) {
+        await acceptInvitation(invitation, newUser.id);
       }
 
       // 4. Clear the OTP code
       signupOtpStore.delete(email);
 
-      return NextResponse.json({ success: true, user: newUser.user });
+      return NextResponse.json({ success: true, user: { id: newUser.id, email: newUser.email } });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });

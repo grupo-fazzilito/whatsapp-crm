@@ -1,13 +1,16 @@
+import { randomUUID } from "node:crypto";
 import { isPlatformAdmin } from "@/lib/admin/guard";
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
-import crypto from "crypto";
+import { publicUrl, uploadObject } from "@/lib/storage";
+import { safeFileName } from "@/lib/storage/paths";
+import { UPLOAD_LIMITS } from "@/lib/storage/rules";
 
 async function isAuthorized(): Promise<boolean> {
   return isPlatformAdmin();
 }
 
+// POST /api/admin/portfolio/upload (multipart: file) → { url, public_id }
+// Stored in the public 'catalog' bucket under portfolio/ (platform-level, no workspace).
 export async function POST(request: NextRequest) {
   if (!(await isAuthorized())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -15,75 +18,30 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-    if (!file) {
+    const file = formData.get("file");
+    if (!(file instanceof File)) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    const apiKey = process.env.CLOUDINARY_API_KEY;
-    const apiSecret = process.env.CLOUDINARY_API_SECRET;
-
-    if (!cloudName || !apiKey || !apiSecret) {
-      return NextResponse.json(
-        { error: "Cloudinary credentials are not fully configured on the server" },
-        { status: 500 }
-      );
+    const limits = UPLOAD_LIMITS.catalog;
+    if (file.size === 0 || file.size > limits.maxBytes) {
+      return NextResponse.json({ error: "File is empty or too large" }, { status: 413 });
+    }
+    if (!file.type.startsWith("image/")) {
+      return NextResponse.json({ error: "Only images can be uploaded" }, { status: 415 });
     }
 
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const path = `portfolio/${randomUUID()}-${safeFileName(file.name)}`;
+    await uploadObject("catalog", path, Buffer.from(await file.arrayBuffer()), file.type);
 
-    // Generate unique signature params
-    const timestamp = Math.round(Date.now() / 1000).toString();
-    const folder = "portfolio_showcase";
-
-    const paramsToSign = {
-      folder,
-      timestamp,
-    };
-
-    // Sort parameters alphabetically
-    const sortedKeys = Object.keys(paramsToSign).sort() as Array<keyof typeof paramsToSign>;
-    const signatureString = sortedKeys.map(key => `${key}=${paramsToSign[key]}`).join("&") + apiSecret;
-    const signature = crypto.createHash("sha1").update(signatureString).digest("hex");
-
-    // Construct form data for Cloudinary
-    const cloudinaryForm = new FormData();
-    const blob = new Blob([buffer], { type: file.type });
-    cloudinaryForm.append("file", blob, file.name);
-    cloudinaryForm.append("api_key", apiKey);
-    cloudinaryForm.append("timestamp", timestamp);
-    cloudinaryForm.append("folder", folder);
-    cloudinaryForm.append("signature", signature);
-
-    // Post directly to Cloudinary upload URL
-    const cloudinaryResponse = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-      {
-        method: "POST",
-        body: cloudinaryForm,
-      }
-    );
-
-    if (!cloudinaryResponse.ok) {
-      const errorText = await cloudinaryResponse.text();
-      return NextResponse.json(
-        { error: `Cloudinary response error: ${errorText}` },
-        { status: cloudinaryResponse.status }
-      );
-    }
-
-    const data = await cloudinaryResponse.json();
     return NextResponse.json({
-      url: data.secure_url,
-      public_id: data.public_id,
+      url: publicUrl("catalog", path),
+      public_id: path,
     });
-  } catch (error: any) {
-    console.error("Cloudinary upload proxy error:", error);
+  } catch (error) {
+    console.error("Portfolio upload error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to upload file to Cloudinary" },
+      { error: (error instanceof Error && error.message) || "Failed to upload file" },
       { status: 500 }
     );
   }

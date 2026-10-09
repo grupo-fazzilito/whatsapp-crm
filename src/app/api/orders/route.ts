@@ -3,6 +3,30 @@ import { requireWorkspace } from '@/lib/workspace/context'
 import { isUuid } from '@/lib/workspace/constants'
 import { createManualOrder, type ManualItemInput } from '@/lib/orders/manual'
 import type { Fulfillment } from '@/lib/orders/texts'
+import { listOrders, ORDER_LIST_LIMIT } from '@/lib/orders/list'
+
+/**
+ * GET /api/orders?status=&board=1&payment=a,b&q=&from=<iso>&to=<iso> — any member.
+ * Newest first (max 200) → { orders, truncated }.
+ */
+export async function GET(request: Request) {
+  const guard = await requireWorkspace('agent')
+  if (!guard.ok) return guard.response
+  const sp = new URL(request.url).searchParams
+  try {
+    const orders = await listOrders(guard.ctx.db, {
+      status: sp.get('status'),
+      excludeCancelled: sp.get('board') === '1',
+      paymentStatuses: (sp.get('payment') ?? '').split(',').filter(Boolean),
+      q: sp.get('q'),
+      from: sp.get('from'),
+      to: sp.get('to'),
+    })
+    return NextResponse.json({ orders, truncated: orders.length >= ORDER_LIST_LIMIT })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+  }
+}
 
 /**
  * POST /api/orders — any member creates an order by hand.

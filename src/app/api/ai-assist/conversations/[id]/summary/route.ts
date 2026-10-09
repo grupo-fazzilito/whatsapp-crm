@@ -10,12 +10,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!guard.ok) return guard.response
   const { id } = await params
   if (!(await visibleConversation(guard.ctx, id))) return NextResponse.json({ error: 'not_found', code: 'not_found' }, { status: 404 })
-  const { data } = await guard.ctx.supabase
-    .from('conversations')
-    .select('ai_summary, ai_summary_at, ai_summary_by')
-    .eq('id', id)
-    .eq('workspace_id', guard.ctx.workspace.id)
-    .maybeSingle()
+  const data = await guard.ctx.db.conversations.findFirst({
+    select: { ai_summary: true, ai_summary_at: true, ai_summary_by: true },
+    where: { id, workspace_id: guard.ctx.workspace.id },
+  })
   return NextResponse.json({ summary: parseStoredSummary(data?.ai_summary), at: data?.ai_summary_at ?? null, by: data?.ai_summary_by ?? null })
 }
 

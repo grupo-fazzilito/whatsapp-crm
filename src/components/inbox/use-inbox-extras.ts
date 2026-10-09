@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useWorkspace } from "@/hooks/use-workspace";
 import type { Tag } from "@/types";
 import type { QuickReply, Team } from "@/lib/inbox/types";
@@ -46,15 +45,18 @@ export function useInboxExtras(): InboxExtras {
   useEffect(() => {
     if (!workspaceId) return;
     let cancelled = false;
-    createClient()
-      .from("tags")
-      .select("*")
-      .eq("workspace_id", workspaceId)
-      .order("name")
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) console.error("Failed to fetch tags:", error.message);
-        setTags((data as Tag[]) ?? []);
+    fetch("/api/inbox/tags", { cache: "no-store" })
+      .then(async (res) => {
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+        return (body.tags ?? []) as Tag[];
+      })
+      .catch((error) => {
+        console.error("Failed to fetch tags:", error instanceof Error ? error.message : error);
+        return [] as Tag[];
+      })
+      .then((data) => {
+        if (!cancelled) setTags(data);
       });
     return () => {
       cancelled = true;

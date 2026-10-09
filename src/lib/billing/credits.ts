@@ -1,5 +1,7 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
+import { normalizeRaw } from '@/lib/db/compat'
 import { actionCost, type BillableAction } from './pricing'
 import { getBillingSettings } from './settings'
 
@@ -9,10 +11,56 @@ import { getBillingSettings } from './settings'
 
 export const BILLING_LINK = '/settings?tab=billing'
 
+function rpcError(fn: string, err: unknown): Error {
+  return new Error(`${fn}: ${err instanceof Error ? err.message : String(err)}`)
+}
+
 export async function creditBalance(workspaceId: string): Promise<number> {
-  const { data, error } = await supabaseAdmin().rpc('credit_balance', { ws: workspaceId })
-  if (error) throw new Error(`credit_balance: ${error.message}`)
-  return Number(data ?? 0)
+  try {
+    const [row] = normalizeRaw(await prisma.$queryRaw<{ v: number | null }[]>`SELECT public.credit_balance(${workspaceId}::uuid) AS v`)
+    return Number(row?.v ?? 0)
+  } catch (err) {
+    throw rpcError('credit_balance', err)
+  }
+}
+
+/**
+ * spend_credits(): atomic FIFO spend over the live lots. Returns the
+ * balance after (or -1 when `partial` is false and the balance is short).
+ */
+export async function spendCredits(input: {
+  workspaceId: string
+  amount: number
+  action: string
+  conversationId?: string | null
+  partial?: boolean
+  note?: string | null
+  actorId?: string | null
+}): Promise<number> {
+  const [row] = normalizeRaw(
+    await prisma.$queryRaw<{ v: number | null }[]>`SELECT public.spend_credits(
+      ${input.workspaceId}::uuid, ${input.amount}::int, ${input.action}::text,
+      ${input.conversationId ?? null}::uuid, ${input.partial ?? true}::boolean,
+      ${input.note ?? null}::text, ${input.actorId ?? null}::uuid) AS v`,
+  )
+  return Number(row?.v)
+}
+
+/** grant_credits(): new credit lot + ledger row; re-arms low/depleted notices. Returns the lot id. */
+export async function grantCredits(input: {
+  workspaceId: string
+  amount: number
+  source: string
+  expiresAt: string | Date
+  paymentId?: string | null
+  note?: string | null
+  actorId?: string | null
+}): Promise<string | null> {
+  const expires = input.expiresAt instanceof Date ? input.expiresAt.toISOString() : input.expiresAt
+  const [row] = await prisma.$queryRaw<{ v: string | null }[]>`SELECT public.grant_credits(
+    ${input.workspaceId}::uuid, ${input.amount}::int, ${input.source}::text, ${expires}::timestamptz,
+    ${input.paymentId ?? null}::uuid, ${input.note ?? null}::text, ${input.actorId ?? null}::uuid) AS v`
+  return row?.v ?? null
 }
 
 /**
@@ -40,15 +88,7 @@ export async function spend(workspaceId: string, action: BillableAction, opts: {
     const settings = await getBillingSettings()
     const cost = actionCost(action, settings)
     if (cost <= 0) return null
-    const { data, error } = await supabaseAdmin().rpc('spend_credits', {
-      ws: workspaceId,
-      amount: cost,
-      act: action,
-      conv: opts.conversationId ?? null,
-      partial: true,
-    })
-    if (error) throw new Error(error.message)
-    const left = Number(data)
+    const left = await spendCredits({ workspaceId, amount: cost, action, conversationId: opts.conversationId ?? null, partial: true })
     if (left < Math.max(1, Math.min(...Object.values(settings.action_costs).filter((c) => c > 0)))) await notifyBilling(workspaceId, 'depleted')
     else if (left <= settings.low_credit_threshold) await notifyBilling(workspaceId, 'low', left)
     return left
@@ -77,29 +117,30 @@ const TEXTS = {
  */
 export async function notifyBilling(workspaceId: string, kind: 'low' | 'depleted' | 'paid', credits = 0): Promise<void> {
   try {
-    const db = supabaseAdmin()
+    const db = tenantDb(workspaceId)
     if (kind !== 'paid') {
       const column = kind === 'low' ? 'low_notified_at' : 'depleted_notified_at'
-      await db.from('billing_accounts').upsert({ workspace_id: workspaceId }, { onConflict: 'workspace_id', ignoreDuplicates: true })
+      await db.billing_accounts.createMany({ data: [{ workspace_id: workspaceId }], skipDuplicates: true })
       // Claim the mark atomically so concurrent replies notify once.
-      const { data: claimed } = await db
-        .from('billing_accounts')
-        .update({ [column]: new Date().toISOString() })
-        .eq('workspace_id', workspaceId)
-        .is(column, null)
-        .select('workspace_id')
-      if (!claimed?.length) return
+      const claimed = await db.billing_accounts.updateMany({
+        where: { workspace_id: workspaceId, [column]: null },
+        data: { [column]: new Date() },
+      })
+      if (!claimed.count) return
     }
-    const [{ data: ws }, { data: admins }] = await Promise.all([
-      db.from('workspaces').select('locale').eq('id', workspaceId).maybeSingle(),
-      db.from('workspace_members').select('user_id').eq('workspace_id', workspaceId).eq('status', 'active').in('role', ['owner', 'admin']),
+    const [ws, admins] = await Promise.all([
+      db.workspaces.findFirst({ where: { id: workspaceId }, select: { locale: true } }),
+      db.workspace_members.findMany({ where: { status: 'active', role: { in: ['owner', 'admin'] } }, select: { user_id: true } }),
     ])
     const t = TEXTS[ws?.locale === 'en' ? 'en' : 'es'][kind](credits)
-    if (!admins?.length) return
-    const { error } = await db.from('notifications').insert(
-      admins.map((a) => ({ workspace_id: workspaceId, user_id: a.user_id, type: 'billing', title: t.title, body: t.body, link: BILLING_LINK })),
-    )
-    if (error) console.error('[billing] notification insert failed:', error.message)
+    if (!admins.length) return
+    try {
+      await db.notifications.createMany({
+        data: admins.map((a) => ({ workspace_id: workspaceId, user_id: a.user_id, type: 'billing', title: t.title, body: t.body, link: BILLING_LINK })),
+      })
+    } catch (err) {
+      console.error('[billing] notification insert failed:', err instanceof Error ? err.message : err)
+    }
   } catch (err) {
     console.error('[billing] notify failed:', err instanceof Error ? err.message : err)
   }

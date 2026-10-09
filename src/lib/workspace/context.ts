@@ -1,18 +1,18 @@
 import 'server-only'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import type { SupabaseClient, User } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getSessionUser, type AppUser } from '@/lib/auth/session'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb, type TenantDb } from '@/lib/db/tenant'
 import { WORKSPACE_COOKIE, hasRole, isUuid, type WorkspaceRole } from './constants'
 import type { Workspace } from './types'
 
 export interface WorkspaceContext {
-  user: User
+  user: AppUser
   workspace: Workspace
   role: WorkspaceRole
-  /** Cookie client scoped (RLS) to `workspace`. */
-  supabase: SupabaseClient
+  /** Prisma client confined to `workspace` (use this). */
+  db: TenantDb
 }
 
 export interface Membership {
@@ -22,16 +22,15 @@ export interface Membership {
 
 /** Every active workspace the user belongs to, oldest first. */
 export async function listMemberships(userId: string): Promise<Membership[]> {
-  const { data, error } = await supabaseAdmin()
-    .from('workspace_members')
-    .select('role, created_at, workspace:workspaces(*)')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .order('created_at', { ascending: true })
-  if (error) throw error
-  return (data ?? [])
-    .filter((m) => m.workspace)
-    .map((m) => ({ role: m.role as WorkspaceRole, workspace: m.workspace as unknown as Workspace }))
+  // Platform client: memberships of one user across workspaces.
+  const data = await prisma.workspace_members.findMany({
+    where: { user_id: userId, status: 'active' },
+    select: { role: true, created_at: true, workspaces: true },
+    orderBy: { created_at: 'asc' },
+  })
+  return data
+    .filter((m) => m.workspaces)
+    .map((m) => ({ role: m.role as WorkspaceRole, workspace: m.workspaces as unknown as Workspace }))
 }
 
 /**
@@ -40,10 +39,7 @@ export async function listMemberships(userId: string): Promise<Membership[]> {
  * the user has no workspace at all.
  */
 export async function getWorkspaceContext(): Promise<WorkspaceContext | null> {
-  const authClient = await createClient(null)
-  const {
-    data: { user },
-  } = await authClient.auth.getUser()
+  const user = await getSessionUser()
   if (!user) return null
 
   const memberships = await listMemberships(user.id)
@@ -58,7 +54,7 @@ export async function getWorkspaceContext(): Promise<WorkspaceContext | null> {
     user,
     workspace: active.workspace,
     role: active.role,
-    supabase: await createClient(active.workspace.id),
+    db: tenantDb(active.workspace.id),
   }
 }
 

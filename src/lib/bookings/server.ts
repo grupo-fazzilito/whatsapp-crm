@@ -1,6 +1,8 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
+import { isUuid } from '@/lib/workspace/constants'
 import { sendToContact } from '@/lib/messaging/conversations'
 import { safeTimeZone } from '@/lib/ai/time'
 import type { Workspace } from '@/lib/workspace/types'
@@ -30,14 +32,31 @@ export interface BookingBundle {
   workspace: WorkspaceLite | null
 }
 
-const BUNDLE_SELECT = `
-  id, workspace_id, contact_id, booking_date, booking_time, status, customer_name, party_size,
-  feedback_sent, followup_sent, reminder_24h_sent, reminder_4h_sent, reminder_2h_sent,
-  contact:contacts(id, name),
-  staff:staff(name),
-  service:services(name),
-  workspace:workspaces(id, name, industry, locale, timezone, settings)
-`
+const BUNDLE_SELECT = {
+  id: true,
+  workspace_id: true,
+  contact_id: true,
+  booking_date: true,
+  booking_time: true,
+  status: true,
+  customer_name: true,
+  party_size: true,
+  feedback_sent: true,
+  followup_sent: true,
+  reminder_24h_sent: true,
+  reminder_4h_sent: true,
+  reminder_2h_sent: true,
+  contacts: { select: { id: true, name: true } },
+  staff: { select: { name: true } },
+  services: { select: { name: true } },
+  workspaces: { select: { id: true, name: true, industry: true, locale: true, timezone: true, settings: true } },
+} as const
+
+/** Prisma row (relations named after the tables) → the bundle shape. */
+function toBundle(row: Record<string, unknown>): BookingBundle {
+  const { contacts, staff, services, workspaces, ...rest } = row
+  return { ...rest, contact: contacts ?? null, staff: staff ?? null, service: services ?? null, workspace: workspaces ?? null } as unknown as BookingBundle
+}
 
 /** Shared secret check for cron endpoints (open in dev when unset). */
 export function cronGuard(request: Request): NextResponse | null {
@@ -53,13 +72,9 @@ export function cronGuard(request: Request): NextResponse | null {
 
 /** One booking of the workspace with what the customer messages need. */
 export async function loadBookingBundle(workspaceId: string, bookingId: string): Promise<BookingBundle | null> {
-  const { data } = await supabaseAdmin()
-    .from('bookings')
-    .select(BUNDLE_SELECT)
-    .eq('workspace_id', workspaceId)
-    .eq('id', bookingId)
-    .maybeSingle()
-  return (data as unknown as BookingBundle) ?? null
+  if (!isUuid(bookingId)) return null
+  const data = await tenantDb(workspaceId).bookings.findFirst({ select: BUNDLE_SELECT, where: { id: bookingId } })
+  return data ? toBundle(data) : null
 }
 
 export function bookingMessageText(kind: BookingMessageKind, b: BookingBundle, ws: WorkspaceLite): string {
@@ -136,19 +151,24 @@ export async function notifyFromRequest(
  * workspace's time zone. Returns how many were sent / skipped.
  */
 export async function processBookingReminders(now = new Date()): Promise<{ processed: number; skipped: number }> {
-  const db = supabaseAdmin()
+  // Platform cron over every workspace.
   // Local dates differ from UTC by at most ~14h: a ±1 day window around
   // the UTC date covers "the next 24h" in every zone.
-  const { data, error } = await db
-    .from('bookings')
-    .select(BUNDLE_SELECT)
-    .in('status', ['confirmed', 'pending'])
-    .gte('booking_date', utcDate(now, -1))
-    .lte('booking_date', utcDate(now, 2))
-    .or('reminder_24h_sent.eq.false,reminder_4h_sent.eq.false,reminder_2h_sent.eq.false')
-  if (error) throw new Error(`Failed to fetch bookings: ${error.message}`)
+  let data: Record<string, unknown>[]
+  try {
+    data = await prisma.bookings.findMany({
+      select: BUNDLE_SELECT,
+      where: {
+        status: { in: ['confirmed', 'pending'] },
+        booking_date: { gte: utcDate(now, -1), lte: utcDate(now, 2) },
+        OR: [{ reminder_24h_sent: false }, { reminder_4h_sent: false }, { reminder_2h_sent: false }],
+      },
+    })
+  } catch (err) {
+    throw new Error(`Failed to fetch bookings: ${err instanceof Error ? err.message : String(err)}`)
+  }
 
-  const rows = ((data ?? []) as unknown as BookingBundle[])
+  const rows = data.map(toBundle)
     .filter((b) => b.workspace)
     .map((b) => ({ ...b, timeZone: safeTimeZone(b.workspace!.timezone) }) satisfies ReminderCandidate & BookingBundle)
 
@@ -162,8 +182,11 @@ export async function processBookingReminders(now = new Date()): Promise<{ proce
       skipped++
       continue // flags stay false so the next run retries
     }
-    const { error: upErr } = await db.from('bookings').update(due.updates).eq('id', b.id).eq('workspace_id', b.workspace_id)
-    if (upErr) console.error(`[bookings] reminder flags update failed for ${b.id}:`, upErr.message)
+    try {
+      await tenantDb(b.workspace_id).bookings.updateMany({ where: { id: b.id }, data: due.updates })
+    } catch (upErr) {
+      console.error(`[bookings] reminder flags update failed for ${b.id}:`, upErr instanceof Error ? upErr.message : upErr)
+    }
     // Real-estate viewings: the property's map pin with the last reminder.
     if (b.workspace?.industry === 'real_estate') await afterViewingReminder(b.workspace_id, b.id, due.hoursUntil)
     processed++
@@ -176,31 +199,37 @@ export async function processBookingReminders(now = new Date()): Promise<{ proce
  * completed, check-in ~1 week after.
  */
 export async function processBookingFollowUps(now = new Date()): Promise<{ feedbackSent: number; followUpSent: number; skipped: number }> {
-  const db = supabaseAdmin()
-  const hoursAgo = (h: number) => new Date(now.getTime() - h * 3_600_000).toISOString()
+  // Platform cron over every workspace. Query errors left the lists empty.
+  const hoursAgo = (h: number) => new Date(now.getTime() - h * 3_600_000)
 
   const [feedbackRes, followRes] = await Promise.all([
-    db
-      .from('bookings')
-      .select(BUNDLE_SELECT)
-      .eq('status', 'completed')
-      .or('feedback_sent.is.null,feedback_sent.eq.false')
-      .gte('updated_at', hoursAgo(28))
-      .lte('updated_at', hoursAgo(20)),
-    db
-      .from('bookings')
-      .select(BUNDLE_SELECT)
-      .eq('status', 'completed')
-      .or('followup_sent.is.null,followup_sent.eq.false')
-      .gte('updated_at', hoursAgo(8 * 24))
-      .lte('updated_at', hoursAgo(6 * 24)),
+    prisma.bookings
+      .findMany({
+        select: BUNDLE_SELECT,
+        where: {
+          status: 'completed',
+          OR: [{ feedback_sent: null }, { feedback_sent: false }],
+          updated_at: { gte: hoursAgo(28), lte: hoursAgo(20) },
+        },
+      })
+      .catch(() => null),
+    prisma.bookings
+      .findMany({
+        select: BUNDLE_SELECT,
+        where: {
+          status: 'completed',
+          OR: [{ followup_sent: null }, { followup_sent: false }],
+          updated_at: { gte: hoursAgo(8 * 24), lte: hoursAgo(6 * 24) },
+        },
+      })
+      .catch(() => null),
   ])
 
   let feedbackSent = 0
   let followUpSent = 0
   let skipped = 0
-  const run = async (rows: unknown[] | null, kind: 'feedback' | 'followup') => {
-    for (const b of (rows ?? []) as BookingBundle[]) {
+  const run = async (rows: Record<string, unknown>[] | null, kind: 'feedback' | 'followup') => {
+    for (const b of (rows ?? []).map(toBundle)) {
       if (!b.workspace || !b.contact_id) {
         skipped++
         continue
@@ -211,16 +240,13 @@ export async function processBookingFollowUps(now = new Date()): Promise<{ feedb
         skipped++
         continue
       }
-      await db
-        .from('bookings')
-        .update(kind === 'feedback' ? { feedback_sent: true } : { followup_sent: true })
-        .eq('id', b.id)
-        .eq('workspace_id', b.workspace_id)
+      const flag = kind === 'feedback' ? { feedback_sent: true } : { followup_sent: true }
+      await tenantDb(b.workspace_id).bookings.updateMany({ where: { id: b.id }, data: flag }).catch(() => {})
       if (kind === 'feedback') feedbackSent++
       else followUpSent++
     }
   }
-  await run(feedbackRes.data, 'feedback')
-  await run(followRes.data, 'followup')
+  await run(feedbackRes, 'feedback')
+  await run(followRes, 'followup')
   return { feedbackSent, followUpSent, skipped }
 }

@@ -1,5 +1,5 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
 import { importFeed, type FeedRow } from './feed/import'
 import { importFromMercadoLibre } from './mercadolibre/import'
 import { ImportBusyError } from './sync'
@@ -18,20 +18,20 @@ export interface ScheduledResult {
 }
 
 export async function runScheduledPortalImports(now = Date.now()): Promise<ScheduledResult> {
-  const db = supabaseAdmin()
+  // Cron across every workspace: platform client.
+  const db = prisma
   const cutoff = new Date(now - DAY_MS).toISOString()
   const out: ScheduledResult = { mercadolibre: 0, feeds: 0, errors: 0 }
   let budget = MAX_PER_TICK
 
-  const { data: conns } = await db
-    .from('portal_connections')
-    .select('workspace_id, last_import_at')
-    .eq('provider', 'mercadolibre')
-    .eq('status', 'active')
-    .eq('auto_import', true)
-    .or(`last_import_at.is.null,last_import_at.lt.${cutoff}`)
-    .order('last_import_at', { ascending: true, nullsFirst: true })
-    .limit(budget)
+  const conns = await db.portal_connections
+    .findMany({
+      select: { workspace_id: true, last_import_at: true },
+      where: { provider: 'mercadolibre', status: 'active', auto_import: true, OR: [{ last_import_at: null }, { last_import_at: { lt: cutoff } }] },
+      orderBy: { last_import_at: { sort: 'asc', nulls: 'first' } },
+      take: budget,
+    })
+    .catch(() => null)
   for (const c of conns ?? []) {
     if (budget <= 0) break
     budget--
@@ -45,14 +45,14 @@ export async function runScheduledPortalImports(now = Date.now()): Promise<Sched
   }
 
   if (budget > 0) {
-    const { data: feeds } = await db
-      .from('portal_feeds')
-      .select('*')
-      .eq('schedule', 'daily')
-      .or(`last_run_at.is.null,last_run_at.lt.${cutoff}`)
-      .order('last_run_at', { ascending: true, nullsFirst: true })
-      .limit(budget)
-    for (const f of (feeds ?? []) as FeedRow[]) {
+    const feeds = await db.portal_feeds
+      .findMany({
+        where: { schedule: 'daily', OR: [{ last_run_at: null }, { last_run_at: { lt: cutoff } }] },
+        orderBy: { last_run_at: { sort: 'asc', nulls: 'first' } },
+        take: budget,
+      })
+      .catch(() => null)
+    for (const f of (feeds ?? []) as unknown as FeedRow[]) {
       try {
         const r = await importFeed(f, { trigger: 'schedule' })
         if (r.error) out.errors++

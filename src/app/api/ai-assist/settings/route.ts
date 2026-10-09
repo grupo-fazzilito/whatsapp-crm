@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import type { Prisma } from '@/generated/prisma/client'
 import { mediaCapabilities } from '@/lib/ai/llm'
 import { aiAssistSettings, parseAiAssistPatch } from '@/lib/ai/assist/core'
 
@@ -23,15 +23,18 @@ export async function PATCH(request: Request) {
   if (!guard.ok) return guard.response
   const patch = parseAiAssistPatch(await request.json().catch(() => null))
   if (!patch) return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
-  const db = supabaseAdmin()
+  const db = guard.ctx.db
   // Re-read so concurrent edits of other settings keys are kept.
-  const { data: ws } = await db.from('workspaces').select('settings').eq('id', guard.ctx.workspace.id).single()
+  const ws = await db.workspaces.findFirst({ select: { settings: true }, where: { id: guard.ctx.workspace.id } }).catch(() => null)
   const settings = (ws?.settings ?? {}) as Record<string, unknown>
   const next = { ...aiAssistSettings(settings), ...patch }
-  const { error } = await db
-    .from('workspaces')
-    .update({ settings: { ...settings, ai_assist: next } })
-    .eq('id', guard.ctx.workspace.id)
-  if (error) return NextResponse.json({ error: 'save_failed' }, { status: 500 })
+  try {
+    await db.workspaces.updateMany({
+      where: { id: guard.ctx.workspace.id },
+      data: { settings: { ...settings, ai_assist: next } as Prisma.InputJsonValue },
+    })
+  } catch {
+    return NextResponse.json({ error: 'save_failed' }, { status: 500 })
+  }
   return NextResponse.json({ settings: next })
 }

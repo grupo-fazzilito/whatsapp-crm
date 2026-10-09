@@ -7,7 +7,7 @@ import { getMetaConfig, metaAppReady } from '@/lib/platform/meta'
 import { CHANNEL_TYPES, type ChannelType } from '@/lib/channels/types'
 import {
   CONFLICT_MESSAGE,
-  PUBLIC_COLUMNS,
+  PUBLIC_SELECT,
   assertAgentInWorkspace,
   bad,
   graphGet,
@@ -37,14 +37,18 @@ import { newWidgetKey, parseWebchatSettings, webchatHandle } from './_lib/webcha
 export async function GET() {
   const guard = await requireWorkspace('agent')
   if (!guard.ok) return guard.response
-  const { supabase, workspace } = guard.ctx
+  const { db, workspace } = guard.ctx
 
-  const { data, error } = await supabase
-    .from('channels')
-    .select(PUBLIC_COLUMNS)
-    .eq('workspace_id', workspace.id)
-    .order('created_at', { ascending: true })
-  if (error) return bad(error.message, 500)
+  let data
+  try {
+    data = await db.channels.findMany({
+      select: PUBLIC_SELECT,
+      where: { workspace_id: workspace.id },
+      orderBy: { created_at: 'asc' },
+    })
+  } catch (err) {
+    return bad(err instanceof Error ? err.message : 'Failed to load channels', 500)
+  }
 
   const meta = await getMetaConfig()
   return NextResponse.json({

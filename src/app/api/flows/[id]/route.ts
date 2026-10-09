@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import type { SupabaseClient } from '@supabase/supabase-js'
-import { supabaseAdmin } from '@/lib/flows/admin-client'
+import type { Prisma } from '@/generated/prisma/client'
+import type { TenantDb } from '@/lib/db/tenant'
 
 /**
  * GET   /api/flows/[id]  — fetch one flow with its nodes.
@@ -26,28 +26,25 @@ async function requireOwnership(
   | {
       ok: true
       workspaceId: string
-      supabase: SupabaseClient
+      db: TenantDb
     }
   | { ok: false; response: NextResponse }
 > {
   const guard = await requireWorkspace(minRole)
   if (!guard.ok) return guard
-  const { supabase, workspace } = guard.ctx
+  const { db, workspace } = guard.ctx
   // Scoped to the active workspace — a flow from another workspace
   // returns null (404 below).
-  const { data: flow } = await supabase
-    .from('flows')
-    .select('id')
-    .eq('id', flowId)
-    .eq('workspace_id', workspace.id)
-    .maybeSingle()
+  const flow = await db.flows
+    .findFirst({ select: { id: true }, where: { id: flowId, workspace_id: workspace.id } })
+    .catch(() => null)
   if (!flow) {
     return {
       ok: false,
       response: NextResponse.json({ error: 'Not found' }, { status: 404 }),
     }
   }
-  return { ok: true, workspaceId: workspace.id, supabase }
+  return { ok: true, workspaceId: workspace.id, db }
 }
 
 export async function GET(
@@ -57,15 +54,13 @@ export async function GET(
   const { id } = await context.params
   const guard = await requireOwnership(id)
   if (!guard.ok) return guard.response
-  const { supabase } = guard
+  const { db } = guard
 
-  const [{ data: flow }, { data: nodes }] = await Promise.all([
-    supabase.from('flows').select('*').eq('id', id).maybeSingle(),
-    supabase
-      .from('flow_nodes')
-      .select('*')
-      .eq('flow_id', id)
-      .order('created_at', { ascending: true }),
+  const [flow, nodes] = await Promise.all([
+    db.flows.findFirst({ where: { id } }).catch(() => null),
+    db.flow_nodes
+      .findMany({ where: { flow_id: id }, orderBy: { created_at: 'asc' } })
+      .catch(() => null),
   ])
   if (!flow) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -96,7 +91,7 @@ export async function PUT(
   const { id } = await context.params
   const guard = await requireOwnership(id, 'admin')
   if (!guard.ok) return guard.response
-  const { workspaceId } = guard
+  const { workspaceId, db } = guard
 
   const body = (await request.json().catch(() => null)) as PutBody | null
   if (!body) {
@@ -108,8 +103,6 @@ export async function PUT(
       { status: 400 },
     )
   }
-
-  const admin = supabaseAdmin()
 
   // Update the flow row first — the body may not include `nodes` (a
   // header-only save for editing the trigger config without touching
@@ -128,59 +121,46 @@ export async function PUT(
   if (body.fallback_policy !== undefined)
     flowPatch.fallback_policy = body.fallback_policy
 
-  const { error: updErr } = await admin
-    .from('flows')
-    .update(flowPatch)
-    .eq('id', id)
-    .eq('workspace_id', workspaceId)
-  if (updErr) {
-    return NextResponse.json({ error: updErr.message }, { status: 500 })
+  try {
+    await db.flows.updateMany({ where: { id, workspace_id: workspaceId }, data: flowPatch })
+  } catch (updErr) {
+    return NextResponse.json({ error: errMessage(updErr) }, { status: 500 })
   }
 
   if (body.nodes !== undefined) {
     // Delete-then-insert. Not transactional but the runner handles
     // mid-edit reads safely (a node_not_found ends the run cleanly).
-    const { error: delErr } = await admin
-      .from('flow_nodes')
-      .delete()
-      .eq('flow_id', id)
-      .eq('workspace_id', workspaceId)
-    if (delErr) {
-      return NextResponse.json({ error: delErr.message }, { status: 500 })
+    try {
+      await db.flow_nodes.deleteMany({ where: { flow_id: id, workspace_id: workspaceId } })
+    } catch (delErr) {
+      return NextResponse.json({ error: errMessage(delErr) }, { status: 500 })
     }
     if (body.nodes.length > 0) {
-      const { error: insErr } = await admin.from('flow_nodes').insert(
-        body.nodes.map((n) => ({
-          workspace_id: workspaceId,
-          flow_id: id,
-          node_key: n.node_key,
-          node_type: n.node_type,
-          config: n.config,
-          position_x: n.position_x ?? 0,
-          position_y: n.position_y ?? 0,
-        })),
-      )
-      if (insErr) {
-        return NextResponse.json({ error: insErr.message }, { status: 500 })
+      try {
+        await db.flow_nodes.createMany({
+          data: body.nodes.map((n) => ({
+            workspace_id: workspaceId,
+            flow_id: id,
+            node_key: n.node_key,
+            node_type: n.node_type,
+            config: n.config as Prisma.InputJsonValue,
+            position_x: n.position_x ?? 0,
+            position_y: n.position_y ?? 0,
+          })),
+        })
+      } catch (insErr) {
+        return NextResponse.json({ error: errMessage(insErr) }, { status: 500 })
       }
     }
   }
 
   // Re-fetch and return the new state — the editor uses the response
   // to reconcile its local form state.
-  const [{ data: flow }, { data: nodes }] = await Promise.all([
-    admin
-      .from('flows')
-      .select('*')
-      .eq('id', id)
-      .eq('workspace_id', workspaceId)
-      .maybeSingle(),
-    admin
-      .from('flow_nodes')
-      .select('*')
-      .eq('flow_id', id)
-      .eq('workspace_id', workspaceId)
-      .order('created_at', { ascending: true }),
+  const [flow, nodes] = await Promise.all([
+    db.flows.findFirst({ where: { id, workspace_id: workspaceId } }).catch(() => null),
+    db.flow_nodes
+      .findMany({ where: { flow_id: id, workspace_id: workspaceId }, orderBy: { created_at: 'asc' } })
+      .catch(() => null),
   ])
   return NextResponse.json({ flow, nodes: nodes ?? [] })
 }
@@ -198,14 +178,15 @@ export async function DELETE(
   // mechanism in v1, but that's intentional: deleting a flow is a
   // deliberate destructive action and the partial unique index will
   // free up the contact for new triggers immediately.
-  const { error } = await supabaseAdmin()
-    .from('flows')
-    .delete()
-    .eq('id', id)
-    .eq('workspace_id', guard.workspaceId)
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  try {
+    await guard.db.flows.deleteMany({ where: { id, workspace_id: guard.workspaceId } })
+  } catch (error) {
+    return NextResponse.json({ error: errMessage(error) }, { status: 500 })
   }
   return NextResponse.json({ ok: true })
 }
 
+
+function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}

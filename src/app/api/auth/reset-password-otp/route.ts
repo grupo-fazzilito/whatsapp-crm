@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { findUserByEmail, setPassword } from "@/lib/auth/users";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 
-// Server-side client to bypass RLS and update user passwords using service role
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  );
-}
 
 interface OtpEntry {
   code: string;
@@ -169,37 +162,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Session expired. Please verify your email again." }, { status: 400 });
       }
 
-      const db = adminClient();
-
-      // Find user id by querying the profiles table
-      const { data: profile, error: profileErr } = await db
-        .from("profiles")
-        .select("user_id")
-        .eq("email", email)
-        .single();
-
-      let targetUserId = profile?.user_id;
-
-      // Fallback: If profile table is missing or doesn't match, search users via listUsers
-      if (profileErr || !targetUserId) {
-        const { data: usersData, error: listErr } = await db.auth.admin.listUsers();
-        if (listErr) {
-          return NextResponse.json({ error: `User listing failed: ${listErr.message}` }, { status: 500 });
-        }
-        const matchedUser = usersData?.users?.find(u => u.email === email);
-        if (!matchedUser) {
-          return NextResponse.json({ error: "User with this email not found." }, { status: 404 });
-        }
-        targetUserId = matchedUser.id;
+      const target = await findUserByEmail(email);
+      if (!target) {
+        return NextResponse.json({ error: "User with this email not found." }, { status: 404 });
       }
 
-      // Reset the password via admin auth SDK (bypasses tokens)
-      const { error: resetErr } = await db.auth.admin.updateUserById(targetUserId, {
-        password,
-      });
-
-      if (resetErr) {
-        return NextResponse.json({ error: `Password update failed: ${resetErr.message}` }, { status: 500 });
+      // New password; every open session of that account is closed.
+      try {
+        await setPassword(target.id, password, { revokeSessions: true });
+      } catch (resetErr) {
+        return NextResponse.json({ error: `Password update failed: ${resetErr instanceof Error ? resetErr.message : String(resetErr)}` }, { status: 500 });
       }
 
       // Clear verification record

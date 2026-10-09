@@ -3,7 +3,6 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, Users } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/i18n/client";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,9 +26,10 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     fetch(`/api/invitations/${encodeURIComponent(token)}`)
       .then(async (r) => (r.ok ? setPreview(await r.json()) : setInvalid(true)))
       .catch(() => setInvalid(true));
-    createClient()
-      .auth.getUser()
-      .then(({ data }) => setUserEmail(data.user?.email ?? null));
+    fetch("/api/me", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { user?: { email?: string } } | null) => setUserEmail(d?.user?.email ?? null))
+      .catch(() => setUserEmail(null));
   }, [token]);
 
   const accept = async () => {

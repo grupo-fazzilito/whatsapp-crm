@@ -1,5 +1,7 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
+import type { Prisma } from '@/generated/prisma/client'
 import { sendMessage } from '@/lib/messaging/send'
 import { createTranslator } from '@/i18n/translate'
 import { notify } from '@/lib/inbox/server'
@@ -55,7 +57,9 @@ export interface VisitCtx {
 }
 
 async function isRealEstate(workspaceId: string): Promise<boolean> {
-  const { data } = await supabaseAdmin().from('workspaces').select('industry').eq('id', workspaceId).maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .workspaces.findFirst({ select: { industry: true }, where: { id: workspaceId } })
+    .catch(() => null)
   return data?.industry === 'real_estate'
 }
 
@@ -90,7 +94,7 @@ function profileFromProperty(p: MatchProperty): Partial<LeadFields> {
 export async function handleVisitAction(ctx: VisitCtx, id: string): Promise<boolean> {
   const action = parseVisitAction(id)
   if (!action) return false
-  const db = supabaseAdmin()
+  const db = tenantDb(ctx.workspaceId)
   const ws = await loadWs(ctx.workspaceId)
   if (!ws) return false
   const t = createTranslator(ws.locale === 'en' ? 'en' : 'es')
@@ -102,23 +106,25 @@ export async function handleVisitAction(ctx: VisitCtx, id: string): Promise<bool
       return true
     }
     // Start a viewing draft for this listing; the agent asks date and time next.
-    const { data: conv } = await db.from('conversations').select('ai_state').eq('id', ctx.conversationId).eq('workspace_id', ctx.workspaceId).maybeSingle()
+    const conv = await db.conversations.findFirst({ select: { ai_state: true }, where: { id: ctx.conversationId } }).catch(() => null)
     const state = (conv?.ai_state ?? {}) as Record<string, unknown>
     const booking = { ...((state.booking as Record<string, unknown>) ?? {}), product_id: p.id }
-    await db.from('conversations').update({ ai_state: { ...state, booking } }).eq('id', ctx.conversationId).eq('workspace_id', ctx.workspaceId)
+    await db.conversations
+      .updateMany({ where: { id: ctx.conversationId }, data: { ai_state: { ...state, booking } as Prisma.InputJsonValue } })
+      .catch(() => undefined)
     await say(ctx, t('leads.server.askViewingTime', { name: p.name }), { event: 'viewing_request', product_id: p.id })
     return true
   }
 
-  const { data: booking } = await db
-    .from('bookings')
-    .select('id, contact_id, product_id, staff_id, conversation_id, viewing_feedback')
-    .eq('id', action.bookingId)
-    .eq('workspace_id', ctx.workspaceId)
-    .maybeSingle()
+  const booking = await db.bookings
+    .findFirst({
+      select: { id: true, contact_id: true, product_id: true, staff_id: true, conversation_id: true, viewing_feedback: true },
+      where: { id: action.bookingId },
+    })
+    .catch(() => null)
   if (!booking || booking.contact_id !== ctx.contactId) return false
 
-  await db.from('bookings').update({ viewing_feedback: action.feedback }).eq('id', booking.id).eq('workspace_id', ctx.workspaceId)
+  await db.bookings.updateMany({ where: { id: booking.id }, data: { viewing_feedback: action.feedback } }).catch(() => undefined)
   const deal = await moveContactDeal({
     workspaceId: ctx.workspaceId,
     contactId: ctx.contactId,
@@ -132,7 +138,7 @@ export async function handleVisitAction(ctx: VisitCtx, id: string): Promise<bool
   // Tell the advisor (or the admins when nobody owns the lead).
   const advisor = await advisorFor(ctx.workspaceId, ctx.contactId, ctx.conversationId, booking.staff_id as string | null)
   const recipients = advisor ? [advisor] : await workspaceAdmins(ctx.workspaceId)
-  const { data: contact } = await db.from('contacts').select('name, phone').eq('id', ctx.contactId).maybeSingle()
+  const contact = await db.contacts.findFirst({ select: { name: true, phone: true }, where: { id: ctx.contactId } }).catch(() => null)
   const name = (contact?.name as string) || (contact?.phone as string) || t('leads.server.customer')
   await notify(
     recipients.map((userId) => ({
@@ -174,25 +180,21 @@ export async function handleVisitAction(ctx: VisitCtx, id: string): Promise<bool
  */
 export async function onViewingConfirmed(workspaceId: string, bookingId: string, opts: { sendLocation?: boolean; aiAgentId?: string | null } = {}): Promise<void> {
   try {
-    const db = supabaseAdmin()
-    const { data: b } = await db
-      .from('bookings')
-      .select('id, contact_id, conversation_id, product_id, status, viewing_stage_synced_at')
-      .eq('id', bookingId)
-      .eq('workspace_id', workspaceId)
-      .maybeSingle()
+    const db = tenantDb(workspaceId)
+    const b = await db.bookings
+      .findFirst({
+        select: { id: true, contact_id: true, conversation_id: true, product_id: true, status: true, viewing_stage_synced_at: true },
+        where: { id: bookingId },
+      })
+      .catch(() => null)
     if (!b?.product_id || !b.contact_id || b.status !== 'confirmed') return
     if (!(await isRealEstate(workspaceId))) return
     if (!b.viewing_stage_synced_at) {
       // Claim first so a concurrent cron run doesn't do it twice.
-      const { data: claimed } = await db
-        .from('bookings')
-        .update({ viewing_stage_synced_at: new Date().toISOString() })
-        .eq('id', b.id)
-        .is('viewing_stage_synced_at', null)
-        .select('id')
-        .maybeSingle()
-      if (claimed) {
+      const claimed = await db.bookings
+        .updateMany({ where: { id: b.id, viewing_stage_synced_at: null }, data: { viewing_stage_synced_at: new Date().toISOString() } })
+        .catch(() => null)
+      if (claimed?.count) {
         await moveContactDeal({
           workspaceId,
           contactId: b.contact_id as string,
@@ -219,16 +221,15 @@ export async function onViewingConfirmed(workspaceId: string, bookingId: string,
 export async function afterViewingReminder(workspaceId: string, bookingId: string, hoursUntil: number): Promise<void> {
   if (hoursUntil > 5) return
   try {
-    const db = supabaseAdmin()
-    const { data: claimed } = await db
-      .from('bookings')
-      .update({ viewing_location_sent_at: new Date().toISOString() })
-      .eq('id', bookingId)
-      .eq('workspace_id', workspaceId)
-      .not('product_id', 'is', null)
-      .is('viewing_location_sent_at', null)
-      .select('product_id, contact_id, conversation_id')
-      .maybeSingle()
+    const db = tenantDb(workspaceId)
+    const res = await db.bookings
+      .updateManyAndReturn({
+        where: { id: bookingId, product_id: { not: null }, viewing_location_sent_at: null },
+        data: { viewing_location_sent_at: new Date().toISOString() },
+        select: { product_id: true, contact_id: true, conversation_id: true },
+      })
+      .catch(() => null)
+    const claimed = res?.[0] ?? null
     if (!claimed?.product_id || !(await isRealEstate(workspaceId))) return
     const conversationId = (claimed.conversation_id as string | null) ?? (await latestConversation(workspaceId, claimed.contact_id as string))
     if (!conversationId) return
@@ -258,48 +259,60 @@ export interface ViewingCronResult {
  * inside the channel's reply window (no paid templates).
  */
 export async function processViewings(now = new Date()): Promise<ViewingCronResult> {
-  const db = supabaseAdmin()
+  // Cron across every real-estate workspace: platform client for the scans.
+  const db = prisma
   const out: ViewingCronResult = { stagesSynced: 0, feedbackSent: 0, feedbackSkipped: 0 }
   const day = (d: number) => new Date(now.getTime() + d * 86_400_000).toISOString().slice(0, 10)
 
-  const { data: toSync } = await db
-    .from('bookings')
-    .select('id, workspace_id, workspace:workspaces!inner(industry)')
-    .eq('workspace.industry', 'real_estate')
-    .eq('status', 'confirmed')
-    .not('product_id', 'is', null)
-    .is('viewing_stage_synced_at', null)
-    .gte('booking_date', day(-2))
-    .limit(100)
+  const toSync = await db.bookings
+    .findMany({
+      select: { id: true, workspace_id: true },
+      where: {
+        workspaces: { industry: 'real_estate' },
+        status: 'confirmed',
+        product_id: { not: null },
+        viewing_stage_synced_at: null,
+        booking_date: { gte: day(-2) },
+      },
+      take: 100,
+    })
+    .catch(() => null)
   for (const b of toSync ?? []) {
     await onViewingConfirmed(b.workspace_id as string, b.id as string)
     out.stagesSynced++
   }
 
-  const { data: visited } = await db
-    .from('bookings')
-    .select(
-      'id, workspace_id, contact_id, conversation_id, booking_date, booking_time, status, ai_agent_id, workspace:workspaces!inner(industry, timezone, locale)',
-    )
-    .eq('workspace.industry', 'real_estate')
-    .in('status', ['confirmed', 'completed'])
-    .not('product_id', 'is', null)
-    .is('viewing_feedback_sent_at', null)
-    .gte('booking_date', day(-3))
-    .lte('booking_date', day(1))
-    .limit(200)
+  const visited = await db.bookings
+    .findMany({
+      select: {
+        id: true,
+        workspace_id: true,
+        contact_id: true,
+        conversation_id: true,
+        booking_date: true,
+        booking_time: true,
+        status: true,
+        ai_agent_id: true,
+        workspaces: { select: { industry: true, timezone: true, locale: true } },
+      },
+      where: {
+        workspaces: { industry: 'real_estate' },
+        status: { in: ['confirmed', 'completed'] },
+        product_id: { not: null },
+        viewing_feedback_sent_at: null,
+        booking_date: { gte: day(-3), lte: day(1) },
+      },
+      take: 200,
+    })
+    .catch(() => null)
   for (const b of visited ?? []) {
-    const w = b.workspace as unknown as { timezone: string | null; locale: string }
+    const w = b.workspaces as unknown as { timezone: string | null; locale: string }
     if (!feedbackDue(b.booking_date as string, b.booking_time as string, safeTimeZone(w.timezone), now)) continue
     // Claim so overlapping runs never ask twice.
-    const { data: claimed } = await db
-      .from('bookings')
-      .update({ viewing_feedback_sent_at: now.toISOString() })
-      .eq('id', b.id)
-      .is('viewing_feedback_sent_at', null)
-      .select('id')
-      .maybeSingle()
-    if (!claimed) continue
+    const claimed = await tenantDb(b.workspace_id)
+      .bookings.updateMany({ where: { id: b.id, viewing_feedback_sent_at: null }, data: { viewing_feedback_sent_at: now.toISOString() } })
+      .catch(() => null)
+    if (!claimed?.count) continue
     const sent = await askVisitFeedback({
       workspaceId: b.workspace_id as string,
       bookingId: b.id as string,
@@ -315,15 +328,13 @@ export async function processViewings(now = new Date()): Promise<ViewingCronResu
 }
 
 async function latestConversation(workspaceId: string, contactId: string): Promise<string | null> {
-  const { data } = await supabaseAdmin()
-    .from('conversations')
-    .select('id')
-    .eq('workspace_id', workspaceId)
-    .eq('contact_id', contactId)
-    .not('channel_id', 'is', null)
-    .order('last_message_at', { ascending: false, nullsFirst: false })
-    .limit(1)
-    .maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .conversations.findFirst({
+      select: { id: true },
+      where: { contact_id: contactId, channel_id: { not: null } },
+      orderBy: { last_message_at: { sort: 'desc', nulls: 'last' } },
+    })
+    .catch(() => null)
   return (data?.id as string) ?? null
 }
 
@@ -335,15 +346,13 @@ async function askVisitFeedback(input: {
   locale: string
   aiAgentId: string | null
 }): Promise<boolean> {
-  const db = supabaseAdmin()
+  const db = tenantDb(input.workspaceId)
   const conversationId = input.conversationId ?? (await latestConversation(input.workspaceId, input.contactId))
   if (!conversationId) return false
-  const { data: conv } = await db
-    .from('conversations')
-    .select('last_customer_message_at, channel:channels(type)')
-    .eq('id', conversationId)
-    .maybeSingle()
-  const type = ((conv?.channel as unknown as { type?: ChannelType } | null)?.type ?? 'whatsapp') as ChannelType
+  const conv = await db.conversations
+    .findFirst({ select: { last_customer_message_at: true, channels: { select: { type: true } } }, where: { id: conversationId } })
+    .catch(() => null)
+  const type = ((conv?.channels as unknown as { type?: ChannelType } | null)?.type ?? 'whatsapp') as ChannelType
   if (!windowState(type, conv?.last_customer_message_at as string | null).open) return false
 
   const t = createTranslator(input.locale === 'en' ? 'en' : 'es')

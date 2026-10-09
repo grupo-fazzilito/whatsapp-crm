@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 import { isPlatformAdmin } from '@/lib/admin/guard'
 import {
   GRAPH_VERSION_RE,
@@ -50,9 +50,7 @@ export async function PUT(req: NextRequest) {
   // Server-side generator so the token never depends on the browser's RNG.
   if (body.generate_verify_token === true) update.verify_token = generateVerifyToken()
 
-  const {
-    data: { user },
-  } = await (await createClient(null)).auth.getUser()
+  const user = await getSessionUser()
   await updateMetaSettings(update, user?.id ?? null)
   return NextResponse.json(await maskedMetaSettings(origin(req)))
 }

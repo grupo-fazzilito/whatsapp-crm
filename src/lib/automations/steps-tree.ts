@@ -1,4 +1,5 @@
-import { supabaseAdmin } from './admin-client'
+import type { Prisma } from '@/generated/prisma/client'
+import { tenantDb } from '@/lib/db/tenant'
 
 // ------------------------------------------------------------
 // Builder payload → flat rows for automation_steps.
@@ -39,13 +40,13 @@ export async function replaceSteps(
   workspaceId: string,
   input: BuilderStepInput[],
 ): Promise<string | null> {
-  const admin = supabaseAdmin()
-  const { error: delErr } = await admin
-    .from('automation_steps')
-    .delete()
-    .eq('automation_id', automationId)
-    .eq('workspace_id', workspaceId)
-  if (delErr) return delErr.message
+  try {
+    await tenantDb(workspaceId).automation_steps.deleteMany({
+      where: { automation_id: automationId, workspace_id: workspaceId },
+    })
+  } catch (delErr) {
+    return errMessage(delErr)
+  }
   return insertSteps(automationId, workspaceId, input)
 }
 
@@ -88,8 +89,19 @@ export async function insertSteps(
   walk(tree, null, null)
 
   if (rows.length === 0) return null
-  const { error } = await supabaseAdmin().from('automation_steps').insert(rows)
-  return error?.message ?? null
+  try {
+    // One multi-row INSERT: parent_step_id references resolve within it.
+    await tenantDb(workspaceId).automation_steps.createMany({
+      data: rows.map((r) => ({ ...r, step_config: r.step_config as Prisma.InputJsonValue })),
+    })
+    return null
+  } catch (error) {
+    return errMessage(error)
+  }
+}
+
+function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }
 
 function seedsToTree(seeds: BuilderStepInput[]): BuilderStepInput[] {
@@ -134,15 +146,10 @@ export async function loadStepsTree(
   automationId: string,
   workspaceId: string,
 ): Promise<BuilderStepNode[]> {
-  const { data, error } = await supabaseAdmin()
-    .from('automation_steps')
-    .select('*')
-    .eq('automation_id', automationId)
-    .eq('workspace_id', workspaceId)
-    .order('position', { ascending: true })
-
-  if (error) throw new Error(error.message)
-  const rows = (data ?? []) as DbStep[]
+  const rows = (await tenantDb(workspaceId).automation_steps.findMany({
+    where: { automation_id: automationId, workspace_id: workspaceId },
+    orderBy: { position: 'asc' },
+  })) as unknown as DbStep[]
 
   const byId = new Map<string, BuilderStepNode>()
   for (const row of rows) {

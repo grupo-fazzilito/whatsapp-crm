@@ -1,7 +1,9 @@
 import 'server-only'
 import crypto from 'node:crypto'
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
+import { isPrismaError } from '@/lib/db/errors'
+import { isUuid } from '@/lib/workspace/constants'
 import type { ChannelRow } from '@/lib/channels/types'
 import { getMetaConfig, metaAppReady } from '@/lib/platform/meta'
 
@@ -13,14 +15,32 @@ export const GRAPH = 'https://graph.facebook.com/v21.0'
 export const PUBLIC_COLUMNS =
   'id, workspace_id, type, name, purpose, external_id, display_handle, status, status_detail, settings, ai_agent_id, created_at, updated_at'
 
+/** PUBLIC_COLUMNS as a Prisma `select`. */
+export const PUBLIC_SELECT = {
+  id: true,
+  workspace_id: true,
+  type: true,
+  name: true,
+  purpose: true,
+  external_id: true,
+  display_handle: true,
+  status: true,
+  status_detail: true,
+  settings: true,
+  ai_agent_id: true,
+  created_at: true,
+  updated_at: true,
+} as const
+
 export function bad(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status })
 }
 
 export const CONFLICT_MESSAGE = 'This account is already connected (maybe in another workspace).'
 
-export function isUniqueViolation(error: { code?: string } | null | undefined) {
-  return error?.code === '23505'
+/** Unique violation: a Prisma P2002 error or a Postgres/PostgREST error with code 23505. */
+export function isUniqueViolation(error: unknown) {
+  return isPrismaError(error, 'P2002') || (error as { code?: string } | null | undefined)?.code === '23505'
 }
 
 /** Platform Meta app configured (admin panel → env fallback). */
@@ -184,12 +204,9 @@ export function candidateCookieNames(): string[] {
 export const META_COOKIE_PATH = '/api/channels/meta'
 
 export async function assertAgentInWorkspace(workspaceId: string, agentId: string): Promise<boolean> {
-  const { data } = await supabaseAdmin()
-    .from('ai_agents')
-    .select('id')
-    .eq('id', agentId)
-    .eq('workspace_id', workspaceId)
-    .maybeSingle()
+  // Non-uuid ids made PostgREST fail (no row); Prisma would throw.
+  if (!isUuid(agentId)) return false
+  const data = await tenantDb(workspaceId).ai_agents.findFirst({ select: { id: true }, where: { id: agentId, workspace_id: workspaceId } })
   return !!data
 }
 

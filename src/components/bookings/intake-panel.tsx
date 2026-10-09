@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import { Activity, AlertCircle, Loader2, Plus, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { useT } from '@/i18n/client'
-import { useWorkspace } from '@/hooks/use-workspace'
-import { createClient } from '@/lib/supabase/client'
+import { api } from '@/components/business/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -103,7 +102,6 @@ const EMPTY = { symptoms: '', allergies: '', current_medications: '', medical_hi
 /** Pre-visit intake + AI triage for one booking (clinic / triage module). */
 export function IntakePanel({ booking }: { booking: Booking }) {
   const t = useT()
-  const { workspace } = useWorkspace()
   const [intake, setIntake] = useState<Intake | null>(null)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -114,24 +112,10 @@ export function IntakePanel({ booking }: { booking: Booking }) {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const db = createClient()
-      const { data } = await db.from('patient_intake').select('*').eq('booking_id', booking.id).maybeSingle()
-      let found = data as Intake | null
-      if (!found && booking.contact_id) {
-        // Intake the AI collected before the booking existed: attach it.
-        const { data: loose } = await db
-          .from('patient_intake')
-          .select('*')
-          .eq('contact_id', booking.contact_id)
-          .is('booking_id', null)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-        if (loose) {
-          const { data: linked } = await db.from('patient_intake').update({ booking_id: booking.id }).eq('id', loose.id).select('*').single()
-          found = (linked ?? loose) as Intake
-        }
-      }
+      // The server also attaches an intake the AI collected before the booking existed.
+      const found = await api<{ intake: Intake | null }>(`/api/bookings/${booking.id}/intake`)
+        .then((d) => d.intake)
+        .catch(() => null)
       if (!cancelled) {
         setIntake(found)
         setLoading(false)
@@ -146,27 +130,24 @@ export function IntakePanel({ booking }: { booking: Booking }) {
     e.preventDefault()
     if (!booking.contact_id || !form.symptoms.trim()) return
     setSaving(true)
-    const { data, error } = await createClient()
-      .from('patient_intake')
-      .insert({
-        workspace_id: workspace?.id,
-        contact_id: booking.contact_id,
-        booking_id: booking.id,
-        symptoms: form.symptoms.trim(),
-        allergies: form.allergies.trim() || null,
-        current_medications: form.current_medications.trim() || null,
-        medical_history: form.medical_history.trim() || null,
-        urgency_level: 'routine',
-        collected_via: 'dashboard',
-      })
-      .select('*')
-      .single()
-    setSaving(false)
-    if (error) {
-      toast.error(error.message)
+    let data: Intake
+    try {
+      ;({ intake: data } = await api<{ intake: Intake }>(`/api/bookings/${booking.id}/intake`, {
+        method: 'POST',
+        body: {
+          symptoms: form.symptoms.trim(),
+          allergies: form.allergies.trim() || null,
+          current_medications: form.current_medications.trim() || null,
+          medical_history: form.medical_history.trim() || null,
+        },
+      }))
+    } catch (err) {
+      setSaving(false)
+      toast.error(err instanceof Error ? err.message : String(err))
       return
     }
-    setIntake(data as Intake)
+    setSaving(false)
+    setIntake(data)
     setShowForm(false)
     setForm(EMPTY)
     toast.success(t('bookings.intake.saved'))

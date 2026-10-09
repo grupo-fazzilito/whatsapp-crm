@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { api } from '../api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { DAYS, invalidateAi, selectClass, trimOrNull, type Service, type Staff, type StaffException, type StaffSlot } from '../shared';
+import { DAYS, selectClass, trimOrNull, type Service, type Staff, type StaffException, type StaffSlot } from '../shared';
 import { WeeklyAvailability } from './weekly-availability';
 import { StaffExceptions } from './staff-exceptions';
 
@@ -118,38 +118,20 @@ export function StaffEditor({ staff, readOnly, services, members, linkedServiceI
       available_end_time: draft.available_end_time,
       weekly_slots: weekly,
       date_exceptions: [...draft.date_exceptions].sort((a, b) => a.date.localeCompare(b.date)),
-      updated_at: new Date().toISOString(),
+      // Linked services are replaced only when the services module is on.
+      ...(modules.services ? { service_ids: serviceIds } : {}),
     };
-    const db = createClient();
-    const res = staff
-      ? await db.from('staff').update(row).eq('id', staff.id).select('id').single()
-      : await db.from('staff').insert({ ...row, workspace_id: workspace.id }).select('id').single();
-    if (res.error || !res.data) {
+    try {
+      // The server drops the AI's cached business context.
+      if (staff) await api(`/api/business/staff/${staff.id}`, { method: 'PATCH', body: row });
+      else await api('/api/business/staff', { method: 'POST', body: row });
+    } catch (err) {
       setSaving(false);
-      toast.error(res.error?.message ?? t('business.common.error'));
+      toast.error(err instanceof Error ? err.message : t('business.common.error'));
       return;
-    }
-    const staffId = res.data.id as string;
-
-    if (modules.services) {
-      const before = new Set(linkedServiceIds);
-      const after = new Set(serviceIds);
-      const toRemove = [...before].filter((id) => !after.has(id));
-      const toAdd = [...after].filter((id) => !before.has(id));
-      if (toRemove.length) {
-        const { error } = await db.from('staff_services').delete().eq('staff_id', staffId).in('service_id', toRemove);
-        if (error) toast.error(error.message);
-      }
-      if (toAdd.length) {
-        const { error } = await db
-          .from('staff_services')
-          .insert(toAdd.map((service_id) => ({ staff_id: staffId, service_id, workspace_id: workspace.id })));
-        if (error) toast.error(error.message);
-      }
     }
 
     setSaving(false);
-    await invalidateAi();
     toast.success(t('business.common.saved'));
     onSaved();
   };

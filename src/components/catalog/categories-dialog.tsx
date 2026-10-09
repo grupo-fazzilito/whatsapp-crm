@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { ApiError, apiJson } from '@/lib/crm/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -37,9 +37,14 @@ export function CategoriesDialog({ open, onOpenChange, categories, counts, onCha
   const [deleting, setDeleting] = useState<Category | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const done = async (error: { message: string; code?: string } | null) => {
+  // Runs a write and refreshes; false when it failed (toast shown).
+  const done = async (write: Promise<unknown>) => {
+    const error = await write.then(
+      () => null,
+      (err: unknown) => err,
+    );
     if (error) {
-      toast.error(error.code === '23505' ? t('catalog.categories.duplicate') : error.message);
+      toast.error(error instanceof ApiError && error.code === 'duplicate' ? t('catalog.categories.duplicate') : error instanceof Error ? error.message : String(error));
       onChanged();
       return false;
     }
@@ -54,9 +59,9 @@ export function CategoriesDialog({ open, onOpenChange, categories, counts, onCha
     if (!name || !workspace) return;
     setBusy(true);
     const maxOrder = list.reduce((m, c) => Math.max(m, c.sort_order), -1);
-    const { error } = await createClient().from('product_categories').insert({ workspace_id: workspace.id, name, sort_order: maxOrder + 1 });
+    const ok = await done(apiJson('/api/catalog/categories', { method: 'POST', body: { name, sort_order: maxOrder + 1 } }));
     setBusy(false);
-    if (await done(error)) setNewName('');
+    if (ok) setNewName('');
   };
 
   const rename = async (c: Category) => {
@@ -72,14 +77,12 @@ export function CategoriesDialog({ open, onOpenChange, categories, counts, onCha
       clear();
       return;
     }
-    const { error } = await createClient().from('product_categories').update({ name }).eq('id', c.id);
-    await done(error);
+    await done(apiJson(`/api/catalog/categories/${c.id}`, { method: 'PATCH', body: { name } }));
     clear();
   };
 
   const toggle = async (c: Category, is_active: boolean) => {
-    const { error } = await createClient().from('product_categories').update({ is_active }).eq('id', c.id);
-    await done(error);
+    await done(apiJson(`/api/catalog/categories/${c.id}`, { method: 'PATCH', body: { is_active } }));
   };
 
   const move = async (idx: number, dir: -1 | 1) => {
@@ -89,17 +92,14 @@ export function CategoriesDialog({ open, onOpenChange, categories, counts, onCha
     [next[idx], next[j]] = [next[j], next[idx]];
     setBusy(true);
     // Renumber everything so ties from older data disappear.
-    const db = createClient();
     const changed = next.map((c, i) => ({ c, i })).filter(({ c, i }) => c.sort_order !== i);
-    const results = await Promise.all(changed.map(({ c, i }) => db.from('product_categories').update({ sort_order: i }).eq('id', c.id)));
-    await done(results.find((r) => r.error)?.error ?? null);
+    await done(apiJson('/api/catalog/categories', { method: 'PATCH', body: { order: changed.map(({ c, i }) => ({ id: c.id, sort_order: i })) } }));
     setBusy(false);
   };
 
   const remove = async () => {
     if (!deleting) return;
-    const { error } = await createClient().from('product_categories').delete().eq('id', deleting.id);
-    if (await done(error)) toast.success(t('catalog.deleted'));
+    if (await done(apiJson(`/api/catalog/categories/${deleting.id}`, { method: 'DELETE' }))) toast.success(t('catalog.deleted'));
   };
 
   return (

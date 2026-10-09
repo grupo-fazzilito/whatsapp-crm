@@ -6,13 +6,13 @@ import { toast } from 'sonner';
 import { Ban, CheckCircle2, Loader2, MessageSquare, RotateCcw, Trash2 } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { apiJson, qs } from '@/lib/crm/api-client';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { selectClass } from '@/components/business/shared';
-import { TASK_SELECT, type TaskPriority, type TaskRow } from '@/lib/crm/tasks';
+import { type TaskPriority, type TaskRow } from '@/lib/crm/tasks';
 import { useMembers } from '@/components/crm/use-members';
 import { AssigneeSelect, DueField, PrioritySelect } from './task-fields';
 import { ContactPicker, type ContactLite } from './contact-picker';
@@ -66,17 +66,15 @@ export function TaskSheet({ taskId, onOpenChange, onChanged }: Props) {
     setMissing(false);
     setConfirmDelete(false);
     /* eslint-enable react-hooks/set-state-in-effect */
-    createClient()
-      .from('tasks')
-      .select(TASK_SELECT)
-      .eq('id', taskId)
-      .eq('workspace_id', workspace.id)
-      .maybeSingle()
-      .then(({ data }) => {
+    fetch(`/api/tasks/${taskId}`, { cache: 'no-store' })
+      .then(async (res) => {
         if (cancelled) return;
-        if (!data) setMissing(true);
-        else fill(data as TaskRow);
-      });
+        const body = (await res.json().catch(() => null)) as { task?: TaskRow } | null;
+        if (cancelled) return;
+        if (res.status === 404) setMissing(true);
+        else if (body?.task) fill(body.task);
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -92,16 +90,15 @@ export function TaskSheet({ taskId, onOpenChange, onChanged }: Props) {
       return;
     }
     let cancelled = false;
-    const db = createClient();
     Promise.all([
-      db.from('deals').select('id, title, status').eq('workspace_id', workspace.id).eq('contact_id', contactId).order('created_at', { ascending: false }).limit(30),
+      apiJson<{ deals: { id: string; title: string; status: string }[] }>(`/api/crm/contacts/${contactId}/deals${qs({ limit: 30 })}`).catch(() => null),
       task?.conversation_id && task.contact_id === contactId
-        ? Promise.resolve({ data: { id: task.conversation_id } })
-        : db.from('conversations').select('id').eq('workspace_id', workspace.id).eq('contact_id', contactId).order('last_message_at', { ascending: false, nullsFirst: false }).limit(1).maybeSingle(),
+        ? Promise.resolve({ id: task.conversation_id as string | null })
+        : apiJson<{ id: string | null }>(`/api/crm/contacts/${contactId}/conversation`).catch(() => null),
     ]).then(([d, c]) => {
       if (cancelled) return;
-      setDeals(((d.data ?? []) as { id: string; title: string; status: string }[]).filter((x) => x.status === 'open' || x.id === task?.deal_id));
-      setChatId((c.data as { id: string } | null)?.id ?? null);
+      setDeals((d?.deals ?? []).map((x) => ({ id: x.id, title: x.title, status: x.status })).filter((x) => x.status === 'open' || x.id === task?.deal_id));
+      setChatId(c?.id ?? null);
     });
     return () => {
       cancelled = true;
@@ -110,18 +107,14 @@ export function TaskSheet({ taskId, onOpenChange, onChanged }: Props) {
 
   const update = async (patch: Record<string, unknown>, okMsg: string) => {
     if (!task || !workspace) return false;
-    const { data, error } = await createClient()
-      .from('tasks')
-      .update(patch)
-      .eq('id', task.id)
-      .eq('workspace_id', workspace.id)
-      .select(TASK_SELECT)
-      .single();
-    if (error || !data) {
+    const data = await apiJson<{ task: TaskRow }>(`/api/tasks/${task.id}`, { method: 'PATCH', body: patch })
+      .then((r) => r.task)
+      .catch(() => null);
+    if (!data) {
       toast.error(t('crm.tasks.errors.saveFailed'));
       return false;
     }
-    fill(data as TaskRow);
+    fill(data);
     toast.success(okMsg);
     onChanged();
     return true;
@@ -160,9 +153,12 @@ export function TaskSheet({ taskId, onOpenChange, onChanged }: Props) {
   const remove = async () => {
     if (!task || !workspace) return;
     setBusy(true);
-    const { error } = await createClient().from('tasks').delete().eq('id', task.id).eq('workspace_id', workspace.id);
+    const ok = await apiJson(`/api/tasks/${task.id}`, { method: 'DELETE' }).then(
+      () => true,
+      () => false,
+    );
     setBusy(false);
-    if (error) {
+    if (!ok) {
       toast.error(t('crm.tasks.errors.deleteFailed'));
       return;
     }

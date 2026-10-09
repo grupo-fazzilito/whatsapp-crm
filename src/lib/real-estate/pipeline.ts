@@ -1,5 +1,7 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
+import { normalizeRaw } from '@/lib/db/compat'
 import { REAL_ESTATE_PIPELINE_KEY, type RealEstateStageKey } from './pipeline-keys'
 
 export * from './pipeline-keys'
@@ -11,19 +13,20 @@ export * from './pipeline-keys'
  * Returns the pipeline id, or null when the workspace does not exist.
  */
 export async function ensureRealEstatePipeline(workspaceId: string): Promise<string | null> {
-  const { data, error } = await supabaseAdmin().rpc('ensure_real_estate_pipeline', { ws: workspaceId })
-  if (error) throw new Error(`ensure_real_estate_pipeline: ${error.message}`)
-  return (data as string | null) ?? null
+  let rows: { id: string | null }[]
+  try {
+    rows = normalizeRaw(await prisma.$queryRaw<{ id: string | null }[]>`SELECT public.ensure_real_estate_pipeline(${workspaceId}::uuid) AS id`)
+  } catch (err) {
+    throw new Error(`ensure_real_estate_pipeline: ${err instanceof Error ? err.message : String(err)}`)
+  }
+  return rows[0]?.id ?? null
 }
 
 /** The workspace's real-estate pipeline id, or null when it was never created. */
 export async function realEstatePipelineId(workspaceId: string): Promise<string | null> {
-  const { data } = await supabaseAdmin()
-    .from('pipelines')
-    .select('id')
-    .eq('workspace_id', workspaceId)
-    .eq('key', REAL_ESTATE_PIPELINE_KEY)
-    .maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .pipelines.findFirst({ select: { id: true }, where: { key: REAL_ESTATE_PIPELINE_KEY } })
+    .catch(() => null)
   return data?.id ?? null
 }
 
@@ -47,13 +50,9 @@ export async function realEstateStageByKey(
 ): Promise<KeyedStage | null> {
   const pipelineId = opts.create ? await ensureRealEstatePipeline(workspaceId) : await realEstatePipelineId(workspaceId)
   if (!pipelineId) return null
-  const { data } = await supabaseAdmin()
-    .from('pipeline_stages')
-    .select('id, pipeline_id, key, name, position')
-    .eq('workspace_id', workspaceId)
-    .eq('pipeline_id', pipelineId)
-    .eq('key', key)
-    .maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .pipeline_stages.findFirst({ select: { id: true, pipeline_id: true, key: true, name: true, position: true }, where: { pipeline_id: pipelineId, key } })
+    .catch(() => null)
   return data ? { id: data.id, pipelineId: data.pipeline_id, key: data.key as RealEstateStageKey, name: data.name, position: data.position } : null
 }
 
@@ -61,12 +60,9 @@ export async function realEstateStageByKey(
 export async function realEstateStages(workspaceId: string): Promise<Partial<Record<RealEstateStageKey, KeyedStage>>> {
   const pipelineId = await realEstatePipelineId(workspaceId)
   if (!pipelineId) return {}
-  const { data } = await supabaseAdmin()
-    .from('pipeline_stages')
-    .select('id, pipeline_id, key, name, position')
-    .eq('workspace_id', workspaceId)
-    .eq('pipeline_id', pipelineId)
-    .not('key', 'is', null)
+  const data = await tenantDb(workspaceId)
+    .pipeline_stages.findMany({ select: { id: true, pipeline_id: true, key: true, name: true, position: true }, where: { pipeline_id: pipelineId, key: { not: null } } })
+    .catch(() => null)
   const out: Partial<Record<RealEstateStageKey, KeyedStage>> = {}
   for (const s of data ?? []) {
     out[s.key as RealEstateStageKey] = { id: s.id, pipelineId: s.pipeline_id, key: s.key as RealEstateStageKey, name: s.name, position: s.position }

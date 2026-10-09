@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto'
 import { ingestMessage } from '@/lib/messaging/ingest'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { signedUrl } from '@/lib/storage'
 import {
   anyOriginCors,
   cleanText,
@@ -66,11 +66,12 @@ export async function POST(req: Request) {
     ) {
       return wcJson({ error: 'invalid_image' }, 400, v.cors)
     }
-    const { data, error } = await supabaseAdmin()
-      .storage.from('attachments')
-      .createSignedUrl(imagePath, IMAGE_URL_TTL_S)
-    if (error || !data?.signedUrl) return wcJson({ error: 'invalid_image' }, 400, v.cors)
-    mediaUrl = data.signedUrl
+    try {
+      mediaUrl = signedUrl('attachments', imagePath, IMAGE_URL_TTL_S)
+    } catch (err) {
+      console.error('[webchat/messages] sign failed:', err instanceof Error ? err.message : err)
+      return wcJson({ error: 'invalid_image' }, 400, v.cors)
+    }
   } else if (!text) {
     return wcJson({ error: 'empty_text' }, 400, v.cors)
   }

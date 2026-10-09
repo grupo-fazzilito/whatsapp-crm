@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { MessageTemplate } from '@/types';
 import { Step1ChooseTemplate } from '@/components/broadcasts/step1-choose-template';
@@ -81,28 +80,24 @@ export default function NewBroadcastPage() {
       toast.error('Give the broadcast a name before saving a draft.');
       return;
     }
-    const supabase = createClient();
-
-    const { error } = await supabase.from('broadcasts').insert({
-      name: name.trim(),
-      template_name: template.name,
-      template_language: template.language ?? 'en_US',
-      template_variables: variables,
-      audience_filter: {
-        type: audience.type,
-        tagIds: audience.tagIds,
-      },
-      status: 'draft',
-      total_recipients: 0,
-      sent_count: 0,
-      delivered_count: 0,
-      read_count: 0,
-      replied_count: 0,
-      failed_count: 0,
+    const res = await fetch('/api/broadcasts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.trim(),
+        template_name: template.name,
+        template_language: template.language ?? 'en_US',
+        template_variables: variables,
+        audience_filter: {
+          type: audience.type,
+          tagIds: audience.tagIds,
+        },
+      }),
     });
 
-    if (error) {
-      toast.error(`Failed to save draft: ${error.message}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      toast.error(`Failed to save draft: ${body?.error ?? `HTTP ${res.status}`}`);
       return;
     }
     toast.success('Draft saved');

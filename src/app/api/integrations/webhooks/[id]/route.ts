@@ -1,11 +1,26 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { isUuid } from '@/lib/workspace/constants'
-import { supabaseAdmin } from '@/lib/supabase/admin'
-import { ENDPOINT_FIELDS, normalizeEvents } from '@/lib/webhooks/events'
+import { normalizeEvents } from '@/lib/webhooks/events'
 import { checkWebhookUrl, defaultUrlPolicy } from '@/lib/webhooks/ssrf'
 
 type Ctx = { params: Promise<{ id: string }> }
+
+/** Columns of ENDPOINT_FIELDS (secrets are never returned). */
+const ENDPOINT_SELECT = {
+  id: true,
+  url: true,
+  description: true,
+  events: true,
+  active: true,
+  failure_count: true,
+  disabled_at: true,
+  disabled_reason: true,
+  last_success_at: true,
+  last_failure_at: true,
+  created_at: true,
+  updated_at: true,
+} as const
 
 /** PATCH {url?, description?, events?, active?} — re-enabling resets the failure counter. */
 export async function PATCH(request: Request, { params }: Ctx) {
@@ -35,14 +50,17 @@ export async function PATCH(request: Request, { params }: Ctx) {
   }
   if (!Object.keys(patch).length) return NextResponse.json({ error: 'nothing_to_update' }, { status: 400 })
 
-  const { data, error } = await supabaseAdmin()
-    .from('webhook_endpoints')
-    .update(patch)
-    .eq('id', id)
-    .eq('workspace_id', guard.ctx.workspace.id)
-    .select(ENDPOINT_FIELDS)
-    .maybeSingle()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  let data
+  try {
+    const rows = await guard.ctx.db.webhook_endpoints.updateManyAndReturn({
+      where: { id, workspace_id: guard.ctx.workspace.id },
+      data: patch,
+      select: ENDPOINT_SELECT,
+    })
+    data = rows[0] ?? null
+  } catch (error) {
+    return NextResponse.json({ error: errMessage(error) }, { status: 500 })
+  }
   if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 })
   return NextResponse.json({ endpoint: data })
 }
@@ -52,14 +70,18 @@ export async function DELETE(_request: Request, { params }: Ctx) {
   if (!guard.ok) return guard.response
   const { id } = await params
   if (!isUuid(id)) return NextResponse.json({ error: 'not_found' }, { status: 404 })
-  const { data, error } = await supabaseAdmin()
-    .from('webhook_endpoints')
-    .delete()
-    .eq('id', id)
-    .eq('workspace_id', guard.ctx.workspace.id)
-    .select('id')
-    .maybeSingle()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+  let deleted: number
+  try {
+    ;({ count: deleted } = await guard.ctx.db.webhook_endpoints.deleteMany({
+      where: { id, workspace_id: guard.ctx.workspace.id },
+    }))
+  } catch (error) {
+    return NextResponse.json({ error: errMessage(error) }, { status: 500 })
+  }
+  if (!deleted) return NextResponse.json({ error: 'not_found' }, { status: 404 })
   return NextResponse.json({ deleted: true })
+}
+
+function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }

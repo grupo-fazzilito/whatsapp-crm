@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
 import type { ChannelRow } from '@/lib/channels/types'
 import {
   CONFLICT_MESSAGE,
@@ -25,19 +25,20 @@ import { insertChannel } from '../../_lib/create'
  * DELETE — forget the candidates (cancel).
  */
 
+// Every workspace (platform-level): an account can only be connected once.
 async function connectedSet(workspaceId: string, pageIds: string[], igIds: string[]) {
-  const db = supabaseAdmin()
+  const select = { external_id: true, workspace_id: true } as const
   const [pages, igs] = await Promise.all([
     pageIds.length
-      ? db.from('channels').select('external_id, workspace_id').eq('type', 'messenger').in('external_id', pageIds)
-      : Promise.resolve({ data: [] as { external_id: string; workspace_id: string }[] }),
+      ? prisma.channels.findMany({ select, where: { type: 'messenger', external_id: { in: pageIds } } }).catch(() => null)
+      : Promise.resolve([] as { external_id: string; workspace_id: string }[]),
     igIds.length
-      ? db.from('channels').select('external_id, workspace_id').eq('type', 'instagram').in('external_id', igIds)
-      : Promise.resolve({ data: [] as { external_id: string; workspace_id: string }[] }),
+      ? prisma.channels.findMany({ select, where: { type: 'instagram', external_id: { in: igIds } } }).catch(() => null)
+      : Promise.resolve([] as { external_id: string; workspace_id: string }[]),
   ])
   const state = (rows: { external_id: string; workspace_id: string }[] | null) =>
     new Map((rows ?? []).map((r) => [r.external_id, r.workspace_id === workspaceId ? 'here' : 'elsewhere'] as const))
-  return { pages: state(pages.data), igs: state(igs.data) }
+  return { pages: state(pages), igs: state(igs) }
 }
 
 export async function GET(request: NextRequest) {

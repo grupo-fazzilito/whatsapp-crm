@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import type { Prisma } from '@/generated/prisma/client'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { isUuid } from '@/lib/workspace/constants'
 import { isPriority } from '@/lib/inbox/priority'
@@ -37,7 +38,7 @@ const STATUSES = new Set(['open', 'pending', 'closed'])
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireWorkspace('agent')
   if (!guard.ok) return guard.response
-  const { supabase, user, workspace } = guard.ctx
+  const { db, user, workspace } = guard.ctx
 
   const { id } = await params
   if (!isUuid(id)) return NextResponse.json({ error: 'Invalid conversation id' }, { status: 400 })
@@ -47,12 +48,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { data: current } = await supabase
-    .from('conversations')
-    .select('id, status, assigned_agent_id, priority, team_id')
-    .eq('id', id)
-    .eq('workspace_id', workspace.id)
-    .maybeSingle()
+  const current = await db.conversations.findFirst({
+    select: { id: true, status: true, assigned_agent_id: true, priority: true, team_id: true },
+    where: { id, workspace_id: workspace.id },
+  })
   if (!current) return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
 
   const update: Record<string, unknown> = {}
@@ -95,13 +94,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       update.assigned_agent_id = null
     } else if (typeof agentId === 'string' && isUuid(agentId)) {
       // Only active members of this workspace can be assigned.
-      const { data: member } = await supabase
-        .from('workspace_members')
-        .select('user_id')
-        .eq('workspace_id', workspace.id)
-        .eq('user_id', agentId)
-        .eq('status', 'active')
-        .maybeSingle()
+      const member = await db.workspace_members.findFirst({
+        select: { user_id: true },
+        where: { workspace_id: workspace.id, user_id: agentId, status: 'active' },
+      })
       if (!member) {
         return NextResponse.json({ error: 'Assignee is not a member of this workspace' }, { status: 400 })
       }
@@ -123,13 +119,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (aiAgentId === null) {
       update.ai_agent_id = null
     } else if (typeof aiAgentId === 'string' && isUuid(aiAgentId)) {
-      const { data: agent } = await supabase
-        .from('ai_agents')
-        .select('id')
-        .eq('workspace_id', workspace.id)
-        .eq('id', aiAgentId)
-        .eq('enabled', true)
-        .maybeSingle()
+      const agent = await db.ai_agents.findFirst({
+        select: { id: true },
+        where: { workspace_id: workspace.id, id: aiAgentId, enabled: true },
+      })
       if (!agent) {
         return NextResponse.json({ error: 'AI agent not found or disabled in this workspace' }, { status: 400 })
       }
@@ -144,16 +137,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
   update.updated_at = new Date().toISOString()
 
-  const { data, error } = await supabase
-    .from('conversations')
-    .update(update)
-    .eq('id', id)
-    .eq('workspace_id', workspace.id)
-    .select('*')
-    .maybeSingle()
-
-  if (error) {
-    console.error('[conversations/patch] update failed:', error.message)
+  let data
+  try {
+    const [row] = await db.conversations.updateManyAndReturn({
+      where: { id, workspace_id: workspace.id },
+      data: update as Prisma.conversationsUpdateManyMutationInput,
+    })
+    data = row ?? null
+  } catch (err) {
+    console.error('[conversations/patch] update failed:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: 'Failed to update conversation' }, { status: 500 })
   }
   if (!data) return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })

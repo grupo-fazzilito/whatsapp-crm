@@ -1,5 +1,5 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
 import { getPreset, resolveIndustry } from '@/lib/industries'
 import { freeSlotsForBusiness, freeSlotsForStaff } from './slots'
 import { isIsoDate, zonedNow } from './time'
@@ -101,9 +101,11 @@ export async function createBookingFromDraft(
     return alternatives.length ? { ok: false, reason: 'slot_taken', alternatives: alternatives.slice(0, 6) } : { ok: false, reason: 'closed' }
   }
 
-  const { data, error } = await supabaseAdmin()
-    .from('bookings')
-    .insert({
+  let data: { id: string }
+  try {
+    data = await tenantDb(input.workspaceId).bookings.create({
+      select: { id: true },
+      data: {
       workspace_id: input.workspaceId,
       contact_id: input.contactId,
       conversation_id: input.conversationId,
@@ -119,10 +121,11 @@ export async function createBookingFromDraft(
       custom_fields: draft.fields ?? {},
       status: 'confirmed',
       source: input.source,
+      },
     })
-    .select('id')
-    .single()
-  if (error) return { ok: false, reason: 'invalid', detail: error.message }
+  } catch (error) {
+    return { ok: false, reason: 'invalid', detail: error instanceof Error ? error.message : String(error) }
+  }
   invalidateBusinessContext(input.workspaceId)
   if (staffId) scheduleBookingSync(data.id, input.workspaceId)
   return { ok: true, bookingId: data.id, staffName, serviceName: service?.name ?? null }
@@ -132,21 +135,20 @@ export async function createBookingFromDraft(
 export async function cancelNextBooking(workspaceId: string, contactId: string, draft: BookingDraft): Promise<{ date: string; time: string } | null> {
   const ctx = await loadBusinessContext(workspaceId)
   const today = zonedNow(ctx?.timeZone ?? 'UTC').date
-  let query = supabaseAdmin()
-    .from('bookings')
-    .select('id, booking_date, booking_time')
-    .eq('workspace_id', workspaceId)
-    .eq('contact_id', contactId)
-    .in('status', ['pending', 'confirmed'])
-    .gte('booking_date', today)
-    .order('booking_date')
-    .order('booking_time')
-    .limit(1)
-  if (isIsoDate(draft.date)) query = query.eq('booking_date', draft.date)
-  if (draft.time) query = query.eq('booking_time', draft.time.padStart(5, '0'))
-  const { data } = await query.maybeSingle()
+  const db = tenantDb(workspaceId)
+  const data = await db.bookings.findFirst({
+    select: { id: true, booking_date: true, booking_time: true },
+    where: {
+      workspace_id: workspaceId,
+      contact_id: contactId,
+      status: { in: ['pending', 'confirmed'] },
+      booking_date: isIsoDate(draft.date) ? { gte: today, equals: draft.date } : { gte: today },
+      ...(draft.time ? { booking_time: draft.time.padStart(5, '0') } : {}),
+    },
+    orderBy: [{ booking_date: 'asc' }, { booking_time: 'asc' }],
+  })
   if (!data) return null
-  await supabaseAdmin().from('bookings').update({ status: 'cancelled' }).eq('id', data.id)
+  await db.bookings.updateMany({ where: { id: data.id }, data: { status: 'cancelled' } })
   invalidateBusinessContext(workspaceId)
   scheduleBookingSync(data.id, workspaceId)
   return { date: data.booking_date, time: data.booking_time }

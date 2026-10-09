@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { ExternalLink, ImagePlus, Loader2, MessageSquare, Rocket, Trash2, X } from 'lucide-react';
 import { useI18n, useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { uploadFile } from '@/lib/storage/client';
 import { getPreset } from '@/lib/industries';
 import { ATTACHMENTS_REF_PREFIX, CAPTURE_STATUSES, type CaptureStatus } from '@/lib/real-estate/captures-core';
 import { Button } from '@/components/ui/button';
@@ -129,7 +129,6 @@ export function CaptureSheet({ captureId, onClose, onChanged }: Props) {
   const upload = async (files: FileList | null) => {
     if (!files?.length || !workspace) return;
     setUploading(true);
-    const db = createClient();
     const added: Photo[] = [];
     for (const file of Array.from(files)) {
       if (!IMAGE_TYPES.includes(file.type) || file.size > MAX_IMAGE_BYTES) {
@@ -138,9 +137,10 @@ export function CaptureSheet({ captureId, onClose, onChanged }: Props) {
       }
       const ext = file.type.split('/')[1].replace('jpeg', 'jpg');
       const path = `${workspace.id}/captures/${crypto.randomUUID()}.${ext}`;
-      const { error } = await db.storage.from('attachments').upload(path, file, { contentType: file.type, upsert: false });
-      if (error) {
-        toast.error(t('realestate.captures.toast.uploadFailed', { reason: error.message }));
+      try {
+        await uploadFile('attachments', file, { path });
+      } catch (err) {
+        toast.error(t('realestate.captures.toast.uploadFailed', { reason: err instanceof Error ? err.message : String(err) }));
         continue;
       }
       added.push({ ref: ATTACHMENTS_REF_PREFIX + path, url: URL.createObjectURL(file) });

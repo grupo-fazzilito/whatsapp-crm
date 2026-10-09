@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { clientIp, gateChannel, preflight, settingsOf, wcJson, webchatChannelByKey, withCors } from '@/lib/webchat/server'
 
@@ -20,17 +20,17 @@ export async function GET(req: Request) {
   if (!gate.ok) return gate.response
 
   const s = settingsOf(channel!)
-  const db = supabaseAdmin()
-  const [{ data: ws }, { data: agent }] = await Promise.all([
-    db.from('workspaces').select('name, locale').eq('id', channel!.workspace_id).maybeSingle(),
+  const db = tenantDb(channel!.workspace_id)
+  const [ws, agent] = await Promise.all([
+    db.workspaces.findFirst({ select: { name: true, locale: true }, where: { id: channel!.workspace_id } }).catch(() => null),
     channel!.ai_agent_id
-      ? db
-          .from('ai_agents')
-          .select('greeting_message, language, enabled')
-          .eq('id', channel!.ai_agent_id)
-          .eq('workspace_id', channel!.workspace_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+      ? db.ai_agents
+          .findFirst({
+            select: { greeting_message: true, language: true, enabled: true },
+            where: { id: channel!.ai_agent_id, workspace_id: channel!.workspace_id },
+          })
+          .catch(() => null)
+      : Promise.resolve(null),
   ])
 
   const greeting =

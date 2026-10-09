@@ -1,30 +1,24 @@
 import { isPlatformAdmin } from "@/lib/admin/guard";
-import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server";
+import { listUsersForAdmin } from "@/lib/auth/users";
+import { prisma } from "@/lib/db/prisma";
 
-
-export async function GET(req: NextRequest) {
+export async function GET() {
   if (!(await isPlatformAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!, // service role bypasses RLS
-  );
+  let accounts: Awaited<ReturnType<typeof listUsersForAdmin>>;
+  try {
+    accounts = await listUsersForAdmin();
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
 
-  // Fetch all auth users via admin API
-  const { data, error } = await supabase.auth.admin.listUsers({ perPage: 200 });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Profiles for display names.
+  const profiles = await prisma.profiles.findMany({ select: { user_id: true, full_name: true, avatar_url: true, email: true } }).catch(() => []);
+  const profileMap = new Map(profiles.map((p) => [p.user_id, p]));
 
-  // Fetch profiles for display names
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, full_name, avatar_url, email");
-
-  const profileMap = new Map((profiles ?? []).map((p: { id: string; full_name: string | null; avatar_url: string | null; email: string | null }) => [p.id, p]));
-
-  const users = (data.users ?? []).map((u) => {
-    const profile = profileMap.get(u.id) as { full_name?: string; avatar_url?: string; email?: string } | undefined;
+  const users = accounts.map((u) => {
+    const profile = profileMap.get(u.id);
     return {
       id: u.id,
       email: u.email ?? "",

@@ -3,6 +3,8 @@ import { requireWorkspace } from '@/lib/workspace/context'
 import { isUuid } from '@/lib/workspace/constants'
 import { parseInboxSettings } from '@/lib/inbox/assignment'
 import { activeMemberIds } from '@/lib/inbox/server'
+import { prisma } from '@/lib/db/prisma'
+import { isPrismaError, pgErrorCode } from '@/lib/db/errors'
 
 /**
  * GET /api/teams → {
@@ -16,33 +18,41 @@ import { activeMemberIds } from '@/lib/inbox/server'
 export async function GET() {
   const guard = await requireWorkspace('agent')
   if (!guard.ok) return guard.response
-  const { supabase, user, workspace } = guard.ctx
+  const { db, user, workspace } = guard.ctx
 
-  const [teamsRes, linksRes, membersRes] = await Promise.all([
-    supabase.from('teams').select('id, workspace_id, name, description, created_at').eq('workspace_id', workspace.id).order('name'),
-    supabase.from('team_members').select('team_id, user_id').eq('workspace_id', workspace.id),
-    supabase
-      .from('workspace_members')
-      .select('user_id, role, available, last_assigned_at')
-      .eq('workspace_id', workspace.id)
-      .eq('status', 'active'),
-  ])
-  if (teamsRes.error || membersRes.error) {
-    console.error('[teams] list failed:', teamsRes.error?.message ?? membersRes.error?.message)
+  let teamRows, linkRows, memberRows
+  try {
+    ;[teamRows, linkRows, memberRows] = await Promise.all([
+      db.teams.findMany({
+        select: { id: true, workspace_id: true, name: true, description: true, created_at: true },
+        where: { workspace_id: workspace.id },
+        orderBy: { name: 'asc' },
+      }),
+      db.team_members.findMany({ select: { team_id: true, user_id: true }, where: { workspace_id: workspace.id } }).catch(() => null),
+      db.workspace_members.findMany({
+        select: { user_id: true, role: true, available: true, last_assigned_at: true },
+        where: { workspace_id: workspace.id, status: 'active' },
+      }),
+    ])
+  } catch (error) {
+    console.error('[teams] list failed:', error instanceof Error ? error.message : error)
     return NextResponse.json({ error: 'Failed to load teams' }, { status: 500 })
   }
-  const ids = (membersRes.data ?? []).map((m) => m.user_id as string)
-  const { data: profiles } = ids.length
-    ? await supabase.from('profiles').select('user_id, full_name, email, avatar_url').in('user_id', ids)
-    : { data: [] }
+  const ids = memberRows.map((m) => m.user_id)
+  // profiles has no workspace_id: platform client, limited to this workspace's members.
+  const profiles = ids.length
+    ? await prisma.profiles
+        .findMany({ select: { user_id: true, full_name: true, email: true, avatar_url: true }, where: { user_id: { in: ids } } })
+        .catch(() => null)
+    : []
   const byId = new Map((profiles ?? []).map((p) => [p.user_id as string, p]))
 
-  const links = linksRes.data ?? []
-  const teams = (teamsRes.data ?? []).map((t) => ({
+  const links = linkRows ?? []
+  const teams = teamRows.map((t) => ({
     ...t,
     member_ids: links.filter((l) => l.team_id === t.id).map((l) => l.user_id as string),
   }))
-  const members = (membersRes.data ?? [])
+  const members = memberRows
     .map((m) => {
       const p = byId.get(m.user_id as string)
       return {
@@ -68,31 +78,33 @@ export async function GET() {
 export async function POST(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
-  const { supabase, workspace } = guard.ctx
+  const { db, workspace } = guard.ctx
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
   const name = typeof body?.name === 'string' ? body.name.trim().slice(0, 80) : ''
   if (!name) return NextResponse.json({ error: 'name_required' }, { status: 400 })
   const description = typeof body?.description === 'string' ? body.description.trim().slice(0, 300) || null : null
 
-  const { data: team, error } = await supabase
-    .from('teams')
-    .insert({ workspace_id: workspace.id, name, description })
-    .select('id, workspace_id, name, description, created_at')
-    .single()
-  if (error || !team) {
-    if (error?.code === '23505') return NextResponse.json({ error: 'name_taken' }, { status: 409 })
-    console.error('[teams] create failed:', error?.message)
+  let team
+  try {
+    team = await db.teams.create({
+      data: { workspace_id: workspace.id, name, description },
+      select: { id: true, workspace_id: true, name: true, description: true, created_at: true },
+    })
+  } catch (error) {
+    if (isPrismaError(error, 'P2002') || pgErrorCode(error) === '23505') return NextResponse.json({ error: 'name_taken' }, { status: 409 })
+    console.error('[teams] create failed:', error instanceof Error ? error.message : error)
     return NextResponse.json({ error: 'Failed to create team' }, { status: 500 })
   }
 
   const wanted = Array.isArray(body?.member_ids) ? body!.member_ids.filter((x): x is string => typeof x === 'string' && isUuid(x)) : []
   const memberIds = await activeMemberIds(workspace.id, wanted)
   if (memberIds.length) {
-    const { error: mErr } = await supabase
-      .from('team_members')
-      .insert(memberIds.map((uid) => ({ workspace_id: workspace.id, team_id: team.id, user_id: uid })))
-    if (mErr) console.error('[teams] members insert failed:', mErr.message)
+    try {
+      await db.team_members.createMany({ data: memberIds.map((uid) => ({ workspace_id: workspace.id, team_id: team.id, user_id: uid })) })
+    } catch (mErr) {
+      console.error('[teams] members insert failed:', mErr instanceof Error ? mErr.message : mErr)
+    }
   }
   return NextResponse.json({ team: { ...team, member_ids: memberIds } })
 }

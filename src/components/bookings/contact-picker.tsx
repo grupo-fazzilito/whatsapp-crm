@@ -5,7 +5,7 @@ import { Loader2, Search, UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useT } from '@/i18n/client'
 import { useWorkspace } from '@/hooks/use-workspace'
-import { createClient } from '@/lib/supabase/client'
+import { api } from '@/components/business/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { ContactLite } from './types'
@@ -21,7 +21,7 @@ export function ContactPicker({
   id?: string
 }) {
   const t = useT()
-  const { workspace, label } = useWorkspace()
+  const { label } = useWorkspace()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<ContactLite[]>([])
   const [loading, setLoading] = useState(false)
@@ -35,12 +35,12 @@ export function ContactPicker({
     let cancelled = false
     const handle = setTimeout(async () => {
       setLoading(true)
-      let q = createClient().from('contacts').select('id, name, phone').order('updated_at', { ascending: false }).limit(8)
-      const term = query.trim().replace(/[%,()]/g, ' ')
-      if (term) q = q.or(`name.ilike.%${term}%,phone.ilike.%${term}%`)
-      const { data } = await q
+      const term = query.trim()
+      const data = await api<{ contacts: ContactLite[] }>(`/api/bookings/contacts${term ? `?q=${encodeURIComponent(term)}` : ''}`)
+        .then((d) => d.contacts)
+        .catch(() => [] as ContactLite[])
       if (!cancelled) {
-        setResults((data ?? []) as ContactLite[])
+        setResults(data)
         setLoading(false)
       }
     }, 200)
@@ -53,17 +53,19 @@ export function ContactPicker({
   const create = async () => {
     if (!newName.trim() && !newPhone.trim()) return
     setSaving(true)
-    const { data, error } = await createClient()
-      .from('contacts')
-      .insert({ workspace_id: workspace?.id, name: newName.trim() || newPhone.trim(), phone: newPhone.trim() || null })
-      .select('id, name, phone')
-      .single()
-    setSaving(false)
-    if (error) {
-      toast.error(error.message)
+    let contact: ContactLite
+    try {
+      ;({ contact } = await api<{ contact: ContactLite }>('/api/bookings/contacts', {
+        method: 'POST',
+        body: { name: newName.trim() || newPhone.trim(), phone: newPhone.trim() || null },
+      }))
+    } catch (err) {
+      setSaving(false)
+      toast.error(err instanceof Error ? err.message : String(err))
       return
     }
-    onChange(data as ContactLite)
+    setSaving(false)
+    onChange(contact)
     setCreating(false)
     setNewName('')
     setNewPhone('')

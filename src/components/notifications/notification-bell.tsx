@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
 import { AtSign, ArrowRightLeft, Bell, CheckCheck, UserCheck, Info, Coins } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { useRealtimeChanges } from "@/lib/realtime/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useI18n } from "@/i18n/client";
@@ -70,41 +70,34 @@ export function NotificationBell() {
     };
   }, [userId, workspaceId]);
 
-  // Live: new notifications for me (any workspace; only the active one counts).
-  useEffect(() => {
-    if (!userId || !workspaceId) return;
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-        (payload) => {
-          const row = payload.new as AppNotification;
-          if (row.workspace_id !== workspaceId) return;
-          setItems((prev) => (prev.some((n) => n.id === row.id) ? prev : [row, ...prev].slice(0, 50)));
-          if (!row.read_at) setUnread((n) => n + 1);
-          setAnnounce(row.title);
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-        (payload) => {
-          const row = payload.new as AppNotification;
-          if (row.workspace_id !== workspaceId) return;
-          // Marked read in another tab: sync the list and the count.
-          setItems((prev) => prev.map((n) => (n.id === row.id ? row : n)));
-          if (syncTimer.current) clearTimeout(syncTimer.current);
-          syncTimer.current = setTimeout(() => void loadRef.current(), 500);
-        },
-      )
-      .subscribe();
-    return () => {
+  // Live: new notifications for me (the stream only carries the active
+  // workspace and only my own notifications).
+  useRealtimeChanges<AppNotification>({
+    workspaceId,
+    tables: ["notifications"],
+    enabled: !!userId,
+    onChange: (change) => {
+      if (change.eventType === "DELETE") return;
+      const row = change.new;
+      if (row.user_id !== userId || row.workspace_id !== workspaceId) return;
+      if (change.eventType === "INSERT") {
+        setItems((prev) => (prev.some((n) => n.id === row.id) ? prev : [row, ...prev].slice(0, 50)));
+        if (!row.read_at) setUnread((n) => n + 1);
+        setAnnounce(row.title);
+        return;
+      }
+      // Marked read in another tab: sync the list and the count.
+      setItems((prev) => prev.map((n) => (n.id === row.id ? row : n)));
       if (syncTimer.current) clearTimeout(syncTimer.current);
-      supabase.removeChannel(channel);
-    };
-  }, [userId, workspaceId]);
+      syncTimer.current = setTimeout(() => void loadRef.current(), 500);
+    },
+  });
+  useEffect(
+    () => () => {
+      if (syncTimer.current) clearTimeout(syncTimer.current);
+    },
+    [],
+  );
 
   const markRead = useCallback(async (body: { ids: string[] } | { all: true }) => {
     const now = new Date().toISOString();

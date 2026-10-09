@@ -2,13 +2,14 @@
 // workspace switches, how media messages read as text for the models,
 // and the summary / suggested-reply prompts.
 
+import { storagePathFromUrl } from '@/lib/storage/paths'
+
 export type MediaRef =
   | { kind: 'wa_proxy'; channelId: string; mediaId: string }
   | { kind: 'wa_legacy'; mediaId: string }
   | { kind: 'attachment'; path: string }
   | { kind: 'external'; url: string }
 
-const SIGNED_ATTACHMENT_MARKER = '/storage/v1/object/sign/attachments/'
 const SB_ATTACHMENT_PREFIX = 'sb://attachments/'
 
 function safePath(p: string): boolean {
@@ -27,15 +28,15 @@ export function classifyMediaUrl(url: string | null | undefined): MediaRef | nul
     const path = s.slice(SB_ATTACHMENT_PREFIX.length)
     return safePath(path) ? { kind: 'attachment', path } : null
   }
-  const signed = s.indexOf(SIGNED_ATTACHMENT_MARKER)
-  if (signed >= 0 && /^https?:\/\//i.test(s)) {
-    let path = s.slice(signed + SIGNED_ATTACHMENT_MARKER.length).split('?')[0]
-    try {
-      path = decodeURIComponent(path)
-    } catch {
-      return null
-    }
-    return safePath(path) ? { kind: 'attachment', path } : null
+  // Our attachment URLs: /api/files/attachments/<path>?exp&sig (absolute or
+  // relative) and legacy Supabase signed URLs copied with the data.
+  if (/^https?:\/\//i.test(s) || s.startsWith('/api/files/attachments/')) {
+    // URL parsing collapses "../" (also %2e%2e): refuse such attachment
+    // URLs outright instead of resolving them to another object.
+    const rawPath = s.split('?')[0]
+    if (/attachments\//.test(rawPath) && /(\.|%2e)(\.|%2e)/i.test(rawPath)) return null
+    const path = storagePathFromUrl(s, 'attachments')
+    if (path !== null) return safePath(path) ? { kind: 'attachment', path } : null
   }
   if (/^https:\/\/[^\s]+$/i.test(s)) return { kind: 'external', url: s }
   return null

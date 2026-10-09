@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth/server";
+import { withAuthCookies } from "@/lib/auth/cookies";
 
-export async function POST() {
-  await (await createClient(null)).auth.signOut();
-  return NextResponse.json({ ok: true });
+export async function POST(req: Request) {
+  const res = await auth().api.signOut({ headers: req.headers, asResponse: true }).catch(() => null);
+  const out = NextResponse.json({ ok: true });
+  return res ? withAuthCookies(res, out) : out;
 }

@@ -5,14 +5,14 @@ import { toast } from 'sonner';
 import { Loader2, Plus, Save, Trash2 } from 'lucide-react';
 import { useI18n, useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { api } from '../api';
 import type { Workspace } from '@/lib/workspace/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { DAYS, LoadingBlock, invalidateAi, trimOrNull } from '../shared';
+import { DAYS, LoadingBlock, trimOrNull } from '../shared';
 
 interface DayRow {
   day_name: string;
@@ -58,13 +58,12 @@ export function HoursForm({ workspace, readOnly }: { workspace: Workspace; readO
 
   useEffect(() => {
     let alive = true;
-    createClient()
-      .from('business_hours')
-      .select('day_name, opening_time, closing_time, is_closed, break_start, break_end')
-      .then(({ data, error }) => {
+    api<{ hours: { day_name: string; opening_time: string | null; closing_time: string | null; is_closed: boolean | null; break_start: string | null; break_end: string | null }[] }>(
+      '/api/business/hours',
+    )
+      .then(({ hours: data }) => {
         if (!alive) return;
-        if (error) toast.error(error.message);
-        if (data?.length) {
+        if (data.length) {
           setRows(
             DAYS.map((day) => {
               const r = data.find((x) => x.day_name === day);
@@ -81,7 +80,12 @@ export function HoursForm({ workspace, readOnly }: { workspace: Workspace; readO
             }),
           );
         }
-        setLoading(false);
+      })
+      .catch((err: Error) => {
+        if (alive) toast.error(err.message);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
       });
     return () => {
       alive = false;
@@ -103,27 +107,27 @@ export function HoursForm({ workspace, readOnly }: { workspace: Workspace; readO
       }
     }
     setSaving(true);
-    const { error } = await createClient()
-      .from('business_hours')
-      .upsert(
-        rows.map((r) => ({
-          workspace_id: workspace.id,
-          day_name: r.day_name,
-          opening_time: r.opening_time,
-          closing_time: r.closing_time,
-          is_closed: r.is_closed,
-          break_start: r.has_break ? r.break_start : null,
-          break_end: r.has_break ? r.break_end : null,
-          updated_at: new Date().toISOString(),
-        })),
-        { onConflict: 'workspace_id,day_name' },
-      );
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
+    try {
+      // The server drops the AI's cached business context.
+      await api('/api/business/hours', {
+        method: 'PUT',
+        body: {
+          hours: rows.map((r) => ({
+            day_name: r.day_name,
+            opening_time: r.opening_time,
+            closing_time: r.closing_time,
+            is_closed: r.is_closed,
+            break_start: r.has_break ? r.break_start : null,
+            break_end: r.has_break ? r.break_end : null,
+          })),
+        },
+      });
+    } catch (err) {
+      setSaving(false);
+      toast.error(err instanceof Error ? err.message : String(err));
       return;
     }
-    await invalidateAi();
+    setSaving(false);
     toast.success(t('business.common.saved'));
   };
 
@@ -236,14 +240,15 @@ function SpecialDates({ workspace, readOnly }: { workspace: Workspace; readOnly:
 
   const persist = async (next: DateException[]) => {
     setSaving(true);
-    const { error } = await createClient().from('workspaces').update({ date_exceptions: next }).eq('id', workspace.id);
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await api('/api/business/workspace', { method: 'PATCH', body: { date_exceptions: next } });
+    } catch (err) {
+      setSaving(false);
+      toast.error(err instanceof Error ? err.message : String(err));
       return false;
     }
+    setSaving(false);
     setList(next);
-    await invalidateAi();
     await refresh();
     toast.success(t('business.common.saved'));
     return true;

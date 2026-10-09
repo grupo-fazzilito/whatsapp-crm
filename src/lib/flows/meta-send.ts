@@ -1,6 +1,5 @@
 import type { InteractiveButton, InteractiveListSection } from '@/lib/whatsapp/meta-api'
 import type { OutboundContent } from '@/lib/channels'
-import { supabaseAdmin } from './admin-client'
 
 // ------------------------------------------------------------
 // Flows-side sender (text + interactive variants).
@@ -92,27 +91,22 @@ export async function engineSendInteractiveList(
 }
 
 async function engineSend(ids: EngineIds, content: OutboundContent): Promise<{ whatsapp_message_id: string }> {
-  const db = supabaseAdmin()
+  // Lazy: the DB client is server-only; engine.test.ts imports this graph.
+  const { tenantDb } = await import('@/lib/db/tenant')
+  const db = tenantDb(ids.workspaceId)
 
-  // Scope the contact / conversation lookups by workspace_id — the
-  // service-role client bypasses RLS, so a contact_id from another
+  // Scope the contact / conversation lookups by workspace_id —  a contact_id from another
   // tenant must never be reachable from this workspace's flows.
-  const { data: contact, error: contactErr } = await db
-    .from('contacts')
-    .select('id')
-    .eq('id', ids.contactId)
-    .eq('workspace_id', ids.workspaceId)
-    .maybeSingle()
-  if (contactErr || !contact) {
+  const contact = await db.contacts
+    .findFirst({ select: { id: true }, where: { id: ids.contactId, workspace_id: ids.workspaceId } })
+    .catch(() => null)
+  if (!contact) {
     throw new Error('contact not found for this workspace')
   }
 
-  const { data: conversation } = await db
-    .from('conversations')
-    .select('id')
-    .eq('id', ids.conversationId)
-    .eq('workspace_id', ids.workspaceId)
-    .maybeSingle()
+  const conversation = await db.conversations
+    .findFirst({ select: { id: true }, where: { id: ids.conversationId, workspace_id: ids.workspaceId } })
+    .catch(() => null)
   if (!conversation) {
     throw new Error('conversation not found for this workspace')
   }

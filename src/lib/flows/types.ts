@@ -201,7 +201,7 @@ export type FlowTriggerConfig =
   | { trigger_type: "manual"; config: Record<string, never> };
 
 // ============================================================
-// DB-row shapes (read by the engine via supabaseAdmin)
+// DB-row shapes (read by the engine via Prisma)
 // ============================================================
 
 export interface FlowRow {

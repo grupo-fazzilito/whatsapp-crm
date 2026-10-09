@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import type { Prisma } from '@/generated/prisma/client'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { createCapture, displayPhotoUrls, isCaptureStatus, type PropertyCapture } from '@/lib/real-estate/captures'
 
@@ -11,24 +12,31 @@ const LIST_LIMIT = 500
 export async function GET(request: Request) {
   const guard = await requireWorkspace('agent')
   if (!guard.ok) return guard.response
-  const { supabase, workspace, user } = guard.ctx
+  const { db, workspace, user } = guard.ctx
   const sp = new URL(request.url).searchParams
 
-  let q = supabase
-    .from('property_captures')
-    .select('*, contact:contacts(id, name, phone)')
-    .eq('workspace_id', workspace.id)
-    .order('created_at', { ascending: false })
-    .limit(LIST_LIMIT)
+  const where: Prisma.property_capturesWhereInput = { workspace_id: workspace.id }
   const status = sp.get('status')
-  if (status && isCaptureStatus(status)) q = q.eq('status', status)
-  if (sp.get('mine') === '1') q = q.eq('assigned_user_id', user.id)
+  if (status && isCaptureStatus(status)) where.status = status
+  if (sp.get('mine') === '1') where.assigned_user_id = user.id
   const text = (sp.get('q') ?? '').trim().replace(/[%,()*\\"]/g, ' ').slice(0, 80)
-  if (text) q = q.or(`owner_name.ilike.%${text}%,address.ilike.%${text}%,district.ilike.%${text}%,owner_phone.ilike.%${text}%`)
+  if (text) {
+    where.OR = (['owner_name', 'address', 'district', 'owner_phone'] as const).map((f) => ({ [f]: { contains: text, mode: 'insensitive' as const } }))
+  }
 
-  const { data, error } = await q
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  const rows = (data ?? []) as (PropertyCapture & { contact: unknown })[]
+  let data
+  try {
+    const found = await db.property_captures.findMany({
+      where,
+      include: { contacts: { select: { id: true, name: true, phone: true } } },
+      orderBy: { created_at: 'desc' },
+      take: LIST_LIMIT,
+    })
+    data = found.map(({ contacts, ...r }) => ({ ...r, contact: contacts ?? null }))
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to load captures' }, { status: 500 })
+  }
+  const rows = data as unknown as (PropertyCapture & { contact: unknown })[]
   const covers = await displayPhotoUrls(rows.map((r) => r.photos?.[0] ?? ''))
   return NextResponse.json({ captures: rows.map((r, i) => ({ ...r, cover: covers[i] || null })) })
 }

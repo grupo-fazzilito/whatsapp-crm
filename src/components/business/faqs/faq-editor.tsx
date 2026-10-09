@@ -5,13 +5,13 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { api } from '../api';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { invalidateAi, trimOrNull, type AgentRef, type Faq } from '../shared';
+import { trimOrNull, type AgentRef, type Faq } from '../shared';
 
 interface Props {
   faq: Faq | null;
@@ -50,18 +50,17 @@ export function FaqEditor({ faq, agents, readOnly, onClose, onSaved }: Props) {
           .join(', '),
       ),
       ai_agent_ids: agentIds.length ? agentIds : null,
-      updated_at: new Date().toISOString(),
     };
-    const db = createClient();
-    const { error } = faq
-      ? await db.from('faqs').update(row).eq('id', faq.id)
-      : await db.from('faqs').insert({ ...row, workspace_id: workspace.id });
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
+    try {
+      // The server drops the AI's cached business context.
+      if (faq) await api(`/api/business/faqs/${faq.id}`, { method: 'PATCH', body: row });
+      else await api('/api/business/faqs', { method: 'POST', body: row });
+    } catch (err) {
+      setSaving(false);
+      toast.error(err instanceof Error ? err.message : String(err));
       return;
     }
-    await invalidateAi();
+    setSaving(false);
     toast.success(t('business.common.saved'));
     onSaved();
   };

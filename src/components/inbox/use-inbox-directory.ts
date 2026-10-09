@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useWorkspace } from "@/hooks/use-workspace";
 import type { Profile } from "@/types";
 import type { InboxChannel } from "./channel-badge";
@@ -38,47 +37,22 @@ export function useInboxDirectory(): InboxDirectory {
   useEffect(() => {
     if (!workspaceId) return;
     let cancelled = false;
-    const supabase = createClient();
 
     (async () => {
-      const [channelsRes, agentsRes, membersRes] = await Promise.all([
-        supabase
-          .from("channels")
-          .select("id, type, name, purpose, display_handle, status, ai_agent_id")
-          .eq("workspace_id", workspaceId)
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("ai_agents")
-          .select("id, name, enabled")
-          .eq("workspace_id", workspaceId),
-        supabase
-          .from("workspace_members")
-          .select("user_id")
-          .eq("workspace_id", workspaceId)
-          .eq("status", "active"),
-      ]);
+      let data: { channels?: InboxChannel[]; agents?: InboxAgent[]; members?: Profile[] } = {};
+      try {
+        const res = await fetch("/api/inbox/directory", { cache: "no-store" });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+        data = body;
+      } catch (error) {
+        console.error("Failed to fetch inbox directory:", error instanceof Error ? error.message : error);
+      }
       if (cancelled) return;
 
-      if (channelsRes.error) console.error("Failed to fetch channels:", channelsRes.error.message);
-      if (agentsRes.error) console.error("Failed to fetch AI agents:", agentsRes.error.message);
-      if (membersRes.error) console.error("Failed to fetch workspace members:", membersRes.error.message);
-
-      setChannels((channelsRes.data as InboxChannel[]) ?? []);
-      setAgents((agentsRes.data as InboxAgent[]) ?? []);
-
-      const memberIds = (membersRes.data ?? []).map((m) => m.user_id as string);
-      if (memberIds.length > 0) {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .in("user_id", memberIds)
-          .order("full_name");
-        if (cancelled) return;
-        if (error) console.error("Failed to fetch profiles:", error.message);
-        setMembers((data as Profile[]) ?? []);
-      } else {
-        setMembers([]);
-      }
+      setChannels(data.channels ?? []);
+      setAgents(data.agents ?? []);
+      setMembers(data.members ?? []);
       setLoaded(true);
     })();
 

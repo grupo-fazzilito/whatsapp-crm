@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Loader2, Save } from 'lucide-react';
 import { useI18n, useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { api } from '../api';
 import { COUNTRIES } from '@/lib/workspace/countries';
 import type { Workspace } from '@/lib/workspace/types';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { invalidateAi, selectClass, trimOrNull } from '../shared';
+import { selectClass, trimOrNull } from '../shared';
 
 export const CURRENCIES = [
   'MXN', 'COP', 'ARS', 'CLP', 'PEN', 'USD', 'EUR', 'GTQ', 'CRC', 'DOP', 'UYU', 'BOB', 'PYG', 'HNL', 'NIO', 'BRL', 'CAD', 'INR',
@@ -108,32 +108,34 @@ export function ProfileForm({ workspace, readOnly }: { workspace: Workspace; rea
     }
     if (!tz) tz = 'UTC';
     setSaving(true);
-    const { error } = await createClient()
-      .from('workspaces')
-      .update({
-        name: draft.name.trim(),
-        business_type_detail: trimOrNull(draft.business_type_detail),
-        description: trimOrNull(draft.description),
-        phone: trimOrNull(draft.phone),
-        email: trimOrNull(draft.email),
-        website: trimOrNull(draft.website),
-        address: trimOrNull(draft.address),
-        city: trimOrNull(draft.city),
-        state: trimOrNull(draft.state),
-        postal_code: trimOrNull(draft.postal_code),
-        google_map_link: trimOrNull(draft.google_map_link),
-        country: trimOrNull(draft.country),
-        currency: draft.currency,
-        timezone: tz,
-        locale: draft.locale,
-      })
-      .eq('id', workspace.id);
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
+    try {
+      // The server drops the AI's cached business context.
+      await api('/api/business/workspace', {
+        method: 'PATCH',
+        body: {
+          name: draft.name.trim(),
+          business_type_detail: trimOrNull(draft.business_type_detail),
+          description: trimOrNull(draft.description),
+          phone: trimOrNull(draft.phone),
+          email: trimOrNull(draft.email),
+          website: trimOrNull(draft.website),
+          address: trimOrNull(draft.address),
+          city: trimOrNull(draft.city),
+          state: trimOrNull(draft.state),
+          postal_code: trimOrNull(draft.postal_code),
+          google_map_link: trimOrNull(draft.google_map_link),
+          country: trimOrNull(draft.country),
+          currency: draft.currency,
+          timezone: tz,
+          locale: draft.locale,
+        },
+      });
+    } catch (err) {
+      setSaving(false);
+      toast.error(err instanceof Error ? err.message : String(err));
       return;
     }
-    await invalidateAi();
+    setSaving(false);
     await refresh();
     toast.success(t('business.common.saved'));
   };

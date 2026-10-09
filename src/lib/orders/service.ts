@@ -1,5 +1,8 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
+import { normalizeRaw } from '@/lib/db/compat'
+import { isUuid } from '@/lib/workspace/constants'
 import { cartCurrencyConflict } from '@/lib/catalog/currency'
 import { sendMessage } from '@/lib/messaging/send'
 import { invalidateBusinessContext } from '@/lib/ai/context'
@@ -73,40 +76,43 @@ export async function getOpenCart(
   contactId: string | null,
   create: boolean,
 ): Promise<Cart | null> {
-  const db = supabaseAdmin()
-  const { data } = await db
-    .from('carts')
-    .select('id, workspace_id, conversation_id, contact_id, checkout')
-    .eq('workspace_id', workspaceId)
-    .eq('conversation_id', conversationId)
-    .eq('status', 'open')
-    .maybeSingle()
-  if (data || !create) return (data as Cart) ?? null
-  const { data: created, error } = await db
-    .from('carts')
-    .insert({ workspace_id: workspaceId, conversation_id: conversationId, contact_id: contactId })
-    .select('id, workspace_id, conversation_id, contact_id, checkout')
-    .single()
-  if (error) {
+  const db = tenantDb(workspaceId)
+  const select = { id: true, workspace_id: true, conversation_id: true, contact_id: true, checkout: true } as const
+  const data = isUuid(conversationId) ? await db.carts.findFirst({ select, where: { conversation_id: conversationId, status: 'open' } }) : null
+  if (data || !create) return (data as Cart | null) ?? null
+  try {
+    const created = await db.carts.create({ data: { workspace_id: workspaceId, conversation_id: conversationId, contact_id: contactId }, select })
+    return created as Cart
+  } catch {
     // Concurrent create (unique open cart per conversation): read the winner.
     return getOpenCart(workspaceId, conversationId, contactId, false)
   }
-  return created as Cart
 }
 
-export async function cartItems(cartId: string): Promise<CartItemView[]> {
-  const { data } = await supabaseAdmin()
-    .from('cart_items')
-    .select('id, quantity, product_id, variant_id, product:products(name, price, currency, images, track_stock, stock, is_active, workspace:workspaces(currency)), variant:product_variants(name, price, stock, is_active)')
-    .eq('cart_id', cartId)
-    .order('created_at')
+/** Lines of a cart. Pass the workspace when known (saves a lookup). */
+export async function cartItems(cartId: string, workspaceId?: string): Promise<CartItemView[]> {
+  if (!isUuid(cartId)) return []
+  const ws = workspaceId ?? (await prisma.carts.findUnique({ where: { id: cartId }, select: { workspace_id: true } }))?.workspace_id
+  if (!ws) return []
+  const rows = await tenantDb(ws).cart_items.findMany({
+    where: { cart_id: cartId },
+    orderBy: { created_at: 'asc' },
+    select: {
+      id: true,
+      quantity: true,
+      product_id: true,
+      variant_id: true,
+      products: { select: { name: true, price: true, currency: true, images: true, track_stock: true, stock: true, is_active: true, workspaces: { select: { currency: true } } } },
+      product_variants: { select: { name: true, price: true, stock: true, is_active: true } },
+    },
+  })
   const out: CartItemView[] = []
-  for (const row of data ?? []) {
-    const p = row.product as unknown as { name: string; price: number | null; currency: string | null; images: string[]; track_stock: boolean; stock: number | null; is_active: boolean; workspace: { currency: string } | null } | null
-    const v = row.variant as unknown as { name: string; price: number | null; stock: number | null; is_active: boolean } | null
+  for (const row of rows) {
+    const p = row.products as unknown as { name: string; price: number | null; currency: string | null; images: string[]; track_stock: boolean; stock: number | null; is_active: boolean; workspaces: { currency: string } | null } | null
+    const v = row.product_variants as unknown as { name: string; price: number | null; stock: number | null; is_active: boolean } | null
     if (!p || !p.is_active || (v && !v.is_active)) continue
     // Priced in another currency since it was added: not orderable.
-    if (cartCurrencyConflict(p, p.workspace?.currency ?? '')) continue
+    if (cartCurrencyConflict(p, p.workspaces?.currency ?? '')) continue
     const price = v?.price ?? p.price
     if (price === null || price === undefined) continue
     out.push({
@@ -139,35 +145,34 @@ export type AddResult =
 
 /** Adds (or increases) a line. Checks availability, price and stock. */
 export async function addToCart(cart: Cart, productId: string, variantId: string | null, quantity: number): Promise<AddResult> {
-  const db = supabaseAdmin()
-  const { data: p } = await db
-    .from('products')
-    .select('id, name, price, currency, track_stock, stock, is_active, workspace:workspaces(currency)')
-    .eq('id', productId)
-    .eq('workspace_id', cart.workspace_id)
-    .maybeSingle()
+  const db = tenantDb(cart.workspace_id)
+  const p = isUuid(productId)
+    ? await db.products.findFirst({
+        select: { id: true, name: true, price: true, currency: true, track_stock: true, stock: true, is_active: true, workspaces: { select: { currency: true } } },
+        where: { id: productId },
+      })
+    : null
   if (!p || !p.is_active) return { ok: false, reason: 'unavailable' }
   // Orders are in the workspace currency: a listing priced in another
   // currency (e.g. a USD sale in a PEN workspace) is quoted by a person.
-  const wsCurrency = (p.workspace as unknown as { currency: string } | null)?.currency ?? ''
+  const wsCurrency = p.workspaces?.currency ?? ''
   const foreign = cartCurrencyConflict(p, wsCurrency)
   if (foreign) return { ok: false, reason: 'foreign_currency', name: p.name, currency: foreign }
   let v: { id: string; name: string; price: number | null; stock: number | null; is_active: boolean } | null = null
   if (variantId) {
-    const { data } = await db.from('product_variants').select('id, name, price, stock, is_active').eq('id', variantId).eq('product_id', productId).maybeSingle()
+    const data = isUuid(variantId)
+      ? await db.product_variants.findFirst({ select: { id: true, name: true, price: true, stock: true, is_active: true }, where: { id: variantId, product_id: productId } })
+      : null
     if (!data || !data.is_active) return { ok: false, reason: 'unavailable', name: p.name }
     v = data
   }
   const name = v ? `${p.name} (${v.name})` : p.name
   if ((v?.price ?? p.price) === null) return { ok: false, reason: 'price_on_request', name }
 
-  const { data: existing } = await db
-    .from('cart_items')
-    .select('id, quantity')
-    .eq('cart_id', cart.id)
-    .eq('product_id', productId)
-    .filter('variant_id', variantId ? 'eq' : 'is', variantId ?? null)
-    .maybeSingle()
+  const existing = await db.cart_items.findFirst({
+    select: { id: true, quantity: true },
+    where: { cart_id: cart.id, product_id: productId, variant_id: variantId ?? null },
+  })
   const next = Math.min(999, (existing?.quantity ?? 0) + Math.max(1, Math.round(quantity)))
 
   if (p.track_stock) {
@@ -176,31 +181,31 @@ export async function addToCart(cart: Cart, productId: string, variantId: string
     if (next > available) return { ok: false, reason: 'not_enough', name, available }
   }
 
-  if (existing) await db.from('cart_items').update({ quantity: next }).eq('id', existing.id)
-  else await db.from('cart_items').insert({ workspace_id: cart.workspace_id, cart_id: cart.id, product_id: productId, variant_id: variantId, quantity: next })
-  await db.from('carts').update({ updated_at: new Date().toISOString() }).eq('id', cart.id)
+  if (existing) await db.cart_items.updateMany({ where: { id: existing.id }, data: { quantity: next } })
+  else await db.cart_items.create({ data: { workspace_id: cart.workspace_id, cart_id: cart.id, product_id: productId, variant_id: variantId, quantity: next } })
+  await db.carts.updateMany({ where: { id: cart.id }, data: { updated_at: new Date() } })
   return { ok: true, name, quantity: Math.max(1, Math.round(quantity)) }
 }
 
 export async function setLineQuantity(cart: Cart, productId: string, variantId: string | null, quantity: number) {
-  const db = supabaseAdmin()
-  let q = db.from('cart_items').select('id').eq('cart_id', cart.id).eq('product_id', productId)
-  q = variantId ? q.eq('variant_id', variantId) : q.is('variant_id', null)
-  const { data } = await q.maybeSingle()
+  if (!isUuid(productId) || (variantId && !isUuid(variantId))) return
+  const db = tenantDb(cart.workspace_id)
+  const data = await db.cart_items.findFirst({ select: { id: true }, where: { cart_id: cart.id, product_id: productId, variant_id: variantId ?? null } })
   if (!data) return
-  if (quantity <= 0) await db.from('cart_items').delete().eq('id', data.id)
-  else await db.from('cart_items').update({ quantity: Math.min(999, Math.round(quantity)) }).eq('id', data.id)
+  if (quantity <= 0) await db.cart_items.deleteMany({ where: { id: data.id } })
+  else await db.cart_items.updateMany({ where: { id: data.id }, data: { quantity: Math.min(999, Math.round(quantity)) } })
 }
 
 export async function clearCart(cart: Cart) {
-  const db = supabaseAdmin()
-  await db.from('cart_items').delete().eq('cart_id', cart.id)
-  await db.from('carts').update({ checkout: {} }).eq('id', cart.id)
+  const db = tenantDb(cart.workspace_id)
+  await db.cart_items.deleteMany({ where: { cart_id: cart.id } })
+  await db.carts.updateMany({ where: { id: cart.id }, data: { checkout: {} } })
 }
 
 export async function saveCheckout(cart: Cart, patch: Partial<CartCheckout>): Promise<CartCheckout> {
   const next = { ...(cart.checkout ?? {}), ...patch }
-  await supabaseAdmin().from('carts').update({ checkout: next }).eq('id', cart.id)
+  // JSON drops undefined keys, as PostgREST did.
+  await tenantDb(cart.workspace_id).carts.updateMany({ where: { id: cart.id }, data: { checkout: JSON.parse(JSON.stringify(next)) } })
   cart.checkout = next
   return next
 }
@@ -226,8 +231,8 @@ export async function placeOrderFromCart(args: {
   aiAgentId?: string | null
   settings: OrderSettings
 }): Promise<PlaceResult> {
-  const db = supabaseAdmin()
-  const lines = await cartItems(args.cart.id)
+  const db = tenantDb(args.workspace.id)
+  const lines = await cartItems(args.cart.id, args.workspace.id)
   if (!lines.length) return { ok: false, reason: 'empty' }
   for (const l of lines) {
     if (l.trackStock && (l.available ?? 0) < l.quantity) return { ok: false, reason: 'stock', detail: l.name }
@@ -239,14 +244,13 @@ export async function placeOrderFromCart(args: {
 
   let customerPhone: string | null = null
   if (args.cart.contact_id) {
-    const { data: c } = await db.from('contacts').select('phone, name').eq('id', args.cart.contact_id).maybeSingle()
+    const c = await db.contacts.findFirst({ select: { phone: true, name: true }, where: { id: args.cart.contact_id } })
     customerPhone = c?.phone ?? null
     if (!checkout.customer_name && c?.name && !/^\+?\d+$/.test(c.name)) checkout.customer_name = c.name
   }
 
-  const { data: order, error } = await db
-    .from('orders')
-    .insert({
+  const order = await db.orders.create({
+    data: {
       workspace_id: args.workspace.id,
       contact_id: args.cart.contact_id,
       conversation_id: args.cart.conversation_id,
@@ -265,13 +269,12 @@ export async function placeOrderFromCart(args: {
       source: args.source,
       ai_agent_id: args.aiAgentId ?? null,
       created_by: null,
-    })
-    .select('id, number, total, fulfillment')
-    .single()
-  if (error || !order) throw error ?? new Error('order insert failed')
+    },
+    select: { id: true, number: true, total: true, fulfillment: true },
+  })
 
-  await db.from('order_items').insert(
-    lines.map((l, i) => ({
+  await db.order_items.createMany({
+    data: lines.map((l, i) => ({
       workspace_id: args.workspace.id,
       order_id: order.id,
       product_id: l.productId,
@@ -282,15 +285,24 @@ export async function placeOrderFromCart(args: {
       total: round2(l.unitPrice * l.quantity),
       sort_order: i,
     })),
-  )
-  await db.from('order_events').insert({ workspace_id: args.workspace.id, order_id: order.id, type: 'created', to_value: 'pending', note: args.source })
-  await db.from('carts').update({ status: 'converted' }).eq('id', args.cart.id)
-  return { ok: true, order: { id: order.id, number: Number(order.number), total: Number(order.total), fulfillment: order.fulfillment } }
+  })
+  await db.order_events.create({ data: { workspace_id: args.workspace.id, order_id: order.id, type: 'created', to_value: 'pending', note: args.source } })
+  await db.carts.updateMany({ where: { id: args.cart.id }, data: { status: 'converted' } })
+  return { ok: true, order: { id: order.id, number: Number(order.number), total: Number(order.total), fulfillment: order.fulfillment as Fulfillment } }
 }
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'ready', 'shipped', 'delivered']
 
 export type StatusResult = { ok: true } | { ok: false; error: string }
+
+/** confirm_order / cancel_order: 'ok' or an error code (stock, closed...). */
+async function orderRpc(fn: 'confirm_order' | 'cancel_order', orderId: string, userId: string | null, note?: string | null): Promise<string | null> {
+  const rows =
+    fn === 'cancel_order'
+      ? await prisma.$queryRaw<{ r: string | null }[]>`SELECT public.cancel_order(${orderId}::uuid, ${userId}::uuid, ${note ?? null}::text) AS r`
+      : await prisma.$queryRaw<{ r: string | null }[]>`SELECT public.confirm_order(${orderId}::uuid, ${userId}::uuid) AS r`
+  return normalizeRaw(rows)[0]?.r ?? null
+}
 
 /**
  * Moves an order to `status` (confirm reserves stock, cancel restores it)
@@ -304,39 +316,40 @@ export async function updateOrderStatus(args: {
   reason?: string | null
   notify?: boolean
 }): Promise<StatusResult> {
-  const db = supabaseAdmin()
-  const { data: order } = await db
-    .from('orders')
-    .select('id, status, number, fulfillment, conversation_id, workspace:workspaces(*)')
-    .eq('id', args.orderId)
-    .eq('workspace_id', args.workspaceId)
-    .maybeSingle()
+  const db = tenantDb(args.workspaceId)
+  const order = isUuid(args.orderId)
+    ? await db.orders.findFirst({
+        select: { id: true, status: true, number: true, fulfillment: true, conversation_id: true, workspaces: true },
+        where: { id: args.orderId },
+      })
+    : null
   if (!order) return { ok: false, error: 'not_found' }
-  const ws = order.workspace as unknown as Workspace
+  const ws = order.workspaces as unknown as Workspace
   if (order.status === args.status) return { ok: true }
   if (order.status === 'cancelled' || order.status === 'delivered') return { ok: false, error: 'closed' }
 
+  // The order was checked against the workspace above; the functions take its id.
   if (args.status === 'cancelled') {
-    const { data } = await db.rpc('cancel_order', { p_order: args.orderId, p_user: args.userId, p_note: args.reason ?? null })
+    const data = await orderRpc('cancel_order', args.orderId, args.userId, args.reason ?? null)
     if (data !== 'ok') return { ok: false, error: String(data) }
   } else if (order.status === 'pending') {
     // Leaving pending always goes through confirm (stock reservation).
-    const { data } = await db.rpc('confirm_order', { p_order: args.orderId, p_user: args.userId })
+    const data = await orderRpc('confirm_order', args.orderId, args.userId)
     if (data !== 'ok') return { ok: false, error: String(data) }
     if (args.status !== 'confirmed') {
-      await db.from('orders').update({ status: args.status }).eq('id', args.orderId)
-      await db.from('order_events').insert({ workspace_id: args.workspaceId, order_id: args.orderId, type: 'status', from_value: 'confirmed', to_value: args.status, user_id: args.userId })
+      await db.orders.updateMany({ where: { id: args.orderId }, data: { status: args.status } })
+      await db.order_events.create({ data: { workspace_id: args.workspaceId, order_id: args.orderId, type: 'status', from_value: 'confirmed', to_value: args.status, user_id: args.userId } })
     }
   } else {
     if (STATUS_FLOW.indexOf(args.status) < 0) return { ok: false, error: 'invalid_status' }
-    await db.from('orders').update({ status: args.status }).eq('id', args.orderId)
-    await db.from('order_events').insert({ workspace_id: args.workspaceId, order_id: args.orderId, type: 'status', from_value: order.status, to_value: args.status, note: args.reason ?? null, user_id: args.userId })
+    await db.orders.updateMany({ where: { id: args.orderId }, data: { status: args.status } })
+    await db.order_events.create({ data: { workspace_id: args.workspaceId, order_id: args.orderId, type: 'status', from_value: order.status, to_value: args.status, note: args.reason ?? null, user_id: args.userId } })
   }
   invalidateBusinessContext(args.workspaceId)
 
   const settings = orderSettings(ws)
   if ((args.notify ?? settings.notifyStatus) && order.conversation_id) {
-    const text = statusMessage(langFor(ws), args.status, order.fulfillment, Number(order.number), args.reason)
+    const text = statusMessage(langFor(ws), args.status, order.fulfillment as Fulfillment, Number(order.number), args.reason)
     if (text) {
       await sendMessage({
         workspaceId: args.workspaceId,
@@ -345,26 +358,26 @@ export async function updateOrderStatus(args: {
         sender: { type: 'agent', userId: args.userId },
         metadata: { order_id: args.orderId, event: 'order_status' },
       })
-      await db.from('order_events').insert({ workspace_id: args.workspaceId, order_id: args.orderId, type: 'notified', to_value: args.status })
+      await db.order_events.create({ data: { workspace_id: args.workspaceId, order_id: args.orderId, type: 'notified', to_value: args.status } })
     }
   }
   return { ok: true }
 }
 
 export async function markOrderPaid(workspaceId: string, orderId: string, userId: string | null, notify = true): Promise<StatusResult> {
-  const db = supabaseAdmin()
-  const { data: order } = await db
-    .from('orders')
-    .select('id, number, payment_status, conversation_id, workspace:workspaces(locale)')
-    .eq('id', orderId)
-    .eq('workspace_id', workspaceId)
-    .maybeSingle()
+  const db = tenantDb(workspaceId)
+  const order = isUuid(orderId)
+    ? await db.orders.findFirst({
+        select: { id: true, number: true, payment_status: true, conversation_id: true, workspaces: { select: { locale: true } } },
+        where: { id: orderId },
+      })
+    : null
   if (!order) return { ok: false, error: 'not_found' }
   if (order.payment_status === 'paid') return { ok: true }
-  await db.from('orders').update({ payment_status: 'paid', paid_at: new Date().toISOString() }).eq('id', orderId)
-  await db.from('order_events').insert({ workspace_id: workspaceId, order_id: orderId, type: 'payment', from_value: order.payment_status, to_value: 'paid', user_id: userId })
+  await db.orders.updateMany({ where: { id: orderId }, data: { payment_status: 'paid', paid_at: new Date() } })
+  await db.order_events.create({ data: { workspace_id: workspaceId, order_id: orderId, type: 'payment', from_value: order.payment_status, to_value: 'paid', user_id: userId } })
   if (notify && order.conversation_id) {
-    const lang = langFor(order.workspace as unknown as Workspace)
+    const lang = langFor(order.workspaces as unknown as Workspace)
     await sendMessage({
       workspaceId,
       conversationId: order.conversation_id,

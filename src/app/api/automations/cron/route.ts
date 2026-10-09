@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/automations/admin-client'
+import { prisma } from '@/lib/db/prisma'
 import { resumePendingExecution } from '@/lib/automations/engine'
 import type { AutomationContext } from '@/lib/automations/engine'
 import { processDueFollowups } from '@/lib/automations/followups'
@@ -34,27 +34,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const admin = supabaseAdmin()
-  const { data: due, error } = await admin
-    .from('automation_pending_executions')
-    .select('*')
-    .eq('status', 'pending')
-    .lte('run_at', new Date().toISOString())
-    .order('run_at', { ascending: true })
-    .limit(50)
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // Platform task: drains the parked runs of every workspace.
+  let due
+  try {
+    due = await prisma.automation_pending_executions.findMany({
+      where: { status: 'pending', run_at: { lte: new Date().toISOString() } },
+      orderBy: { run_at: 'asc' },
+      take: 50,
+    })
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 })
+  }
 
   let processed = 0
-  for (const row of due ?? []) {
-    const { data: claim } = await admin
-      .from('automation_pending_executions')
-      .update({ status: 'running' })
-      .eq('id', row.id)
-      .eq('status', 'pending')
-      .select('id')
-      .maybeSingle()
-    if (!claim) continue
+  for (const row of due) {
+    const claim = await prisma.automation_pending_executions
+      .updateMany({ where: { id: row.id, workspace_id: row.workspace_id, status: 'pending' }, data: { status: 'running' } })
+      .catch(() => null)
+    if (!claim?.count) continue
 
     await resumePendingExecution({
       id: row.id as string,
@@ -65,7 +62,7 @@ export async function GET(request: Request) {
       parent_step_id: (row.parent_step_id as string | null) ?? null,
       branch: (row.branch as 'yes' | 'no' | null) ?? null,
       next_step_position: row.next_step_position as number,
-      context: (row.context as AutomationContext) ?? {},
+      context: (row.context as unknown as AutomationContext) ?? {},
     })
     processed++
   }

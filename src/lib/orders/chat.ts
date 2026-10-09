@@ -1,5 +1,5 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
 import { sendMessage } from '@/lib/messaging/send'
 import { getPreset, resolveIndustry } from '@/lib/industries'
 import type { CarouselCard, InteractiveOption, LoadedChannel, OutboundContent } from '@/lib/channels'
@@ -88,13 +88,11 @@ function primaryButton(action: ProductAction, productId: string, t: ReturnType<t
 export async function sendProductCarousel(ctx: CommerceCtx, productIds: string[], intro?: string): Promise<boolean> {
   const lang = langFor(ctx.workspace)
   const t = texts(lang)
-  const { data } = await supabaseAdmin()
-    .from('products')
-    .select('id, name, price, currency, images, track_stock, stock, description')
-    .eq('workspace_id', ctx.workspace.id)
-    .eq('is_active', true)
-    .in('id', productIds.filter((id) => UUID.test(id)).slice(0, 10))
-  const byId = new Map((data ?? []).map((p) => [p.id, p]))
+  const data = await tenantDb(ctx.workspace.id).products.findMany({
+    select: { id: true, name: true, price: true, currency: true, images: true, track_stock: true, stock: true, description: true },
+    where: { is_active: true, id: { in: productIds.filter((id) => UUID.test(id)).slice(0, 10) } },
+  })
+  const byId = new Map(data.map((p) => [p.id, p]))
   const products = productIds.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => !!p && !!p.images?.[0])
   if (!products.length) return false
 
@@ -122,7 +120,7 @@ export async function sendProductCarousel(ctx: CommerceCtx, productIds: string[]
 export async function sendCartSummary(ctx: CommerceCtx, cart: Cart | null, intro?: string) {
   const lang = langFor(ctx.workspace)
   const t = texts(lang)
-  const lines = cart ? await cartItems(cart.id) : []
+  const lines = cart ? await cartItems(cart.id, ctx.workspace.id) : []
   if (!cart || !lines.length) {
     await say(ctx, { type: 'text', text: t.cartEmpty })
     return
@@ -153,7 +151,7 @@ async function nextCheckoutStep(ctx: CommerceCtx, cart: Cart) {
   const lang = langFor(ctx.workspace)
   const t = texts(lang)
   const settings = settingsFor(ctx.workspace)
-  const lines = await cartItems(cart.id)
+  const lines = await cartItems(cart.id, ctx.workspace.id)
   if (!lines.length) return sendCartSummary(ctx, cart)
 
   const totals = computeTotals(lines, settings, cart.checkout.fulfillment)
@@ -183,7 +181,7 @@ async function nextCheckoutStep(ctx: CommerceCtx, cart: Cart) {
     return
   }
   if (!co.customer_name) {
-    const { data: c } = await supabaseAdmin().from('contacts').select('name').eq('id', ctx.contactId).maybeSingle()
+    const c = UUID.test(ctx.contactId) ? await tenantDb(ctx.workspace.id).contacts.findFirst({ select: { name: true }, where: { id: ctx.contactId } }) : null
     if (c?.name && !/^\+?\d+$/.test(c.name) && !/^(webchat|whatsapp|instagram|messenger|tiktok) /i.test(c.name)) {
       await saveCheckout(cart, { customer_name: c.name })
     } else {
@@ -234,7 +232,7 @@ export async function handleCheckoutText(ctx: CommerceCtx, text: string): Promis
     await saveCheckout(cart, { address: address.trim().slice(0, 300), address_reference: ref.join(' ').trim().slice(0, 300) || undefined, step: undefined })
   } else {
     await saveCheckout(cart, { customer_name: value.slice(0, 120), step: undefined })
-    await supabaseAdmin().from('contacts').update({ name: value.slice(0, 120) }).eq('id', ctx.contactId)
+    if (UUID.test(ctx.contactId)) await tenantDb(ctx.workspace.id).contacts.updateMany({ where: { id: ctx.contactId }, data: { name: value.slice(0, 120) } })
   }
   await nextCheckoutStep(ctx, cart)
   return true
@@ -246,14 +244,12 @@ export async function handleCheckoutText(ctx: CommerceCtx, text: string): Promis
 export async function sendPaymentOptions(ctx: CommerceCtx, orderId: string) {
   const lang = langFor(ctx.workspace)
   const t = texts(lang)
-  const { data: methods } = await supabaseAdmin()
-    .from('payment_methods')
-    .select('id, name')
-    .eq('workspace_id', ctx.workspace.id)
-    .eq('is_active', true)
-    .order('sort_order')
-    .order('name')
-  if (!methods?.length) return
+  const methods = await tenantDb(ctx.workspace.id).payment_methods.findMany({
+    select: { id: true, name: true },
+    where: { is_active: true },
+    orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
+  })
+  if (!methods.length) return
   if (methods.length === 1) return sendPaymentMethod(ctx, orderId, methods[0].id)
   const options: InteractiveOption[] = methods.map((m) => ({ id: `pay:${m.id}`, title: m.name.slice(0, 24) }))
   await say(
@@ -266,15 +262,15 @@ export async function sendPaymentOptions(ctx: CommerceCtx, orderId: string) {
 }
 
 async function sendPaymentMethod(ctx: CommerceCtx, orderId: string | null, methodId: string) {
-  const db = supabaseAdmin()
+  const db = tenantDb(ctx.workspace.id)
   const lang = langFor(ctx.workspace)
   const t = texts(lang)
-  const { data: m } = await db
-    .from('payment_methods')
-    .select('id, name, instructions, qr_image_url, requires_proof')
-    .eq('id', methodId)
-    .eq('workspace_id', ctx.workspace.id)
-    .maybeSingle()
+  const m = UUID.test(methodId)
+    ? await db.payment_methods.findFirst({
+        select: { id: true, name: true, instructions: true, qr_image_url: true, requires_proof: true },
+        where: { id: methodId },
+      })
+    : null
   if (!m) return
   const order = orderId ? { id: orderId } : await latestUnpaidOrder(ctx)
   const caption = fill(t.paymentInstructions, { method: m.name, instructions: m.instructions ? `\n${m.instructions}` : '' })
@@ -282,26 +278,20 @@ async function sendPaymentMethod(ctx: CommerceCtx, orderId: string | null, metho
   else await say(ctx, { type: 'text', text: caption }, { order_id: order?.id, event: 'payment_method' })
   if (m.requires_proof) await say(ctx, { type: 'text', text: t.sendProof })
   if (order) {
-    await db
-      .from('orders')
-      .update({ payment_method_id: m.id, payment_method_name: m.name, payment_status: m.requires_proof ? 'awaiting_proof' : 'unpaid' })
-      .eq('id', order.id)
-      .in('payment_status', ['unpaid', 'awaiting_proof'])
+    await db.orders.updateMany({
+      where: { id: order.id, payment_status: { in: ['unpaid', 'awaiting_proof'] } },
+      data: { payment_method_id: m.id, payment_method_name: m.name, payment_status: m.requires_proof ? 'awaiting_proof' : 'unpaid' },
+    })
   }
 }
 
 async function latestUnpaidOrder(ctx: CommerceCtx) {
-  const { data } = await supabaseAdmin()
-    .from('orders')
-    .select('id, number, payment_status')
-    .eq('workspace_id', ctx.workspace.id)
-    .eq('conversation_id', ctx.conversationId)
-    .neq('status', 'cancelled')
-    .in('payment_status', ['unpaid', 'awaiting_proof'])
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  return data
+  if (!UUID.test(ctx.conversationId)) return null
+  return tenantDb(ctx.workspace.id).orders.findFirst({
+    select: { id: true, number: true, payment_status: true },
+    where: { conversation_id: ctx.conversationId, status: { not: 'cancelled' }, payment_status: { in: ['unpaid', 'awaiting_proof'] } },
+    orderBy: { created_at: 'desc' },
+  })
 }
 
 /**
@@ -309,22 +299,18 @@ async function latestUnpaidOrder(ctx: CommerceCtx) {
  * becomes that proof. Returns true when it was taken as proof.
  */
 export async function handlePaymentProof(ctx: CommerceCtx, mediaUrl: string): Promise<boolean> {
-  const db = supabaseAdmin()
-  const { data: order } = await db
-    .from('orders')
-    .select('id, number')
-    .eq('workspace_id', ctx.workspace.id)
-    .eq('conversation_id', ctx.conversationId)
-    .eq('payment_status', 'awaiting_proof')
-    .neq('status', 'cancelled')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  if (!UUID.test(ctx.conversationId)) return false
+  const db = tenantDb(ctx.workspace.id)
+  const order = await db.orders.findFirst({
+    select: { id: true, number: true },
+    where: { conversation_id: ctx.conversationId, payment_status: 'awaiting_proof', status: { not: 'cancelled' } },
+    orderBy: { created_at: 'desc' },
+  })
   if (!order) return false
-  await db.from('orders').update({ payment_status: 'proof_received', payment_proof_url: mediaUrl }).eq('id', order.id)
-  await db.from('order_events').insert({ workspace_id: ctx.workspace.id, order_id: order.id, type: 'payment', from_value: 'awaiting_proof', to_value: 'proof_received' })
+  await db.orders.updateMany({ where: { id: order.id }, data: { payment_status: 'proof_received', payment_proof_url: mediaUrl } })
+  await db.order_events.create({ data: { workspace_id: ctx.workspace.id, order_id: order.id, type: 'payment', from_value: 'awaiting_proof', to_value: 'proof_received' } })
   // Flag the conversation for the team: someone has to verify the payment.
-  await db.from('conversations').update({ status: 'open', unread_count: 1 }).eq('id', ctx.conversationId)
+  await db.conversations.updateMany({ where: { id: ctx.conversationId }, data: { status: 'open', unread_count: 1 } })
   await say(ctx, { type: 'text', text: fill(texts(langFor(ctx.workspace)).proofReceived, { number: order.number }) }, { order_id: order.id, event: 'payment_proof' })
   return true
 }
@@ -351,7 +337,7 @@ export async function confirmFromChat(ctx: CommerceCtx, source: 'ai' | 'chat_but
     { order_id: result.order.id, event: 'order_placed' },
   )
   // Team needs to act on it.
-  await supabaseAdmin().from('conversations').update({ status: 'open' }).eq('id', ctx.conversationId)
+  await tenantDb(ctx.workspace.id).conversations.updateMany({ where: { id: ctx.conversationId }, data: { status: 'open' } })
   await sendPaymentOptions(ctx, result.order.id)
 }
 
@@ -367,20 +353,20 @@ export async function handleCommerceAction(ctx: CommerceCtx, id: string): Promis
     if (action === 'add' && a && UUID.test(a)) {
       if (!ordersEnabled(ctx.workspace)) return false
       // Priced in another currency (e.g. a USD listing): quoted by a person, not via cart.
-      const { data: prod } = await supabaseAdmin().from('products').select('name, currency').eq('id', a).eq('workspace_id', ctx.workspace.id).maybeSingle()
+      const db = tenantDb(ctx.workspace.id)
+      const prod = await db.products.findFirst({ select: { name: true, currency: true }, where: { id: a } })
       const foreign = prod ? cartCurrencyConflict(prod, ctx.workspace.currency) : null
       if (prod && foreign) {
         await say(ctx, { type: 'text', text: fill(t.foreignCurrency, { name: prod.name, currency: foreign }) })
         return true
       }
       // Products with variants: ask which one first.
-      const { data: variants } = await supabaseAdmin()
-        .from('product_variants')
-        .select('id, name, price')
-        .eq('product_id', a)
-        .eq('is_active', true)
-        .order('sort_order')
-      if (!b && variants && variants.length > 0) {
+      const variants = await db.product_variants.findMany({
+        select: { id: true, name: true, price: true },
+        where: { product_id: a, is_active: true },
+        orderBy: { sort_order: 'asc' },
+      })
+      if (!b && variants.length > 0) {
         const money = moneyFor(ctx.workspace)
         const options = variants.map((v) => ({ id: `cart:add:${a}:${v.id}`, title: v.name.slice(0, 24), description: v.price !== null ? money(Number(v.price)) : undefined }))
         await say(
@@ -419,12 +405,10 @@ export async function handleCommerceAction(ctx: CommerceCtx, id: string): Promis
       return true
     }
     if (action === 'more' && a && UUID.test(a)) {
-      const { data: p } = await supabaseAdmin()
-        .from('products')
-        .select('name, description, price, currency, images')
-        .eq('id', a)
-        .eq('workspace_id', ctx.workspace.id)
-        .maybeSingle()
+      const p = await tenantDb(ctx.workspace.id).products.findFirst({
+        select: { name: true, description: true, price: true, currency: true, images: true },
+        where: { id: a },
+      })
       if (!p) return false
       const action = productAction(ctx.workspace)
       // Real estate: link to the public property page (gallery, map, PDF).
@@ -457,16 +441,13 @@ export async function handleCommerceAction(ctx: CommerceCtx, id: string): Promis
     }
     if (action === 'shop') {
       // Featured / first products as a carousel; the agent takes it from there.
-      const { data } = await supabaseAdmin()
-        .from('products')
-        .select('id')
-        .eq('workspace_id', ctx.workspace.id)
-        .eq('is_active', true)
-        .neq('images', '{}')
-        .order('is_featured', { ascending: false })
-        .order('sort_order')
-        .limit(10)
-      const ok = await sendProductCarousel(ctx, (data ?? []).map((p) => p.id))
+      const data = await tenantDb(ctx.workspace.id).products.findMany({
+        select: { id: true },
+        where: { is_active: true, images: { isEmpty: false } },
+        orderBy: [{ is_featured: 'desc' }, { sort_order: 'asc' }],
+        take: 10,
+      })
+      const ok = await sendProductCarousel(ctx, data.map((p) => p.id))
       if (!ok) await say(ctx, { type: 'text', text: lang === 'en' ? 'What are you looking for?' : '¿Qué estás buscando?' })
       return true
     }

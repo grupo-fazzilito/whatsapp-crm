@@ -5,9 +5,9 @@ import { toast } from 'sonner';
 import { Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useI18n, useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { api } from '../api';
 import { getPreset, type AttributeField, type AttributeType } from '@/lib/industries';
-import type { Workspace, WorkspaceSettings } from '@/lib/workspace/types';
+import type { Workspace } from '@/lib/workspace/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { invalidateAi, selectClass } from '../shared';
+import { selectClass } from '../shared';
 
 const TYPES: AttributeType[] = ['text', 'textarea', 'number', 'select', 'multiselect', 'boolean'];
 const MAX_FIELDS = 30;
@@ -97,23 +97,16 @@ export function ProductAttributesEditor({ workspace, industry, readOnly }: { wor
 
   const persist = async (next: AttributeField[]) => {
     setSaving(true);
-    const db = createClient();
-    // Merge into the latest settings so other tabs' changes are kept.
-    const { data, error: readErr } = await db.from('workspaces').select('settings').eq('id', workspace.id).single();
-    if (readErr) {
+    try {
+      // Merged by the server into the latest settings so other tabs' changes are kept.
+      await api('/api/business/workspace', { method: 'PATCH', body: { settings: { product_attributes: next } } });
+    } catch (err) {
       setSaving(false);
-      toast.error(readErr.message);
+      toast.error(err instanceof Error ? err.message : String(err));
       return false;
     }
-    const settings: WorkspaceSettings = { ...((data?.settings as WorkspaceSettings) ?? {}), product_attributes: next };
-    const { error } = await db.from('workspaces').update({ settings }).eq('id', workspace.id);
     setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return false;
-    }
     setCustom(next);
-    await invalidateAi();
     await refresh();
     toast.success(t('catalog.attributes.saved'));
     return true;

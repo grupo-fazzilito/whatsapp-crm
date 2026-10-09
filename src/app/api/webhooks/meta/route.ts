@@ -1,6 +1,6 @@
 import { NextResponse, after } from 'next/server'
 import crypto from 'node:crypto'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
 import { verifyMetaWebhookRequest } from '@/lib/whatsapp/webhook-signature'
 import { getMetaConfig } from '@/lib/platform/meta'
 import { decrypt } from '@/lib/whatsapp/encryption'
@@ -25,7 +25,8 @@ async function verifyTokenMatches(token: string): Promise<boolean> {
   const platform = (await getMetaConfig()).verifyToken
   if (platform && safeEqual(platform, token)) return true
 
-  const { data } = await supabaseAdmin().from('channel_secrets').select('secrets')
+  // Platform-level: the channel (and its workspace) is not known yet.
+  const data = await prisma.channel_secrets.findMany({ select: { secrets: true } }).catch(() => null)
   for (const row of data ?? []) {
     const enc = (row.secrets as Record<string, string>)?.verify_token
     if (!enc) continue

@@ -15,9 +15,10 @@ import type { ReportPayload } from '@/lib/reports/types';
 import { VizStyles } from './charts';
 import { AiSection, AttentionSection, SalesSection, TeamSection, VolumeSection } from './sections';
 import { ReportSettingsDialog } from './settings-dialog';
+import { MetaUsageSection } from './meta-usage';
 
 const PRESET_OPTIONS: Exclude<Preset, 'custom'>[] = ['today', '7d', '30d', 'month'];
-type Tab = 'attention' | 'volume' | 'team' | 'ai' | 'sales';
+type Tab = 'attention' | 'volume' | 'team' | 'ai' | 'sales' | 'meta';
 const KNOWN_ERRORS = new Set(['invalid_range', 'invalid_filter', 'Forbidden', 'Unauthorized']);
 
 export function ReportsView() {
@@ -77,7 +78,8 @@ export function ReportsView() {
   const personal = data?.scope === 'personal' || (!wsLoading && !isAdmin);
   const showAi = !personal && !!data?.ai;
   const showSales = !personal && !!data?.sales;
-  const activeTab: Tab = (tab === 'ai' && !showAi) || (tab === 'sales' && !showSales) ? 'attention' : tab;
+  const showMeta = !personal && isAdmin;
+  const activeTab: Tab = (tab === 'ai' && !showAi) || (tab === 'sales' && !showSales) || (tab === 'meta' && !showMeta) ? 'attention' : tab;
 
   const rangeText = data
     ? `${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${data.range.fromDate}T00:00:00Z`))} – ${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${data.range.toDate}T00:00:00Z`))}`
@@ -216,6 +218,7 @@ export function ReportsView() {
               <TabsTrigger value="team" className="min-h-8 flex-none px-3">{personal ? t('reports.tabs.me') : t('reports.tabs.team')}</TabsTrigger>
               {showAi && <TabsTrigger value="ai" className="min-h-8 flex-none px-3">{t('reports.tabs.ai')}</TabsTrigger>}
               {showSales && <TabsTrigger value="sales" className="min-h-8 flex-none px-3">{t('reports.tabs.sales')}</TabsTrigger>}
+              {showMeta && <TabsTrigger value="meta" className="min-h-8 flex-none px-3">{t('metaUsage.tab')}</TabsTrigger>}
             </TabsList>
             <TabsContent value="attention" className="mt-4">
               <AttentionSection data={data} />
@@ -234,6 +237,11 @@ export function ReportsView() {
             {showSales && (
               <TabsContent value="sales" className="mt-4">
                 <SalesSection data={data} />
+              </TabsContent>
+            )}
+            {showMeta && (
+              <TabsContent value="meta" className="mt-4">
+                <MetaUsageSection />
               </TabsContent>
             )}
           </Tabs>

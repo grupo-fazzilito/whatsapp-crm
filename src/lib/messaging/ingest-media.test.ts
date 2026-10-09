@@ -1,24 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { pgTest } from '@/lib/test-utils/pg'
 
 // The AI-assist pre-routing hook: an inbound voice note reaches flows and
 // the AI agent as its transcript; failures leave the pipeline untouched.
+// Runs against a real PostgreSQL (TEST_DATABASE_URL); skipped without it.
 
 vi.mock('server-only', () => ({}))
-
-// Minimal chainable Supabase fake: every query resolves per table.
-const tableData: Record<string, unknown> = {}
-function builder(table: string) {
-  const result = () => ({ data: tableData[table] ?? null, error: null, count: 0 })
-  const b: Record<string, unknown> = {}
-  for (const m of ['select', 'eq', 'neq', 'in', 'not', 'order', 'limit', 'update', 'delete', 'upsert', 'gte', 'lte']) b[m] = () => b
-  b.insert = () => b
-  b.single = async () => result()
-  // messages: lookups (dedupe, reply-to) find nothing; insert().single() returns the row.
-  b.maybeSingle = async () => (table === 'messages' ? { data: null, error: null } : result())
-  b.then = (resolve: (v: unknown) => unknown) => resolve(result())
-  return b
-}
-vi.mock('@/lib/supabase/admin', () => ({ supabaseAdmin: () => ({ from: (t: string) => builder(t) }) }))
 
 const routeInbound = vi.fn<(input: { messageText: string }) => Promise<boolean>>(async () => true)
 const dispatchInboundToFlows = vi.fn<(input: { message: { kind: string; text?: string } }) => Promise<{ consumed: boolean }>>(async () => ({ consumed: false }))
@@ -40,10 +27,9 @@ vi.mock('@/lib/real-estate/leads/visits', () => ({ handleVisitAction: vi.fn(asyn
 vi.mock('@/lib/ai/assist/service', () => ({ inboundMediaText: (i: unknown) => inboundMediaText(i) }))
 vi.mock('@/lib/channels/parsers/whatsapp', () => ({ waMediaProxyUrl: (c: string, m: string) => `/api/media/${c}/${m}` }))
 
-import { ingestMessage } from './ingest'
 import type { LoadedChannel } from '@/lib/channels'
 
-const channel = { id: 'ch1', workspace_id: 'ws1', type: 'whatsapp', ai_agent_id: 'agent1', settings: {}, secrets: {} } as unknown as LoadedChannel
+const pg = await pgTest()
 
 function voiceNote(contentType: 'audio' | 'image' = 'audio') {
   return {
@@ -58,20 +44,32 @@ function voiceNote(contentType: 'audio' | 'image' = 'audio') {
   }
 }
 
-beforeEach(() => {
-  tableData.contact_identities = { contact_id: 'c1' }
-  tableData.conversations = { id: 'conv1', status: 'open', unread_count: 0, ai_agent_id: null, ai_state: {} }
-  tableData.messages = { id: 'm1' }
-  tableData.workspaces = { id: 'ws1', settings: {} }
-})
+describe.skipIf(!pg)('ingest AI-assist media hook', () => {
+  let made: Awaited<ReturnType<NonNullable<typeof pg>['workspace']>>
+  let channel: LoadedChannel
+  let ingestMessage: typeof import('./ingest').ingestMessage
 
-describe('ingest AI-assist media hook', () => {
+  beforeAll(async () => {
+    ;({ ingestMessage } = await import('./ingest'))
+    made = await pg!.workspace()
+    const row = await made.db.channels.create({
+      data: { workspace_id: made.workspaceId, type: 'whatsapp', name: 'WA', external_id: `pn-${made.workspaceId}`, created_by: made.userId },
+    })
+    // The channel's agent only reaches the mocked routing / AI-assist hooks.
+    channel = { ...row, ai_agent_id: 'agent1', secrets: {} } as unknown as LoadedChannel
+  })
+  afterAll(async () => {
+    if (made) await pg!.cleanup(made)
+  })
+
   it('passes the transcript of a voice note to flows and AI routing', async () => {
     inboundMediaText.mockResolvedValue('Hola, quiero separar una visita el sábado')
     const out = await ingestMessage(channel, voiceNote())
-    expect(out?.messageId).toBe('m1')
+    expect(out?.messageId).toBeTruthy()
+    const stored = await made.db.messages.findFirst({ where: { id: out!.messageId! } })
+    expect(stored).toMatchObject({ sender_type: 'customer', content_type: 'audio', media_url: '/api/media/' + channel.id + '/MEDIA1' })
     expect(inboundMediaText).toHaveBeenCalledWith(
-      expect.objectContaining({ workspaceId: 'ws1', messageId: 'm1', contentType: 'audio', mediaUrl: '/api/media/ch1/MEDIA1', aiWillAnswer: true, aiAgentId: 'agent1' }),
+      expect.objectContaining({ workspaceId: made.workspaceId, messageId: out!.messageId, contentType: 'audio', mediaUrl: `/api/media/${channel.id}/MEDIA1`, aiWillAnswer: true, aiAgentId: 'agent1' }),
     )
     expect(dispatchInboundToFlows.mock.calls[0][0].message).toMatchObject({ kind: 'text', text: 'Hola, quiero separar una visita el sábado' })
     expect(routeInbound.mock.calls[0][0].messageText).toBe('Hola, quiero separar una visita el sábado')
@@ -89,5 +87,13 @@ describe('ingest AI-assist media hook', () => {
     await ingestMessage(channel, voiceNote('image'))
     expect(inboundMediaText).not.toHaveBeenCalled()
     expect(routeInbound).not.toHaveBeenCalled()
+  })
+
+  it('a retried webhook is stored once', async () => {
+    inboundMediaText.mockResolvedValue(null)
+    const ev = voiceNote()
+    const first = await ingestMessage(channel, ev)
+    const again = await ingestMessage(channel, ev)
+    expect(again).toMatchObject({ duplicate: true, messageId: first!.messageId })
   })
 })

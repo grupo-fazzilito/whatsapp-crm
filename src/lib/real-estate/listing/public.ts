@@ -1,6 +1,7 @@
 import 'server-only'
 import { cache } from 'react'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
 import { isUuid } from '@/lib/workspace/constants'
 import { countryDefaults } from '@/lib/workspace/countries'
 import { originAllowed } from '@/lib/webchat/server'
@@ -61,31 +62,43 @@ export function realEstateSettings(settings: WorkspaceSettings | null | undefine
  */
 export const loadPublicListing = cache(async (slug: string, productId: string): Promise<PublicListing | null> => {
   if (!slug || slug.length > 120 || !isUuid(productId)) return null
-  const db = supabaseAdmin()
-  const { data: ws } = await db
-    .from('workspaces')
-    .select('id, name, slug, industry, locale, country, currency, logo_url, phone, settings')
-    .eq('slug', slug)
-    .maybeSingle()
+  // Public page: the workspace is only known by its slug (platform lookup).
+  const ws = await prisma.workspaces
+    .findFirst({
+      select: { id: true, name: true, slug: true, industry: true, locale: true, country: true, currency: true, logo_url: true, phone: true, settings: true },
+      where: { slug },
+    })
+    .catch(() => null)
   if (!ws || ws.industry !== 'real_estate') return null
 
-  const [{ data: product }, { data: channels }] = await Promise.all([
-    db
-      .from('products')
-      .select('id, name, description, price, currency, images, attributes, updated_at, category:product_categories(name)')
-      .eq('workspace_id', ws.id)
-      .eq('id', productId)
-      .eq('is_active', true)
-      .maybeSingle(),
-    db
-      .from('channels')
-      .select('id, workspace_id, type, external_id, display_handle, status, settings')
-      .eq('workspace_id', ws.id)
-      .in('type', ['whatsapp', 'webchat'])
-      .eq('status', 'connected')
-      .order('created_at'),
+  const db = tenantDb(ws.id)
+  const [row, channels] = await Promise.all([
+    db.products
+      .findFirst({
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          price: true,
+          currency: true,
+          images: true,
+          attributes: true,
+          updated_at: true,
+          product_categories: { select: { name: true } },
+        },
+        where: { id: productId, is_active: true },
+      })
+      .catch(() => null),
+    db.channels
+      .findMany({
+        select: { id: true, workspace_id: true, type: true, external_id: true, display_handle: true, status: true, settings: true },
+        where: { type: { in: ['whatsapp', 'webchat'] }, status: 'connected' },
+        orderBy: { created_at: 'asc' },
+      })
+      .catch(() => null),
   ])
-  if (!product) return null
+  if (!row) return null
+  const { product_categories, ...product } = row
 
   const dial = countryDefaults(ws.country).dialCode
   const wa = (channels ?? []).find((c) => c.type === 'whatsapp' && waDigits(c.display_handle, dial))
@@ -95,7 +108,7 @@ export const loadPublicListing = cache(async (slug: string, productId: string): 
   const webchat = (channels ?? []).find((c) => c.type === 'webchat' && originAllowed(c as unknown as ChannelRow, origin))
 
   const settings = (ws.settings ?? {}) as WorkspaceSettings
-  const category = product.category as unknown as { name: string } | null
+  const category = product_categories
   return {
     workspace: {
       id: ws.id,

@@ -1,5 +1,6 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import type { Prisma } from '@/generated/prisma/client'
 import { decrypt, encrypt } from '@/lib/whatsapp/encryption'
 
 // Platform-wide settings edited from the admin panel (platform_settings
@@ -13,10 +14,12 @@ const cache = new Map<string, { at: number; value: unknown }>()
 export async function getPlatformSetting<T extends object>(key: string): Promise<T | null> {
   const hit = cache.get(key)
   if (hit && Date.now() - hit.at < TTL_MS) return hit.value as T | null
-  const { data, error } = await supabaseAdmin().from('platform_settings').select('value').eq('key', key).maybeSingle()
-  if (error) {
+  let data: { value: unknown } | null
+  try {
+    data = await prisma.platform_settings.findUnique({ where: { key }, select: { value: true } })
+  } catch (err) {
     // Table missing (migration not applied) or DB down: behave as unset.
-    console.warn(`[platform-settings] read "${key}" failed:`, error.message)
+    console.warn(`[platform-settings] read "${key}" failed:`, err instanceof Error ? err.message : err)
     return null
   }
   const value = (data?.value ?? null) as T | null
@@ -25,10 +28,8 @@ export async function getPlatformSetting<T extends object>(key: string): Promise
 }
 
 export async function setPlatformSetting(key: string, value: object, userId: string | null): Promise<void> {
-  const { error } = await supabaseAdmin()
-    .from('platform_settings')
-    .upsert({ key, value, updated_by: userId, updated_at: new Date().toISOString() })
-  if (error) throw error
+  const row = { value: value as Prisma.InputJsonValue, updated_by: userId, updated_at: new Date() }
+  await prisma.platform_settings.upsert({ where: { key }, create: { key, ...row }, update: row })
   cache.delete(key)
 }
 

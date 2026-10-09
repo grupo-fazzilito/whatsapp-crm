@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { History, Loader2, RotateCcw } from 'lucide-react';
 import { useI18n, useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { api } from '../api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -51,21 +51,18 @@ export function AiLogs() {
 
   const fetchPage = useCallback(
     async (offset: number) => {
-      let q = createClient()
-        .from('ai_chat_logs')
-        .select(
-          'id, created_at, user_message, ai_response, detected_intent, confidence_score, conversation_id, contact:contacts(name, phone), agent:ai_agents(name), channel:channels(name, type)',
-        )
-        .order('created_at', { ascending: false })
-        .range(offset, offset + PAGE - 1);
-      if (filters.agent) q = q.eq('ai_agent_id', filters.agent);
-      if (filters.intent) q = q.eq('detected_intent', filters.intent);
+      const qs = new URLSearchParams({ offset: String(offset) });
+      if (filters.agent) qs.set('agent', filters.agent);
+      if (filters.intent) qs.set('intent', filters.intent);
       // Date filters use the viewer's local day boundaries.
-      if (filters.from) q = q.gte('created_at', new Date(`${filters.from}T00:00:00`).toISOString());
-      if (filters.to) q = q.lt('created_at', new Date(new Date(`${filters.to}T00:00:00`).getTime() + 86_400_000).toISOString());
-      const { data, error } = await q;
-      if (error) toast.error(error.message);
-      return (data as unknown as LogRow[]) ?? [];
+      if (filters.from) qs.set('since', new Date(`${filters.from}T00:00:00`).toISOString());
+      if (filters.to) qs.set('until', new Date(new Date(`${filters.to}T00:00:00`).getTime() + 86_400_000).toISOString());
+      try {
+        return (await api<{ logs: LogRow[] }>(`/api/business/ai-logs?${qs}`)).logs;
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+        return [];
+      }
     },
     [filters],
   );
@@ -86,11 +83,9 @@ export function AiLogs() {
 
   useEffect(() => {
     if (!workspace) return;
-    createClient()
-      .from('ai_agents')
-      .select('id, name')
-      .order('created_at', { ascending: true })
-      .then(({ data }) => setAgents((data as AgentRef[]) ?? []));
+    api<{ agents: AgentRef[] }>('/api/business/ai-agents')
+      .then((d) => setAgents(d.agents))
+      .catch(() => setAgents([]));
   }, [workspace]);
 
   const loadMore = async () => {

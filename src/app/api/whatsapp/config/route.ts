@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import type { Prisma } from '@/generated/prisma/client'
 import { verifyPhoneNumber } from '@/lib/whatsapp/meta-api'
 import { defaultChannel, saveChannelSecrets } from '@/lib/channels/store'
 
@@ -50,11 +51,10 @@ export async function GET() {
     if (!accessToken) {
       // loadChannel drops secrets it can't decrypt: if one is stored, the
       // ENCRYPTION_KEY changed (or differs between environments).
-      const { data: raw } = await supabaseAdmin()
-        .from('channel_secrets')
-        .select('secrets')
-        .eq('channel_id', channel.id)
-        .maybeSingle()
+      // channel_secrets has no workspace_id; the channel was loaded for this workspace.
+      const raw = await prisma.channel_secrets
+        .findFirst({ select: { secrets: true }, where: { channel_id: channel.id } })
+        .catch(() => null)
       const stored = !!(raw?.secrets as Record<string, string> | null)?.access_token
       return NextResponse.json(
         stored
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
   try {
     const guard = await requireWorkspace('admin')
     if (!guard.ok) return guard.response
-    const { workspace } = guard.ctx
+    const { workspace, db } = guard.ctx
 
     const body = await request.json()
     const { phone_number_id, waba_id, access_token, verify_token } = body
@@ -145,15 +145,10 @@ export async function POST(request: Request) {
       )
     }
 
-    const db = supabaseAdmin()
-
     // A phone number id belongs to exactly one channel across the platform.
-    const { data: owner } = await db
-      .from('channels')
-      .select('id, workspace_id')
-      .eq('type', 'whatsapp')
-      .eq('external_id', phone_number_id)
-      .maybeSingle()
+    const owner = await prisma.channels
+      .findFirst({ select: { id: true, workspace_id: true }, where: { type: 'whatsapp', external_id: String(phone_number_id) } })
+      .catch(() => null)
     if (owner && owner.workspace_id !== workspace.id) {
       return NextResponse.json(
         { error: 'This WhatsApp number is already connected to another workspace.' },
@@ -165,7 +160,7 @@ export async function POST(request: Request) {
     const targetId = owner?.id ?? existing?.id ?? null
     let previousSettings: Record<string, unknown> = existing?.settings ?? {}
     if (owner) {
-      const { data } = await db.from('channels').select('settings').eq('id', owner.id).maybeSingle()
+      const data = await db.channels.findFirst({ select: { settings: true }, where: { id: owner.id } }).catch(() => null)
       previousSettings = (data?.settings as Record<string, unknown>) ?? {}
     }
 
@@ -180,33 +175,36 @@ export async function POST(request: Request) {
         waba_id: waba_id || null,
         verified_name: phoneInfo.verified_name ?? null,
         quality_rating: phoneInfo.quality_rating ?? null,
-      },
+      } as Prisma.InputJsonValue,
       updated_at: now,
     }
 
     let channelId: string
     if (targetId) {
-      const { error: updateError } = await db
-        .from('channels')
-        .update(fields)
-        .eq('id', targetId)
-        .eq('workspace_id', workspace.id)
+      const updateError = await db.channels
+        .updateMany({ where: { id: targetId, workspace_id: workspace.id }, data: fields })
+        .then(() => null, (err: unknown) => err)
       if (updateError) {
         console.error('Error updating WhatsApp channel:', updateError)
         return NextResponse.json({ error: 'Failed to update configuration' }, { status: 500 })
       }
       channelId = targetId
     } else {
-      const { data: created, error: insertError } = await db
-        .from('channels')
-        .insert({
-          ...fields,
-          workspace_id: workspace.id,
-          type: 'whatsapp',
-          name: phoneInfo.verified_name || phoneInfo.display_phone_number || 'WhatsApp',
+      let created: { id: string } | null = null
+      let insertError: unknown = null
+      try {
+        created = await db.channels.create({
+          data: {
+            ...fields,
+            workspace_id: workspace.id,
+            type: 'whatsapp',
+            name: phoneInfo.verified_name || phoneInfo.display_phone_number || 'WhatsApp',
+          },
+          select: { id: true },
         })
-        .select('id')
-        .single()
+      } catch (err) {
+        insertError = err
+      }
       if (insertError || !created) {
         console.error('Error creating WhatsApp channel:', insertError)
         return NextResponse.json({ error: 'Failed to save configuration' }, { status: 500 })
@@ -250,20 +248,21 @@ export async function DELETE() {
   try {
     const guard = await requireWorkspace('admin')
     if (!guard.ok) return guard.response
-    const { workspace } = guard.ctx
+    const { workspace, db } = guard.ctx
 
     const channel = await defaultChannel(workspace.id, 'whatsapp')
     if (!channel) return NextResponse.json({ success: true })
 
-    const { error: updateError } = await supabaseAdmin()
-      .from('channels')
-      .update({
-        status: 'disconnected',
-        status_detail: 'Disconnected from settings',
-        updated_at: new Date().toISOString(),
+    const updateError = await db.channels
+      .updateMany({
+        where: { id: channel.id, workspace_id: workspace.id },
+        data: {
+          status: 'disconnected',
+          status_detail: 'Disconnected from settings',
+          updated_at: new Date().toISOString(),
+        },
       })
-      .eq('id', channel.id)
-      .eq('workspace_id', workspace.id)
+      .then(() => null, (err: unknown) => err)
 
     if (updateError) {
       console.error('Error disconnecting WhatsApp channel:', updateError)

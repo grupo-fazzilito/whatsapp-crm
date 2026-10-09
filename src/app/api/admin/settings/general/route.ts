@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 import { isPlatformAdmin } from '@/lib/admin/guard'
 import { getPlatformSetting, setPlatformSetting } from '@/lib/platform/settings'
 
@@ -23,9 +23,7 @@ export async function PUT(req: NextRequest) {
   if (next.support_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next.support_email)) {
     return NextResponse.json({ error: 'Invalid email' }, { status: 400 })
   }
-  const {
-    data: { user },
-  } = await (await createClient(null)).auth.getUser()
+  const user = await getSessionUser()
   await setPlatformSetting('general', next, user?.id ?? null)
   return NextResponse.json(next)
 }

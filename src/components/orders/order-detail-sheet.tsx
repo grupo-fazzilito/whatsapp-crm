@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { Ban, CheckCircle2, ExternalLink, ImageOff, Loader2, MessageSquare, Phone } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
 import { formatMoney, moneyLocale } from '@/lib/workspace/countries';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -15,7 +14,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { PaymentChip, StatusChip, useMediaSrc } from './chips';
 import {
-  ORDER_LIST_SELECT,
   isClosed,
   nextActions,
   orderErrorMessage,
@@ -67,17 +65,15 @@ function DetailBody({ orderId, refreshKey, onChanged }: { orderId: string; refre
   const [proofOpen, setProofOpen] = useState(false);
 
   const load = useCallback(async () => {
-    const db = createClient();
-    const [{ data: o }, { data: items }, { data: events }] = await Promise.all([
-      db.from('orders').select(ORDER_LIST_SELECT).eq('id', orderId).maybeSingle(),
-      db.from('order_items').select('id, name, variant_name, sku, quantity, unit_price, total, notes, sort_order').eq('order_id', orderId).order('sort_order'),
-      db.from('order_events').select('id, type, from_value, to_value, note, user_id, created_at').eq('order_id', orderId).order('created_at'),
-    ]);
-    if (!o) {
+    const res = await fetch(`/api/orders/${orderId}`, { cache: 'no-store' }).catch(() => null);
+    if (!res) return;
+    if (res.status === 404) {
       setMissing(true);
       return;
     }
-    setOrder({ ...(o as unknown as OrderRow), items: (items ?? []) as OrderItem[], events: (events ?? []) as OrderEvent[] });
+    const body = (await res.json().catch(() => null)) as { order?: OrderRow & { items: OrderItem[]; events: OrderEvent[] } } | null;
+    if (!res.ok || !body?.order) return;
+    setOrder(body.order);
   }, [orderId]);
 
   useEffect(() => {

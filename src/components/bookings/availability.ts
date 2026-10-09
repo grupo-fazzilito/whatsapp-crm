@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { api } from '@/components/business/api'
 import {
   businessWindows,
   freeSlotsForBusiness,
@@ -89,14 +89,12 @@ export function useAvailability(input: AvailabilityInput | null): Availability {
     }
     let cancelled = false
     setState((s) => ({ ...s, loading: true }))
-    createClient()
-      .from('bookings')
-      .select('id, staff_id, booking_date, booking_time, duration_minutes, status, party_size')
-      .eq('booking_date', input.date)
-      .in('status', ['pending', 'confirmed'])
-      .then(({ data }) => {
+    api<{ bookings: (BookingRow & { id: string })[] }>(`/api/bookings?date=${encodeURIComponent(input.date)}&active=1`)
+      .then((d) => d.bookings)
+      .catch(() => [] as (BookingRow & { id: string })[])
+      .then((data) => {
         if (cancelled) return
-        const rows = ((data ?? []) as (BookingRow & { id: string })[]).filter((b) => b.id !== input.excludeId)
+        const rows = data.filter((b) => b.id !== input.excludeId)
         setState({ loading: false, ...computeSlots(input, rows) })
       })
     return () => {

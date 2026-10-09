@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 import { isPlatformAdmin } from '@/lib/admin/guard'
 import {
   AI_PROVIDERS,
@@ -64,9 +64,7 @@ export async function PUT(req: NextRequest) {
     update.deepseek_base_url = v || null
   }
 
-  const {
-    data: { user },
-  } = await (await createClient(null)).auth.getUser()
+  const user = await getSessionUser()
   await updateAiSettings(update, user?.id ?? null)
 
   const [cfg, stored] = await Promise.all([getAiConfig(), getPlatformSetting<StoredAiSettings>('ai')])

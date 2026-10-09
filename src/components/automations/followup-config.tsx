@@ -5,7 +5,6 @@ import { AlertTriangle, Ban, Hourglass } from "lucide-react"
 
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { createClient } from "@/lib/supabase/client"
 import { useT } from "@/i18n/client"
 import type { Translator } from "@/i18n/translate"
 import { CHANNEL_TYPE_LABELS } from "@/lib/channels/capabilities"
@@ -55,18 +54,17 @@ export function BuilderDataProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<BuilderData>({ channels: [], agents: [], loaded: false })
   useEffect(() => {
     let alive = true
-    const db = createClient()
-    Promise.all([
-      db.from("channels").select("id, name, type, ai_agent_id").order("created_at", { ascending: true }),
-      db.from("ai_agents").select("id, name, enabled").order("created_at", { ascending: true }),
-    ]).then(([ch, ag]) => {
-      if (!alive) return
-      setData({
-        channels: (ch.data ?? []) as BuilderChannel[],
-        agents: (ag.data ?? []) as BuilderAgent[],
-        loaded: true,
+    fetch("/api/agents", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : {}))
+      .catch(() => ({}))
+      .then((body: { channels?: BuilderChannel[]; agents?: BuilderAgent[] }) => {
+        if (!alive) return
+        setData({
+          channels: (body.channels ?? []).map((c) => ({ id: c.id, name: c.name, type: c.type, ai_agent_id: c.ai_agent_id })),
+          agents: (body.agents ?? []).map((a) => ({ id: a.id, name: a.name, enabled: a.enabled })),
+          loaded: true,
+        })
       })
-    })
     return () => {
       alive = false
     }

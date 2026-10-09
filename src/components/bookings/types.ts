@@ -33,13 +33,6 @@ export interface Booking {
   service: { id: string; name: string } | null
 }
 
-export const BOOKING_SELECT = `
-  *,
-  contact:contacts(id, name, phone),
-  staff:staff(id, name, title),
-  service:services(id, name)
-`
-
 export interface ContactLite {
   id: string
   name: string | null

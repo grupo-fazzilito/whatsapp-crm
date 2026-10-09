@@ -1,6 +1,5 @@
 import 'server-only'
 import { getAiConfig, getPlatformSetting, type AiConfig, type AiProvider } from '@/lib/platform/settings'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { costUsd, priceFor, type ModelPrice, type TokenUsage } from './pricing'
 import { OPENAI_IMAGE_TYPES, audioFileName, mediaKindOf, normalizeMime, resolveMime } from './assist/mime'
 
@@ -244,7 +243,9 @@ async function recordUsage(meter: UsageMeter, provider: AiProvider, result: Prov
   try {
     const overrides = await getPlatformSetting<Record<string, ModelPrice>>('ai_pricing')
     const cost = costUsd(result.usage, priceFor(provider, result.model, overrides))
-    await supabaseAdmin().from('ai_usage').insert({
+    // Lazy: keeps this module importable without a database (pure tests).
+    const { tenantDb } = await import('@/lib/db/tenant')
+    await tenantDb(meter.workspaceId).ai_usage.create({ data: {
       workspace_id: meter.workspaceId,
       ai_agent_id: meter.aiAgentId ?? null,
       conversation_id: meter.conversationId ?? null,
@@ -258,7 +259,7 @@ async function recordUsage(meter: UsageMeter, provider: AiProvider, result: Prov
       ...(result.usage.audioSeconds ? { audio_seconds: Math.round(result.usage.audioSeconds * 100) / 100 } : {}),
       cost_usd: cost,
       latency_ms: latencyMs,
-    })
+    } })
   } catch (err) {
     // Metering must never break a customer reply.
     console.error('[ai] usage metering failed:', err instanceof Error ? err.message : err)

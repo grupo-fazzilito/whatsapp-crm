@@ -1,5 +1,6 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
 import { realEstateStageByKey, type RealEstateStageKey } from '@/lib/real-estate/pipeline'
 
 // Deals of the real-estate sales pipeline (migration 036: pipelines.key =
@@ -28,8 +29,9 @@ export async function realEstateStage(workspaceId: string, key: StageKey): Promi
 /** profiles.id of a user (deals.assigned_to references profiles). */
 export async function profileIdOf(userId: string | null | undefined): Promise<string | null> {
   if (!userId) return null
-  const { data } = await supabaseAdmin().from('profiles').select('id').eq('user_id', userId).maybeSingle()
-  return (data?.id as string) ?? null
+  // profiles has no workspace: platform client.
+  const data = await prisma.profiles.findFirst({ select: { id: true }, where: { user_id: userId } }).catch(() => null)
+  return data?.id ?? null
 }
 
 export interface MoveDealInput {
@@ -60,52 +62,49 @@ export interface MoveDealResult {
  */
 export async function moveContactDeal(input: MoveDealInput): Promise<MoveDealResult | null> {
   try {
-    const db = supabaseAdmin()
+    const db = tenantDb(input.workspaceId)
     const stage = await realEstateStage(input.workspaceId, input.key)
     if (!stage) return null
 
-    const { data: deals } = await db
-      .from('deals')
-      .select('id, stage_id, assigned_to, conversation_id, stage:pipeline_stages(position)')
-      .eq('workspace_id', input.workspaceId)
-      .eq('pipeline_id', stage.pipelineId)
-      .eq('contact_id', input.contactId)
-      .eq('status', 'open')
-      .order('created_at', { ascending: false })
-      .limit(1)
-    const deal = deals?.[0] as
-      | { id: string; stage_id: string; assigned_to: string | null; conversation_id: string | null; stage: { position: number } | null }
-      | undefined
+    const found = await db.deals
+      .findFirst({
+        select: { id: true, stage_id: true, assigned_to: true, conversation_id: true, pipeline_stages: { select: { position: true } } },
+        where: { pipeline_id: stage.pipelineId, contact_id: input.contactId, status: 'open' },
+        orderBy: { created_at: 'desc' },
+      })
+      .catch(() => null)
+    const deal = found ? { ...found, stage: found.pipeline_stages } : undefined
     const assignee = input.assignUserId ? await profileIdOf(input.assignUserId) : null
 
     if (!deal) {
       if (!input.createIfMissing) return null
-      const [{ data: contact }, { data: ws }] = await Promise.all([
-        db.from('contacts').select('name, phone').eq('id', input.contactId).eq('workspace_id', input.workspaceId).maybeSingle(),
-        db.from('workspaces').select('currency').eq('id', input.workspaceId).maybeSingle(),
+      const [contact, ws] = await Promise.all([
+        db.contacts.findFirst({ select: { name: true, phone: true }, where: { id: input.contactId } }).catch(() => null),
+        db.workspaces.findFirst({ select: { currency: true }, where: { id: input.workspaceId } }).catch(() => null),
       ])
       const name = (contact?.name as string) || (contact?.phone as string) || 'Cliente'
-      const { data: created, error } = await db
-        .from('deals')
-        .insert({
-          workspace_id: input.workspaceId,
-          pipeline_id: stage.pipelineId,
-          stage_id: stage.stageId,
-          contact_id: input.contactId,
-          conversation_id: input.conversationId ?? null,
-          title: `Lead — ${name}`.slice(0, 200),
-          value: input.value && input.value > 0 ? input.value : 0,
-          currency: input.currency || (ws?.currency as string) || 'USD',
-          assigned_to: assignee,
-          status: 'open',
+      let created: { id: string }
+      try {
+        created = await db.deals.create({
+          data: {
+            workspace_id: input.workspaceId,
+            pipeline_id: stage.pipelineId,
+            stage_id: stage.stageId,
+            contact_id: input.contactId,
+            conversation_id: input.conversationId ?? null,
+            title: `Lead — ${name}`.slice(0, 200),
+            value: input.value && input.value > 0 ? input.value : 0,
+            currency: input.currency || (ws?.currency as string) || 'USD',
+            assigned_to: assignee,
+            status: 'open',
+          },
+          select: { id: true },
         })
-        .select('id')
-        .single()
-      if (error || !created) {
-        console.error('[leads] deal create failed:', error?.message)
+      } catch (err) {
+        console.error('[leads] deal create failed:', err instanceof Error ? err.message : err)
         return null
       }
-      return { dealId: created.id as string, created: true, moved: true, assignedTo: assignee }
+      return { dealId: created.id, created: true, moved: true, assignedTo: assignee }
     }
 
     const current = deal.stage?.position ?? -1
@@ -116,9 +115,10 @@ export async function moveContactDeal(input: MoveDealInput): Promise<MoveDealRes
     if (assignee && !deal.assigned_to) patch.assigned_to = assignee
     if (input.conversationId && !deal.conversation_id) patch.conversation_id = input.conversationId
     if (Object.keys(patch).length) {
-      const { error } = await db.from('deals').update(patch).eq('id', deal.id).eq('workspace_id', input.workspaceId)
-      if (error) {
-        console.error('[leads] deal update failed:', error.message)
+      try {
+        await db.deals.updateMany({ where: { id: deal.id }, data: patch })
+      } catch (err) {
+        console.error('[leads] deal update failed:', err instanceof Error ? err.message : err)
         return null
       }
     }
@@ -131,19 +131,15 @@ export async function moveContactDeal(input: MoveDealInput): Promise<MoveDealRes
 
 /** user_id behind a deal's assigned_to (profiles.id). */
 export async function dealOwnerUserId(workspaceId: string, contactId: string): Promise<string | null> {
-  const db = supabaseAdmin()
-  const { data } = await db
-    .from('deals')
-    .select('assigned_to, pipeline:pipelines!inner(key)')
-    .eq('workspace_id', workspaceId)
-    .eq('contact_id', contactId)
-    .eq('status', 'open')
-    .eq('pipeline.key', 'real_estate')
-    .not('assigned_to', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .deals.findFirst({
+      select: { assigned_to: true },
+      where: { contact_id: contactId, status: 'open', pipelines: { key: 'real_estate' }, assigned_to: { not: null } },
+      orderBy: { created_at: 'desc' },
+    })
+    .catch(() => null)
   if (!data?.assigned_to) return null
-  const { data: p } = await db.from('profiles').select('user_id').eq('id', data.assigned_to as string).maybeSingle()
-  return (p?.user_id as string) ?? null
+  // profiles has no workspace: platform client.
+  const p = await prisma.profiles.findFirst({ select: { user_id: true }, where: { id: data.assigned_to } }).catch(() => null)
+  return p?.user_id ?? null
 }

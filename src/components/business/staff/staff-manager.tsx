@@ -6,7 +6,7 @@ import { Pencil, Plus, Search, Trash2, UserRound } from 'lucide-react';
 import { useI18n, useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { useAuth } from '@/hooks/use-auth';
-import { createClient } from '@/lib/supabase/client';
+import { api } from '../api';
 import { formatMoney } from '@/lib/workspace/countries';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { cn } from '@/lib/utils';
-import { moneyLocale, EmptyState, LoadingBlock, Notice, PageHeader, invalidateAi, type Service, type Staff } from '../shared';
+import { moneyLocale, EmptyState, LoadingBlock, Notice, PageHeader, type Service, type Staff } from '../shared';
 import { useDayLabel } from '../setup/hours-form';
 import { StaffEditor, type MemberOption } from './staff-editor';
 import { CalendarConnection } from '@/components/integrations/google/calendar-connection';
@@ -40,17 +40,13 @@ export function StaffManager() {
   const { user } = useAuth();
 
   const load = useCallback(async () => {
-    const db = createClient();
     try {
-      const [st, sv, ln] = await Promise.all([
-        db.from('staff').select('*').order('name'),
-        db.from('services').select('*').order('name'),
-        db.from('staff_services').select('staff_id, service_id'),
-      ]);
-      if (st.error) toast.error(st.error.message);
-      setStaff((st.data as Staff[]) ?? []);
-      setServices((sv.data as Service[]) ?? []);
-      setLinks(ln.data ?? []);
+      const data = await api<{ staff: Staff[]; services: Service[]; links: { staff_id: string; service_id: string }[] }>('/api/business/staff');
+      setStaff(data.staff);
+      setServices(data.services);
+      setLinks(data.links);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -80,24 +76,23 @@ export function StaffManager() {
 
   const toggleActive = async (s: Staff, is_active: boolean) => {
     setStaff((list) => list.map((x) => (x.id === s.id ? { ...x, is_active } : x)));
-    const { error } = await createClient().from('staff').update({ is_active }).eq('id', s.id);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await api(`/api/business/staff/${s.id}`, { method: 'PATCH', body: { is_active } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
       load();
-      return;
     }
-    invalidateAi();
   };
 
   const remove = async () => {
     if (!deleting) return;
-    const { error } = await createClient().from('staff').delete().eq('id', deleting.id);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await api(`/api/business/staff/${deleting.id}`, { method: 'DELETE' });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
       return;
     }
     toast.success(t('business.common.deleted'));
-    invalidateAi();
     load();
   };
 

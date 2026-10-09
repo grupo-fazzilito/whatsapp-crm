@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useI18n, useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { apiJson, qs } from '@/lib/crm/api-client';
 import { formatMoney } from '@/lib/workspace/countries';
 import { productAttributesFor } from '@/lib/catalog/attributes';
 import type { AttributeField } from '@/lib/industries';
@@ -37,7 +37,7 @@ import { CatalogImportDialog } from './import/catalog-import-dialog';
 import { ListingStatusBadge } from './listing-extras';
 import { ListingPublicSettings } from './listing-public-settings';
 import { listingStatusOf } from '@/lib/real-estate/listing/status';
-import { CATALOG_BUCKET, PAGE_SIZE, formatAttribute, productSearchFilter, storagePathFromUrl, type Category, type Product } from './types';
+import { PAGE_SIZE, formatAttribute, type Category, type Product } from './types';
 
 type View = 'grid' | 'list';
 type Status = 'all' | 'active' | 'inactive';
@@ -123,52 +123,36 @@ export function CatalogManager() {
   const setPage = (fn: (p: number) => number) => setPageState({ key: filterKey, page: fn(page) });
 
   const loadCategories = useCallback(async () => {
-    const { data, error } = await createClient()
-      .from('product_categories')
-      .select('id, name, description, sort_order, is_active, products(count)')
-      .order('sort_order')
-      .order('name');
-    if (error) toast.error(error.message);
-    setCategories((data as CategoryRow[]) ?? []);
+    try {
+      const { categories: rows } = await apiJson<{ categories: CategoryRow[] }>('/api/catalog/categories');
+      setCategories(rows ?? []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+      setCategories([]);
+    }
   }, []);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
-      let q = createClient()
-        .from('products')
-        .select('*, product_variants(count)', { count: 'exact' })
-        .order('is_featured', { ascending: false })
-        .order('created_at', { ascending: false })
-        .order('name')
-        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
-      if (query) q = q.or(productSearchFilter(query));
-      if (category === 'none') q = q.is('category_id', null);
-      else if (category) q = q.eq('category_id', category);
-      if (status !== 'all') q = q.eq('is_active', status === 'active');
-      if (featured) q = q.eq('is_featured', true);
-      if (inStock) q = q.or('track_stock.eq.false,stock.gt.0');
-      for (const [k, v] of Object.entries(attrFilters)) {
-        if (!v) continue;
-        const f = fields.find((x) => x.key === k);
-        if (!f) continue;
-        if (f.type === 'boolean') {
-          q = v === 'true' ? q.contains('attributes', { [k]: true }) : q.not('attributes', 'cs', JSON.stringify({ [k]: true }));
-        } else if (f.type === 'multiselect') {
-          q = q.contains('attributes', { [k]: [v] });
-        } else {
-          q = q.contains('attributes', { [k]: v });
-        }
-      }
-      const { data, error, count } = await q;
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      setProducts((data as Product[]) ?? []);
+      const activeAttrs = Object.fromEntries(Object.entries(attrFilters).filter(([k, v]) => v && fields.some((f) => f.key === k)));
+      const { products: rows, total: count } = await apiJson<{ products: Product[]; total: number }>(
+        `/api/catalog/products${qs({
+          page,
+          q: query,
+          category,
+          status: status === 'all' ? '' : status,
+          featured,
+          in_stock: inStock,
+          attrs: Object.keys(activeAttrs).length ? JSON.stringify(activeAttrs) : '',
+        })}`,
+      );
+      setProducts(rows ?? []);
       setSelected(new Set());
       setTotal(count ?? 0);
       if (count) setHasAny(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -176,7 +160,7 @@ export function CatalogManager() {
 
   // Whether the catalog has anything at all (for the empty state).
   const checkAny = useCallback(async () => {
-    const { count } = await createClient().from('products').select('id', { count: 'exact', head: true });
+    const { total: count } = await apiJson<{ total: number }>('/api/catalog/products?count_only=1').catch(() => ({ total: 0 }));
     setHasAny(!!count);
   }, []);
 
@@ -236,9 +220,10 @@ export function CatalogManager() {
 
   const bulkUpdate = async (patch: Partial<Pick<Product, 'is_active' | 'category_id'>>) => {
     if (!selectedIds.length) return;
-    const { error } = await createClient().from('products').update(patch).in('id', selectedIds);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await apiJson('/api/catalog/products', { method: 'PATCH', body: { ids: selectedIds, patch } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
       return;
     }
     toast.success(t('catalog.bulk.done', { count: selectedIds.length }));
@@ -248,14 +233,13 @@ export function CatalogManager() {
 
   const removeProducts = async () => {
     if (!deleting?.length) return;
-    const db = createClient();
-    const { error } = await db.from('products').delete().in('id', deleting.map((p) => p.id));
-    if (error) {
-      toast.error(error.message);
+    // The route also removes the products' catalog images.
+    try {
+      await apiJson('/api/catalog/products', { method: 'DELETE', body: { ids: deleting.map((p) => p.id) } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
       return;
     }
-    const paths = deleting.flatMap((p) => p.images.map(storagePathFromUrl)).filter((x): x is string => !!x);
-    if (paths.length) await db.storage.from(CATALOG_BUCKET).remove(paths);
     toast.success(t('catalog.deleted'));
     await invalidateAi();
     reloadAll();

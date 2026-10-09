@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Loader2, KeyRound } from 'lucide-react';
 
-import { createClient } from '@/lib/supabase/client';
+import { authClient } from '@/lib/auth/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,6 @@ const MIN_PASSWORD = 8;
 
 export function PasswordForm() {
   const { profile } = useAuth();
-  const supabase = createClient();
 
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -51,20 +50,14 @@ export function PasswordForm() {
       // session" API, so we re-authenticate with the provided current
       // password. If it matches, the session refreshes silently; if it
       // doesn't, we abort before calling updateUser.
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: profile.email,
-        password: current,
-      });
-      if (signInError) {
-        toast.error('Current password is incorrect');
-        return;
-      }
-
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: next,
+      // Better Auth checks the current password itself.
+      const { error: updateError } = await authClient.changePassword({
+        currentPassword: current,
+        newPassword: next,
+        revokeOtherSessions: false,
       });
       if (updateError) {
-        toast.error(`Password update failed: ${updateError.message}`);
+        toast.error(updateError.status === 400 || updateError.status === 401 ? 'Current password is incorrect' : `Password update failed: ${updateError.message ?? ''}`);
         return;
       }
 

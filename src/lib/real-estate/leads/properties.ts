@@ -1,5 +1,8 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
+import { normalizeRaw } from '@/lib/db/compat'
+import { Prisma } from '@/generated/prisma/client'
 import { sendMessage } from '@/lib/messaging/send'
 import { createTranslator } from '@/i18n/translate'
 import { formatMoney, moneyLocale } from '@/lib/workspace/countries'
@@ -12,7 +15,7 @@ import type { LeadFields, MatchProperty, PropertyMatch } from './types'
 
 // Listings for leads: candidate loading, ranking and sending to the chat.
 
-export const PRODUCT_SELECT = 'id, name, price, currency, images, attributes, is_active'
+export const PRODUCT_SELECT = { id: true, name: true, price: true, currency: true, images: true, attributes: true, is_active: true } as const
 /** Listings scanned per lead (agencies rarely have more active ones). */
 const SCAN_LIMIT = 500
 
@@ -26,7 +29,9 @@ export interface WsLite {
 }
 
 export async function loadWs(workspaceId: string): Promise<WsLite | null> {
-  const { data } = await supabaseAdmin().from('workspaces').select('id, name, slug, locale, country, currency').eq('id', workspaceId).maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .workspaces.findFirst({ select: { id: true, name: true, slug: true, locale: true, country: true, currency: true }, where: { id: workspaceId } })
+    .catch(() => null)
   return (data as WsLite) ?? null
 }
 
@@ -54,21 +59,31 @@ export async function matchingProperties(
 ): Promise<PropertyMatch[]> {
   const ws = await loadWs(workspaceId)
   if (!ws) return []
-  let q = supabaseAdmin().from('products').select(PRODUCT_SELECT).eq('workspace_id', workspaceId).eq('is_active', true)
+  // Raw SQL for the jsonb prefilter; the workspace filter is explicit.
+  const filters: Prisma.Sql[] = [Prisma.sql`workspace_id = ${workspaceId}::uuid`, Prisma.sql`is_active = true`]
   const op = listingOperation(lead.operation ?? null)
-  if (op) q = q.or(`attributes->>operation.is.null,attributes->>operation.eq.${op}`)
+  if (op) filters.push(Prisma.sql`(attributes->>'operation' IS NULL OR attributes->>'operation' = ${op})`)
   if (lead.budget_max) {
     // The price window only applies to listings in the lead's currency
     // (unknown = workspace currency); the matcher re-checks every row.
     const cur = (lead.currency || ws.currency).toUpperCase()
     if (/^[A-Z]{3}$/.test(cur)) {
-      const other = cur === ws.currency.toUpperCase() ? `currency.neq.${cur}` : `currency.is.null,currency.neq.${cur}`
-      q = q.or(`price.is.null,price.lte.${Math.ceil(lead.budget_max * 1.1)},${other}`)
+      const other = cur === ws.currency.toUpperCase() ? Prisma.sql`currency <> ${cur}` : Prisma.sql`currency IS NULL OR currency <> ${cur}`
+      filters.push(Prisma.sql`(price IS NULL OR price <= ${Math.ceil(lead.budget_max * 1.1)} OR ${other})`)
     }
   }
-  const { data, error } = await q.order('is_featured', { ascending: false }).order('updated_at', { ascending: false }).limit(SCAN_LIMIT)
-  if (error) {
-    console.error('[leads] listing scan failed:', error.message)
+  let data: Record<string, unknown>[]
+  try {
+    data = normalizeRaw(
+      await prisma.$queryRaw<Record<string, unknown>[]>`
+        SELECT id, name, price, currency, images, attributes, is_active
+        FROM public.products
+        WHERE ${Prisma.join(filters, ' AND ')}
+        ORDER BY is_featured DESC, updated_at DESC NULLS FIRST
+        LIMIT ${SCAN_LIMIT}`,
+    )
+  } catch (err) {
+    console.error('[leads] listing scan failed:', err instanceof Error ? err.message : err)
     return []
   }
   const exclude = new Set(opts.excludeIds ?? [])
@@ -77,7 +92,9 @@ export async function matchingProperties(
 }
 
 export async function loadProperty(workspaceId: string, productId: string): Promise<MatchProperty | null> {
-  const { data } = await supabaseAdmin().from('products').select(PRODUCT_SELECT).eq('workspace_id', workspaceId).eq('id', productId).maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .products.findFirst({ select: PRODUCT_SELECT, where: { id: productId } })
+    .catch(() => null)
   return data ? toProperty(data) : null
 }
 
@@ -158,12 +175,22 @@ export async function sendPropertyLocation(ctx: SendCtx, p: MatchProperty, metad
 
 /** "Coincidencias" of a contact: top 10 active listings for their lead profile. */
 export async function leadMatches(workspaceId: string, contactId: string, limit = 10): Promise<PropertyMatch[]> {
-  const { data } = await supabaseAdmin()
-    .from('lead_profiles')
-    .select('operation, property_types, zones, budget_min, budget_max, currency, bedrooms_min, bathrooms_min, parking_min')
-    .eq('workspace_id', workspaceId)
-    .eq('contact_id', contactId)
-    .maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .lead_profiles.findFirst({
+      select: {
+        operation: true,
+        property_types: true,
+        zones: true,
+        budget_min: true,
+        budget_max: true,
+        currency: true,
+        bedrooms_min: true,
+        bathrooms_min: true,
+        parking_min: true,
+      },
+      where: { contact_id: contactId },
+    })
+    .catch(() => null)
   if (!data || !(data.operation || (data.zones as string[] | null)?.length)) return []
   const lead: Partial<LeadFields> = {
     ...(data as Partial<LeadFields>),

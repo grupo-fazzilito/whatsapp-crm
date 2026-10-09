@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useRealtimeChanges } from "@/lib/realtime/client";
 import { cn } from "@/lib/utils";
 import type { Contact, Deal, ContactNote, Tag, ContactIdentity } from "@/types";
 import { useI18n } from "@/i18n/client";
@@ -88,27 +88,15 @@ function OrdersCardBody({
   );
 
   const load = useCallback(async () => {
-    const supabase = createClient();
-    const [ordersRes, cartRes] = await Promise.all([
-      supabase
-        .from("orders")
-        .select("id, number, status, payment_status, total, currency, created_at")
-        .eq("workspace_id", workspace.id)
-        .eq("contact_id", contactId)
-        .order("created_at", { ascending: false })
-        .limit(5),
-      supabase
-        .from("carts")
-        .select(
-          "id, cart_items(id, quantity, product:products(name, price), variant:product_variants(name, price))",
-        )
-        .eq("workspace_id", workspace.id)
-        .eq("contact_id", contactId)
-        .eq("status", "open")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
+    let res: { orders?: SidebarOrder[]; cart?: unknown } = {};
+    try {
+      const r = await fetch(`/api/inbox/contacts/${contactId}/orders`, { cache: "no-store" });
+      if (r.ok) res = await r.json();
+    } catch {
+      // offline — keep the empty card; the next change reloads it
+    }
+    const ordersRes = { data: res.orders ?? null };
+    const cartRes = { data: res.cart ?? null };
     setOrders(
       ((ordersRes.data ?? []) as SidebarOrder[]).map((o) => ({ ...o, total: Number(o.total) })),
     );
@@ -134,24 +122,22 @@ function OrdersCardBody({
           })
         : null,
     );
-  }, [contactId, workspace.id]);
+  }, [contactId]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`sidebar-orders-${contactId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders", filter: `contact_id=eq.${contactId}` },
-        () => void load(),
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [contactId, load]);
+  }, [load]);
+
+  // Live: any change to this contact's orders reloads the card.
+  useRealtimeChanges<{ contact_id?: string | null }>({
+    workspaceId: workspace.id,
+    tables: ["orders"],
+    onChange: (change) => {
+      const row = change.eventType === "DELETE" ? change.old : change.new;
+      if (row.contact_id === contactId) void load();
+    },
+  });
 
   if (!ordersOn && orders.length === 0 && !cart) return null;
 
@@ -246,30 +232,18 @@ export function ContactSidebar({ contact, conversationId = null }: ContactSideba
   const fetchContactData = useCallback(async () => {
     if (!contact) return;
 
-    const supabase = createClient();
-
-    // Fetch deals, notes, tags and channel identities in parallel
-    const [dealsRes, notesRes, tagsRes, identitiesRes] = await Promise.all([
-      supabase
-        .from("deals")
-        .select("*, stage:pipeline_stages(*)")
-        .eq("contact_id", contact.id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("contact_notes")
-        .select("*")
-        .eq("contact_id", contact.id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("contact_tags")
-        .select("id, tag_id, tags(*)")
-        .eq("contact_id", contact.id),
-      supabase
-        .from("contact_identities")
-        .select("*")
-        .eq("contact_id", contact.id)
-        .order("created_at", { ascending: true }),
-    ]);
+    // Deals, notes, tags and channel identities in one request.
+    let res: { deals?: Deal[]; notes?: ContactNote[]; tags?: Record<string, unknown>[]; identities?: ContactIdentity[] } = {};
+    try {
+      const r = await fetch(`/api/inbox/contacts/${contact.id}`, { cache: "no-store" });
+      if (r.ok) res = await r.json();
+    } catch {
+      // offline — leave the panel as it was
+    }
+    const dealsRes = { data: res.deals ?? null };
+    const notesRes = { data: res.notes ?? null };
+    const tagsRes = { data: res.tags ?? null };
+    const identitiesRes = { data: res.identities ?? null };
 
     setIdentities((identitiesRes.data as ContactIdentity[]) ?? []);
 
@@ -286,10 +260,9 @@ export function ContactSidebar({ contact, conversationId = null }: ContactSideba
     }
   }, [contact]);
 
-  // Load on contact change. setContactData/setTags run inside async
-  // Supabase callbacks, not synchronously in the effect body.
+  // Load on contact change. The setters run after the fetch resolves,
+  // not synchronously in the effect body.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchContactData();
   }, [fetchContactData]);
 
@@ -307,16 +280,20 @@ export function ContactSidebar({ contact, conversationId = null }: ContactSideba
     if (!contact || !newNote.trim()) return;
     setAddingNote(true);
 
-    const supabase = createClient();
-
-    const { data, error } = await supabase
-      .from("contact_notes")
-      .insert({
-        contact_id: contact.id,
-        note_text: newNote.trim(),
-      })
-      .select()
-      .single();
+    let data: ContactNote | null = null;
+    let error: unknown = null;
+    try {
+      const r = await fetch(`/api/inbox/contacts/${contact.id}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note_text: newNote.trim() }),
+      });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`);
+      data = body.note as ContactNote;
+    } catch (err) {
+      error = err;
+    }
 
     if (!error && data) {
       setNotes((prev) => [data, ...prev]);

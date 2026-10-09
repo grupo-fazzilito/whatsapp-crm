@@ -1,5 +1,5 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { downloadObject, StorageError } from '@/lib/storage'
 import { defaultChannel, loadChannel } from '@/lib/channels/store'
 import { fetchChannelMediaBytes } from '@/lib/messaging/media'
 import { safeFetch } from '@/lib/real-estate/portals/net'
@@ -41,11 +41,16 @@ export async function fetchMessageMedia(workspaceId: string, mediaUrl: string): 
     }
     if (ref.kind === 'attachment') {
       if (!ref.path.startsWith(`${workspaceId}/`)) throw new MediaFetchError('not_found', 'foreign object')
-      const { data, error } = await supabaseAdmin().storage.from('attachments').download(ref.path)
-      if (error || !data) throw new MediaFetchError('not_found', error?.message)
-      if (data.size > MAX_MEDIA_BYTES) throw new MediaFetchError('too_large')
-      const bytes = new Uint8Array(await data.arrayBuffer())
-      return { bytes, mimeType: resolveMime(data.type, bytes) }
+      let obj: Awaited<ReturnType<typeof downloadObject>>
+      try {
+        obj = await downloadObject('attachments', ref.path)
+      } catch (err) {
+        if (err instanceof StorageError && (err.code === 'not_found' || err.code === 'invalid')) throw new MediaFetchError('not_found', err.message)
+        throw err
+      }
+      if (obj.body.byteLength > MAX_MEDIA_BYTES) throw new MediaFetchError('too_large')
+      const bytes = new Uint8Array(obj.body)
+      return { bytes, mimeType: resolveMime(obj.contentType, bytes) }
     }
     const got = await safeFetch(ref.url, { maxBytes: MAX_MEDIA_BYTES, timeoutMs: 15_000 })
     return { bytes: got.bytes, mimeType: resolveMime(got.contentType, got.bytes) }

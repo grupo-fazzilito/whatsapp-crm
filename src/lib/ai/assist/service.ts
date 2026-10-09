@@ -1,5 +1,6 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
 import { canSpend, spend } from '@/lib/billing/credits'
 import { completeJson, describeMedia, parseJsonLoose, transcribeAudio, MediaAiUnavailableError, type UsageMeter } from '@/lib/ai/llm'
 import { loadBusinessContext, type BusinessContext } from '@/lib/ai/context'
@@ -38,7 +39,7 @@ interface WorkspaceBasics {
 }
 
 async function workspaceBasics(workspaceId: string): Promise<WorkspaceBasics | null> {
-  const { data } = await supabaseAdmin().from('workspaces').select('id, name, locale, settings').eq('id', workspaceId).maybeSingle()
+  const data = await tenantDb(workspaceId).workspaces.findFirst({ select: { id: true, name: true, locale: true, settings: true }, where: { id: workspaceId } })
   if (!data) return null
   return { id: data.id, name: data.name, locale: data.locale === 'en' ? 'en' : 'es', settings: (data.settings ?? {}) as Record<string, unknown> }
 }
@@ -55,12 +56,10 @@ interface MediaMessageRow {
 }
 
 async function loadMediaMessage(workspaceId: string, messageId: string): Promise<MediaMessageRow> {
-  const { data } = await supabaseAdmin()
-    .from('messages')
-    .select('id, conversation_id, content_type, content_text, media_url, transcript, ai_media_text, is_internal')
-    .eq('workspace_id', workspaceId)
-    .eq('id', messageId)
-    .maybeSingle()
+  const data = await tenantDb(workspaceId).messages.findFirst({
+    select: { id: true, conversation_id: true, content_type: true, content_text: true, media_url: true, transcript: true, ai_media_text: true, is_internal: true },
+    where: { workspace_id: workspaceId, id: messageId },
+  })
   if (!data) throw new AssistError('not_found')
   return data as MediaMessageRow
 }
@@ -108,11 +107,10 @@ export async function transcribeMessage(opts: MediaAssistOptions): Promise<{ tra
     })
     const transcript = result.text.trim()
     await spend(opts.workspaceId, 'transcription', { conversationId: msg.conversation_id })
-    await supabaseAdmin()
-      .from('messages')
-      .update({ transcript, ai_processed_at: new Date().toISOString() })
-      .eq('id', msg.id)
-      .eq('workspace_id', opts.workspaceId)
+    await tenantDb(opts.workspaceId).messages.updateMany({
+      where: { id: msg.id, workspace_id: opts.workspaceId },
+      data: { transcript, ai_processed_at: new Date().toISOString() },
+    })
     return { transcript, cached: false }
   } catch (err) {
     throw mapMediaError(err)
@@ -142,11 +140,10 @@ export async function readMessageMedia(
     })
     const text = result.text.trim().slice(0, 4000)
     await spend(opts.workspaceId, 'vision', { conversationId: msg.conversation_id })
-    await supabaseAdmin()
-      .from('messages')
-      .update({ ai_media_text: text, ai_processed_at: new Date().toISOString() })
-      .eq('id', msg.id)
-      .eq('workspace_id', opts.workspaceId)
+    await tenantDb(opts.workspaceId).messages.updateMany({
+      where: { id: msg.id, workspace_id: opts.workspaceId },
+      data: { ai_media_text: text, ai_processed_at: new Date().toISOString() },
+    })
     return { text, cached: false }
   } catch (err) {
     throw mapMediaError(err)
@@ -206,36 +203,35 @@ export async function inboundMediaText(input: InboundMediaInput): Promise<string
 // ------------------------------------------------------------------
 
 async function conversationMessages(workspaceId: string, conversationId: string, limit: number): Promise<TranscriptMessage[]> {
-  const db = supabaseAdmin()
-  const { data } = await db
-    .from('messages')
-    .select('sender_type, sender_id, content_type, content_text, transcript, ai_media_text, is_internal, created_at')
-    .eq('workspace_id', workspaceId)
-    .eq('conversation_id', conversationId)
-    // Team-only notes never reach the model.
-    .neq('is_internal', true)
-    .neq('content_type', 'system')
-    .order('created_at', { ascending: false })
-    .limit(limit)
-  const rows = (data ?? []).reverse()
+  const data = await tenantDb(workspaceId).messages.findMany({
+    select: { sender_type: true, sender_id: true, content_type: true, content_text: true, transcript: true, ai_media_text: true, is_internal: true, created_at: true },
+    where: {
+      workspace_id: workspaceId,
+      conversation_id: conversationId,
+      // Team-only notes never reach the model.
+      is_internal: { not: true },
+      content_type: { not: 'system' },
+    },
+    orderBy: { created_at: 'desc' },
+    take: limit,
+  })
+  const rows = data.reverse()
   const ids = [...new Set(rows.map((r) => r.sender_id).filter((x): x is string => !!x && rows.some((r) => r.sender_type === 'agent' && r.sender_id === x)))]
   const names = new Map<string, string>()
   if (ids.length) {
-    const { data: profiles } = await db.from('profiles').select('id, full_name').in('id', ids)
-    for (const p of profiles ?? []) if (p.full_name) names.set(p.id, p.full_name.split(' ')[0])
+    const profiles = await prisma.profiles.findMany({ select: { id: true, full_name: true }, where: { id: { in: ids } } })
+    for (const p of profiles) if (p.full_name) names.set(p.id, p.full_name.split(' ')[0])
   }
-  return rows.map((r) => ({ ...r, sender_name: r.sender_type === 'agent' && r.sender_id ? (names.get(r.sender_id) ?? null) : null }))
+  return rows.map((r) => ({ ...r, created_at: r.created_at ?? '', sender_name: r.sender_type === 'agent' && r.sender_id ? (names.get(r.sender_id) ?? null) : null }))
 }
 
 async function loadConversation(workspaceId: string, conversationId: string) {
-  const { data } = await supabaseAdmin()
-    .from('conversations')
-    .select('id, channel_id, ai_agent_id, contact:contacts(name)')
-    .eq('workspace_id', workspaceId)
-    .eq('id', conversationId)
-    .maybeSingle()
+  const data = await tenantDb(workspaceId).conversations.findFirst({
+    select: { id: true, channel_id: true, ai_agent_id: true, contacts: { select: { name: true } } },
+    where: { workspace_id: workspaceId, id: conversationId },
+  })
   if (!data) throw new AssistError('not_found')
-  const contact = (Array.isArray(data.contact) ? data.contact[0] : data.contact) as { name: string | null } | null
+  const contact = data.contacts as { name: string | null } | null
   return { id: data.id as string, channelId: (data.channel_id as string | null) ?? null, aiAgentId: (data.ai_agent_id as string | null) ?? null, contactName: contact?.name ?? null }
 }
 
@@ -265,11 +261,10 @@ export async function summarizeConversation(input: { workspaceId: string; conver
   if (!summary) throw new AssistError('failed', 'Unreadable summary')
   await spend(input.workspaceId, 'summary', { conversationId: conv.id })
   const at = new Date().toISOString()
-  await supabaseAdmin()
-    .from('conversations')
-    .update({ ai_summary: JSON.stringify(summary), ai_summary_at: at, ai_summary_by: input.userId })
-    .eq('id', conv.id)
-    .eq('workspace_id', input.workspaceId)
+  await tenantDb(input.workspaceId).conversations.updateMany({
+    where: { id: conv.id, workspace_id: input.workspaceId },
+    data: { ai_summary: JSON.stringify(summary), ai_summary_at: at, ai_summary_by: input.userId },
+  })
   return { summary, at, by: input.userId }
 }
 
@@ -332,7 +327,7 @@ export async function suggestReply(input: { workspaceId: string; conversationId:
   // Persona: the conversation's agent, else the channel's agent, else neutral.
   let agentId = conv.aiAgentId
   if (!agentId && conv.channelId) {
-    const { data: ch } = await supabaseAdmin().from('channels').select('ai_agent_id').eq('id', conv.channelId).eq('workspace_id', input.workspaceId).maybeSingle()
+    const ch = await tenantDb(input.workspaceId).channels.findFirst({ select: { ai_agent_id: true }, where: { id: conv.channelId, workspace_id: input.workspaceId } })
     agentId = (ch?.ai_agent_id as string | null) ?? null
   }
   const agent = agentId ? (ctx.agents.find((a) => a.id === agentId) ?? null) : null

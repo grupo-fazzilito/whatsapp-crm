@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useT } from '@/i18n/client';
-import { createClient } from '@/lib/supabase/client';
+import { signFile } from '@/lib/storage/client';
+import { storagePathFromUrl } from '@/lib/storage/paths';
 import { cn } from '@/lib/utils';
 import { PAYMENT_TONE, STATUS_TONE, type OrderStatus, type PaymentStatus } from './types';
 
@@ -23,8 +24,6 @@ export function PaymentChip({ status, className }: { status: PaymentStatus; clas
     </span>
   );
 }
-
-const ATTACHMENT_SIGN_MARKER = '/storage/v1/object/sign/attachments/';
 
 /**
  * Renderable src for a stored media URL (payment proof): proxied media is
@@ -47,12 +46,12 @@ export function useMediaSrc(url: string | null) {
           if (!cancelled) setState({ src: blobUrl, error: false });
           return;
         }
-        const idx = url.indexOf(ATTACHMENT_SIGN_MARKER);
-        if (idx >= 0) {
-          const path = decodeURIComponent(url.slice(idx + ATTACHMENT_SIGN_MARKER.length).split('?')[0]);
-          const { data, error } = await createClient().storage.from('attachments').createSignedUrl(path, 3600);
-          if (error || !data?.signedUrl) throw error ?? new Error('sign');
-          if (!cancelled) setState({ src: data.signedUrl, error: false });
+        // Private attachment (new /api/files or legacy Supabase URL): re-sign it.
+        const path = storagePathFromUrl(url, 'attachments');
+        if (path) {
+          const signed = await signFile('attachments', path, { expiresIn: 3600 });
+          if (!signed) throw new Error('sign');
+          if (!cancelled) setState({ src: signed, error: false });
           return;
         }
         if (!cancelled) setState({ src: url, error: false });

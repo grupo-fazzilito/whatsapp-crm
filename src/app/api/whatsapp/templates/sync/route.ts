@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
+import { Prisma } from '@/generated/prisma/client'
 import { requireWorkspace } from '@/lib/workspace/context'
+import { isUuid } from '@/lib/workspace/constants'
 import { defaultChannel, loadChannel } from '@/lib/channels/store'
 
 /**
  * Sync message templates from Meta → local message_templates table.
  *
  * Why this exists:
- *   The Settings → Message Templates UI only writes to Supabase. It does
+ *   The Settings → Message Templates UI only writes to our database. It does
  *   NOT submit templates for approval to Meta. Users would create a
  *   template locally, try to broadcast with it, and hit Meta's error
  *   #132001 "Template name does not exist in the translation" — because
@@ -90,14 +92,16 @@ function normalizeStatus(
 
 export async function POST(request: Request) {
   try {
-    // message_templates writes are admin-only under RLS.
+    // message_templates writes are admin-only.
     const guard = await requireWorkspace('admin')
     if (!guard.ok) return guard.response
-    const { supabase, workspace } = guard.ctx
+    const { db, workspace } = guard.ctx
 
     const reqBody = (await request.json().catch(() => ({}))) as { channel_id?: string }
     const channel = reqBody.channel_id
-      ? await loadChannel(workspace.id, reqBody.channel_id)
+      ? isUuid(reqBody.channel_id)
+        ? await loadChannel(workspace.id, reqBody.channel_id)
+        : null
       : await defaultChannel(workspace.id, 'whatsapp')
 
     const accessToken = channel?.secrets.access_token
@@ -180,54 +184,49 @@ export async function POST(request: Request) {
         header_content: header?.text ?? null,
         body_text: body?.text ?? '',
         footer_text: footer?.text ?? null,
-        buttons: buttonsComp?.buttons ?? null,
+        buttons: buttonsComp?.buttons ?? Prisma.DbNull,
         status: normalizeStatus(t.status),
         updated_at: new Date().toISOString(),
       }
 
-      const { data: existing, error: lookupErr } = await supabase
-        .from('message_templates')
-        .select('id')
-        .eq('workspace_id', workspace.id)
-        .eq('name', t.name)
-        .eq('language', t.language)
-        .maybeSingle()
+      const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
-      if (lookupErr) {
+      let existing: { id: string } | null
+      try {
+        existing = await db.message_templates.findFirst({
+          select: { id: true },
+          where: { workspace_id: workspace.id, name: t.name, language: t.language },
+        })
+      } catch (err) {
         errors.push({
           name: t.name,
           language: t.language,
-          message: lookupErr.message,
+          message: message(err),
         })
         continue
       }
 
       if (existing?.id) {
-        const { error: updErr } = await supabase
-          .from('message_templates')
-          .update(row)
-          .eq('id', existing.id)
-        if (updErr) {
+        try {
+          await db.message_templates.updateMany({ where: { id: existing.id }, data: row })
+          updated++
+        } catch (err) {
           errors.push({
             name: t.name,
             language: t.language,
-            message: updErr.message,
+            message: message(err),
           })
-        } else {
-          updated++
         }
       } else {
-        const { error: insErr } = await supabase
-          .from('message_templates')
-          .insert(row)
-        if (insErr) {
+        try {
+          await db.message_templates.create({ data: row })
+          inserted++
+        } catch (err) {
           errors.push({
             name: t.name,
             language: t.language,
-            message: insErr.message,
+            message: message(err),
           })
-        } else {
-          inserted++
         }
       }
     }

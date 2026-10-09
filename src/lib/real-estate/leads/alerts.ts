@@ -1,5 +1,6 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
 import { createTranslator } from '@/i18n/translate'
 import { notify } from '@/lib/inbox/server'
 import { windowState } from '@/lib/automations/followup-rules'
@@ -28,28 +29,36 @@ export interface MatchJobsResult {
 }
 
 export async function processPropertyMatchJobs(now = new Date()): Promise<MatchJobsResult> {
-  const db = supabaseAdmin()
   const out: MatchJobsResult = { jobs: 0, notifications: 0, customerAlerts: 0 }
-  const { data: due } = await db
-    .from('property_match_jobs')
-    .select('id, workspace_id, product_id, reason')
-    .eq('status', 'pending')
-    .lte('run_after', now.toISOString())
-    .order('run_after')
-    .limit(JOBS_PER_RUN)
+  // Cron across every workspace: platform client for the queue scan.
+  const due = await prisma.property_match_jobs
+    .findMany({
+      select: { id: true, workspace_id: true, product_id: true, reason: true },
+      where: { status: 'pending', run_after: { lte: now.toISOString() } },
+      orderBy: { run_after: 'asc' },
+      take: JOBS_PER_RUN,
+    })
+    .catch(() => null)
   for (const job of due ?? []) {
-    const { data: claim } = await db.from('property_match_jobs').update({ status: 'running' }).eq('id', job.id).eq('status', 'pending').select('id').maybeSingle()
-    if (!claim) continue
+    const db = tenantDb(job.workspace_id)
+    const claim = await db.property_match_jobs
+      .updateMany({ where: { id: job.id, status: 'pending' }, data: { status: 'running' } })
+      .catch(() => null)
+    if (!claim?.count) continue
     try {
       const r = await runMatchJob(job.workspace_id as string, job.product_id as string)
       out.jobs++
       out.notifications += r.notifications
       out.customerAlerts += r.customerAlerts
-      await db.from('property_match_jobs').update({ status: 'done', processed_at: new Date().toISOString(), result: r }).eq('id', job.id)
+      await db.property_match_jobs
+        .updateMany({ where: { id: job.id }, data: { status: 'done', processed_at: new Date().toISOString(), result: { ...r } } })
+        .catch(() => undefined)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[leads] match job failed:', msg)
-      await db.from('property_match_jobs').update({ status: 'failed', processed_at: new Date().toISOString(), result: { error: msg } }).eq('id', job.id)
+      await db.property_match_jobs
+        .updateMany({ where: { id: job.id }, data: { status: 'failed', processed_at: new Date().toISOString(), result: { error: msg } } })
+        .catch(() => undefined)
     }
   }
   return out
@@ -64,19 +73,15 @@ export interface MatchJobResult {
 
 /** Matches one listing against the workspace's leads and alerts. */
 export async function runMatchJob(workspaceId: string, productId: string): Promise<MatchJobResult> {
-  const db = supabaseAdmin()
+  const db = tenantDb(workspaceId)
   const [ws, property] = await Promise.all([loadWs(workspaceId), loadProperty(workspaceId, productId)])
   if (!ws || !property || !isOfferable(property)) return { leads: 0, notifications: 0, customerAlerts: 0, skipped: 'not_offerable' }
 
-  const { data: rows } = await db
-    .from('lead_profiles')
-    .select(LEAD_SELECT)
-    .eq('workspace_id', workspaceId)
-    .not('qualified_at', 'is', null)
-    .order('score', { ascending: false })
-    .limit(LEADS_SCAN)
-  const { data: already } = await db.from('lead_property_alerts').select('lead_profile_id').eq('workspace_id', workspaceId).eq('product_id', productId)
-  const seen = new Set((already ?? []).map((a) => a.lead_profile_id as string))
+  const rows = await db.lead_profiles
+    .findMany({ select: LEAD_SELECT, where: { qualified_at: { not: null } }, orderBy: { score: 'desc' }, take: LEADS_SCAN })
+    .catch(() => null)
+  const already = await db.lead_property_alerts.findMany({ select: { lead_profile_id: true }, where: { product_id: productId } }).catch(() => null)
+  const seen = new Set((already ?? []).map((a) => a.lead_profile_id))
   const leads = leadsForProperty(
     property,
     (rows ?? []).map(rowToLead).filter((l) => !seen.has(l.id)),
@@ -88,15 +93,19 @@ export async function runMatchJob(workspaceId: string, productId: string): Promi
 
   // Conversation owner + reply window of every matching lead.
   const convIds = leads.map((l) => l.conversation_id).filter((x): x is string => !!x)
-  const { data: convs } = convIds.length
-    ? await db
-        .from('conversations')
-        .select('id, assigned_agent_id, last_customer_message_at, channel:channels(type)')
-        .eq('workspace_id', workspaceId)
-        .in('id', convIds)
-    : { data: [] }
+  const convs = convIds.length
+    ? await db.conversations
+        .findMany({
+          select: { id: true, assigned_agent_id: true, last_customer_message_at: true, channels: { select: { type: true } } },
+          where: { id: { in: convIds } },
+        })
+        .then((list) => list.map(({ channels, ...c }) => ({ ...c, channel: channels })))
+        .catch(() => null)
+    : []
   const convById = new Map((convs ?? []).map((c) => [c.id as string, c]))
-  const { data: contacts } = await db.from('contacts').select('id, name, phone').in('id', leads.map((l) => l.contact_id))
+  const contacts = await db.contacts
+    .findMany({ select: { id: true, name: true, phone: true }, where: { id: { in: leads.map((l) => l.contact_id) } } })
+    .catch(() => null)
   const nameOf = new Map((contacts ?? []).map((c) => [c.id as string, ((c.name as string) || (c.phone as string) || '').trim()]))
 
   // Notifications grouped by owner.
@@ -135,11 +144,10 @@ export async function runMatchJob(workspaceId: string, productId: string): Promi
         }
       }
     }
-    await db.from('lead_property_alerts').upsert(
-      { workspace_id: workspaceId, lead_profile_id: l.id, product_id: productId, delivery },
-      { onConflict: 'lead_profile_id,product_id', ignoreDuplicates: true },
-    )
-    await db.from('lead_profiles').update({ last_matched_at: new Date().toISOString() }).eq('id', l.id).eq('workspace_id', workspaceId)
+    await db.lead_property_alerts
+      .createMany({ data: [{ workspace_id: workspaceId, lead_profile_id: l.id, product_id: productId, delivery }], skipDuplicates: true })
+      .catch(() => undefined)
+    await db.lead_profiles.updateMany({ where: { id: l.id }, data: { last_matched_at: new Date().toISOString() } }).catch(() => undefined)
   }
   return { leads: leads.length, notifications: notes.length, customerAlerts }
 }

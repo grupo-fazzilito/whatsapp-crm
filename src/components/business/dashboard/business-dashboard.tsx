@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { ArrowRight, Bot, CalendarCheck, CheckCircle2, Circle, Hand, MessagesSquare } from 'lucide-react';
 import { useI18n, useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { createClient } from '@/lib/supabase/client';
+import { api } from '../api';
 import { addDays, safeTimeZone, weekdayOf, zonedNow } from '@/lib/ai/time';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { buttonVariants } from '@/components/ui/button';
@@ -75,53 +75,14 @@ export function BusinessDashboard() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const db = createClient();
     const { from, to } = periodRange(period, tz);
     const since = zonedMidnight(from, tz).toISOString();
     const until = zonedMidnight(addDays(to, 1), tz).toISOString();
+    const qs = new URLSearchParams({ from, to, since, until, bookings: modules.bookings ? '1' : '0' });
     try {
-      const [bk, logs, hours, sv, st, fq, ag] = await Promise.all([
-        modules.bookings
-          ? db
-              .from('bookings')
-              .select('id, status, booking_date, booking_time, customer_name, service:services(name), staff:staff(name)')
-              .gte('booking_date', from)
-              .lte('booking_date', to)
-              .order('booking_date')
-              .order('booking_time')
-              .limit(2000)
-          : Promise.resolve({ data: [], error: null }),
-        db
-          .from('ai_chat_logs')
-          .select('conversation_id, contact_id, detected_intent')
-          .gte('created_at', since)
-          .lt('created_at', until)
-          .limit(5000),
-        db.from('business_hours').select('id', { count: 'exact', head: true }),
-        db.from('services').select('id', { count: 'exact', head: true }),
-        db.from('staff').select('id', { count: 'exact', head: true }),
-        db.from('faqs').select('id', { count: 'exact', head: true }),
-        db.from('ai_agents').select('id', { count: 'exact', head: true }),
-      ]);
-      if (bk.error) toast.error(bk.error.message);
-      if (logs.error) toast.error(logs.error.message);
-      const rows = logs.data ?? [];
-      const key = (r: { conversation_id: string | null; contact_id: string | null }) => r.conversation_id ?? r.contact_id ?? '';
-      const convs = new Set(rows.map(key).filter(Boolean));
-      const handed = new Set(rows.filter((r) => r.detected_intent === 'handover').map(key).filter(Boolean));
-      setStats({
-        bookings: (bk.data as unknown as BookingLite[]) ?? [],
-        aiMessages: rows.length,
-        aiConversations: convs.size,
-        handedOver: handed.size,
-        setup: {
-          hours: (hours.count ?? 0) > 0,
-          services: sv.count ?? 0,
-          staff: st.count ?? 0,
-          faqs: fq.count ?? 0,
-          agents: ag.count ?? 0,
-        },
-      });
+      setStats(await api<Stats>(`/api/business/dashboard?${qs}`));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }

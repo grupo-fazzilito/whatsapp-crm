@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireWorkspace } from '@/lib/workspace/context';
 import { sendReaction } from '@/lib/messaging/send';
+import { isPrismaError } from '@/lib/db/errors';
 import {
   checkRateLimit,
   rateLimitResponse,
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   try {
     const guard = await requireWorkspace();
     if (!guard.ok) return guard.response;
-    const { supabase, user, workspace } = guard.ctx;
+    const { db, user, workspace } = guard.ctx;
 
     const limit = checkRateLimit(`react:${user.id}`, RATE_LIMITS.react);
     if (!limit.success) {
@@ -41,13 +42,15 @@ export async function POST(request: Request) {
     }
 
     // Resolve target message + its conversation; verify ownership.
-    const { data: targetMessage, error: msgError } = await supabase
-      .from('messages')
-      .select('id, message_id, conversation_id')
-      .eq('id', message_id)
-      .maybeSingle();
+    // A malformed id fails the query: same 404 as a missing row.
+    const targetMessage = await db.messages
+      .findFirst({
+        select: { id: true, message_id: true, conversation_id: true },
+        where: { id: message_id },
+      })
+      .catch(() => null);
 
-    if (msgError || !targetMessage) {
+    if (!targetMessage) {
       return NextResponse.json({ error: 'Message not found' }, { status: 404 });
     }
 
@@ -60,14 +63,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: conversation, error: convError } = await supabase
-      .from('conversations')
-      .select('id')
-      .eq('id', targetMessage.conversation_id)
-      .eq('workspace_id', workspace.id)
-      .maybeSingle();
+    const conversation = await db.conversations
+      .findFirst({
+        select: { id: true },
+        where: { id: targetMessage.conversation_id, workspace_id: workspace.id },
+      })
+      .catch(() => null);
 
-    if (convError || !conversation) {
+    if (!conversation) {
       return NextResponse.json(
         { error: 'Conversation not found' },
         { status: 404 },
@@ -95,15 +98,14 @@ export async function POST(request: Request) {
 
     // Mirror into DB. Empty emoji = removal.
     if (emoji === '') {
-      const { error: delError } = await supabase
-        .from('message_reactions')
-        .delete()
-        .eq('message_id', targetMessage.id)
-        .eq('actor_type', 'agent')
-        .eq('actor_id', user.id);
+      const delError = await db.message_reactions
+        .deleteMany({
+          where: { message_id: targetMessage.id, actor_type: 'agent', actor_id: user.id },
+        })
+        .then(() => null, (err: unknown) => err);
 
       if (delError) {
-        console.error('[whatsapp/react] DB delete failed:', delError.message);
+        console.error('[whatsapp/react] DB delete failed:', delError instanceof Error ? delError.message : delError);
         return NextResponse.json(
           { error: 'Reaction sent to Meta but DB delete failed' },
           { status: 500 },
@@ -112,20 +114,25 @@ export async function POST(request: Request) {
     } else {
       // Upsert. The unique constraint (message_id, actor_type, actor_id)
       // lets us swap emoji in a single statement.
-      const { error: upsertError } = await supabase.from('message_reactions').upsert(
-        {
-          workspace_id: workspace.id,
-          message_id: targetMessage.id,
-          conversation_id: targetMessage.conversation_id,
-          actor_type: 'agent',
-          actor_id: user.id,
-          emoji,
-        },
-        { onConflict: 'message_id,actor_type,actor_id' },
-      );
+      const key = { message_id: targetMessage.id, actor_type: 'agent', actor_id: user.id };
+      const upsert = () =>
+        db.message_reactions.upsert({
+          where: { message_id_actor_type_actor_id: key },
+          create: {
+            workspace_id: workspace.id,
+            ...key,
+            conversation_id: targetMessage.conversation_id,
+            emoji,
+          },
+          update: { conversation_id: targetMessage.conversation_id, emoji },
+        });
+      const upsertError = await upsert()
+        // Lost a race with a concurrent insert: the row exists now, update it.
+        .catch((err: unknown) => (isPrismaError(err, 'P2002') ? upsert() : Promise.reject(err)))
+        .then(() => null, (err: unknown) => err);
 
       if (upsertError) {
-        console.error('[whatsapp/react] DB upsert failed:', upsertError.message);
+        console.error('[whatsapp/react] DB upsert failed:', upsertError instanceof Error ? upsertError.message : upsertError);
         return NextResponse.json(
           { error: 'Reaction sent to Meta but DB upsert failed' },
           { status: 500 },

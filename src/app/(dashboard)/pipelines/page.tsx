@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useWorkspace } from "@/hooks/use-workspace";
 import type { Pipeline, PipelineStage, Deal } from "@/types";
 import { PipelineBoard } from "@/components/pipelines/pipeline-board";
@@ -41,12 +40,53 @@ const SPEC_DEFAULT_STAGES = [
   { key: "won", color: "#22c55e", position: 4 }, // green
 ];
 
+function defaultStages(t: (key: string) => string) {
+  return SPEC_DEFAULT_STAGES.map((s) => ({
+    name: t(`crm.pipelines.defaultStages.${s.key}`),
+    color: s.color,
+    position: s.position,
+  }));
+}
+
 type StatusFilter = "open" | "won" | "lost" | "all";
 const STATUS_FILTERS: StatusFilter[] = ["open", "won", "lost", "all"];
 const FILTER_KEY = "pipelines:status";
 
+/** GET a JSON route and return `body[key]`; null on any failure. */
+async function getJson<T>(url: string, key: string): Promise<T | null> {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error(`GET ${url} failed:`, body?.error ?? res.status);
+      return null;
+    }
+    return (body?.[key] ?? null) as T | null;
+  } catch (err) {
+    console.error(`GET ${url} failed:`, err);
+    return null;
+  }
+}
+
+/** Creates a pipeline with its default stages (admins). */
+async function createPipeline(
+  name: string,
+  stages: { name: string; color: string; position: number }[],
+): Promise<Pipeline | null> {
+  const res = await fetch("/api/pipelines", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, stages }),
+  }).catch(() => null);
+  const body = res ? await res.json().catch(() => ({})) : {};
+  if (!res?.ok) {
+    console.error("Failed to create pipeline:", body?.error ?? res?.status);
+    return null;
+  }
+  return (body.pipeline ?? null) as Pipeline | null;
+}
+
 export default function PipelinesPage() {
-  const supabase = createClient();
   const { t } = useI18n();
 
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
@@ -99,63 +139,26 @@ export default function PipelinesPage() {
   const canSeed = can("admin");
 
   const loadPipelines = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("pipelines")
-      .select("*")
-      .order("created_at");
-    if (error) {
-      console.error("Failed to load pipelines:", error.message);
-      return [];
-    }
-    return data ?? [];
-  }, [supabase]);
+    return (await getJson<Pipeline[]>("/api/pipelines", "pipelines")) ?? [];
+  }, []);
 
   const loadStages = useCallback(
     async (pipelineId: string) => {
-      const { data } = await supabase
-        .from("pipeline_stages")
-        .select("*")
-        .eq("pipeline_id", pipelineId)
-        .order("position");
-      return data ?? [];
+      return (await getJson<PipelineStage[]>(`/api/pipelines/${pipelineId}/stages`, "stages")) ?? [];
     },
-    [supabase],
+    [],
   );
 
   const loadDeals = useCallback(
     async (pipelineId: string) => {
-      const { data } = await supabase
-        .from("deals")
-        .select("*, contact:contacts(*), assignee:profiles!deals_assigned_to_fkey(*)")
-        .eq("pipeline_id", pipelineId)
-        .order("created_at", { ascending: false });
-      return (data ?? []) as Deal[];
+      return (await getJson<Deal[]>(`/api/pipelines/${pipelineId}/deals`, "deals")) ?? [];
     },
-    [supabase],
+    [],
   );
 
   const seedDefaultPipeline = useCallback(async (): Promise<Pipeline | null> => {
-    const { data: pipeline, error } = await supabase
-      .from("pipelines")
-      .insert({ name: t("crm.pipelines.defaultName") })
-      .select()
-      .single();
-
-    if (error || !pipeline) {
-      console.error("Failed to seed pipeline:", error?.message);
-      return null;
-    }
-
-    const stagesPayload = SPEC_DEFAULT_STAGES.map((s) => ({
-      pipeline_id: pipeline.id,
-      name: t(`crm.pipelines.defaultStages.${s.key}`),
-      color: s.color,
-      position: s.position,
-    }));
-    await supabase.from("pipeline_stages").insert(stagesPayload);
-
-    return pipeline as Pipeline;
-  }, [supabase, t]);
+    return createPipeline(t("crm.pipelines.defaultName"), defaultStages(t));
+  }, [t]);
 
   // Initial load + seed-if-empty
   useEffect(() => {
@@ -191,11 +194,7 @@ export default function PipelinesPage() {
     if (!deepLinkDealId || loading) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("deals")
-        .select("pipeline_id, status")
-        .eq("id", deepLinkDealId)
-        .maybeSingle();
+      const data = await getJson<{ pipeline_id: string; status: string }>(`/api/deals/${deepLinkDealId}`, "deal");
       if (cancelled) return;
       if (!data) {
         setDeepLinkDealId(null);
@@ -206,7 +205,7 @@ export default function PipelinesPage() {
     return () => {
       cancelled = true;
     };
-  }, [deepLinkDealId, loading, selectedPipelineId, supabase]);
+  }, [deepLinkDealId, loading, selectedPipelineId]);
   useEffect(() => {
     if (!deepLinkDealId) return;
     const deal = deals.find((d) => d.id === deepLinkDealId);
@@ -270,16 +269,17 @@ export default function PipelinesPage() {
       setDeals((prev) =>
         prev.map((d) => (d.id === dealId ? { ...d, stage_id: newStageId } : d)),
       );
-      const { error } = await supabase
-        .from("deals")
-        .update({ stage_id: newStageId })
-        .eq("id", dealId);
-      if (error) {
+      const res = await fetch(`/api/deals/${dealId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage_id: newStageId }),
+      }).catch(() => null);
+      if (!res?.ok) {
         toast.error(t("crm.deals.errors.moveFailed"));
         refreshDeals();
       }
     },
-    [supabase, refreshDeals, t],
+    [refreshDeals, t],
   );
 
   const handleCloseDeal = useCallback((deal: Deal, status: CloseStatus) => {
@@ -306,25 +306,13 @@ export default function PipelinesPage() {
     if (!name) return;
     setCreating(true);
 
-    const { data: pipeline, error } = await supabase
-      .from("pipelines")
-      .insert({ name })
-      .select()
-      .single();
+    const pipeline = await createPipeline(name, defaultStages(t));
 
-    if (error || !pipeline) {
+    if (!pipeline) {
       toast.error(t("crm.pipelines.errors.createFailed"));
       setCreating(false);
       return;
     }
-
-    const stagesPayload = SPEC_DEFAULT_STAGES.map((s) => ({
-      pipeline_id: pipeline.id,
-      name: t(`crm.pipelines.defaultStages.${s.key}`),
-      color: s.color,
-      position: s.position,
-    }));
-    await supabase.from("pipeline_stages").insert(stagesPayload);
 
     setNewPipelineName("");
     setNewPipelineOpen(false);

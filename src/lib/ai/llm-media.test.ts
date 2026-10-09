@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
+vi.mock('@/lib/db/prisma', () => ({ prisma: {} }))
 vi.mock('@/lib/platform/settings', async (orig) => {
   const real = await orig<typeof import('@/lib/platform/settings')>()
   return { ...real, getAiConfig: vi.fn(async () => real.buildAiConfig(null, {})), getPlatformSetting: vi.fn(async () => null) }
 })
 const inserted: Record<string, unknown>[] = []
-vi.mock('@/lib/supabase/admin', () => ({
-  supabaseAdmin: () => ({ from: () => ({ insert: async (row: Record<string, unknown>) => (inserted.push(row), { error: null }) }) }),
+vi.mock('@/lib/db/tenant', () => ({
+  tenantDb: () => ({ ai_usage: { create: async ({ data }: { data: Record<string, unknown> }) => (inserted.push(data), data) } }),
 }))
 
 import { buildAiConfig } from '@/lib/platform/settings'

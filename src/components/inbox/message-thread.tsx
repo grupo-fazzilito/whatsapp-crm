@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useRealtimeChanges } from "@/lib/realtime/client";
+import { signFile, uploadFile } from "@/lib/storage/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useI18n } from "@/i18n/client";
@@ -212,6 +213,14 @@ const EMPTY_LINKS: ConversationTagLink[] = [];
 const DOODLE_BG_CLASSES =
   "bg-slate-950 inbox-doodle-bg bg-repeat";
 
+/** GET a JSON API route; throws with the server's error message. */
+async function getJson<T>(url: string): Promise<T> {
+  const res = await fetch(url, { cache: "no-store" });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+  return body as T;
+}
+
 function safeFileName(name: string): string {
   const cleaned = name.normalize("NFKD").replace(/[^\w.\-]+/g, "_").replace(/_+/g, "_");
   return cleaned.slice(-80) || "file";
@@ -376,24 +385,18 @@ export function MessageThread({
   useEffect(() => {
     if (!conversationId) return;
 
-    const supabase = createClient();
     let cancelled = false;
 
     (async () => {
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
-
-      if (cancelled) return;
-
-      if (error) {
+      try {
+        const data = await getJson<{ messages: Message[] }>(`/api/inbox/conversations/${conversationId}/messages`);
+        if (cancelled) return;
+        onMessagesLoadedRef.current(data.messages ?? []);
+      } catch (error) {
+        if (cancelled) return;
         console.error("Failed to fetch messages:", error);
-      } else {
-        onMessagesLoadedRef.current(data ?? []);
       }
 
       if (!cancelled) setLoading(false);
@@ -417,20 +420,15 @@ export function MessageThread({
       setReactions([]);
       return;
     }
-    const supabase = createClient();
     let cancelled = false;
 
     (async () => {
-      const { data, error } = await supabase
-        .from("message_reactions")
-        .select("*")
-        .eq("conversation_id", conversationId);
-      if (cancelled) return;
-      if (error) {
-        console.error("Failed to fetch reactions:", error);
-        return;
+      try {
+        const data = await getJson<{ reactions: MessageReaction[] }>(`/api/inbox/conversations/${conversationId}/reactions`);
+        if (!cancelled) setReactions(data.reactions ?? []);
+      } catch (error) {
+        if (!cancelled) console.error("Failed to fetch reactions:", error);
       }
-      setReactions((data as MessageReaction[]) ?? []);
     })();
 
     return () => {
@@ -438,78 +436,45 @@ export function MessageThread({
     };
   }, [conversationId, resyncToken]);
 
-  // Reactions realtime subscription per conversation. Subscribing here
-  // (not at the page level) keeps the channel scoped to the visible
-  // conversation and avoids cross-conversation chatter on a busy inbox.
-  useEffect(() => {
-    if (!conversationId) return;
-    const supabase = createClient();
-
-    const channel = supabase
-      .channel(`reactions:${conversationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "message_reactions",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          const row = payload.new as MessageReaction;
-          setReactions((prev) => {
-            if (prev.some((r) => r.id === row.id)) return prev;
-            // Swap any matching optimistic temp row for the real one so
-            // the pill doesn't double up after a successful POST.
-            const tempIdx = prev.findIndex(
-              (r) =>
-                r.id.startsWith("temp-") &&
-                r.message_id === row.message_id &&
-                r.actor_type === row.actor_type &&
-                r.actor_id === row.actor_id,
-            );
-            if (tempIdx >= 0) {
-              const copy = prev.slice();
-              copy[tempIdx] = row;
-              return copy;
-            }
-            return [...prev, row];
-          });
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "message_reactions",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          const row = payload.new as MessageReaction;
-          setReactions((prev) => prev.map((r) => (r.id === row.id ? row : r)));
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "message_reactions",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          const old = payload.old as Partial<MessageReaction>;
-          if (!old?.id) return;
-          setReactions((prev) => prev.filter((r) => r.id !== old.id));
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId]);
+  // Reactions realtime, filtered to the visible conversation (the shared
+  // stream carries the whole workspace).
+  useRealtimeChanges<MessageReaction>({
+    workspaceId,
+    tables: ["message_reactions"],
+    enabled: !!conversationId,
+    onChange: (change) => {
+      if (change.eventType === "DELETE") {
+        const old = change.old;
+        if (!old?.id || (old.conversation_id && old.conversation_id !== conversationId)) return;
+        setReactions((prev) => prev.filter((r) => r.id !== old.id));
+        return;
+      }
+      const row = change.new;
+      if (row.conversation_id !== conversationId) return;
+      if (change.eventType === "UPDATE") {
+        setReactions((prev) => prev.map((r) => (r.id === row.id ? row : r)));
+        return;
+      }
+      setReactions((prev) => {
+        if (prev.some((r) => r.id === row.id)) return prev;
+        // Swap any matching optimistic temp row for the real one so
+        // the pill doesn't double up after a successful POST.
+        const tempIdx = prev.findIndex(
+          (r) =>
+            r.id.startsWith("temp-") &&
+            r.message_id === row.message_id &&
+            r.actor_type === row.actor_type &&
+            r.actor_id === row.actor_id,
+        );
+        if (tempIdx >= 0) {
+          const copy = prev.slice();
+          copy[tempIdx] = row;
+          return copy;
+        }
+        return [...prev, row];
+      });
+    },
+  });
 
   // Clear any in-progress reply draft when the active conversation changes —
   // a quote pulled from conversation A shouldn't bleed into conversation B.
@@ -527,47 +492,32 @@ export function MessageThread({
       setEvents([]);
       return;
     }
-    const supabase = createClient();
     let cancelled = false;
-    supabase
-      .from("conversation_events")
-      .select("*")
-      .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true })
-      .limit(500)
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) console.error("Failed to fetch conversation events:", error.message);
-        setEvents((data as ConversationEvent[]) ?? []);
+    getJson<{ events: ConversationEvent[] }>(`/api/inbox/conversations/${conversationId}/events`)
+      .then((data) => data.events ?? [])
+      .catch((error) => {
+        console.error("Failed to fetch conversation events:", error instanceof Error ? error.message : error);
+        return [] as ConversationEvent[];
+      })
+      .then((rows) => {
+        if (!cancelled) setEvents(rows);
       });
     return () => {
       cancelled = true;
     };
   }, [conversationId, resyncToken]);
 
-  useEffect(() => {
-    if (!conversationId) return;
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`conv-events:${conversationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "conversation_events",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          const row = payload.new as ConversationEvent;
-          setEvents((prev) => (prev.some((e) => e.id === row.id) ? prev : [...prev, row]));
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId]);
+  useRealtimeChanges<ConversationEvent>({
+    workspaceId,
+    tables: ["conversation_events"],
+    enabled: !!conversationId,
+    onChange: (change) => {
+      if (change.eventType !== "INSERT") return;
+      const row = change.new;
+      if (row.conversation_id !== conversationId) return;
+      setEvents((prev) => (prev.some((e) => e.id === row.id) ? prev : [...prev, row]));
+    },
+  });
 
   // Reset the server-side unread_count to 0 whenever an unread count
   // surfaces on the active conversation — covers both (a) opening a
@@ -580,14 +530,11 @@ export function MessageThread({
   // is 0 the condition is false, so no further UPDATE is issued.
   useEffect(() => {
     if (!conversationId || !hasUnread) return;
-    const supabase = createClient();
-    supabase
-      .from("conversations")
-      .update({ unread_count: 0 })
-      .eq("id", conversationId)
-      .then(({ error }) => {
-        if (error) console.error("Failed to reset unread_count:", error);
-      });
+    fetch(`/api/inbox/conversations/${conversationId}/read`, { method: "POST" })
+      .then(async (res) => {
+        if (!res.ok) console.error("Failed to reset unread_count:", (await res.json().catch(() => ({})))?.error ?? res.status);
+      })
+      .catch((error) => console.error("Failed to reset unread_count:", error));
   }, [conversationId, hasUnread]);
 
   // Auto-scroll to bottom on new messages / events, and when the chat tab
@@ -679,23 +626,17 @@ export function MessageThread({
         return false;
       }
 
-      const supabase = createClient();
       const path = `${workspaceId}/${conversation.id}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
-      const { error: uploadError } = await supabase.storage
-        .from("attachments")
-        .upload(path, file, { contentType: file.type, upsert: false });
-      if (uploadError) {
-        console.error("Attachment upload failed:", uploadError.message);
-        toast.error(t("inbox.composer.uploadFailed", { reason: uploadError.message }));
-        return false;
-      }
-      // Providers fetch the file once, right away; 1 h is plenty. The
-      // bubble re-signs bucket URLs when rendering later.
-      const { data: signed, error: signError } = await supabase.storage
-        .from("attachments")
-        .createSignedUrl(path, 3600);
-      if (signError || !signed?.signedUrl) {
-        toast.error(t("inbox.composer.uploadFailed", { reason: signError?.message ?? "sign" }));
+      // The returned URL is signed for 1 h: providers fetch the file once,
+      // right away. The bubble re-signs bucket URLs when rendering later.
+      let signed: { signedUrl: string };
+      try {
+        const uploaded = await uploadFile("attachments", file, { path });
+        signed = { signedUrl: uploaded.url };
+      } catch (uploadError) {
+        const reason = uploadError instanceof Error ? uploadError.message : "upload";
+        console.error("Attachment upload failed:", reason);
+        toast.error(t("inbox.composer.uploadFailed", { reason }));
         return false;
       }
 
@@ -734,8 +675,8 @@ export function MessageThread({
       if (!msg.content_text) return;
       onRemoveMessage?.(msg.id);
       if (!msg.id.startsWith("temp-")) {
-        const { error } = await createClient().from("messages").delete().eq("id", msg.id);
-        if (error) console.error("Failed to delete failed message:", error.message);
+        const res = await fetch(`/api/inbox/messages/${msg.id}`, { method: "DELETE" }).catch(() => null);
+        if (!res?.ok) console.error("Failed to delete failed message:", res ? res.status : "network");
       }
       await handleSend(msg.content_text, msg.reply_to_message_id);
     },
@@ -836,13 +777,9 @@ export function MessageThread({
   const handleSendQuickAttachments = useCallback(
     async (attachments: QuickReplyAttachment[]) => {
       if (!conversation) return;
-      const supabase = createClient();
       for (const a of attachments) {
         let url = a.url ?? null;
-        if (a.path) {
-          const { data } = await supabase.storage.from("attachments").createSignedUrl(a.path, 3600);
-          url = data?.signedUrl ?? null;
-        }
+        if (a.path) url = await signFile("attachments", a.path, { expiresIn: 3600 });
         if (!url) {
           toast.error(t("inboxpro.composer.attachmentFailed", { name: a.name }));
           continue;

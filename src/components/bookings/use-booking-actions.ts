@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { useT } from '@/i18n/client'
-import { createClient } from '@/lib/supabase/client'
+import { api } from '@/components/business/api'
 import type { Booking, BookingStatus, MessageAction } from './types'
 import { pushGoogleSync } from '@/components/integrations/google/push'
 
@@ -43,10 +43,11 @@ export function useBookingActions(patch: (id: string, changes: Partial<Booking>)
       if (status === booking.status) return true
       const previous = booking.status
       patch(booking.id, { status })
-      const { error } = await createClient().from('bookings').update({ status }).eq('id', booking.id)
-      if (error) {
+      try {
+        await api(`/api/bookings/${booking.id}`, { method: 'PATCH', body: { status } })
+      } catch (err) {
         patch(booking.id, { status: previous })
-        toast.error(error.message)
+        toast.error(err instanceof Error ? err.message : String(err))
         return false
       }
       toast.success(t('bookings.toast.statusChanged', { status: t(`bookings.status.${status}`) }))

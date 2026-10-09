@@ -1,13 +1,43 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { isPrismaError } from '@/lib/db/errors'
+import { tenantDb } from '@/lib/db/tenant'
 import { phonesMatch, normalizePhone } from '@/lib/whatsapp/phone-utils'
 import { ApiError, badRequest, notFound } from './errors'
-import { listPage } from './list'
+import { keysetPage } from './keyset'
 import { parseIsoParam } from './pagination'
-import { CONTACT_SELECT, serializeContact, serializeTag } from './serializers'
+import { serializeContact, serializeTag } from './serializers'
 import { has, isUuidLike, queryUuid, str, strArray } from './validate'
 
 type Body = Record<string, unknown>
+
+// CONTACT_SELECT (serializers.ts) as a Prisma select: contact_tags(tag:tags(id, name, color)).
+const TAG_FIELDS = { id: true, name: true, color: true } as const
+const CONTACT_FIELDS = {
+  id: true,
+  name: true,
+  phone: true,
+  email: true,
+  company: true,
+  avatar_url: true,
+  created_at: true,
+  updated_at: true,
+} as const
+
+function contactSelect(tagId?: string | null) {
+  return {
+    ...CONTACT_FIELDS,
+    // With a tag filter PostgREST (contact_tags!inner) embedded only the matching link.
+    contact_tags: { select: { tags: { select: TAG_FIELDS } }, ...(tagId ? { where: { tag_id: tagId } } : {}) },
+  }
+}
+
+type ContactRow = Record<string, unknown> & { id: string; phone: string | null; contact_tags: { tag: Record<string, unknown> | null }[] }
+
+/** Prisma row → the PostgREST row shape serializeContact reads. */
+function contactRow(r: { contact_tags: { tags: Record<string, unknown> | null }[] } & Record<string, unknown>): ContactRow {
+  const { contact_tags, ...rest } = r
+  return { ...rest, contact_tags: contact_tags.map((ct) => ({ tag: ct.tags })) } as ContactRow
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
@@ -21,13 +51,14 @@ export function normalizeApiPhone(raw: string): string {
 export async function findContactsByPhone(workspaceId: string, phone: string) {
   const digits = normalizePhone(phone)
   if (digits.length < 6) return []
-  const { data } = await supabaseAdmin()
-    .from('contacts')
-    .select(CONTACT_SELECT)
-    .eq('workspace_id', workspaceId)
-    .ilike('phone', `%${digits.slice(-8)}%`)
-    .limit(50)
-  return (data ?? []).filter((c) => c.phone && phonesMatch(c.phone, phone))
+  const data = await tenantDb(workspaceId)
+    .contacts.findMany({
+      select: contactSelect(),
+      where: { workspace_id: workspaceId, phone: { contains: digits.slice(-8), mode: 'insensitive' } },
+      take: 50,
+    })
+    .catch(() => null)
+  return (data ?? []).map(contactRow).filter((c) => c.phone && phonesMatch(c.phone, phone))
 }
 
 export async function listContacts(workspaceId: string, url: URL) {
@@ -37,28 +68,35 @@ export async function listContacts(workspaceId: string, url: URL) {
     const rows = await findContactsByPhone(workspaceId, phone)
     return { data: rows.map(serializeContact), next_cursor: null }
   }
-  const db = supabaseAdmin()
+  const db = tenantDb(workspaceId)
   const tagId = queryUuid(url, 'tag_id')
-  let q = db
-    .from('contacts')
-    .select(tagId ? CONTACT_SELECT.replace('contact_tags(', 'contact_tags!inner(') : CONTACT_SELECT)
-    .eq('workspace_id', workspaceId)
+  const where: Record<string, unknown> = { workspace_id: workspaceId }
   const email = sp.get('email')
-  if (email) q = q.ilike('email', email.replace(/[%_]/g, '\\$&'))
+  // ilike with escaped wildcards = case-insensitive equality.
+  if (email) where.email = { equals: email, mode: 'insensitive' }
   const search = sp.get('q')?.trim()
-  if (search) q = q.ilike('name', `%${search.replace(/[%_,()]/g, ' ').slice(0, 100)}%`)
-  if (tagId) q = q.eq('contact_tags.tag_id', tagId)
+  if (search) where.name = { contains: search.replace(/[%_,()]/g, ' ').slice(0, 100), mode: 'insensitive' }
+  if (tagId) where.contact_tags = { some: { tag_id: tagId } }
   const since = parseIsoParam(sp.get('updated_since'))
-  if (since) q = q.gte('updated_at', since)
-  const page = await listPage<Record<string, unknown> & { id: string }>(q, 'created_at', url)
+  if (since) where.updated_at = { gte: since }
+  const page = await keysetPage({
+    workspaceId,
+    table: 'contacts',
+    column: 'created_at',
+    where,
+    url,
+    findMany: async (args) => (await db.contacts.findMany({ ...args, select: contactSelect(tagId) })).map(contactRow),
+  })
   return { data: page.data.map(serializeContact), next_cursor: page.next_cursor }
 }
 
 export async function getContactRow(workspaceId: string, id: string) {
   if (!isUuidLike(id)) throw notFound('Contact')
-  const { data } = await supabaseAdmin().from('contacts').select(CONTACT_SELECT).eq('id', id).eq('workspace_id', workspaceId).maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .contacts.findFirst({ select: contactSelect(), where: { id, workspace_id: workspaceId } })
+    .catch(() => null)
   if (!data) throw notFound('Contact')
-  return data
+  return contactRow(data)
 }
 
 export async function getContact(workspaceId: string, id: string) {
@@ -93,12 +131,10 @@ export async function createContact(workspaceId: string, body: Body) {
       throw new ApiError(409, 'contact_exists', 'A contact with this phone already exists.', { contact_id: dup[0].id })
     }
   }
-  const { data, error } = await supabaseAdmin()
-    .from('contacts')
-    .insert({ workspace_id: workspaceId, name: fields.name ?? fields.phone ?? fields.email, ...fields })
-    .select('id')
-    .single()
-  if (error || !data) throw new Error(error?.message ?? 'contact insert failed')
+  const data = await tenantDb(workspaceId).contacts.create({
+    data: { workspace_id: workspaceId, name: fields.name ?? fields.phone ?? fields.email, ...fields },
+    select: { id: true },
+  })
   for (const tag of tags ?? []) await addTag(workspaceId, data.id, { name: tag })
   return getContact(workspaceId, data.id)
 }
@@ -111,8 +147,7 @@ export async function updateContact(workspaceId: string, id: string, body: Body)
     const dup = (await findContactsByPhone(workspaceId, fields.phone)).filter((c) => c.id !== id)
     if (dup.length) throw new ApiError(409, 'contact_exists', 'Another contact already has this phone.', { contact_id: dup[0].id })
   }
-  const { error } = await supabaseAdmin().from('contacts').update(fields).eq('id', id).eq('workspace_id', workspaceId)
-  if (error) throw new Error(error.message)
+  await tenantDb(workspaceId).contacts.updateMany({ where: { id, workspace_id: workspaceId }, data: fields })
   return getContact(workspaceId, id)
 }
 
@@ -120,7 +155,9 @@ export async function updateContact(workspaceId: string, id: string, body: Body)
 // Tags
 // ------------------------------------------------------------
 export async function listTags(workspaceId: string) {
-  const { data } = await supabaseAdmin().from('tags').select('id, name, color').eq('workspace_id', workspaceId).order('name')
+  const data = await tenantDb(workspaceId)
+    .tags.findMany({ select: TAG_FIELDS, where: { workspace_id: workspaceId }, orderBy: { name: 'asc' } })
+    .catch(() => null)
   return { data: (data ?? []).map(serializeTag) }
 }
 
@@ -128,30 +165,33 @@ const TAG_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b
 
 /** Attaches a tag (by id, or by name — created when missing). */
 export async function addTag(workspaceId: string, contactId: string, input: { tag_id?: string | null; name?: string | null; color?: string | null }) {
-  const db = supabaseAdmin()
-  let tag: { id: string; name: string; color: string } | null = null
+  const db = tenantDb(workspaceId)
+  let tag: { id: string; name: string; color: string | null } | null = null
   if (input.tag_id) {
     if (!isUuidLike(input.tag_id)) throw badRequest('tag_id must be an id (UUID).', { field: 'tag_id' })
-    const { data } = await db.from('tags').select('id, name, color').eq('id', input.tag_id).eq('workspace_id', workspaceId).maybeSingle()
+    const data = await db.tags.findFirst({ select: TAG_FIELDS, where: { id: input.tag_id, workspace_id: workspaceId } }).catch(() => null)
     if (!data) throw notFound('Tag')
     tag = data
   } else if (input.name?.trim()) {
     const name = input.name.trim().slice(0, 50)
-    const { data: existing } = await db.from('tags').select('id, name, color').eq('workspace_id', workspaceId).ilike('name', name.replace(/[%_]/g, '\\$&')).limit(1).maybeSingle()
+    const existing = await db.tags
+      .findFirst({ select: TAG_FIELDS, where: { workspace_id: workspaceId, name: { equals: name, mode: 'insensitive' } } })
+      .catch(() => null)
     tag = existing
     if (!tag) {
       const color = input.color && /^#[0-9a-f]{6}$/i.test(input.color) ? input.color : TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)]
-      const { data: created, error } = await db.from('tags').insert({ workspace_id: workspaceId, name, color }).select('id, name, color').single()
-      if (error || !created) throw new Error(error?.message ?? 'tag insert failed')
-      tag = created
+      tag = await db.tags.create({ data: { workspace_id: workspaceId, name, color }, select: TAG_FIELDS })
     }
   } else {
     throw badRequest('Send tag_id or name.')
   }
-  const { data: link } = await db.from('contact_tags').select('id').eq('contact_id', contactId).eq('tag_id', tag!.id).maybeSingle()
+  const link = await db.contact_tags.findFirst({ select: { id: true }, where: { contact_id: contactId, tag_id: tag!.id } }).catch(() => null)
   if (!link) {
-    const { error } = await db.from('contact_tags').insert({ workspace_id: workspaceId, contact_id: contactId, tag_id: tag!.id })
-    if (error && error.code !== '23505') throw new Error(error.message)
+    try {
+      await db.contact_tags.create({ data: { workspace_id: workspaceId, contact_id: contactId, tag_id: tag!.id } })
+    } catch (error) {
+      if (!isPrismaError(error, 'P2002')) throw error
+    }
   }
   return serializeTag(tag!)
 }
@@ -163,6 +203,8 @@ export async function contactTags(workspaceId: string, contactId: string) {
 export async function removeTag(workspaceId: string, contactId: string, tagId: string) {
   await getContactRow(workspaceId, contactId)
   if (!isUuidLike(tagId)) throw notFound('Tag')
-  await supabaseAdmin().from('contact_tags').delete().eq('workspace_id', workspaceId).eq('contact_id', contactId).eq('tag_id', tagId)
+  await tenantDb(workspaceId)
+    .contact_tags.deleteMany({ where: { workspace_id: workspaceId, contact_id: contactId, tag_id: tagId } })
+    .catch(() => null)
   return { deleted: true }
 }

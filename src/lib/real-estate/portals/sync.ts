@@ -1,5 +1,7 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
+import type { Prisma } from '@/generated/prisma/client'
 import { invalidateBusinessContext } from '@/lib/ai/context'
 import { productAttributesFor } from '@/lib/catalog/attributes'
 import { categoryNames, productPayload } from '@/lib/catalog/import'
@@ -48,36 +50,42 @@ export async function portalDevFlags(): Promise<{ allowPrivateHosts: boolean }> 
 }
 
 export async function loadWorkspace(workspaceId: string): Promise<Workspace | null> {
-  const { data } = await supabaseAdmin().from('workspaces').select('*').eq('id', workspaceId).maybeSingle()
+  const data = await tenantDb(workspaceId).workspaces.findFirst({ where: { id: workspaceId } }).catch(() => null)
   return (data as Workspace | null) ?? null
 }
 
 export async function startRun(workspaceId: string, source: RunSource, opts: { feedId?: string | null; trigger: RunTrigger; userId?: string | null }): Promise<string> {
-  const db = supabaseAdmin()
-  let q = db
-    .from('portal_import_runs')
-    .select('id')
-    .eq('workspace_id', workspaceId)
-    .eq('source', source)
-    .eq('status', 'running')
-    .gte('started_at', new Date(Date.now() - RUN_LOCK_MS).toISOString())
-  q = opts.feedId ? q.eq('feed_id', opts.feedId) : q
-  const { data: running } = await q.limit(1)
-  if (running?.length) throw new ImportBusyError()
-  const { data, error } = await db
-    .from('portal_import_runs')
-    .insert({ workspace_id: workspaceId, source, feed_id: opts.feedId ?? null, trigger: opts.trigger, started_by: opts.userId ?? null })
-    .select('id')
-    .single()
-  if (error) throw new Error(error.message)
-  return data.id as string
+  const db = tenantDb(workspaceId)
+  const running = await db.portal_import_runs
+    .findFirst({
+      select: { id: true },
+      where: {
+        source,
+        status: 'running',
+        started_at: { gte: new Date(Date.now() - RUN_LOCK_MS).toISOString() },
+        ...(opts.feedId ? { feed_id: opts.feedId } : {}),
+      },
+    })
+    .catch(() => null)
+  if (running) throw new ImportBusyError()
+  try {
+    const data = await db.portal_import_runs.create({
+      data: { workspace_id: workspaceId, source, feed_id: opts.feedId ?? null, trigger: opts.trigger, started_by: opts.userId ?? null },
+      select: { id: true },
+    })
+    return data.id
+  } catch (e) {
+    throw new Error(e instanceof Error ? e.message : String(e))
+  }
 }
 
 export async function finishRun(runId: string, summary: ImportSummary | null, error?: string | null): Promise<void> {
   const status = error ? 'error' : summary && summary.failed > 0 ? 'partial' : 'success'
-  await supabaseAdmin()
-    .from('portal_import_runs')
-    .update({
+  // By primary key only (callers pass just the run id), as before.
+  await prisma.portal_import_runs
+    .updateMany({
+      where: { id: runId },
+      data: {
       status,
       error: error ? error.slice(0, 500) : null,
       ...(summary
@@ -97,22 +105,27 @@ export async function finishRun(runId: string, summary: ImportSummary | null, er
           }
         : {}),
       finished_at: new Date().toISOString(),
+      },
     })
-    .eq('id', runId)
+    .catch(() => undefined)
 }
 
 async function existingFor(workspaceId: string, externalSource: string): Promise<ExistingExternal[]> {
   const out: ExistingExternal[] = []
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await supabaseAdmin()
-      .from('products')
-      .select('id, external_id, attributes, images, is_active, external_missing_since')
-      .eq('workspace_id', workspaceId)
-      .eq('external_source', externalSource)
-      .order('id')
-      .range(from, from + 999)
-    if (error) throw new Error(error.message)
-    for (const p of data ?? []) {
+    let data
+    try {
+      data = await tenantDb(workspaceId).products.findMany({
+        select: { id: true, external_id: true, attributes: true, images: true, is_active: true, external_missing_since: true },
+        where: { external_source: externalSource },
+        orderBy: { id: 'asc' },
+        skip: from,
+        take: 1000,
+      })
+    } catch (e) {
+      throw new Error(e instanceof Error ? e.message : String(e))
+    }
+    for (const p of data) {
       out.push({
         id: p.id,
         externalId: String(p.external_id),
@@ -128,20 +141,25 @@ async function existingFor(workspaceId: string, externalSource: string): Promise
 }
 
 async function ensureCategories(workspaceId: string, names: string[]): Promise<Map<string, string>> {
-  const db = supabaseAdmin()
+  const db = tenantDb(workspaceId)
   const map = new Map<string, string>()
   const load = async () => {
-    const { data, error } = await db.from('product_categories').select('id, name').eq('workspace_id', workspaceId)
-    if (error) throw new Error(error.message)
-    for (const c of data ?? []) map.set(String(c.name).trim().toLowerCase(), c.id)
+    let data
+    try {
+      data = await db.product_categories.findMany({ select: { id: true, name: true } })
+    } catch (e) {
+      throw new Error(e instanceof Error ? e.message : String(e))
+    }
+    for (const c of data) map.set(String(c.name).trim().toLowerCase(), c.id)
   }
   await load()
   const missing = names.filter((n) => !map.has(n.toLowerCase()))
   if (missing.length) {
-    const { error } = await db
-      .from('product_categories')
-      .upsert(missing.map((name) => ({ workspace_id: workspaceId, name })), { onConflict: 'workspace_id,name', ignoreDuplicates: true })
-    if (error) throw new Error(error.message)
+    try {
+      await db.product_categories.createMany({ data: missing.map((name) => ({ workspace_id: workspaceId, name })), skipDuplicates: true })
+    } catch (e) {
+      throw new Error(e instanceof Error ? e.message : String(e))
+    }
     await load()
   }
   return map
@@ -168,7 +186,7 @@ export interface WriteOptions {
 
 export async function writeListings(opts: WriteOptions): Promise<ImportSummary> {
   const { workspace: ws, externalSource } = opts
-  const db = supabaseAdmin()
+  const db = tenantDb(ws.id)
   const fields = productAttributesFor(ws.industry, ws.settings)
   const existing = await existingFor(ws.id, externalSource)
   const plan = planExternalImport(opts.listings, existing, {
@@ -225,13 +243,14 @@ export async function writeListings(opts: WriteOptions): Promise<ImportSummary> 
             payload.attributes = { ...attrs, listing_status: 'available' }
           }
         }
-        const { error } = await db.from('products').update(payload).eq('workspace_id', ws.id).eq('id', r.productId!)
-        if (error) throw new Error(error.message)
+        await db.products.updateMany({ where: { id: r.productId! }, data: payload as Prisma.productsUncheckedUpdateManyInput })
         summary.updated++
         if (r.data.images) await removeUnusedImages(ws.id, before, r.data.images).catch(() => {})
       } else {
-        const { error } = await db.from('products').insert({ ...payload, workspace_id: ws.id, created_by: opts.userId ?? null })
-        if (error) throw new Error(error.message)
+        await db.products.create({
+          data: { ...payload, workspace_id: ws.id, created_by: opts.userId ?? null } as Prisma.productsUncheckedCreateInput,
+          select: { id: true },
+        })
         summary.created++
       }
     } catch (e) {
@@ -247,8 +266,11 @@ export async function writeListings(opts: WriteOptions): Promise<ImportSummary> 
     if (todo.length === 0) summary.deactivationSkipped = true
     else {
       await pool(plan.missing, 4, async (m) => {
-        const { error } = await db.from('products').update(missingPatch(fields, m.attributes, now)).eq('workspace_id', ws.id).eq('id', m.id)
-        if (!error) summary.deactivated++
+        const ok = await db.products
+          .updateMany({ where: { id: m.id }, data: missingPatch(fields, m.attributes, now) as Prisma.productsUncheckedUpdateManyInput })
+          .then(() => true)
+          .catch(() => false)
+        if (ok) summary.deactivated++
       })
     }
   }

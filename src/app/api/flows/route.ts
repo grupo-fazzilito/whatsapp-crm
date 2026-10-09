@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/flows/admin-client'
+import type { Prisma } from '@/generated/prisma/client'
 import { getFlowTemplate } from '@/lib/flows/templates'
 
 /**
@@ -16,23 +16,23 @@ import { getFlowTemplate } from '@/lib/flows/templates'
 export async function GET() {
   const guard = await requireWorkspace()
   if (!guard.ok) return guard.response
-  const { supabase, workspace } = guard.ctx
+  const { db, workspace } = guard.ctx
 
-  const { data, error } = await supabase
-    .from('flows')
-    .select('*')
-    .eq('workspace_id', workspace.id)
-    .order('created_at', { ascending: false })
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  try {
+    const data = await db.flows.findMany({
+      where: { workspace_id: workspace.id },
+      orderBy: { created_at: 'desc' },
+    })
+    return NextResponse.json({ flows: data })
+  } catch (error) {
+    return NextResponse.json({ error: errMessage(error) }, { status: 500 })
   }
-  return NextResponse.json({ flows: data ?? [] })
 }
 
 export async function POST(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
-  const { user, workspace } = guard.ctx
+  const { user, workspace, db } = guard.ctx
   const userId = user.id
   const workspaceId = workspace.id
 
@@ -60,8 +60,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const admin = supabaseAdmin()
-
   // -------- Template clone path --------
   if (body.template_slug) {
     const template = getFlowTemplate(body.template_slug)
@@ -71,47 +69,46 @@ export async function POST(request: Request) {
         { status: 400 },
       )
     }
-    const { data: flow, error: flowErr } = await admin
-      .from('flows')
-      .insert({
-        workspace_id: workspaceId,
-        user_id: userId,
-        name: body.name?.trim() || template.name,
-        description: template.description,
-        status: 'draft',
-        trigger_type: template.trigger_type,
-        trigger_config: template.trigger_config,
-        entry_node_id: template.entry_node_id,
+    let flow
+    try {
+      flow = await db.flows.create({
+        data: {
+          workspace_id: workspaceId,
+          user_id: userId,
+          name: body.name?.trim() || template.name,
+          description: template.description,
+          status: 'draft',
+          trigger_type: template.trigger_type,
+          trigger_config: template.trigger_config as Prisma.InputJsonValue,
+          entry_node_id: template.entry_node_id,
+        },
       })
-      .select()
-      .single()
-    if (flowErr || !flow) {
+    } catch (flowErr) {
       return NextResponse.json(
-        { error: flowErr?.message ?? 'flow insert failed' },
+        { error: errMessage(flowErr) || 'flow insert failed' },
         { status: 500 },
       )
     }
     if (template.nodes.length > 0) {
-      const { error: nodesErr } = await admin.from('flow_nodes').insert(
-        template.nodes.map((n) => ({
-          workspace_id: workspaceId,
-          flow_id: flow.id,
-          node_key: n.node_key,
-          node_type: n.node_type,
-          config: n.config,
-        })),
-      )
-      if (nodesErr) {
+      try {
+        await db.flow_nodes.createMany({
+          data: template.nodes.map((n) => ({
+            workspace_id: workspaceId,
+            flow_id: flow.id,
+            node_key: n.node_key,
+            node_type: n.node_type,
+            config: n.config as Prisma.InputJsonValue,
+          })),
+        })
+      } catch (nodesErr) {
         // Roll back the parent flow so a half-cloned template doesn't
         // sit as an empty draft. CASCADE on flow_id removes the
         // (probably zero) nodes too.
-        await admin
-          .from('flows')
-          .delete()
-          .eq('id', flow.id)
-          .eq('workspace_id', workspaceId)
+        await db.flows
+          .deleteMany({ where: { id: flow.id, workspace_id: workspaceId } })
+          .catch(() => null)
         return NextResponse.json(
-          { error: nodesErr.message },
+          { error: errMessage(nodesErr) },
           { status: 500 },
         )
       }
@@ -121,62 +118,59 @@ export async function POST(request: Request) {
 
   // -------- Duplicate existing flow path --------
   if (body.duplicate_from) {
-    const { data: src, error: srcErr } = await admin
-      .from('flows')
-      .select('*')
-      .eq('id', body.duplicate_from)
-      .eq('workspace_id', workspaceId)
-      .single()
-    if (srcErr || !src) {
+    const src = await db.flows
+      .findFirst({ where: { id: body.duplicate_from, workspace_id: workspaceId } })
+      .catch(() => null)
+    if (!src) {
       return NextResponse.json(
         { error: 'Source flow not found or not owned by you' },
         { status: 404 },
       )
     }
-    const { data: flow, error: flowErr } = await admin
-      .from('flows')
-      .insert({
-        workspace_id: workspaceId,
-        user_id: userId,
-        name: body.name?.trim() || `${src.name} (copy)`,
-        description: src.description,
-        status: 'draft',
-        trigger_type: body.trigger_type ?? src.trigger_type,
-        trigger_config: body.trigger_config ?? src.trigger_config,
-        entry_node_id: src.entry_node_id,
+    let flow
+    try {
+      flow = await db.flows.create({
+        data: {
+          workspace_id: workspaceId,
+          user_id: userId,
+          name: body.name?.trim() || `${src.name} (copy)`,
+          description: src.description,
+          status: 'draft',
+          trigger_type: body.trigger_type ?? src.trigger_type,
+          trigger_config: (body.trigger_config ?? src.trigger_config) as Prisma.InputJsonValue,
+          entry_node_id: src.entry_node_id,
+        },
       })
-      .select()
-      .single()
-    if (flowErr || !flow) {
+    } catch (flowErr) {
       return NextResponse.json(
-        { error: flowErr?.message ?? 'flow insert failed' },
+        { error: errMessage(flowErr) || 'flow insert failed' },
         { status: 500 },
       )
     }
     // Copy nodes from source flow
-    const { data: srcNodes } = await admin
-      .from('flow_nodes')
-      .select('node_key, node_type, config')
-      .eq('flow_id', body.duplicate_from)
-      .eq('workspace_id', workspaceId)
+    const srcNodes = await db.flow_nodes
+      .findMany({
+        select: { node_key: true, node_type: true, config: true },
+        where: { flow_id: body.duplicate_from, workspace_id: workspaceId },
+      })
+      .catch(() => null)
     if (srcNodes && srcNodes.length > 0) {
-      const { error: nodesErr } = await admin.from('flow_nodes').insert(
-        srcNodes.map((n: { node_key: string; node_type: string; config: Record<string, unknown> }) => ({
-          workspace_id: workspaceId,
-          flow_id: flow.id,
-          node_key: n.node_key,
-          node_type: n.node_type,
-          config: n.config,
-        })),
-      )
-      if (nodesErr) {
-        await admin
-          .from('flows')
-          .delete()
-          .eq('id', flow.id)
-          .eq('workspace_id', workspaceId)
+      try {
+        await db.flow_nodes.createMany({
+          data: srcNodes.map((n) => ({
+            workspace_id: workspaceId,
+            flow_id: flow.id,
+            node_key: n.node_key,
+            node_type: n.node_type,
+            config: n.config as Prisma.InputJsonValue,
+          })),
+        })
+      } catch (nodesErr) {
+        await db.flows
+          .deleteMany({ where: { id: flow.id, workspace_id: workspaceId } })
+          .catch(() => null)
         return NextResponse.json(
-          { error: nodesErr.message },
+          { error: errMessage(nodesErr) },
           { status: 500 },
         )
       }
@@ -190,24 +184,28 @@ export async function POST(request: Request) {
   }
   const trigger_type = body.trigger_type ?? 'keyword'
 
-  const { data, error } = await admin
-    .from('flows')
-    .insert({
-      workspace_id: workspaceId,
-      user_id: userId,
-      name: body.name.trim(),
-      description: body.description ?? null,
-      status: 'draft',
-      trigger_type,
-      trigger_config: body.trigger_config ?? {},
+  let data
+  try {
+    data = await db.flows.create({
+      data: {
+        workspace_id: workspaceId,
+        user_id: userId,
+        name: body.name.trim(),
+        description: body.description ?? null,
+        status: 'draft',
+        trigger_type,
+        trigger_config: (body.trigger_config ?? {}) as Prisma.InputJsonValue,
+      },
     })
-    .select()
-    .single()
-  if (error || !data) {
+  } catch (error) {
     return NextResponse.json(
-      { error: error?.message ?? 'insert failed' },
+      { error: errMessage(error) || 'insert failed' },
       { status: 500 },
     )
   }
   return NextResponse.json({ flow: data }, { status: 201 })
+}
+
+function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }
