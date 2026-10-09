@@ -44,6 +44,17 @@ TEST_DATABASE_URL=postgresql://crm:crm@127.0.0.1:5434/crm npx vitest run src/lib
 - Acceso a datos: `tenantDb(workspaceId)` (`src/lib/db/tenant.ts`) para todo lo
   del negocio; `prisma` (`src/lib/db/prisma.ts`) solo para tareas de plataforma.
 - Modelos con el mismo nombre que las tablas (`prisma.ai_agents`, `tenantDb(ws).messages`).
+- Las filas vuelven igual que con Supabase: fechas en texto ISO, `DATE` como `YYYY-MM-DD`,
+  `NUMERIC`/`BIGINT` como número (`src/lib/db/result-compat.ts`, generado con
+  `node scripts/postgres/gen-schema-meta.mjs` tras cada cambio de esquema). Para `$queryRaw`
+  usar `normalizeRaw()`.
+- Al crear filas con `tenantDb`, pasar siempre `workspace_id` (la guardia verifica que sea el del negocio).
+
+## Después de la migración (pedido del usuario, 2026-10-09)
+
+- Agentes de IA creados desde un menú; cada agente con un **contexto de entrenamiento** de hasta 5.000 caracteres.
+- **Chat de prueba** que muestra las respuestas con el aspecto de cada canal (WhatsApp, Instagram, Messenger, web).
+- Las pruebas del chat **gastan créditos** (gratis o pagados) igual que una respuesta real.
 
 ## Reglas durante la migración
 

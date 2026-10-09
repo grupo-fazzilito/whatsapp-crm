@@ -48,6 +48,19 @@ describe.skipIf(!url)('tenantDb on PostgreSQL', async () => {
     await expect(a.workspaces.findUnique({ where: { id: wsB } })).rejects.toThrow(/current workspace/)
   })
 
+  it('rows come back like PostgREST rows (ISO strings, numbers)', async () => {
+    const lot = await tenantDb(wsA).credit_lots.findFirst({ include: { credit_ledger: true } })
+    expect(typeof lot?.expires_at).toBe('string')
+    expect(lot?.expires_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+    expect(typeof lot?.credit_ledger[0].id).toBe('number')
+    expect(typeof lot?.credit_ledger[0].created_at).toBe('string')
+    const pay = await tenantDb(wsA).billing_payments.create({ data: { workspace_id: wsA, amount: 50, credits: 1000, unit_price: 0.05, expires_on: '2026-10-11' } })
+    expect(pay.amount).toBe(50)
+    expect(pay.expires_on).toBe('2026-10-11')
+    const found = await tenantDb(wsA).billing_payments.findMany({ where: { expires_on: { gte: '2026-10-01' } } })
+    expect(found.map((p) => p.id)).toEqual([pay.id])
+  })
+
   it('credit functions work through raw SQL', async () => {
     const [{ credit_balance }] = await prisma.$queryRaw<{ credit_balance: number }[]>`SELECT public.credit_balance(${wsA}::uuid)`
     expect(credit_balance).toBe(100)
