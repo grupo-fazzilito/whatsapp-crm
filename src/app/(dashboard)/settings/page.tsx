@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Radio, MessageSquare, Tag, User, Palette, Users, ArrowRight, Zap, UsersRound } from 'lucide-react';
+import { Radio, MessageSquare, Tag, User, Palette, Users, ArrowRight, Zap, UsersRound, Coins } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
@@ -17,6 +17,8 @@ import { TeamManager } from '@/components/settings/team-manager';
 import { QuickRepliesManager } from '@/components/settings/quick-replies-manager';
 import { TeamsManager } from '@/components/settings/teams-manager';
 import { useT } from '@/i18n/client';
+import { useWorkspace } from '@/hooks/use-workspace';
+import { BillingPanel } from '@/components/billing/billing-panel';
 
 const TAB_VALUES = [
   'profile',
@@ -27,6 +29,7 @@ const TAB_VALUES = [
   'quick-replies',
   'teams',
   'appearance',
+  'billing',
 ] as const;
 type TabValue = (typeof TAB_VALUES)[number];
 
@@ -38,6 +41,8 @@ export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useT();
+  const { can } = useWorkspace();
+  const isAdmin = can('admin');
 
   // The URL is the single source of truth for the active tab — no
   // local state, no sync effect. A previous revision duplicated this
@@ -120,6 +125,15 @@ export default function SettingsPage() {
             <Palette className="size-4" />
             Appearance
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger
+              value="billing"
+              className="data-active:bg-white dark:data-active:bg-slate-800 data-active:text-primary text-slate-600 dark:text-slate-400 data-active:shadow-sm transition-all duration-200"
+            >
+              <Coins className="size-4" />
+              {t('billing.tab')}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -168,6 +182,12 @@ export default function SettingsPage() {
         <TabsContent value="appearance">
           <AppearancePanel />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="billing">
+            <BillingPanel />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

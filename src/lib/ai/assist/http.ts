@@ -42,6 +42,7 @@ const STATUS: Record<AssistError['code'], number> = {
   not_found: 404,
   not_media: 400,
   no_provider: 409,
+  no_credits: 402,
   too_large: 413,
   unsupported_type: 415,
   media_unavailable: 502,

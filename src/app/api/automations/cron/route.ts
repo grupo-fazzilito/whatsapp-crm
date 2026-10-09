@@ -10,6 +10,7 @@ import { processViewings } from '@/lib/real-estate/leads/visits'
 import { runGoogleCalendarCron } from '@/lib/integrations/google/sync'
 import { runScheduledPortalImports } from '@/lib/real-estate/portals/schedule'
 import { processWebhookDeliveries } from '@/lib/webhooks/deliver'
+import { runBillingCron } from '@/lib/billing/payments'
 
 /**
  * Drain due `automation_pending_executions` rows, then fire due
@@ -121,5 +122,13 @@ export async function GET(request: Request) {
     webhooks = { error: err instanceof Error ? err.message : String(err) }
   }
 
-  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, realEstate, portalImports, webhooks })
+  // Billing: missed Payment Latam webhooks + expired credits.
+  let billing: Awaited<ReturnType<typeof runBillingCron>> | { error: string }
+  try {
+    billing = await runBillingCron()
+  } catch (err) {
+    billing = { error: err instanceof Error ? err.message : String(err) }
+  }
+
+  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, realEstate, portalImports, webhooks, billing })
 }

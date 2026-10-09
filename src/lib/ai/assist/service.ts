@@ -1,5 +1,6 @@
 import 'server-only'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { canSpend, spend } from '@/lib/billing/credits'
 import { completeJson, describeMedia, parseJsonLoose, transcribeAudio, MediaAiUnavailableError, type UsageMeter } from '@/lib/ai/llm'
 import { loadBusinessContext, type BusinessContext } from '@/lib/ai/context'
 import { formatMoney, moneyLocale } from '@/lib/workspace/countries'
@@ -22,7 +23,7 @@ import { mediaKindOf } from './mime'
 
 export class AssistError extends Error {
   constructor(
-    public code: 'not_found' | 'not_media' | 'no_provider' | 'too_large' | 'unsupported_type' | 'media_unavailable' | 'failed' | 'empty',
+    public code: 'not_found' | 'not_media' | 'no_provider' | 'no_credits' | 'too_large' | 'unsupported_type' | 'media_unavailable' | 'failed' | 'empty',
     message?: string,
   ) {
     super(message ?? code)
@@ -94,6 +95,7 @@ export async function transcribeMessage(opts: MediaAssistOptions): Promise<{ tra
   const msg = await loadMediaMessage(opts.workspaceId, opts.messageId)
   if (msg.content_type !== 'audio' || !msg.media_url) throw new AssistError('not_media')
   if (msg.transcript && !opts.force) return { transcript: msg.transcript, cached: true }
+  if (!(await canSpend(opts.workspaceId, 'transcription'))) throw new AssistError('no_credits')
   const ws = await workspaceBasics(opts.workspaceId)
   try {
     const media = await fetchMessageMedia(opts.workspaceId, msg.media_url)
@@ -105,6 +107,7 @@ export async function transcribeMessage(opts: MediaAssistOptions): Promise<{ tra
       meter: { workspaceId: opts.workspaceId, purpose: 'transcription', conversationId: msg.conversation_id, ...opts.meterExtra },
     })
     const transcript = result.text.trim()
+    await spend(opts.workspaceId, 'transcription', { conversationId: msg.conversation_id })
     await supabaseAdmin()
       .from('messages')
       .update({ transcript, ai_processed_at: new Date().toISOString() })
@@ -123,6 +126,7 @@ export async function readMessageMedia(
   const msg = await loadMediaMessage(opts.workspaceId, opts.messageId)
   if ((msg.content_type !== 'image' && msg.content_type !== 'document') || !msg.media_url) throw new AssistError('not_media')
   if (msg.ai_media_text && !opts.force) return { text: msg.ai_media_text, cached: true }
+  if (!(await canSpend(opts.workspaceId, 'vision'))) throw new AssistError('no_credits')
   const ws = await workspaceBasics(opts.workspaceId)
   try {
     const media = await fetchMessageMedia(opts.workspaceId, msg.media_url)
@@ -137,6 +141,7 @@ export async function readMessageMedia(
       meter: { workspaceId: opts.workspaceId, purpose: 'vision', conversationId: msg.conversation_id, ...opts.meterExtra },
     })
     const text = result.text.trim().slice(0, 4000)
+    await spend(opts.workspaceId, 'vision', { conversationId: msg.conversation_id })
     await supabaseAdmin()
       .from('messages')
       .update({ ai_media_text: text, ai_processed_at: new Date().toISOString() })
@@ -246,6 +251,7 @@ export async function summarizeConversation(input: { workspaceId: string; conver
   if (!ws) throw new AssistError('not_found')
   const messages = await conversationMessages(input.workspaceId, conv.id, 200)
   if (!messages.length) throw new AssistError('empty')
+  if (!(await canSpend(input.workspaceId, 'summary'))) throw new AssistError('no_credits')
   const prompt = summaryPrompt({ businessName: ws.name, locale: ws.locale, transcript: buildTranscript(messages, ws.locale), contactName: conv.contactName })
   const raw = await completeJson({
     system: prompt.system,
@@ -257,6 +263,7 @@ export async function summarizeConversation(input: { workspaceId: string; conver
   })
   const summary = normalizeSummary(parseJsonLoose(raw))
   if (!summary) throw new AssistError('failed', 'Unreadable summary')
+  await spend(input.workspaceId, 'summary', { conversationId: conv.id })
   const at = new Date().toISOString()
   await supabaseAdmin()
     .from('conversations')
@@ -331,6 +338,7 @@ export async function suggestReply(input: { workspaceId: string; conversationId:
   const agent = agentId ? (ctx.agents.find((a) => a.id === agentId) ?? null) : null
   const messages = await conversationMessages(input.workspaceId, conv.id, 40)
   if (!messages.length) throw new AssistError('empty')
+  if (!(await canSpend(input.workspaceId, 'suggest'))) throw new AssistError('no_credits')
   const prompt = suggestPrompt({
     businessBlock: businessBlock(ctx),
     persona: agent
@@ -352,5 +360,6 @@ export async function suggestReply(input: { workspaceId: string; conversationId:
   const parsed = parseJsonLoose<{ reply?: unknown }>(raw)
   const draft = typeof parsed?.reply === 'string' ? parsed.reply.trim() : ''
   if (!draft) throw new AssistError('failed', 'Empty draft')
+  await spend(input.workspaceId, 'suggest', { conversationId: conv.id })
   return { draft: draft.slice(0, 4000) }
 }

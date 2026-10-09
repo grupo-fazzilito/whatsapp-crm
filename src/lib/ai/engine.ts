@@ -1,4 +1,5 @@
 import 'server-only'
+import { canSpend, spend } from '@/lib/billing/credits'
 import { messageTextForAi } from './assist/core'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendMessage } from '@/lib/messaging/send'
@@ -277,6 +278,13 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     return input.isFirstInboundMessage && !!agent.greeting_message
   }
 
+  // Prepaid credits: one per model turn (a transfer reuses the same turn).
+  // Out of credits → the conversation stays with the team.
+  if (!input.depth && !(await canSpend(input.workspaceId, 'reply'))) {
+    console.warn('[ai] workspace out of AI credits; leaving the message to the team')
+    return input.isFirstInboundMessage && !!agent.greeting_message
+  }
+
   // 4) Model turn.
   const { data: conv } = await db
     .from('conversations')
@@ -369,6 +377,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     await handOverToHuman(input, 'La IA no pudo procesar el mensaje')
     return true
   }
+  if (!input.depth) await spend(input.workspaceId, 'reply', { conversationId: input.conversationId })
 
   // Real estate: merge what the customer told us (lead profile → score,
   // deal stage, routing) and register owners offering their property.
