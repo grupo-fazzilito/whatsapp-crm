@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+import { emailConfigured, sendEmail } from "@/lib/email/send";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,10 +12,7 @@ export async function POST(req: NextRequest) {
     const superAdmin = process.env.SUPER_ADMIN_USERNAME || "chatnexgen@gmail.com";
 
     // Setup SMTP Transporter
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587;
     const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
     const smtpFrom = process.env.SMTP_FROM || smtpUser || "chatnexgen@gmail.com";
 
     // Developer Fallback: Log demo booking details to terminal console
@@ -28,16 +25,7 @@ Notification sent to Super Admin: ${superAdmin}
 ======================================\n
     `);
 
-    if (smtpHost && smtpUser && smtpPass) {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
+    if (emailConfigured()) {
 
       const formattedFrom = smtpFrom.includes("<") ? smtpFrom : `Whasalia <${smtpFrom}>`;
 
@@ -129,8 +117,8 @@ Notification sent to Super Admin: ${superAdmin}
 
       try {
         await Promise.all([
-          transporter.sendMail(userMailOptions),
-          transporter.sendMail(adminMailOptions),
+          sendEmail({ to: userMailOptions.to, subject: userMailOptions.subject, text: userMailOptions.text, html: userMailOptions.html }),
+          sendEmail({ to: adminMailOptions.to, subject: adminMailOptions.subject, text: adminMailOptions.text, html: adminMailOptions.html }),
         ]);
       } catch (mailErr: any) {
         console.error("Failed to send demo emails:", mailErr);
