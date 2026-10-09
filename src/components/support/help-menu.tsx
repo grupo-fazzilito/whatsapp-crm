@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { CircleHelp, Compass, LifeBuoy, MessageCircle, Ticket } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useAuth } from '@/hooks/use-auth';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useTour } from '@/components/tour/guided-tour';
 import { CreateTicketDialog } from './create-ticket-dialog';
 import { openSupportChat } from './support-chat';
@@ -57,18 +57,20 @@ export function HelpMenu() {
           <CircleHelp className="h-4.5 w-4.5" aria-hidden />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" sideOffset={6} className="min-w-56 border border-border bg-popover text-popover-foreground">
-          <DropdownMenuLabel className="flex items-center gap-2 text-xs text-muted-foreground">
-            <LifeBuoy className="size-3.5" aria-hidden /> {t('support.help')}
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator className="bg-border" />
-          <DropdownMenuItem onClick={() => setTicketOpen(true)}>
-            <Ticket className="size-4" aria-hidden />
-            {t('support.createTicket')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void chat()}>
-            <MessageCircle className="size-4" aria-hidden />
-            {t('support.chatOnline')}
-          </DropdownMenuItem>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="flex items-center gap-2 text-xs text-muted-foreground">
+              <LifeBuoy className="size-3.5" aria-hidden /> {t('support.help')}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator className="bg-border" />
+            <DropdownMenuItem onClick={() => setTicketOpen(true)}>
+              <Ticket className="size-4" aria-hidden />
+              {t('support.createTicket')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void chat()}>
+              <MessageCircle className="size-4" aria-hidden />
+              {t('support.chatOnline')}
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator className="bg-border" />
           <DropdownMenuItem render={<Link href="/support" />}>
             <LifeBuoy className="size-4" aria-hidden />

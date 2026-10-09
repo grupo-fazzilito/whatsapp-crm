@@ -165,6 +165,9 @@ export const resultCompat = Prisma.defineExtension({
     custom_fields: {
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
     },
+    dashboard_layouts: {
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
     deals: {
       value: { needs: { value: true }, compute: (r) => r.value.toNumber() },
       expected_close_date: { needs: { expected_close_date: true }, compute: (r) => r.expected_close_date === null ? null : r.expected_close_date.toISOString().slice(0, 10) },

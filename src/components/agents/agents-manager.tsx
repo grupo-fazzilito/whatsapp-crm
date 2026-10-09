@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { ArrowRightLeft, BookOpenText, Bot, Eye, FlaskConical, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useT } from '@/i18n/client';
@@ -36,7 +37,9 @@ export function AgentsManager() {
   const [agents, setAgents] = useState<AiAgent[]>([]);
   const [channels, setChannels] = useState<AgentChannelRef[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const search = useSearchParams();
+  // /agents?new=1 (from the getting-started checklist) opens the template menu.
+  const [creating, setCreating] = useState(() => search.get('new') === '1');
   const [deleting, setDeleting] = useState<AiAgent | null>(null);
 
   const load = useCallback(async () => {

@@ -1,0 +1,192 @@
+{
+  "dash": {
+    "title": "Dashboard",
+    "subtitle": "What matters most in your business today.",
+    "customize": "Customize",
+    "done": "Done",
+    "add": "Add widget",
+    "reset": "Reset",
+    "saved": "Dashboard saved",
+    "editHint": "Add, remove and reorder widgets. Changes are saved just for you.",
+    "empty": "You have no widgets. Click Customize to add some.",
+    "moveUp": "Move earlier",
+    "moveDown": "Move later",
+    "remove": "Remove widget",
+    "catalogTitle": "Add widgets",
+    "catalogDescription": "Choose what you want to see on your dashboard.",
+    "added": "Added",
+    "allAdded": "You already added every available widget.",
+    "category": {
+      "account": "Account",
+      "attention": "Customer service",
+      "sales": "Sales",
+      "ai": "Artificial intelligence",
+      "team": "Team"
+    },
+    "w": {
+      "tokens": {
+        "title": "AI tokens",
+        "desc": "Token balance, when they expire and a top-up button."
+      },
+      "connected_accounts": {
+        "title": "Connected accounts",
+        "desc": "Your WhatsApp, Instagram, Messenger and web chat channels, connected or not."
+      },
+      "conversations_handled": {
+        "title": "Conversations handled today",
+        "desc": "Conversations answered today, by AI and by your team.",
+        "ai": "AI",
+        "human": "Team",
+        "vsYesterday": "{n} yesterday"
+      },
+      "new_leads": {
+        "title": "New leads today",
+        "desc": "New contacts who wrote today.",
+        "vsYesterday": "{n} yesterday"
+      },
+      "active_conversations": {
+        "title": "Active conversations",
+        "desc": "Open or pending conversations right now.",
+        "newToday": "{n} new today"
+      },
+      "unanswered": {
+        "title": "Unanswered",
+        "desc": "Customers waiting for a reply right now.",
+        "oldest": "The oldest has waited {t}",
+        "allClear": "Nobody waiting!"
+      },
+      "messages_today": {
+        "title": "Messages today",
+        "desc": "Messages received and sent today.",
+        "in": "Received",
+        "out": "Sent"
+      },
+      "first_response": {
+        "title": "First response time",
+        "desc": "This week's average vs last week.",
+        "lastWeek": "Last week: {t}",
+        "noData": "No data yet"
+      },
+      "ai_today": {
+        "title": "AI today",
+        "desc": "Agent replies, handovers to humans and tokens used today.",
+        "replies": "replies",
+        "handovers": "Handed to a human",
+        "tokens": "Tokens used"
+      },
+      "open_deals": {
+        "title": "Open deals",
+        "desc": "Value of the open opportunities in your pipelines.",
+        "count": "{n} open deals"
+      },
+      "tasks_due": {
+        "title": "My tasks",
+        "desc": "Your overdue tasks and the ones due today.",
+        "overdue": "Overdue",
+        "today": "Due today",
+        "open": "{n} open in total"
+      },
+      "bookings_today": {
+        "title": "Today's schedule",
+        "desc": "Today's bookings and the next appointments.",
+        "today": "{n} today",
+        "none": "No upcoming bookings."
+      },
+      "orders_today": {
+        "title": "Orders today",
+        "desc": "Today's orders, sales and pending ones.",
+        "pending": "{n} waiting for confirmation"
+      },
+      "hot_leads": {
+        "title": "Hot leads",
+        "desc": "Leads ready to buy or rent.",
+        "warm": "{n} warm",
+        "week": "{n} qualified this week"
+      },
+      "meta_free_replies": {
+        "title": "Free WhatsApp replies",
+        "desc": "How many of the 1,000 free monthly replies each number used.",
+        "none": "You have no WhatsApp numbers connected.",
+        "used": "{used} of {free}"
+      },
+      "channel_breakdown": {
+        "title": "Conversations by channel today",
+        "desc": "Where your customers come from today.",
+        "none": "No conversations today.",
+        "conversations": "{n} conversations"
+      },
+      "conversations_chart": {
+        "title": "Conversations over time",
+        "desc": "Messages received and sent per day."
+      },
+      "pipeline_chart": {
+        "title": "Sales pipeline",
+        "desc": "Value of open deals by stage."
+      },
+      "response_time_chart": {
+        "title": "Response time by day",
+        "desc": "Average first response by weekday."
+      },
+      "activity": {
+        "title": "Recent activity",
+        "desc": "The latest events in your account."
+      },
+      "quick_actions": {
+        "title": "Quick actions",
+        "desc": "Shortcuts to create contacts, deals and automations."
+      }
+    },
+    "setup": {
+      "title": "Get your account running",
+      "subtitle": "Complete these steps to start serving customers with AI.",
+      "progress": "{done} of {total} steps",
+      "next": "Next step",
+      "steps": {
+        "account": {
+          "title": "Create your account",
+          "desc": "Done! Your account is ready."
+        },
+        "business": {
+          "title": "Fill in your business details",
+          "desc": "Hours, phone and address so the AI answers well.",
+          "cta": "Fill in details"
+        },
+        "agent": {
+          "title": "Create your AI agent",
+          "desc": "Pick a template and give it a personality.",
+          "cta": "Create agent"
+        },
+        "training": {
+          "title": "Train your agent",
+          "desc": "Write what it must know about your business (up to 5,000 characters).",
+          "cta": "Train"
+        },
+        "test": {
+          "title": "Test your agent",
+          "desc": "Chat with it as a customer would, on any channel.",
+          "cta": "Test"
+        },
+        "channel": {
+          "title": "Connect your WhatsApp, Instagram, Messenger or web chat",
+          "desc": "This puts your account to work: messages start coming in.",
+          "cta": "Connect a channel"
+        },
+        "assign": {
+          "title": "Assign your agent to the channel",
+          "desc": "Choose which agent answers on each number or account.",
+          "cta": "Assign"
+        }
+      },
+      "done": "Completed"
+    },
+    "accounts": {
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "error": "Error",
+      "disconnected": "Disconnected",
+      "connect": "Connect",
+      "manage": "Manage channels",
+      "more": "+{n} more"
+    }
+  }
+}

@@ -42,7 +42,7 @@ export function CreditsCard({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'flex flex-col rounded-xl border bg-card p-5',
+        'flex h-full flex-col rounded-xl border bg-card p-5',
         status?.enforce && status.depleted ? 'border-destructive/50' : warn ? 'border-amber-500/50' : 'border-border',
         className,
       )}

@@ -688,6 +688,15 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
       "rel": "workspaces"
     }
   },
+  "dashboard_layouts": {
+    "updated_at": "timestamp",
+    "users": {
+      "rel": "users"
+    },
+    "workspaces": {
+      "rel": "workspaces"
+    }
+  },
   "deals": {
     "value": "decimal",
     "expected_close_date": "date",
@@ -1443,6 +1452,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "custom_fields": {
       "rel": "custom_fields"
     },
+    "dashboard_layouts": {
+      "rel": "dashboard_layouts"
+    },
     "deals": {
       "rel": "deals"
     },
@@ -1702,6 +1714,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "custom_fields": {
       "rel": "custom_fields"
+    },
+    "dashboard_layouts": {
+      "rel": "dashboard_layouts"
     },
     "deals": {
       "rel": "deals"

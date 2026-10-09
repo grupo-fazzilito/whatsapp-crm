@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/admin-panel",          label: "Overview",  icon: BarChart2  },
   { href: "/admin-panel/clients",  label: "Clients",   icon: Users      },
-  { href: "/admin-panel/billing",  label: "Credits",   icon: Coins      },
+  { href: "/admin-panel/billing",  label: "Tokens",    icon: Coins      },
   { href: "/admin-panel/support",  label: "Support",   icon: LifeBuoy   },
   { href: "/admin-panel/settings", label: "Settings",  icon: Settings   },
 ];
