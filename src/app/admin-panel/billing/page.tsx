@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Coins, Loader2, X } from "lucide-react";
+import { Coins, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AdminShell } from "../admin-shell";
 import { useI18n } from "@/i18n/client";
 import { cn } from "@/lib/utils";
@@ -182,36 +183,33 @@ export default function AdminBillingPage() {
           </>
         )}
 
-        {adjusting && (
-          <div role="dialog" aria-modal="true" aria-labelledby="adjust-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="w-full max-w-md space-y-4 rounded-xl border border-slate-800 bg-slate-900 p-6">
-              <div className="flex items-start justify-between gap-4">
-                <h2 id="adjust-title" className="text-sm font-bold text-white">{t("billingAdmin.adjustTitle", { name: adjusting.name })}</h2>
-                <button type="button" onClick={() => setAdjusting(null)} aria-label={t("common.cancel")} className="rounded p-1 text-slate-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60">
-                  <X className="size-4" aria-hidden />
-                </button>
-              </div>
-              <div>
-                <label htmlFor="adj-credits" className="block text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1.5">{t("billingAdmin.adjustCredits")}</label>
-                <input id="adj-credits" inputMode="numeric" value={form.credits} onChange={(e) => setForm((f) => ({ ...f, credits: e.target.value.replace(/[^\d-]/g, "") }))} className={inputCls} autoFocus />
-              </div>
-              <div>
-                <label htmlFor="adj-note" className="block text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1.5">{t("billingAdmin.adjustNote")}</label>
-                <input id="adj-note" value={form.note} onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))} maxLength={300} className={inputCls} />
-              </div>
-              {formError && <p role="alert" className="text-xs text-red-300">{formError}</p>}
+        <Dialog open={!!adjusting} onOpenChange={(o) => !o && setAdjusting(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{adjusting ? t("billingAdmin.adjustTitle", { name: adjusting.name }) : ""}</DialogTitle>
+            </DialogHeader>
+            <div>
+              <label htmlFor="adj-credits" className="block text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1.5">{t("billingAdmin.adjustCredits")}</label>
+              <input id="adj-credits" inputMode="numeric" value={form.credits} onChange={(e) => setForm((f) => ({ ...f, credits: e.target.value.replace(/[^\d-]/g, "") }))} className={inputCls} autoFocus />
+            </div>
+            <div>
+              <label htmlFor="adj-note" className="block text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1.5">{t("billingAdmin.adjustNote")}</label>
+              <input id="adj-note" value={form.note} onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))} maxLength={300} className={inputCls} />
+            </div>
+            {formError && <p role="alert" className="text-xs text-red-300">{formError}</p>}
+            <DialogFooter>
               <button
                 type="button"
                 onClick={submit}
                 disabled={busy || !form.credits || form.credits === "-" || !form.note.trim()}
-                className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
               >
                 {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
                 {t("billingAdmin.adjustSave")}
               </button>
-            </div>
-          </div>
-        )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminShell>
   );
