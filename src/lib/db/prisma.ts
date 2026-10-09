@@ -33,10 +33,21 @@ export type Db = ReturnType<typeof createClient>
 // One connection pool per process (dev reloads reuse it).
 const globalForPrisma = globalThis as unknown as { prisma?: Db }
 
+function client(): Db {
+  if (!globalForPrisma.prisma) globalForPrisma.prisma = createClient()
+  return globalForPrisma.prisma
+}
+
 /**
  * Unscoped client: platform tasks only (crons, webhooks from providers,
  * auth, admin panel). Workspace code must use `tenantDb(workspaceId)`.
  * Rows come back like PostgREST rows (see ./result-compat.ts).
+ * Created on first use, so importing this module needs no DATABASE_URL.
  */
-export const prisma: Db = globalForPrisma.prisma ?? createClient()
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export const prisma: Db = new Proxy({} as Db, {
+  get(_target, prop) {
+    const c = client()
+    const value = Reflect.get(c, prop, c)
+    return typeof value === 'function' ? value.bind(c) : value
+  },
+})

@@ -1,6 +1,9 @@
 import 'server-only'
 import crypto from 'node:crypto'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import type { Prisma } from '@/generated/prisma/client'
+import { tenantDb } from '@/lib/db/tenant'
+import { normalizeRaw } from '@/lib/db/compat'
 import { checkTopup } from './pricing'
 import { getBillingSettings, getPaymentLatamConfig } from './settings'
 import { createPayin, expiryDate, parsePayinWebhook, queryPayin, PaymentLatamError, type PayinResult } from './payment-latam'
@@ -25,7 +28,25 @@ export interface BillingPayment {
   created_at: string
 }
 
-const PAYMENT_COLUMNS = 'id, workspace_id, amount, credits, status, provider_order_id, reference, checkout_url, expires_on, paid_at, error, created_at'
+const PAYMENT_COLUMNS = {
+  id: true,
+  workspace_id: true,
+  amount: true,
+  credits: true,
+  status: true,
+  provider_order_id: true,
+  reference: true,
+  checkout_url: true,
+  expires_on: true,
+  paid_at: true,
+  error: true,
+  created_at: true,
+} as const
+
+/** JSON column value (PayinResult is plain JSON from the gateway). */
+function json(v: unknown): Prisma.InputJsonValue {
+  return v as Prisma.InputJsonValue
+}
 
 /** Days a checkout link stays payable. */
 const LINK_DAYS = 2
@@ -77,26 +98,32 @@ export async function createCheckout(input: {
   const cfg = await getPaymentLatamConfig()
   if (!cfg) return { ok: false, error: 'gateway_not_configured' }
 
-  const db = supabaseAdmin()
-  const { data: account } = await db.from('billing_accounts').select('doc_type, doc_number, legal_name, email').eq('workspace_id', input.workspaceId).maybeSingle()
+  const db = tenantDb(input.workspaceId)
+  const account = await db.billing_accounts.findFirst({
+    where: { workspace_id: input.workspaceId },
+    select: { doc_type: true, doc_number: true, legal_name: true, email: true },
+  })
   if (!account?.doc_type || !account.doc_number || !account.legal_name || !account.email) return { ok: false, error: 'billing_profile_incomplete' }
 
   const expiresOn = expiryDate(LINK_DAYS)
-  const { data: created, error } = await db
-    .from('billing_payments')
-    .insert({
-      workspace_id: input.workspaceId,
-      amount: check.amount,
-      credits: check.credits,
-      unit_price: settings.credit_price,
-      status: 'creating',
-      expires_on: expiresOn,
-      payer: { doc_type: account.doc_type, doc_number: account.doc_number, name: account.legal_name, email: account.email },
-      created_by: input.userId,
+  let created: { id: string }
+  try {
+    created = await db.billing_payments.create({
+      data: {
+        workspace_id: input.workspaceId,
+        amount: check.amount,
+        credits: check.credits,
+        unit_price: settings.credit_price,
+        status: 'creating',
+        expires_on: expiresOn,
+        payer: { doc_type: account.doc_type, doc_number: account.doc_number, name: account.legal_name, email: account.email },
+        created_by: input.userId,
+      },
+      select: { id: true },
     })
-    .select('id')
-    .single()
-  if (error || !created) throw new Error(`billing_payments insert: ${error?.message}`)
+  } catch (err) {
+    throw new Error(`billing_payments insert: ${err instanceof Error ? err.message : err}`)
+  }
 
   try {
     const r = await createPayin(cfg, {
@@ -108,17 +135,23 @@ export async function createCheckout(input: {
       expiresOn,
       webhookUrl: webhookUrl(created.id),
     })
-    const { data: payment } = await db
-      .from('billing_payments')
-      .update({ status: 'pending', provider_order_id: r.ordenID, reference: r.referencia, checkout_url: r.checkout, raw: { created: r } })
-      .eq('id', created.id)
-      .select(PAYMENT_COLUMNS)
-      .single()
+    const payment = await db.billing_payments
+      .update({
+        where: { id: created.id },
+        data: { status: 'pending', provider_order_id: r.ordenID, reference: r.referencia, checkout_url: r.checkout, raw: json({ created: r }) },
+        select: PAYMENT_COLUMNS,
+      })
+      .catch((e) => {
+        console.error('[billing] payment update failed:', e instanceof Error ? e.message : e)
+        return null
+      })
     return { ok: true, payment: payment as BillingPayment }
   } catch (err) {
     const detail = err instanceof PaymentLatamError ? err.message : 'unexpected error'
     console.error('[billing] payin create failed:', err instanceof Error ? err.message : err)
-    await db.from('billing_payments').update({ status: 'failed', error: detail.slice(0, 300) }).eq('id', created.id)
+    await db.billing_payments
+      .updateMany({ where: { id: created.id }, data: { status: 'failed', error: detail.slice(0, 300) } })
+      .catch((e) => console.error('[billing] mark failed:', e instanceof Error ? e.message : e))
     return { ok: false, error: 'gateway_error', detail }
   }
 }
@@ -128,10 +161,14 @@ export async function createCheckout(input: {
  * APROBADA → paid + credits, VENCIDA → expired. Idempotent.
  */
 export async function syncPayment(paymentId: string): Promise<BillingPayment | null> {
-  const db = supabaseAdmin()
-  const { data: p } = await db.from('billing_payments').select(PAYMENT_COLUMNS).eq('id', paymentId).maybeSingle()
+  // Platform client for the lookup: the webhook and the cron only know the payment id.
+  const p = await prisma.billing_payments.findUnique({ where: { id: paymentId }, select: PAYMENT_COLUMNS }).catch((e) => {
+    console.error('[billing] payment lookup failed:', e instanceof Error ? e.message : e)
+    return null
+  })
   if (!p) return null
   const payment = p as BillingPayment
+  const db = tenantDb(payment.workspace_id)
   if (!payment.provider_order_id || !['pending', 'expired'].includes(payment.status)) return payment
   const cfg = await getPaymentLatamConfig()
   if (!cfg) return payment
@@ -147,33 +184,53 @@ export async function syncPayment(paymentId: string): Promise<BillingPayment | n
 
   if (r.estado === 'APROBADA') {
     if (r.monto !== null && r.monto + 0.001 < Number(payment.amount)) {
-      await db.from('billing_payments').update({ error: `monto ${r.monto} < ${payment.amount}`, raw: { last: r } }).eq('id', payment.id)
+      await db.billing_payments
+        .updateMany({ where: { id: payment.id }, data: { error: `monto ${r.monto} < ${payment.amount}`, raw: json({ last: r }) } })
+        .catch((e) => console.error('[billing] payment update failed:', e instanceof Error ? e.message : e))
       console.error(`[billing] payment ${payment.id} approved for less than expected`)
       return payment
     }
     const settings = await getBillingSettings()
-    const { data: applied, error } = await db.rpc('apply_billing_payment', { pay: payment.id, months: settings.expiry_months })
-    if (error) throw new Error(`apply_billing_payment: ${error.message}`)
+    let applied: boolean | null
+    try {
+      const [row] = await prisma.$queryRaw<{ v: boolean | null }[]>`SELECT public.apply_billing_payment(${payment.id}::uuid, ${settings.expiry_months}::int) AS v`
+      applied = row?.v ?? null
+    } catch (err) {
+      throw new Error(`apply_billing_payment: ${err instanceof Error ? err.message : err}`)
+    }
     if (applied) await notifyBilling(payment.workspace_id, 'paid', payment.credits)
   } else if (r.estado === 'VENCIDA' && payment.status === 'pending') {
-    await db.from('billing_payments').update({ status: 'expired', raw: { last: r } }).eq('id', payment.id).eq('status', 'pending')
+    await db.billing_payments
+      .updateMany({ where: { id: payment.id, status: 'pending' }, data: { status: 'expired', raw: json({ last: r }) } })
+      .catch((e) => console.error('[billing] payment update failed:', e instanceof Error ? e.message : e))
   }
-  const { data: fresh } = await db.from('billing_payments').select(PAYMENT_COLUMNS).eq('id', payment.id).single()
+  const fresh = await db.billing_payments.findFirst({ where: { id: payment.id }, select: PAYMENT_COLUMNS })
   return fresh as BillingPayment
 }
 
 /** Payment Latam webhook: authenticated by the per-payment URL token, verified with the API. */
 export async function handlePayinWebhook(paymentId: string | null, token: string | null, body: unknown): Promise<'ok' | 'unauthorized' | 'ignored'> {
   if (!paymentId || !/^[0-9a-f-]{36}$/i.test(paymentId) || !validWebhookToken(paymentId, token)) return 'unauthorized'
-  const db = supabaseAdmin()
-  const { data: payment } = await db.from('billing_payments').select('id, status, provider_order_id').eq('id', paymentId).maybeSingle()
+  // Platform client: the payment id (URL token checked above) is all we know yet.
+  const payment = await prisma.billing_payments
+    .findUnique({ where: { id: paymentId }, select: { id: true, status: true, provider_order_id: true } })
+    .catch((e) => {
+      console.error('[billing] payment lookup failed:', e instanceof Error ? e.message : e)
+      return null
+    })
   if (!payment) return 'ignored'
   const event = parsePayinWebhook(body)
   if (event && payment.provider_order_id && event.ordenID !== payment.provider_order_id) return 'ignored'
 
   if (event?.estado === 'EXTORNO') {
     // A reversal is never reported by consulta-recaudo; the URL token proves origin.
-    const { data: removed } = await db.rpc('reverse_billing_payment', { pay: payment.id })
+    let removed: number | null = null
+    try {
+      const [row] = normalizeRaw(await prisma.$queryRaw<{ v: number | null }[]>`SELECT public.reverse_billing_payment(${payment.id}::uuid) AS v`)
+      removed = row?.v ?? null
+    } catch (err) {
+      console.error('[billing] reverse_billing_payment failed:', err instanceof Error ? err.message : err)
+    }
     console.warn(`[billing] payment ${payment.id} reversed, ${removed ?? 0} credits removed`)
     return 'ok'
   }
@@ -183,17 +240,20 @@ export async function handlePayinWebhook(paymentId: string | null, token: string
 
 /** Cron: re-check pending orders (missed webhooks) and expire old credits. */
 export async function runBillingCron(): Promise<{ checked: number; expiredLots: number }> {
-  const db = supabaseAdmin()
-  const since = new Date(Date.now() - 35 * 86_400_000).toISOString()
-  const settled = new Date(Date.now() - 60_000).toISOString()
-  const { data: pending } = await db
-    .from('billing_payments')
-    .select('id')
-    .eq('status', 'pending')
-    .gte('created_at', since)
-    .lte('created_at', settled)
-    .order('created_at')
-    .limit(50)
+  // Platform client: the cron walks every workspace's pending payments.
+  const since = new Date(Date.now() - 35 * 86_400_000)
+  const settled = new Date(Date.now() - 60_000)
+  let pending: { id: string }[] = []
+  try {
+    pending = await prisma.billing_payments.findMany({
+      where: { status: 'pending', created_at: { gte: since, lte: settled } },
+      select: { id: true },
+      orderBy: { created_at: 'asc' },
+      take: 50,
+    })
+  } catch (err) {
+    console.error('[billing] pending payments query failed:', err instanceof Error ? err.message : err)
+  }
   for (const p of pending ?? []) {
     try {
       await syncPayment(p.id)
@@ -201,7 +261,12 @@ export async function runBillingCron(): Promise<{ checked: number; expiredLots: 
       console.error('[billing] sync failed:', err instanceof Error ? err.message : err)
     }
   }
-  const { data: expired, error } = await db.rpc('expire_credit_lots')
-  if (error) console.error('[billing] expire_credit_lots failed:', error.message)
-  return { checked: pending?.length ?? 0, expiredLots: Number(expired ?? 0) }
+  let expired: number | null = null
+  try {
+    const [row] = normalizeRaw(await prisma.$queryRaw<{ v: number | null }[]>`SELECT public.expire_credit_lots() AS v`)
+    expired = row?.v ?? null
+  } catch (err) {
+    console.error('[billing] expire_credit_lots failed:', err instanceof Error ? err.message : err)
+  }
+  return { checked: pending.length, expiredLots: Number(expired ?? 0) }
 }

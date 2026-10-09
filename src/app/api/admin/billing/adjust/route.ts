@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isPlatformAdmin } from '@/lib/admin/guard'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { creditBalance, grantCredits, spendCredits } from '@/lib/billing/credits'
 import { getBillingSettings } from '@/lib/billing/settings'
 
 /**
@@ -20,20 +21,22 @@ export async function POST(req: Request) {
   const {
     data: { user },
   } = await (await createClient(null)).auth.getUser()
-  const db = supabaseAdmin()
-  const { data: ws } = await db.from('workspaces').select('id').eq('id', body.workspace_id).maybeSingle()
+  // Platform client: the superadmin acts on any workspace by id.
+  const ws = await prisma.workspaces.findUnique({ where: { id: body.workspace_id }, select: { id: true } }).catch(() => null)
   if (!ws) return NextResponse.json({ error: 'workspace not found' }, { status: 404 })
 
-  if (credits > 0) {
-    const settings = await getBillingSettings()
-    const expires = new Date()
-    expires.setMonth(expires.getMonth() + settings.expiry_months)
-    const { error } = await db.rpc('grant_credits', { ws: ws.id, amount: credits, src: 'grant', expires: expires.toISOString(), pay: null, why: note, actor: user?.id ?? null })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  } else {
-    const { error } = await db.rpc('spend_credits', { ws: ws.id, amount: -credits, act: 'adjustment', conv: null, partial: true, why: note, actor: user?.id ?? null })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  try {
+    if (credits > 0) {
+      const settings = await getBillingSettings()
+      const expires = new Date()
+      expires.setMonth(expires.getMonth() + settings.expiry_months)
+      await grantCredits({ workspaceId: ws.id, amount: credits, source: 'grant', expiresAt: expires.toISOString(), paymentId: null, note, actorId: user?.id ?? null })
+    } else {
+      await spendCredits({ workspaceId: ws.id, amount: -credits, action: 'adjustment', conversationId: null, partial: true, note, actorId: user?.id ?? null })
+    }
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
-  const { data: balance } = await db.rpc('credit_balance', { ws: ws.id })
+  const balance = await creditBalance(ws.id).catch(() => 0)
   return NextResponse.json({ balance: Number(balance ?? 0) })
 }

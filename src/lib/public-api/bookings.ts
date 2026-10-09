@@ -1,47 +1,73 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
 import { createBookingFromDraft } from '@/lib/ai/bookings'
 import { invalidateBusinessContext } from '@/lib/ai/context'
 import { scheduleBookingSync } from '@/lib/integrations/google/sync'
 import { ApiError, badRequest, notFound, unprocessable } from './errors'
-import { listPage } from './list'
+import { keysetPage, selectOf } from './keyset'
 import { parseIsoParam } from './pagination'
 import { BOOKING_SELECT, serializeBooking } from './serializers'
 import { bool, isIsoDateOnly, isUuidLike, num, obj, oneOf, queryEnum, queryUuid, str, uuid } from './validate'
 
 export const BOOKING_STATUSES = ['pending', 'confirmed', 'completed', 'cancelled', 'no_show'] as const
 
+const BOOKING_FIELDS = selectOf(BOOKING_SELECT)
+type BookingRow = Record<string, unknown> & { id: string }
+
 export async function listBookings(workspaceId: string, url: URL) {
   const sp = url.searchParams
-  let q = supabaseAdmin().from('bookings').select(BOOKING_SELECT).eq('workspace_id', workspaceId)
+  const where: Record<string, unknown> = { workspace_id: workspaceId }
   const status = queryEnum(url, 'status', BOOKING_STATUSES)
-  if (status) q = q.eq('status', status)
+  if (status) where.status = status
+  const bookingDate: Record<string, string> = {}
   for (const [param, op] of [['date_from', 'gte'], ['date_to', 'lte']] as const) {
     const v = sp.get(param)
     if (!v) continue
     if (!isIsoDateOnly(v)) throw badRequest(`${param} must be YYYY-MM-DD.`, { field: param })
-    q = op === 'gte' ? q.gte('booking_date', v) : q.lte('booking_date', v)
+    bookingDate[op] = v
   }
+  if (Object.keys(bookingDate).length) where.booking_date = bookingDate
   for (const key of ['staff_id', 'contact_id', 'service_id'] as const) {
     const v = queryUuid(url, key)
-    if (v) q = q.eq(key, v)
+    if (v) where[key] = v
   }
   const since = parseIsoParam(sp.get('updated_since'))
-  if (since) q = q.gte('updated_at', since)
-  const page = await listPage<Record<string, unknown> & { id: string }>(q, 'created_at', url)
+  if (since) where.updated_at = { gte: since }
+  const db = tenantDb(workspaceId)
+  const page = await keysetPage({
+    workspaceId,
+    table: 'bookings',
+    column: 'created_at',
+    where,
+    url,
+    findMany: (args) => db.bookings.findMany({ ...args, select: BOOKING_FIELDS }) as unknown as Promise<BookingRow[]>,
+  })
   return { data: page.data.map(serializeBooking), next_cursor: page.next_cursor }
 }
 
 export async function getBooking(workspaceId: string, id: string) {
   if (!isUuidLike(id)) throw notFound('Booking')
-  const { data } = await supabaseAdmin().from('bookings').select(BOOKING_SELECT).eq('id', id).eq('workspace_id', workspaceId).maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .bookings.findFirst({ select: BOOKING_FIELDS, where: { id, workspace_id: workspaceId } })
+    .catch(() => null)
   if (!data) throw notFound('Booking')
-  return serializeBooking(data)
+  return serializeBooking(data as unknown as BookingRow)
 }
 
-async function assertInWorkspace(table: string, id: string | null | undefined, workspaceId: string, field: string) {
+type RefTable = 'contacts' | 'conversations' | 'services' | 'staff' | 'products'
+
+async function assertInWorkspace(table: RefTable, id: string | null | undefined, workspaceId: string, field: string) {
   if (!id) return
-  const { data } = await supabaseAdmin().from(table).select('id').eq('id', id).eq('workspace_id', workspaceId).maybeSingle()
+  const db = tenantDb(workspaceId)
+  const args = { select: { id: true }, where: { id, workspace_id: workspaceId } } as const
+  const lookups: Record<RefTable, () => Promise<{ id: string } | null>> = {
+    contacts: () => db.contacts.findFirst(args),
+    conversations: () => db.conversations.findFirst(args),
+    services: () => db.services.findFirst(args),
+    staff: () => db.staff.findFirst(args),
+    products: () => db.products.findFirst(args),
+  }
+  const data = await lookups[table]().catch(() => null)
   if (!data) throw unprocessable('invalid_reference', `${field} doesn't belong to this workspace.`, { field })
 }
 
@@ -108,16 +134,21 @@ export async function createBooking(workspaceId: string, body: Record<string, un
       throw new ApiError(422, res.reason === 'slot_taken' ? 'slot_unavailable' : `booking_${res.reason}`, messages[res.reason], details)
     }
     bookingId = res.bookingId
-    if (notes) await supabaseAdmin().from('bookings').update({ notes }).eq('id', bookingId).eq('workspace_id', workspaceId)
+    if (notes) {
+      await tenantDb(workspaceId)
+        .bookings.updateMany({ where: { id: bookingId, workspace_id: workspaceId }, data: { notes } })
+        .catch(() => null)
+    }
   } else {
     let duration = num(body, 'duration_minutes', { min: 5, max: 1440, integer: true }) ?? null
     if (!duration && serviceId) {
-      const { data: svc } = await supabaseAdmin().from('services').select('duration_minutes').eq('id', serviceId).maybeSingle()
+      const svc = await tenantDb(workspaceId)
+        .services.findFirst({ select: { duration_minutes: true }, where: { id: serviceId } })
+        .catch(() => null)
       duration = svc?.duration_minutes ?? null
     }
-    const { data, error } = await supabaseAdmin()
-      .from('bookings')
-      .insert({
+    const data = await tenantDb(workspaceId).bookings.create({
+      data: {
         workspace_id: workspaceId,
         contact_id: contactId,
         conversation_id: conversationId,
@@ -133,10 +164,9 @@ export async function createBooking(workspaceId: string, body: Record<string, un
         custom_fields: fields,
         status: oneOf(body, 'status', ['pending', 'confirmed'] as const) ?? 'confirmed',
         source: 'manual',
-      })
-      .select('id')
-      .single()
-    if (error || !data) throw new Error(error?.message ?? 'booking insert failed')
+      },
+      select: { id: true },
+    })
     bookingId = data.id
     invalidateBusinessContext(workspaceId)
     if (staffId) scheduleBookingSync(bookingId, workspaceId)
@@ -153,8 +183,7 @@ export async function patchBooking(workspaceId: string, id: string, body: Record
   const notes = str(body, 'notes', { max: 2000 })
   if (notes !== undefined) patch.notes = notes
   if (!Object.keys(patch).length) throw badRequest('Send status and/or notes.')
-  const { error } = await supabaseAdmin().from('bookings').update(patch).eq('id', id).eq('workspace_id', workspaceId)
-  if (error) throw new Error(error.message)
+  await tenantDb(workspaceId).bookings.updateMany({ where: { id, workspace_id: workspaceId }, data: patch })
   if (status && status !== current.status) {
     invalidateBusinessContext(workspaceId)
     if (current.staff_id) scheduleBookingSync(id, workspaceId)

@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
+import type { Prisma } from '@/generated/prisma/client'
 import { loadChannel, saveChannelSecrets } from '@/lib/channels/store'
 import { verifyPhoneNumber } from '@/lib/whatsapp/meta-api'
 import { isUuid } from '@/lib/workspace/constants'
-import { GRAPH, PUBLIC_COLUMNS, assertAgentInWorkspace, bad, skipVerify, str } from '../_lib/shared'
+import { GRAPH, PUBLIC_SELECT, assertAgentInWorkspace, bad, skipVerify, str } from '../_lib/shared'
 import { parseWebchatSettings, webchatHandle, type WebchatSettings } from '../_lib/webchat'
 import { parseWelcomeMenu } from '../_lib/welcome-menu'
 import type { WelcomeMenu } from '@/lib/ai/types'
@@ -137,15 +139,16 @@ export async function PATCH(request: Request, { params }: Params) {
     return bad('Nothing to update')
   }
 
-  const { data, error } = await supabaseAdmin()
-    .from('channels')
-    .update(patch)
-    .eq('id', id)
-    .eq('workspace_id', wsId)
-    .select(PUBLIC_COLUMNS)
-    .single()
-  if (error) return bad(error.message, 500)
-  return NextResponse.json({ channel: data })
+  try {
+    const data = await guard.ctx.db.channels.update({
+      where: { id, workspace_id: wsId },
+      data: patch as Prisma.channelsUncheckedUpdateInput,
+      select: PUBLIC_SELECT,
+    })
+    return NextResponse.json({ channel: data })
+  } catch (error) {
+    return bad(error instanceof Error ? error.message : 'Could not update the channel', 500)
+  }
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
@@ -158,18 +161,20 @@ export async function DELETE(_request: Request, { params }: Params) {
   const channel = await loadChannel(wsId, id)
   if (!channel) return bad('Not found', 404)
 
-  const db = supabaseAdmin()
-  const { error } = await db.from('channels').delete().eq('id', id).eq('workspace_id', wsId)
-  if (error) return bad(error.message, 500)
+  try {
+    await guard.ctx.db.channels.deleteMany({ where: { id, workspace_id: wsId } })
+  } catch (error) {
+    return bad(error instanceof Error ? error.message : 'Could not delete the channel', 500)
+  }
 
   // Stop Meta from sending us this page's events when nothing else uses it.
   const pageId = channel.type === 'messenger' ? channel.external_id : (channel.settings?.page_id as string | undefined)
   const token = channel.secrets.access_token
   if ((channel.type === 'messenger' || channel.type === 'instagram') && pageId && token) {
-    const { data: others } = await db
-      .from('channels')
-      .select('id, type, external_id, settings')
-      .in('type', ['messenger', 'instagram'])
+    // Every workspace: the page subscription is shared by all of them (platform-level check).
+    const others = await prisma.channels
+      .findMany({ select: { id: true, type: true, external_id: true, settings: true }, where: { type: { in: ['messenger', 'instagram'] } } })
+      .catch(() => null)
     const stillUsed = (others ?? []).some(
       (c) => (c.type === 'messenger' ? c.external_id : (c.settings as Record<string, unknown>)?.page_id) === pageId,
     )
@@ -185,21 +190,19 @@ export async function DELETE(_request: Request, { params }: Params) {
 
 /** Menu targets must be agents of this workspace and active members. */
 async function checkWelcomeMenuRefs(wsId: string, agentIds: string[], assigneeIds: string[]): Promise<string | null> {
-  const db = supabaseAdmin()
+  const db = tenantDb(wsId)
   if (agentIds.length) {
     if (!agentIds.every(isUuid)) return 'welcome_menu: unknown AI agent'
-    const { data } = await db.from('ai_agents').select('id').eq('workspace_id', wsId).in('id', agentIds)
-    if ((data ?? []).length !== agentIds.length) return 'welcome_menu: an option points to an AI agent that is not in this workspace'
+    const data = await db.ai_agents.findMany({ select: { id: true }, where: { workspace_id: wsId, id: { in: agentIds } } })
+    if (data.length !== agentIds.length) return 'welcome_menu: an option points to an AI agent that is not in this workspace'
   }
   if (assigneeIds.length) {
     if (!assigneeIds.every(isUuid)) return 'welcome_menu: unknown team member'
-    const { data } = await db
-      .from('workspace_members')
-      .select('user_id')
-      .eq('workspace_id', wsId)
-      .eq('status', 'active')
-      .in('user_id', assigneeIds)
-    if ((data ?? []).length !== assigneeIds.length) return 'welcome_menu: an option assigns a person who is not an active member'
+    const data = await db.workspace_members.findMany({
+      select: { user_id: true },
+      where: { workspace_id: wsId, status: 'active', user_id: { in: assigneeIds } },
+    })
+    if (data.length !== assigneeIds.length) return 'welcome_menu: an option assigns a person who is not an active member'
   }
   return null
 }

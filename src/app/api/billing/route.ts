@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { creditBalance } from '@/lib/billing/credits'
 import { getBillingSettings, getPaymentLatamConfig } from '@/lib/billing/settings'
 
@@ -12,7 +11,12 @@ export async function GET() {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
   const ws = guard.ctx.workspace.id
-  const db = supabaseAdmin()
+  // A failed query reads as empty, as before.
+  const safe = <T,>(p: Promise<T>) => p.then((data) => ({ data }), (err) => {
+    console.error('[billing] query failed:', err instanceof Error ? err.message : err)
+    return { data: null as T | null }
+  })
+  const db = guard.ctx.db
   const monthStart = new Date()
   monthStart.setUTCDate(1)
   monthStart.setUTCHours(0, 0, 0, 0)
@@ -21,11 +25,11 @@ export async function GET() {
     creditBalance(ws),
     getBillingSettings(),
     getPaymentLatamConfig(),
-    db.from('billing_accounts').select('doc_type, doc_number, legal_name, email').eq('workspace_id', ws).maybeSingle(),
-    db.from('credit_lots').select('credits_remaining, expires_at, source').eq('workspace_id', ws).gt('credits_remaining', 0).gt('expires_at', new Date().toISOString()).order('expires_at').limit(20),
-    db.from('billing_payments').select('id, amount, credits, status, checkout_url, expires_on, paid_at, error, created_at').eq('workspace_id', ws).order('created_at', { ascending: false }).limit(20),
-    db.from('credit_ledger').select('id, kind, credits, action, conversation_id, note, created_at').eq('workspace_id', ws).order('created_at', { ascending: false }).limit(50),
-    db.from('credit_ledger').select('action, credits').eq('workspace_id', ws).eq('kind', 'usage').gte('created_at', monthStart.toISOString()).limit(20000),
+    safe(db.billing_accounts.findFirst({ where: { workspace_id: ws }, select: { doc_type: true, doc_number: true, legal_name: true, email: true } })),
+    safe(db.credit_lots.findMany({ where: { credits_remaining: { gt: 0 }, expires_at: { gt: new Date() } }, select: { credits_remaining: true, expires_at: true, source: true }, orderBy: { expires_at: 'asc' }, take: 20 })),
+    safe(db.billing_payments.findMany({ select: { id: true, amount: true, credits: true, status: true, checkout_url: true, expires_on: true, paid_at: true, error: true, created_at: true }, orderBy: { created_at: 'desc' }, take: 20 })),
+    safe(db.credit_ledger.findMany({ select: { id: true, kind: true, credits: true, action: true, conversation_id: true, note: true, created_at: true }, orderBy: { created_at: 'desc' }, take: 50 })),
+    safe(db.credit_ledger.findMany({ where: { kind: 'usage', created_at: { gte: monthStart } }, select: { action: true, credits: true }, take: 20000 })),
   ])
 
   const byAction: Record<string, number> = {}

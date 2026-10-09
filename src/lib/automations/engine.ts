@@ -15,7 +15,10 @@ import type {
   CreateDealStepConfig,
   AssignConversationStepConfig,
 } from '@/types'
-import { supabaseAdmin } from './admin-client'
+import type { Prisma } from '@/generated/prisma/client'
+import { prisma } from '@/lib/db/prisma'
+import type { AiAgentRow } from '@/lib/ai/types'
+import { tenantDb } from '@/lib/db/tenant'
 import { engineSendText, engineSendTemplate } from './meta-send'
 import { conversationWindow, loadConversationInfo, type ConversationInfo } from './followups'
 import { supportsTemplates, windowClosedMessage } from './followup-rules'
@@ -62,21 +65,18 @@ export interface DispatchInput {
  */
 export async function runAutomationsForTrigger(input: DispatchInput): Promise<void> {
   try {
-    const db = supabaseAdmin()
-    const { data: automations, error } = await db
-      .from('automations')
-      .select('*')
-      .eq('workspace_id', input.workspaceId)
-      .eq('trigger_type', input.triggerType)
-      .eq('is_active', true)
-
-    if (error) {
+    let automations: WsAutomation[]
+    try {
+      automations = (await tenantDb(input.workspaceId).automations.findMany({
+        where: { workspace_id: input.workspaceId, trigger_type: input.triggerType, is_active: true },
+      })) as unknown as WsAutomation[]
+    } catch (error) {
       console.error('[automations] fetch failed:', error)
       return
     }
-    if (!automations || automations.length === 0) return
+    if (automations.length === 0) return
 
-    for (const automation of automations as WsAutomation[]) {
+    for (const automation of automations) {
       if (!triggerMatches(automation, input.context)) continue
       try {
         await executeAutomation(automation, input)
@@ -104,23 +104,25 @@ export async function resumePendingExecution(pending: {
   next_step_position: number
   context: AutomationContext
 }): Promise<void> {
-  const db = supabaseAdmin()
-  const { data: automation, error } = await db
-    .from('automations')
-    .select('*')
-    .eq('id', pending.automation_id)
-    .eq('workspace_id', pending.workspace_id)
-    .single()
+  let automation: WsAutomation | null = null
+  let error: unknown = null
+  try {
+    automation = (await tenantDb(pending.workspace_id).automations.findFirst({
+      where: { id: pending.automation_id, workspace_id: pending.workspace_id },
+    })) as unknown as WsAutomation | null
+  } catch (err) {
+    error = err
+  }
 
   if (error || !automation) {
     console.error('[automations] resume: missing automation', pending.automation_id, error)
-    await markPending(pending.id, 'failed')
+    await markPending(pending.workspace_id, pending.id, 'failed')
     return
   }
 
   try {
     await executeStepsFrom({
-      automation: automation as WsAutomation,
+      automation,
       contactId: pending.contact_id,
       context: pending.context ?? {},
       parentStepId: pending.parent_step_id,
@@ -129,10 +131,10 @@ export async function resumePendingExecution(pending: {
       logId: pending.log_id,
       triggerEvent: 'resumed_wait',
     })
-    await markPending(pending.id, 'done')
+    await markPending(pending.workspace_id, pending.id, 'done')
   } catch (err) {
     console.error('[automations] resume failed:', err)
-    await markPending(pending.id, 'failed')
+    await markPending(pending.workspace_id, pending.id, 'failed')
   }
 }
 
@@ -149,22 +151,19 @@ export async function runAutomationNow(automation: WsAutomation, input: Dispatch
 // ------------------------------------------------------------
 
 async function executeAutomation(automation: WsAutomation, input: DispatchInput) {
-  const db = supabaseAdmin()
-
-  const { data: log, error: logErr } = await db
-    .from('automation_logs')
-    .insert({
-      automation_id: automation.id,
-      workspace_id: automation.workspace_id,
-      contact_id: input.contactId ?? null,
-      trigger_event: input.triggerType,
-      steps_executed: [],
-      status: 'success',
+  let log: { id: string }
+  try {
+    log = await tenantDb(automation.workspace_id).automation_logs.create({
+      data: {
+        automation_id: automation.id,
+        workspace_id: automation.workspace_id,
+        contact_id: input.contactId ?? null,
+        trigger_event: input.triggerType,
+        steps_executed: [],
+        status: 'success',
+      },
     })
-    .select()
-    .single()
-
-  if (logErr || !log) {
+  } catch (logErr) {
     console.error('[automations] cannot create log:', logErr)
     return
   }
@@ -184,10 +183,9 @@ async function executeAutomation(automation: WsAutomation, input: DispatchInput)
   // Doing this with a client-side read-modify-write raced when the
   // same automation fired for two contacts simultaneously — both
   // would read N and both write N+1, losing one count permanently.
-  const { error: rpcErr } = await db.rpc('increment_automation_execution_count', {
-    p_automation_id: automation.id,
-  })
-  if (rpcErr) {
+  try {
+    await prisma.$executeRaw`SELECT public.increment_automation_execution_count(${automation.id}::uuid)`
+  } catch (rpcErr) {
     console.error('[automations] increment counter failed:', rpcErr)
   }
 }
@@ -204,29 +202,28 @@ interface ExecuteArgs {
 }
 
 async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
-  const db = supabaseAdmin()
+  const ws = args.automation.workspace_id
+  const db = tenantDb(ws)
 
-  const baseQuery = db
-    .from('automation_steps')
-    .select('*')
-    .eq('automation_id', args.automation.id)
-    .gte('position', args.startPosition)
-    .order('position', { ascending: true })
-
-  const scoped =
-    args.parentStepId === null
-      ? baseQuery.is('parent_step_id', null)
-      : baseQuery.eq('parent_step_id', args.parentStepId).eq('branch', args.branch ?? 'yes')
-
-  const { data: steps, error: stepsErr } = await scoped
-
-  if (stepsErr) {
-    await finalizeLog(args.logId, 'failed', stepsErr.message)
+  let steps: AutomationStep[]
+  try {
+    steps = (await db.automation_steps.findMany({
+      where: {
+        automation_id: args.automation.id,
+        position: { gte: args.startPosition },
+        ...(args.parentStepId === null
+          ? { parent_step_id: null }
+          : { parent_step_id: args.parentStepId, branch: args.branch ?? 'yes' }),
+      },
+      orderBy: { position: 'asc' },
+    })) as unknown as AutomationStep[]
+  } catch (stepsErr) {
+    await finalizeLog(ws, args.logId, 'failed', stepsErr instanceof Error ? stepsErr.message : String(stepsErr))
     return
   }
-  if (!steps || steps.length === 0) {
+  if (steps.length === 0) {
     if (args.parentStepId === null && args.logId) {
-      await finalizeLog(args.logId, 'success', null)
+      await finalizeLog(ws, args.logId, 'success', null)
     }
     return
   }
@@ -235,24 +232,28 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
   let status: 'success' | 'partial' | 'failed' = 'success'
   let errorMessage: string | null = null
 
-  for (const step of steps as AutomationStep[]) {
+  for (const step of steps) {
     // `wait` is the suspension point: enqueue and stop processing this
     // scope. The cron endpoint will pick it up later.
     if (step.step_type === 'wait') {
       const cfg = step.step_config as WaitStepConfig
       const ms = waitMs(cfg)
-      await db.from('automation_pending_executions').insert({
-        automation_id: args.automation.id,
-        workspace_id: args.automation.workspace_id,
-        contact_id: args.contactId,
-        log_id: args.logId,
-        parent_step_id: args.parentStepId,
-        branch: args.branch,
-        next_step_position: step.position + 1,
-        context: args.context,
-        run_at: new Date(Date.now() + ms).toISOString(),
-        status: 'pending',
-      })
+      await quiet(
+        db.automation_pending_executions.create({
+          data: {
+            automation_id: args.automation.id,
+            workspace_id: args.automation.workspace_id,
+            contact_id: args.contactId,
+            log_id: args.logId,
+            parent_step_id: args.parentStepId,
+            branch: args.branch,
+            next_step_position: step.position + 1,
+            context: args.context as Prisma.InputJsonValue,
+            run_at: new Date(Date.now() + ms).toISOString(),
+            status: 'pending',
+          },
+        }),
+      )
       results.push({
         step_id: step.id,
         step_type: step.step_type,
@@ -260,7 +261,7 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
         detail: `waiting ${cfg.amount} ${cfg.unit}`,
       })
       status = 'partial'
-      await appendResults(args.logId, results, status, errorMessage)
+      await appendResults(ws, args.logId, results, status, errorMessage)
       return
     }
 
@@ -308,15 +309,15 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
   }
 
   if (args.parentStepId === null) {
-    await appendResults(args.logId, results, status, errorMessage)
+    await appendResults(ws, args.logId, results, status, errorMessage)
   } else {
     // Nested branch — just append results; parent scope decides final status.
-    await appendResults(args.logId, results, null, errorMessage)
+    await appendResults(ws, args.logId, results, null, errorMessage)
   }
 }
 
 async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string> {
-  const db = supabaseAdmin()
+  const db = tenantDb(args.automation.workspace_id)
 
   switch (step.step_type) {
     case 'send_message': {
@@ -343,12 +344,9 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       const info = await assertWindowOpen(args, conversationId)
       const agentId = cfg.agent_id || info.conversationAgentId || info.channelAgentId
       if (!agentId) throw new Error('No hay un agente de IA para este seguimiento: elige uno en el paso o asigna uno al canal')
-      const { data: agent } = await db
-        .from('ai_agents')
-        .select('*')
-        .eq('id', agentId)
-        .eq('workspace_id', args.automation.workspace_id)
-        .maybeSingle()
+      const agent = await db.ai_agents
+        .findFirst({ where: { id: agentId, workspace_id: args.automation.workspace_id } })
+        .catch(() => null)
       if (!agent) throw new Error('El agente de IA del seguimiento ya no existe')
       // Lazy: the AI layer is server-only and pulls the LLM providers.
       const { generateFollowup, loadFollowupInput } = await import('@/lib/ai/followup')
@@ -361,7 +359,7 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
           await loadFollowupInput({
             workspaceId: args.automation.workspace_id,
             conversationId,
-            agent,
+            agent: agent as AiAgentRow,
             channelType: info.channelType,
             channelId: info.channelId,
             instructions: cfg.instructions ? interpolate(cfg.instructions, args) : null,
@@ -424,28 +422,24 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
     case 'add_tag': {
       const cfg = step.step_config as TagStepConfig
       if (!args.contactId || !cfg.tag_id) throw new Error('add_tag needs contact + tag_id')
-      await db
-        .from('contact_tags')
-        .upsert(
-          {
-            workspace_id: args.automation.workspace_id,
-            contact_id: args.contactId,
-            tag_id: cfg.tag_id,
-          },
-          { onConflict: 'contact_id,tag_id', ignoreDuplicates: true },
-        )
+      // ON CONFLICT (contact_id, tag_id) DO NOTHING
+      await quiet(
+        db.contact_tags.createMany({
+          data: [{ workspace_id: args.automation.workspace_id, contact_id: args.contactId, tag_id: cfg.tag_id }],
+          skipDuplicates: true,
+        }),
+      )
       return `tag ${cfg.tag_id} added`
     }
 
     case 'remove_tag': {
       const cfg = step.step_config as TagStepConfig
       if (!args.contactId || !cfg.tag_id) throw new Error('remove_tag needs contact + tag_id')
-      await db
-        .from('contact_tags')
-        .delete()
-        .eq('workspace_id', args.automation.workspace_id)
-        .eq('contact_id', args.contactId)
-        .eq('tag_id', cfg.tag_id)
+      await quiet(
+        db.contact_tags.deleteMany({
+          where: { workspace_id: args.automation.workspace_id, contact_id: args.contactId, tag_id: cfg.tag_id },
+        }),
+      )
       return `tag ${cfg.tag_id} removed`
     }
 
@@ -454,21 +448,23 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       if (!args.contactId) throw new Error('assign_conversation needs a contact')
       let agentId = cfg.agent_id
       if (cfg.mode === 'round_robin') {
-        const { data: members } = await db
-          .from('workspace_members')
-          .select('user_id')
-          .eq('workspace_id', args.automation.workspace_id)
-          .eq('status', 'active')
-          .order('created_at', { ascending: true })
-          .limit(1)
+        const members = await db.workspace_members
+          .findMany({
+            select: { user_id: true },
+            where: { workspace_id: args.automation.workspace_id, status: 'active' },
+            orderBy: { created_at: 'asc' },
+            take: 1,
+          })
+          .catch(() => null)
         agentId = members?.[0]?.user_id
       }
       if (!agentId) return 'no agent resolved'
-      await db
-        .from('conversations')
-        .update({ assigned_agent_id: agentId })
-        .eq('workspace_id', args.automation.workspace_id)
-        .eq('contact_id', args.contactId)
+      await quiet(
+        db.conversations.updateMany({
+          where: { workspace_id: args.automation.workspace_id, contact_id: args.contactId },
+          data: { assigned_agent_id: agentId },
+        }),
+      )
       return `assigned to ${agentId}`
     }
 
@@ -479,26 +475,31 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       if (!allowed.has(cfg.field)) {
         return `field ${cfg.field} not writable from automations`
       }
-      await db
-        .from('contacts')
-        .update({ [cfg.field]: cfg.value, updated_at: new Date().toISOString() })
-        .eq('id', args.contactId)
-        .eq('workspace_id', args.automation.workspace_id)
+      await quiet(
+        db.contacts.updateMany({
+          where: { id: args.contactId, workspace_id: args.automation.workspace_id },
+          data: { [cfg.field]: cfg.value, updated_at: new Date().toISOString() },
+        }),
+      )
       return `${cfg.field} updated`
     }
 
     case 'create_deal': {
       const cfg = step.step_config as CreateDealStepConfig
       if (!cfg.pipeline_id || !cfg.stage_id) throw new Error('create_deal needs pipeline + stage')
-      await db.from('deals').insert({
-        workspace_id: args.automation.workspace_id,
-        pipeline_id: cfg.pipeline_id,
-        stage_id: cfg.stage_id,
-        contact_id: args.contactId,
-        title: interpolate(cfg.title, args),
-        value: cfg.value ?? 0,
-        status: 'open',
-      })
+      await quiet(
+        db.deals.create({
+          data: {
+            workspace_id: args.automation.workspace_id,
+            pipeline_id: cfg.pipeline_id,
+            stage_id: cfg.stage_id,
+            contact_id: args.contactId,
+            title: interpolate(cfg.title, args),
+            value: cfg.value ?? 0,
+            status: 'open',
+          },
+        }),
+      )
       return 'deal created'
     }
 
@@ -517,11 +518,12 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
 
     case 'close_conversation': {
       if (!args.contactId) throw new Error('close_conversation needs a contact')
-      await db
-        .from('conversations')
-        .update({ status: 'closed', updated_at: new Date().toISOString() })
-        .eq('workspace_id', args.automation.workspace_id)
-        .eq('contact_id', args.contactId)
+      await quiet(
+        db.conversations.updateMany({
+          where: { workspace_id: args.automation.workspace_id, contact_id: args.contactId },
+          data: { status: 'closed', updated_at: new Date().toISOString() },
+        }),
+      )
       return 'conversation closed'
     }
 
@@ -563,15 +565,29 @@ async function resolveConversationId(args: ExecuteArgs): Promise<string> {
   const fromCtx = args.context.conversation_id
   if (fromCtx) return fromCtx
   if (!args.contactId) throw new Error('cannot resolve conversation: no contact')
-  const { data, error } = await supabaseAdmin()
-    .from('conversations')
-    .select('id')
-    .eq('workspace_id', args.automation.workspace_id)
-    .eq('contact_id', args.contactId)
-    .maybeSingle()
-  if (error) throw new Error(`conversation lookup failed: ${error.message}`)
-  if (!data?.id) throw new Error('no conversation for contact')
-  return data.id as string
+  let data: { id: string }[]
+  try {
+    // take 2: maybeSingle() failed when the contact had several conversations.
+    data = await tenantDb(args.automation.workspace_id).conversations.findMany({
+      select: { id: true },
+      where: { workspace_id: args.automation.workspace_id, contact_id: args.contactId },
+      take: 2,
+    })
+  } catch (error) {
+    throw new Error(`conversation lookup failed: ${error instanceof Error ? error.message : String(error)}`)
+  }
+  if (data.length > 1) throw new Error('conversation lookup failed: JSON object requested, multiple (or no) rows returned')
+  if (!data[0]?.id) throw new Error('no conversation for contact')
+  return data[0].id as string
+}
+
+/** Runs a write whose failure the engine ignores (supabase-js returned the error without throwing). */
+async function quiet(op: Promise<unknown>): Promise<void> {
+  try {
+    await op
+  } catch (err) {
+    console.error('[automations] write failed:', err)
+  }
 }
 
 function triggerMatches(automation: Automation, ctx: AutomationContext | undefined): boolean {
@@ -588,26 +604,24 @@ function triggerMatches(automation: Automation, ctx: AutomationContext | undefin
 }
 
 async function evaluateCondition(cfg: ConditionStepConfig, args: ExecuteArgs): Promise<boolean> {
-  const db = supabaseAdmin()
+  const db = tenantDb(args.automation.workspace_id)
   switch (cfg.subject) {
     case 'tag_presence': {
       if (!args.contactId || !cfg.operand) return false
-      const { count } = await db
-        .from('contact_tags')
-        .select('id', { count: 'exact', head: true })
-        .eq('workspace_id', args.automation.workspace_id)
-        .eq('contact_id', args.contactId)
-        .eq('tag_id', cfg.operand)
+      const count = await db.contact_tags
+        .count({ where: { workspace_id: args.automation.workspace_id, contact_id: args.contactId, tag_id: cfg.operand } })
+        .catch(() => null)
       return (count ?? 0) > 0
     }
     case 'contact_field': {
       if (!args.contactId || !cfg.operand) return false
-      const { data } = await db
-        .from('contacts')
-        .select(cfg.operand)
-        .eq('id', args.contactId)
-        .eq('workspace_id', args.automation.workspace_id)
-        .maybeSingle()
+      // Unknown column → error → no data → false, as with PostgREST.
+      const data = await db.contacts
+        .findFirst({
+          select: { [cfg.operand]: true } as unknown as { id: true },
+          where: { id: args.contactId, workspace_id: args.automation.workspace_id },
+        })
+        .catch(() => null)
       const v = (data as Record<string, unknown> | null)?.[cfg.operand]
       return v != null && String(v) === String(cfg.value ?? '')
     }
@@ -650,18 +664,17 @@ function interpolate(s: string, args: ExecuteArgs): string {
 }
 
 async function appendResults(
+  workspaceId: string,
   logId: string | null,
   newItems: AutomationLogStepResult[],
   status: 'success' | 'partial' | 'failed' | null,
   errorMessage: string | null,
 ) {
   if (!logId) return
-  const db = supabaseAdmin()
-  const { data: existing } = await db
-    .from('automation_logs')
-    .select('steps_executed, status')
-    .eq('id', logId)
-    .single()
+  const db = tenantDb(workspaceId)
+  const existing = await db.automation_logs
+    .findFirst({ select: { steps_executed: true, status: true }, where: { id: logId } })
+    .catch(() => null)
   const merged = [
     ...((existing?.steps_executed as AutomationLogStepResult[] | undefined) ?? []),
     ...newItems,
@@ -672,24 +685,21 @@ async function appendResults(
     update.status = status
   }
   if (errorMessage) update.error_message = errorMessage
-  await db.from('automation_logs').update(update).eq('id', logId)
+  await quiet(db.automation_logs.updateMany({ where: { id: logId }, data: update }))
 }
 
 async function finalizeLog(
+  workspaceId: string,
   logId: string | null,
   status: 'success' | 'partial' | 'failed',
   errorMessage: string | null,
 ) {
   if (!logId) return
-  await supabaseAdmin()
-    .from('automation_logs')
-    .update({ status, error_message: errorMessage })
-    .eq('id', logId)
+  await quiet(
+    tenantDb(workspaceId).automation_logs.updateMany({ where: { id: logId }, data: { status, error_message: errorMessage } }),
+  )
 }
 
-async function markPending(id: string, status: 'done' | 'failed') {
-  await supabaseAdmin()
-    .from('automation_pending_executions')
-    .update({ status })
-    .eq('id', id)
+async function markPending(workspaceId: string, id: string, status: 'done' | 'failed') {
+  await quiet(tenantDb(workspaceId).automation_pending_executions.updateMany({ where: { id }, data: { status } }))
 }

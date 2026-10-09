@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { normalizeRaw } from '@/lib/db/compat'
 import { getPlatformSetting } from '@/lib/platform/settings'
 import { reportSettings } from '@/lib/reports/settings'
 import { estimateNumber, monthBounds, projectMonth, ratesFor, type NumberUsage, type StoredMetaRates } from '@/lib/meta-usage/rates'
@@ -14,25 +15,31 @@ import { estimateNumber, monthBounds, projectMonth, ratesFor, type NumberUsage, 
 export async function GET(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
-  const { workspace } = guard.ctx
+  const { workspace, db } = guard.ctx
   const bounds = monthBounds(new URL(request.url).searchParams.get('month'))
   if (!bounds) return NextResponse.json({ error: 'invalid_month' }, { status: 400 })
 
-  const db = supabaseAdmin()
-  const [channels, usage, stored] = await Promise.all([
-    db.from('channels').select('id, name, display_handle, status').eq('workspace_id', workspace.id).eq('type', 'whatsapp').order('created_at'),
-    db.rpc('meta_message_usage', { ws: workspace.id, since: bounds.since.toISOString(), until: bounds.until.toISOString() }),
-    getPlatformSetting<StoredMetaRates>('meta_rates'),
-  ])
-  if (channels.error || usage.error) {
-    console.error('[meta-usage] failed:', channels.error?.message ?? usage.error?.message)
+  let channels: { id: string; name: string; display_handle: string | null; status: string }[]
+  let usage: (NumberUsage & { channel_id: string })[]
+  let stored: StoredMetaRates | null
+  try {
+    ;[channels, usage, stored] = await Promise.all([
+      db.channels.findMany({ select: { id: true, name: true, display_handle: true, status: true }, where: { type: 'whatsapp' }, orderBy: { created_at: 'asc' } }),
+      // meta_message_usage filters by `ws` itself.
+      prisma
+        .$queryRaw<(NumberUsage & { channel_id: string })[]>`SELECT * FROM public.meta_message_usage(${workspace.id}::uuid, ${bounds.since}::timestamptz, ${bounds.until}::timestamptz)`
+        .then(normalizeRaw),
+      getPlatformSetting<StoredMetaRates>('meta_rates'),
+    ])
+  } catch (err) {
+    console.error('[meta-usage] failed:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: 'failed' }, { status: 500 })
   }
 
   const { rates, market, freePerNumber } = ratesFor(workspace.country, stored)
-  const rows = (usage.data ?? []) as (NumberUsage & { channel_id: string })[]
+  const rows = usage
   const byChannel = new Map(rows.map((u) => [u.channel_id, u]))
-  const numbers = (channels.data ?? []).map((ch) => {
+  const numbers = channels.map((ch) => {
     const raw = byChannel.get(ch.id)
     const u: NumberUsage = {
       service: Number(raw?.service ?? 0),

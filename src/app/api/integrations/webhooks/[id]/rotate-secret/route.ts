@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { isUuid } from '@/lib/workspace/constants'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { encrypt } from '@/lib/whatsapp/encryption'
 import { generateWebhookSecret } from '@/lib/webhooks/signature'
 
@@ -12,14 +11,15 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   const { id } = await params
   if (!isUuid(id)) return NextResponse.json({ error: 'not_found' }, { status: 404 })
   const secret = generateWebhookSecret()
-  const { data, error } = await supabaseAdmin()
-    .from('webhook_endpoints')
-    .update({ secret_encrypted: encrypt(secret) })
-    .eq('id', id)
-    .eq('workspace_id', guard.ctx.workspace.id)
-    .select('id')
-    .maybeSingle()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+  let updated: number
+  try {
+    ;({ count: updated } = await guard.ctx.db.webhook_endpoints.updateMany({
+      where: { id, workspace_id: guard.ctx.workspace.id },
+      data: { secret_encrypted: encrypt(secret) },
+    }))
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 })
+  }
+  if (!updated) return NextResponse.json({ error: 'not_found' }, { status: 404 })
   return NextResponse.json({ secret })
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import type { Prisma } from '@/generated/prisma/client'
 import { productAttributesFor } from '@/lib/catalog/attributes'
 import { sanitizeMapping } from '@/lib/real-estate/portals/feed/mapping'
 import { requirePortalsAdmin } from '../_lib/guard'
@@ -23,15 +23,16 @@ export async function POST(request: Request) {
   const mapping = sanitizeMapping(body.mapping, productAttributesFor(ws.industry, ws.settings))
   if (!Object.values(mapping).includes('external_id')) return NextResponse.json({ error: 'mapping_external_id' }, { status: 400 })
 
-  const db = supabaseAdmin()
-  const { count } = await db.from('portal_feeds').select('id', { count: 'exact', head: true }).eq('workspace_id', ws.id)
-  if ((count ?? 0) >= MAX_FEEDS) return NextResponse.json({ error: 'too_many_feeds' }, { status: 400 })
+  const db = guard.ctx.db
+  const count = await db.portal_feeds.count().catch(() => 0)
+  if (count >= MAX_FEEDS) return NextResponse.json({ error: 'too_many_feeds' }, { status: 400 })
 
-  const { data, error } = await db
-    .from('portal_feeds')
-    .insert({ ...parsed.value, mapping, workspace_id: ws.id, created_by: guard.ctx.user.id })
-    .select('*')
-    .single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ feed: data }, { status: 201 })
+  try {
+    const data = await db.portal_feeds.create({
+      data: { ...parsed.value, mapping, workspace_id: ws.id, created_by: guard.ctx.user.id } as Prisma.portal_feedsUncheckedCreateInput,
+    })
+    return NextResponse.json({ feed: data }, { status: 201 })
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
+  }
 }

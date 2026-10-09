@@ -1,5 +1,7 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import type { Prisma } from '@/generated/prisma/client'
+import { tenantDb } from '@/lib/db/tenant'
+import { isPrismaError } from '@/lib/db/errors'
 import { phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { waMediaProxyUrl } from '@/lib/channels/parsers/whatsapp'
 import type { InboundEvent, LoadedChannel } from '@/lib/channels'
@@ -45,41 +47,44 @@ export function isValidStatusTransition(current: string, incoming: string): bool
 const MESSAGE_STATUS_RANK: Record<string, number> = { sending: 0, sent: 1, delivered: 2, read: 3, failed: 4 }
 
 async function applyStatus(channel: LoadedChannel, ev: Extract<InboundEvent, { kind: 'status' }>) {
-  const db = supabaseAdmin()
-  const { data: msg } = await db
-    .from('messages')
-    .select('id, status, metadata')
-    .eq('workspace_id', channel.workspace_id)
-    .eq('message_id', ev.externalMessageId)
-    .maybeSingle()
+  const db = tenantDb(channel.workspace_id)
+  // maybeSingle(): more than one match counted as none.
+  const msgs = await db.messages.findMany({
+    where: { message_id: ev.externalMessageId },
+    select: { id: true, status: true, metadata: true },
+    take: 2,
+  })
+  const msg = msgs.length === 1 ? msgs[0] : null
   if (msg && (MESSAGE_STATUS_RANK[ev.status] ?? 0) > (MESSAGE_STATUS_RANK[msg.status] ?? 0)) {
-    await db
-      .from('messages')
-      .update({
-        status: ev.status,
-        ...(ev.error ? { metadata: { ...(msg.metadata ?? {}), error: ev.error } } : {}),
+    await db.messages
+      .updateMany({
+        where: { id: msg.id },
+        data: {
+          status: ev.status,
+          ...(ev.error ? { metadata: { ...((msg.metadata as Record<string, unknown> | null) ?? {}), error: ev.error } as Prisma.InputJsonObject } : {}),
+        },
       })
-      .eq('id', msg.id)
+      .catch(() => {})
   }
 
-  const { data: recipient } = await db
-    .from('broadcast_recipients')
-    .select('id, status')
-    .eq('workspace_id', channel.workspace_id)
-    .eq('whatsapp_message_id', ev.externalMessageId)
-    .maybeSingle()
+  const recipient = await db.broadcast_recipients.findFirst({
+    where: { whatsapp_message_id: ev.externalMessageId },
+    select: { id: true, status: true },
+  })
   if (!recipient || !isValidStatusTransition(recipient.status, ev.status)) return
   const ts = new Date(ev.timestamp).toISOString()
-  await db
-    .from('broadcast_recipients')
-    .update({
+  await db.broadcast_recipients
+    .updateMany({
+      where: { id: recipient.id },
+      data: {
       status: ev.status,
       ...(ev.status === 'sent' ? { sent_at: ts } : {}),
       ...(ev.status === 'delivered' ? { delivered_at: ts } : {}),
       ...(ev.status === 'read' ? { read_at: ts } : {}),
       ...(ev.status === 'failed' && ev.error ? { error_message: ev.error } : {}),
+      },
     })
-    .eq('id', recipient.id)
+    .catch(() => {})
 }
 
 // ------------------------------------------------------------
@@ -89,16 +94,13 @@ export async function findOrCreateContact(
   channel: LoadedChannel,
   from: MessageEvent['from'],
 ): Promise<{ id: string; wasCreated: boolean } | null> {
-  const db = supabaseAdmin()
   const ws = channel.workspace_id
+  const db = tenantDb(ws)
 
-  const { data: identity } = await db
-    .from('contact_identities')
-    .select('contact_id')
-    .eq('workspace_id', ws)
-    .eq('channel_type', channel.type)
-    .eq('external_id', from.externalId)
-    .maybeSingle()
+  const identity = await db.contact_identities.findFirst({
+    where: { channel_type: channel.type, external_id: from.externalId },
+    select: { contact_id: true },
+  })
   if (identity) return { id: identity.contact_id, wasCreated: false }
 
   // WhatsApp: a contact created by hand / CSV import has a phone but no
@@ -106,105 +108,93 @@ export async function findOrCreateContact(
   let contactId: string | null = null
   let wasCreated = false
   if (from.phone) {
-    const { data: candidates } = await db
-      .from('contacts')
-      .select('id, phone')
-      .eq('workspace_id', ws)
-      .not('phone', 'is', null)
-    contactId = candidates?.find((c) => phonesMatch(c.phone, from.phone!))?.id ?? null
+    const candidates = await db.contacts.findMany({ where: { phone: { not: null } }, select: { id: true, phone: true } })
+    contactId = candidates.find((c) => phonesMatch(c.phone ?? '', from.phone!))?.id ?? null
   }
 
   if (!contactId) {
     const fallbackName =
       from.name || from.handle || from.phone || `${channel.type} ${from.externalId.slice(-4)}`
-    const { data: created, error } = await db
-      .from('contacts')
-      .insert({ workspace_id: ws, name: fallbackName, phone: from.phone ?? null })
-      .select('id')
-      .single()
-    if (error || !created) {
-      console.error('[ingest] contact insert failed:', error?.message)
+    try {
+      const created = await db.contacts.create({
+        data: { workspace_id: ws, name: fallbackName, phone: from.phone ?? null },
+        select: { id: true },
+      })
+      contactId = created.id
+    } catch (error) {
+      console.error('[ingest] contact insert failed:', error instanceof Error ? error.message : error)
       return null
     }
-    contactId = created.id
     wasCreated = true
   }
 
-  const { error: idErr } = await db.from('contact_identities').insert({
-    workspace_id: ws,
-    contact_id: contactId,
-    channel_type: channel.type,
-    external_id: from.externalId,
-    handle: from.handle ?? from.phone ?? null,
-  })
-  if (idErr && idErr.code === '23505') {
-    // Concurrent first message created it a moment ago: use that one.
-    const { data: winner } = await db
-      .from('contact_identities')
-      .select('contact_id')
-      .eq('workspace_id', ws)
-      .eq('channel_type', channel.type)
-      .eq('external_id', from.externalId)
-      .single()
-    if (wasCreated && winner && winner.contact_id !== contactId) {
-      await db.from('contacts').delete().eq('id', contactId)
+  try {
+    await db.contact_identities.create({
+      data: {
+        workspace_id: ws,
+        contact_id: contactId,
+        channel_type: channel.type,
+        external_id: from.externalId,
+        handle: from.handle ?? from.phone ?? null,
+      },
+    })
+  } catch (idErr) {
+    // Other insert errors were ignored before as well.
+    if (isPrismaError(idErr, 'P2002')) {
+      // Concurrent first message created it a moment ago: use that one.
+      const winner = await db.contact_identities
+        .findFirst({ where: { channel_type: channel.type, external_id: from.externalId }, select: { contact_id: true } })
+        .catch(() => null)
+      if (wasCreated && winner && winner.contact_id !== contactId) {
+        await db.contacts.deleteMany({ where: { id: contactId } }).catch(() => {})
+      }
+      return winner ? { id: winner.contact_id, wasCreated: false } : null
     }
-    return winner ? { id: winner.contact_id, wasCreated: false } : null
   }
   return { id: contactId!, wasCreated }
 }
 
 export async function findOrCreateConversation(channel: LoadedChannel, contactId: string) {
-  const db = supabaseAdmin()
-  const { data: existing } = await db
-    .from('conversations')
-    .select('*')
-    .eq('workspace_id', channel.workspace_id)
-    .eq('contact_id', contactId)
-    .eq('channel_id', channel.id)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle()
+  const db = tenantDb(channel.workspace_id)
+  const existing = await db.conversations.findFirst({
+    where: { contact_id: contactId, channel_id: channel.id },
+    orderBy: { created_at: 'asc' },
+  })
   if (existing) return existing
 
-  const { data: created, error } = await db
-    .from('conversations')
-    .insert({ workspace_id: channel.workspace_id, contact_id: contactId, channel_id: channel.id })
-    .select('*')
-    .single()
-  if (error) {
-    console.error('[ingest] conversation insert failed:', error.message)
+  try {
+    return await db.conversations.create({
+      data: { workspace_id: channel.workspace_id, contact_id: contactId, channel_id: channel.id },
+    })
+  } catch (error) {
+    console.error('[ingest] conversation insert failed:', error instanceof Error ? error.message : error)
     return null
   }
-  return created
 }
 
-async function internalIdFor(conversationId: string, externalId: string | null | undefined) {
+async function internalIdFor(workspaceId: string, conversationId: string, externalId: string | null | undefined) {
   if (!externalId) return null
-  const { data } = await supabaseAdmin()
-    .from('messages')
-    .select('id')
-    .eq('conversation_id', conversationId)
-    .eq('message_id', externalId)
-    .maybeSingle()
-  return data?.id ?? null
+  // maybeSingle(): more than one match (or an error) counted as none.
+  const rows = await tenantDb(workspaceId)
+    .messages.findMany({ where: { conversation_id: conversationId, message_id: externalId }, select: { id: true }, take: 2 })
+    .catch(() => [])
+  return rows.length === 1 ? rows[0].id : null
 }
 
 async function flagBroadcastReply(workspaceId: string, contactId: string) {
-  const db = supabaseAdmin()
-  const { data: recs } = await db
-    .from('broadcast_recipients')
-    .select('id')
-    .eq('workspace_id', workspaceId)
-    .eq('contact_id', contactId)
-    .in('status', ['sent', 'delivered', 'read'])
-    .order('created_at', { ascending: false })
-    .limit(1)
-  if (recs?.[0]) {
-    await db
-      .from('broadcast_recipients')
-      .update({ status: 'replied', replied_at: new Date().toISOString() })
-      .eq('id', recs[0].id)
+  const db = tenantDb(workspaceId)
+  const recs = await db.broadcast_recipients
+    .findMany({
+      where: { contact_id: contactId, status: { in: ['sent', 'delivered', 'read'] } },
+      select: { id: true },
+      orderBy: { created_at: 'desc' },
+      take: 1,
+    })
+    .catch(() => [])
+  if (recs[0]) {
+    await db.broadcast_recipients
+      .updateMany({ where: { id: recs[0].id }, data: { status: 'replied', replied_at: new Date().toISOString() } })
+      .catch(() => {})
   }
 }
 
@@ -212,34 +202,34 @@ async function flagBroadcastReply(workspaceId: string, contactId: string) {
 // Reactions
 // ------------------------------------------------------------
 async function applyReaction(channel: LoadedChannel, ev: Extract<InboundEvent, { kind: 'reaction' }>) {
-  const db = supabaseAdmin()
+  const db = tenantDb(channel.workspace_id)
   const contact = await findOrCreateContact(channel, { externalId: ev.from.externalId })
   if (!contact) return
   const conversation = await findOrCreateConversation(channel, contact.id)
   if (!conversation) return
-  const target = await internalIdFor(conversation.id, ev.targetExternalId)
+  const target = await internalIdFor(channel.workspace_id, conversation.id, ev.targetExternalId)
   if (!target) return
   if (!ev.emoji) {
-    await db
-      .from('message_reactions')
-      .delete()
-      .eq('workspace_id', channel.workspace_id)
-      .eq('message_id', target)
-      .eq('actor_type', 'customer')
-      .eq('actor_id', contact.id)
+    await db.message_reactions
+      .deleteMany({ where: { message_id: target, actor_type: 'customer', actor_id: contact.id } })
+      .catch(() => {})
     return
   }
-  await db.from('message_reactions').upsert(
-    {
-      workspace_id: channel.workspace_id,
-      message_id: target,
-      conversation_id: conversation.id,
-      actor_type: 'customer',
-      actor_id: contact.id,
-      emoji: ev.emoji,
-    },
-    { onConflict: 'message_id,actor_type,actor_id' },
-  )
+  const reaction = {
+    workspace_id: channel.workspace_id,
+    message_id: target,
+    conversation_id: conversation.id,
+    actor_type: 'customer',
+    actor_id: contact.id,
+    emoji: ev.emoji,
+  }
+  await db.message_reactions
+    .upsert({
+      where: { message_id_actor_type_actor_id: { message_id: target, actor_type: 'customer', actor_id: contact.id } },
+      create: reaction,
+      update: reaction,
+    })
+    .catch(() => {})
 }
 
 // ------------------------------------------------------------
@@ -263,8 +253,8 @@ const DB_CONTENT_TYPE: Record<MessageEvent['contentType'], string> = {
  * automations.
  */
 export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): Promise<IngestOutcome | null> {
-  const db = supabaseAdmin()
   const ws = channel.workspace_id
+  const db = tenantDb(ws)
 
   const contact = await findOrCreateContact(channel, ev.from)
   if (!contact) return null
@@ -273,13 +263,12 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
 
   // Providers retry webhooks: the provider message id makes this idempotent.
   if (ev.externalMessageId) {
-    const { data: dup } = await db
-      .from('messages')
-      .select('id')
-      .eq('workspace_id', ws)
-      .eq('conversation_id', conversation.id)
-      .eq('message_id', ev.externalMessageId)
-      .maybeSingle()
+    const dups = await db.messages.findMany({
+      where: { conversation_id: conversation.id, message_id: ev.externalMessageId },
+      select: { id: true },
+      take: 2,
+    })
+    const dup = dups.length === 1 ? dups[0] : null
     if (dup) return { contactId: contact.id, conversationId: conversation.id, messageId: dup.id, duplicate: true }
   }
 
@@ -287,16 +276,17 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
     ? waMediaProxyUrl(channel.id, ev.mediaUrl.slice('wa-media:'.length))
     : ev.mediaUrl ?? null
 
-  const { count: priorInbound } = await db
-    .from('messages')
-    .select('id', { count: 'exact', head: true })
-    .eq('conversation_id', conversation.id)
-    .eq('sender_type', 'customer')
+  const priorInbound = await db.messages
+    .count({ where: { conversation_id: conversation.id, sender_type: 'customer' } })
+    .catch(() => null)
   const isFirstInboundMessage = (priorInbound ?? 0) === 0
 
-  const { data: inserted, error } = await db
-    .from('messages')
-    .insert({
+  const replyTo = await internalIdFor(ws, conversation.id, ev.replyToExternalId)
+  let inserted: { id: string }
+  try {
+    inserted = await db.messages.create({
+      select: { id: true },
+      data: {
       workspace_id: ws,
       conversation_id: conversation.id,
       sender_type: 'customer',
@@ -306,27 +296,28 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
       message_id: ev.externalMessageId,
       status: 'delivered',
       created_at: new Date(ev.timestamp).toISOString(),
-      reply_to_message_id: await internalIdFor(conversation.id, ev.replyToExternalId),
+      reply_to_message_id: replyTo,
       interactive_reply_id: ev.interactiveReplyId ?? null,
+      },
     })
-    .select('id')
-    .single()
-  if (error) {
-    console.error('[ingest] message insert failed:', error.message)
+  } catch (error) {
+    console.error('[ingest] message insert failed:', error instanceof Error ? error.message : error)
     return null
   }
 
   const now = new Date().toISOString()
-  await db
-    .from('conversations')
-    .update({
+  await db.conversations
+    .updateMany({
+      where: { id: conversation.id },
+      data: {
       last_message_text: ev.text || `[${ev.contentType}]`,
       last_message_at: now,
       unread_count: (conversation.unread_count || 0) + 1,
       last_customer_message_at: new Date(ev.timestamp).toISOString(),
       updated_at: now,
+      },
     })
-    .eq('id', conversation.id)
+    .catch(() => {})
 
   await flagBroadcastReply(ws, contact.id)
 
@@ -341,15 +332,14 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
   let text = ev.text ?? ''
 
   // A conversation that was closed starts over: new topic, new routing.
-  let aiState = (conversation.ai_state ?? {}) as ConversationAiState
+  let aiState = (conversation.ai_state ?? {}) as unknown as ConversationAiState
   let conversationAgentId: string | null = conversation.ai_agent_id ?? null
   if (conversation.status === 'closed') {
     aiState = {}
     conversationAgentId = null
-    await db
-      .from('conversations')
-      .update({ status: 'open', ai_agent_id: null, ai_state: {}, resolved_at: null, resolved_by: null })
-      .eq('id', conversation.id)
+    await db.conversations
+      .updateMany({ where: { id: conversation.id }, data: { status: 'open', ai_agent_id: null, ai_state: {}, resolved_at: null, resolved_by: null } })
+      .catch(() => {})
     await recordEvent({ workspaceId: ws, conversationId: conversation.id, type: 'reopened', data: { by: 'customer' } })
   }
 
@@ -466,19 +456,27 @@ async function handleCommerce(
   // Plain text only matters while checkout waits for an answer: check that
   // cheaply before loading anything else (this runs on every message).
   if (!isAction && !isImage) {
-    const { data: waiting } = await supabaseAdmin()
-      .from('carts')
-      .select('id')
-      .eq('conversation_id', conversation.id)
-      .eq('status', 'open')
-      .in('checkout->>step', ['address', 'name'])
-      .maybeSingle()
+    const waiting = await tenantDb(channel.workspace_id)
+      .carts.findFirst({
+        where: {
+          conversation_id: conversation.id,
+          status: 'open',
+          OR: [
+            { checkout: { path: ['step'], equals: 'address' } },
+            { checkout: { path: ['step'], equals: 'name' } },
+          ],
+        },
+        select: { id: true },
+      })
+      .catch(() => null)
     if (!waiting) return false
   }
 
-  const { data: workspace } = await supabaseAdmin().from('workspaces').select('*').eq('id', channel.workspace_id).single()
+  const workspace = await tenantDb(channel.workspace_id)
+    .workspaces.findFirst({ where: { id: channel.workspace_id } })
+    .catch(() => null)
   const ctx: CommerceCtx = {
-    workspace: workspace as Workspace,
+    workspace: workspace as unknown as Workspace,
     channel,
     conversationId: conversation.id,
     contactId,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import type { Prisma } from '@/generated/prisma/client'
 import { getMetaConfig, metaAppReady } from '@/lib/platform/meta'
 import {
   GraphError,
@@ -18,7 +19,7 @@ import {
   type OnboardingMode,
   type PhoneInfo,
 } from '@/lib/whatsapp/embedded-signup'
-import { CONFLICT_MESSAGE, PUBLIC_COLUMNS, assertAgentInWorkspace, bad, str } from '../../_lib/shared'
+import { CONFLICT_MESSAGE, PUBLIC_SELECT, assertAgentInWorkspace, bad, str } from '../../_lib/shared'
 import { insertChannel } from '../../_lib/create'
 
 /**
@@ -103,12 +104,14 @@ export async function POST(request: Request) {
       return bad(`Could not read the WhatsApp account's numbers: ${graphMessage(err)}`, 502)
     }
   }
-  const { data: taken } = await supabaseAdmin()
-    .from('channels')
-    .select('external_id')
-    .eq('type', 'whatsapp')
-    .in('external_id', phones.length ? phones.map((p) => p.id) : [requestedPhone ?? '0'])
-  const takenIds = new Set((taken ?? []).map((r) => r.external_id as string))
+  // Every workspace (platform-level): a number can only be connected once.
+  const taken = await prisma.channels
+    .findMany({
+      select: { external_id: true },
+      where: { type: 'whatsapp', external_id: { in: phones.length ? phones.map((p) => p.id) : [requestedPhone ?? '0'] } },
+    })
+    .catch(() => null)
+  const takenIds = new Set((taken ?? []).map((r) => r.external_id))
   if (requestedPhone && takenIds.has(requestedPhone)) return bad(CONFLICT_MESSAGE, 409)
   const chosen = choosePhone(phones, requestedPhone, takenIds)
   if (!chosen) return bad(phones.length ? CONFLICT_MESSAGE : 'This WhatsApp account has no phone number yet.', phones.length ? 409 : 400)
@@ -193,13 +196,13 @@ export async function POST(request: Request) {
         warnings.push(`${type}: ${graphMessage(err)}`)
       }
     }
-    const { data } = await supabaseAdmin()
-      .from('channels')
-      .update({ settings: { ...channel.settings, coexistence_sync: sync } })
-      .eq('id', channel.id)
-      .eq('workspace_id', workspace.id)
-      .select(PUBLIC_COLUMNS)
-      .single()
+    const data = await guard.ctx.db.channels
+      .update({
+        where: { id: channel.id, workspace_id: workspace.id },
+        data: { settings: { ...channel.settings, coexistence_sync: sync } as Prisma.InputJsonValue },
+        select: PUBLIC_SELECT,
+      })
+      .catch(() => null)
     if (data) channel = data as unknown as typeof channel
   }
 

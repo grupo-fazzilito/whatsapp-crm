@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendMessage } from '@/lib/messaging/send'
 import type { OutboundContent } from '@/lib/channels'
 import {
@@ -28,7 +27,7 @@ export async function POST(request: Request) {
   try {
     const guard = await requireWorkspace()
     if (!guard.ok) return guard.response
-    const { supabase, user, workspace } = guard.ctx
+    const { db, user, workspace } = guard.ctx
 
     // Per-user rate limit. Bucket key is scoped to this route so
     // `/broadcast` has an independent budget.
@@ -74,13 +73,9 @@ export async function POST(request: Request) {
       }
       let language: string | undefined = template_language || undefined
       if (!language) {
-        const { data: tpl } = await supabase
-          .from('message_templates')
-          .select('language')
-          .eq('workspace_id', workspace.id)
-          .eq('name', template_name)
-          .limit(1)
-          .maybeSingle()
+        const tpl = await db.message_templates
+          .findFirst({ select: { language: true }, where: { workspace_id: workspace.id, name: String(template_name) } })
+          .catch(() => null)
         language = tpl?.language || undefined
       }
       content = {
@@ -107,14 +102,12 @@ export async function POST(request: Request) {
     }
 
     // Conversation must be visible to the caller (RLS + explicit scope).
-    const { data: conversation, error: convError } = await supabase
-      .from('conversations')
-      .select('id, contact_id')
-      .eq('id', conversation_id)
-      .eq('workspace_id', workspace.id)
-      .single()
+    // A malformed id fails the query: same 404 as a missing row.
+    const conversation = await db.conversations
+      .findFirst({ select: { id: true, contact_id: true }, where: { id: conversation_id, workspace_id: workspace.id } })
+      .catch(() => null)
 
-    if (convError || !conversation) {
+    if (!conversation) {
       return NextResponse.json(
         { error: 'Conversation not found' },
         { status: 404 }
@@ -124,14 +117,11 @@ export async function POST(request: Request) {
     // The reply target must belong to this same conversation — otherwise a
     // caller could quote messages they can't see by guessing UUIDs.
     if (reply_to_message_id) {
-      const { data: parent, error: parentError } = await supabase
-        .from('messages')
-        .select('id')
-        .eq('id', reply_to_message_id)
-        .eq('conversation_id', conversation_id)
-        .maybeSingle()
+      const parent = await db.messages
+        .findFirst({ select: { id: true }, where: { id: reply_to_message_id, conversation_id } })
+        .catch(() => null)
 
-      if (parentError || !parent) {
+      if (!parent) {
         return NextResponse.json(
           { error: 'reply_to_message_id not found in this conversation' },
           { status: 400 }
@@ -147,16 +137,12 @@ export async function POST(request: Request) {
       replyToMessageId: reply_to_message_id || null,
     })
 
-    const db = supabaseAdmin()
-
     // Templates: keep the rendered body the inbox showed optimistically
     // instead of the generic "[Template: name]" preview.
     if (message_type === 'template' && content_text) {
-      await db
-        .from('messages')
-        .update({ content_text })
-        .eq('id', result.messageId)
-        .eq('workspace_id', workspace.id)
+      await db.messages
+        .updateMany({ where: { id: result.messageId, workspace_id: workspace.id }, data: { content_text } })
+        .catch(() => {})
     }
 
     if (result.status === 'failed') {
@@ -166,33 +152,29 @@ export async function POST(request: Request) {
     }
 
     // A human replied: keep the AI agent quiet so it doesn't talk over them.
-    const { error: pauseAiErr } = await db
-      .from('conversations')
-      .update({ ai_paused_until: new Date(Date.now() + HUMAN_TAKEOVER_MS).toISOString() })
-      .eq('id', conversation_id)
-      .eq('workspace_id', workspace.id)
-    if (pauseAiErr) console.error('[whatsapp/send] ai_paused_until update failed:', pauseAiErr.message)
+    const pauseAiErr = await db.conversations
+      .updateMany({
+        where: { id: conversation_id, workspace_id: workspace.id },
+        data: { ai_paused_until: new Date(Date.now() + HUMAN_TAKEOVER_MS).toISOString() },
+      })
+      .then(() => null, (err: unknown) => err)
+    if (pauseAiErr) console.error('[whatsapp/send] ai_paused_until update failed:', pauseAiErr instanceof Error ? pauseAiErr.message : pauseAiErr)
 
     // Pause any active Flow run for this contact — the agent stepping
     // in is the strongest "yield, human is here" signal. We pause (not
     // end) to preserve diagnostic state; the 24h timeout sweep resolves
     // the run later. With no active runs the UPDATE matches zero rows.
     try {
-      const { error: pauseErr } = await db
-        .from('flow_runs')
-        .update({
+      // Best-effort — the message already went out; a stale active run
+      // gets caught by the stale-run cron sweep within 24h.
+      await db.flow_runs.updateMany({
+        where: { workspace_id: workspace.id, contact_id: conversation.contact_id, status: 'active' },
+        data: {
           status: 'paused_by_agent',
           ended_at: new Date().toISOString(),
           end_reason: 'agent_replied',
-        })
-        .eq('workspace_id', workspace.id)
-        .eq('contact_id', conversation.contact_id)
-        .eq('status', 'active')
-      if (pauseErr) {
-        // Best-effort — the message already went out; a stale active run
-        // gets caught by the stale-run cron sweep within 24h.
-        console.error('[flows] pause-on-agent-send failed:', pauseErr.message)
-      }
+        },
+      })
     } catch (err) {
       console.error(
         '[flows] pause-on-agent-send threw:',

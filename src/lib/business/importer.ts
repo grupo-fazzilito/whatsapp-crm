@@ -2,7 +2,7 @@ import 'server-only'
 import { NextResponse } from 'next/server'
 import { getPreset, industryLabel } from '@/lib/industries'
 import { completeJson, LlmUnavailableError, parseJsonLoose } from '@/lib/ai/llm'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
 import type { Workspace } from '@/lib/workspace/types'
 
 // AI-assisted bulk import of services and FAQs, phrased with the
@@ -191,20 +191,16 @@ export function importError(err: unknown) {
 
 export async function saveServices(workspaceId: string, items: ImportedService[]) {
   if (items.length === 0) return 0
-  const { data, error } = await supabaseAdmin()
-    .from('services')
-    .insert(items.map((s) => ({ ...s, description: s.description || null, category: s.category || null, is_active: true, workspace_id: workspaceId })))
-    .select('id')
-  if (error) throw new Error(error.message)
-  return data?.length ?? 0
+  const { count } = await tenantDb(workspaceId).services.createMany({
+    data: items.map((s) => ({ ...s, description: s.description || null, category: s.category || null, is_active: true, workspace_id: workspaceId })),
+  })
+  return count
 }
 
 export async function saveFaqs(workspaceId: string, items: ImportedFaq[]) {
   if (items.length === 0) return 0
-  const { data, error } = await supabaseAdmin()
-    .from('faqs')
-    .insert(items.map((f) => ({ ...f, keywords: f.keywords || null, workspace_id: workspaceId })))
-    .select('id')
-  if (error) throw new Error(error.message)
-  return data?.length ?? 0
+  const { count } = await tenantDb(workspaceId).faqs.createMany({
+    data: items.map((f) => ({ ...f, keywords: f.keywords || null, workspace_id: workspaceId })),
+  })
+  return count
 }

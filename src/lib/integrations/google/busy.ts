@@ -1,7 +1,7 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
 import { addDays } from '@/lib/ai/time'
-import { CONNECTION_COLUMNS, freeBusy, type CalendarConnection } from './api'
+import { CONNECTION_SELECT, freeBusy, type CalendarConnection } from './api'
 import { busyToLocal, zonedWallToUtc, type BusyInterval } from './event'
 
 // Google busy time of connected staff, for the availability engine.
@@ -32,16 +32,22 @@ export async function loadStaffBusy(
   days: number,
   opts: { fresh?: boolean; staffIds?: string[] } = {},
 ): Promise<Record<string, BusyInterval[]>> {
-  let query = supabaseAdmin().from('calendar_connections').select(CONNECTION_COLUMNS).eq('workspace_id', workspaceId).neq('status', 'revoked')
-  if (opts.staffIds?.length) query = query.in('staff_id', opts.staffIds)
-  const { data, error } = await query
-  if (error || !data?.length) return {}
+  let data: CalendarConnection[]
+  try {
+    data = (await tenantDb(workspaceId).calendar_connections.findMany({
+      select: CONNECTION_SELECT,
+      where: { status: { not: 'revoked' }, ...(opts.staffIds?.length ? { staff_id: { in: opts.staffIds } } : {}) },
+    })) as CalendarConnection[]
+  } catch {
+    return {}
+  }
+  if (!data.length) return {}
 
   const timeMin = zonedWallToUtc(today, '00:00', timeZone).toISOString()
   const timeMax = zonedWallToUtc(addDays(today, days + 1), '00:00', timeZone).toISOString()
   const out: Record<string, BusyInterval[]> = {}
   await Promise.all(
-    (data as CalendarConnection[]).map(async (conn) => {
+    data.map(async (conn) => {
       const key = `${conn.id}:${timeMin}:${timeMax}`
       const hit = cache.get(key)
       let busy = !opts.fresh && hit && Date.now() - hit.at < TTL_MS ? hit.busy : null

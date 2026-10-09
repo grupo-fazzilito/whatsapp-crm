@@ -1,5 +1,8 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
+import { normalizeRaw } from '@/lib/db/compat'
+import { isUuid } from '@/lib/workspace/constants'
 
 export interface ProductRow {
   id: string
@@ -36,33 +39,39 @@ export interface CatalogQuery {
 
 /** Full-text + attribute search (public.search_products). */
 export async function searchProducts(workspaceId: string, q: CatalogQuery): Promise<ProductRow[]> {
-  const { data, error } = await supabaseAdmin().rpc('search_products', {
-    ws: workspaceId,
-    q: q.text?.trim() || null,
-    category: q.categoryId || null,
-    filters: q.filters ?? {},
-    min_price: q.minPrice ?? null,
-    max_price: q.maxPrice ?? null,
-    in_stock_only: !!q.inStockOnly,
-    max_results: q.limit ?? 8,
-    price_currency: q.priceCurrency?.toUpperCase() || null,
-  })
-  if (error) {
-    console.error('[catalog] search failed:', error.message)
+  try {
+    // The function filters by `ws` itself. Every products column, with the
+    // tsvector as text (as PostgREST sent it; Prisma can't read tsvector).
+    const rows = await prisma.$queryRaw<ProductRow[]>`
+      SELECT p.id, p.workspace_id, p.category_id, p.name, p.description, p.price, p.compare_at_price, p.sku, p.stock,
+             p.track_stock, p.images, p.tags, p.attributes, p.is_active, p.is_featured, p.sort_order, p.search::text AS search,
+             p.created_by, p.created_at, p.updated_at, p.external_source, p.external_id, p.external_url,
+             p.external_synced_at, p.external_missing_since, p.currency
+      FROM public.search_products(
+        ${workspaceId}::uuid,
+        ${q.text?.trim() || null}::text,
+        ${q.categoryId || null}::uuid,
+        ${JSON.stringify(q.filters ?? {})}::jsonb,
+        ${q.minPrice ?? null}::numeric,
+        ${q.maxPrice ?? null}::numeric,
+        ${!!q.inStockOnly}::boolean,
+        ${q.limit ?? 8}::int,
+        ${q.priceCurrency?.toUpperCase() || null}::text
+      ) AS p`
+    return normalizeRaw(rows)
+  } catch (err) {
+    console.error('[catalog] search failed:', err instanceof Error ? err.message : err)
     return []
   }
-  return (data ?? []) as ProductRow[]
 }
 
 export async function getProducts(workspaceId: string, ids: string[]): Promise<ProductRow[]> {
   if (!ids.length) return []
-  const { data } = await supabaseAdmin()
-    .from('products')
-    .select('*')
-    .eq('workspace_id', workspaceId)
-    .eq('is_active', true)
-    .in('id', ids.slice(0, 20))
-  return (data ?? []) as ProductRow[]
+  const wanted = ids.slice(0, 20)
+  // A malformed id failed the whole PostgREST query.
+  if (!wanted.every(isUuid)) return []
+  const data = await tenantDb(workspaceId).products.findMany({ where: { is_active: true, id: { in: wanted } } })
+  return data as unknown as ProductRow[]
 }
 
 export function inStock(p: Pick<ProductRow, 'track_stock' | 'stock'>): boolean {

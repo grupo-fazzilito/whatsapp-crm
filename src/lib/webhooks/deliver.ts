@@ -1,7 +1,10 @@
 import 'server-only'
 import http from 'http'
 import https from 'https'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import type { Prisma } from '@/generated/prisma/client'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
+import { normalizeRaw } from '@/lib/db/compat'
 import { decrypt } from '@/lib/whatsapp/encryption'
 import { createTranslator } from '@/i18n/translate'
 import { checkWebhookUrl, defaultUrlPolicy, guardedLookup } from './ssrf'
@@ -139,11 +142,24 @@ async function send(endpoint: EndpointRow, delivery: DeliveryRow): Promise<PostR
 // Bookkeeping
 // ------------------------------------------------------------
 
+const ENDPOINT_SELECT = { id: true, workspace_id: true, url: true, secret_encrypted: true, active: true, failure_count: true } as const
+
+/** Write whose failure is ignored (supabase-js returned it as `error`). */
+async function quiet(op: Promise<unknown>): Promise<void> {
+  try {
+    await op
+  } catch (err) {
+    console.error('[webhooks] write failed:', err instanceof Error ? err.message : err)
+  }
+}
+
 async function notifyDisabled(endpoint: EndpointRow): Promise<void> {
-  const db = supabaseAdmin()
-  const [{ data: admins }, { data: ws }] = await Promise.all([
-    db.from('workspace_members').select('user_id').eq('workspace_id', endpoint.workspace_id).eq('status', 'active').in('role', ['owner', 'admin']),
-    db.from('workspaces').select('locale').eq('id', endpoint.workspace_id).maybeSingle(),
+  const db = tenantDb(endpoint.workspace_id)
+  const [admins, ws] = await Promise.all([
+    db.workspace_members
+      .findMany({ select: { user_id: true }, where: { workspace_id: endpoint.workspace_id, status: 'active', role: { in: ['owner', 'admin'] } } })
+      .catch(() => null),
+    db.workspaces.findFirst({ select: { locale: true }, where: { id: endpoint.workspace_id } }).catch(() => null),
   ])
   const t = createTranslator(ws?.locale === 'en' ? 'en' : 'es')
   const rows = (admins ?? []).map((a) => ({
@@ -155,8 +171,11 @@ async function notifyDisabled(endpoint: EndpointRow): Promise<void> {
     link: '/settings?tab=integrations',
   }))
   if (rows.length) {
-    const { error } = await db.from('notifications').insert(rows)
-    if (error) console.error('[webhooks] disable notification failed:', error.message)
+    try {
+      await db.notifications.createMany({ data: rows })
+    } catch (error) {
+      console.error('[webhooks] disable notification failed:', error instanceof Error ? error.message : error)
+    }
   }
 }
 
@@ -178,7 +197,7 @@ export async function attemptDelivery(
   delivery: DeliveryRow,
   opts: { countFailures?: boolean; retry?: boolean } = {},
 ): Promise<AttemptOutcome> {
-  const db = supabaseAdmin()
+  const db = tenantDb(delivery.workspace_id)
   const countFailures = opts.countFailures ?? true
   const result = await send(endpoint, delivery)
   const attempts = delivery.attempts + 1
@@ -193,37 +212,43 @@ export async function attemptDelivery(
     next = delay === null ? null : new Date(now.getTime() + delay).toISOString()
   }
 
-  await db
-    .from('webhook_deliveries')
-    .update({
-      status,
-      attempts,
-      next_attempt_at: next,
-      last_attempt_at: now.toISOString(),
-      response_status: result.status,
-      response_body: result.body ? truncateBody(result.body) : null,
-      error: delivered ? null : result.error ?? `HTTP ${result.status}`,
-      duration_ms: result.durationMs,
-    })
-    .eq('id', delivery.id)
+  await quiet(
+    db.webhook_deliveries.updateMany({
+      where: { id: delivery.id },
+      data: {
+        status,
+        attempts,
+        next_attempt_at: next,
+        last_attempt_at: now.toISOString(),
+        response_status: result.status,
+        response_body: result.body ? truncateBody(result.body) : null,
+        error: delivered ? null : result.error ?? `HTTP ${result.status}`,
+        duration_ms: result.durationMs,
+      },
+    }),
+  )
 
   if (delivered) {
     if (endpoint.failure_count !== 0 || countFailures) {
-      await db.from('webhook_endpoints').update({ failure_count: 0, last_success_at: now.toISOString() }).eq('id', endpoint.id)
+      await quiet(
+        db.webhook_endpoints.updateMany({ where: { id: endpoint.id }, data: { failure_count: 0, last_success_at: now.toISOString() } }),
+      )
       endpoint.failure_count = 0
     }
   } else if (countFailures) {
     const failures = endpoint.failure_count + 1
     endpoint.failure_count = failures
     const disable = shouldAutoDisable(failures) && endpoint.active
-    await db
-      .from('webhook_endpoints')
-      .update({
-        failure_count: failures,
-        last_failure_at: now.toISOString(),
-        ...(disable ? { active: false, disabled_at: now.toISOString(), disabled_reason: 'consecutive_failures' } : {}),
-      })
-      .eq('id', endpoint.id)
+    await quiet(
+      db.webhook_endpoints.updateMany({
+        where: { id: endpoint.id },
+        data: {
+          failure_count: failures,
+          last_failure_at: now.toISOString(),
+          ...(disable ? { active: false, disabled_at: now.toISOString(), disabled_reason: 'consecutive_failures' } : {}),
+        },
+      }),
+    )
     if (disable) {
       endpoint.active = false
       await notifyDisabled(endpoint).catch((err) => console.error('[webhooks] notify failed:', err))
@@ -256,24 +281,27 @@ export interface ProcessStats {
  * deliveries are deferred instead of each waiting for the timeout.
  */
 export async function processWebhookDeliveries(limit = 100): Promise<ProcessStats> {
-  const db = supabaseAdmin()
   const deadline = Date.now() + RUN_BUDGET_MS
   const stats: ProcessStats = { claimed: 0, delivered: 0, retried: 0, failed: 0, deferred: 0 }
 
-  const { data: claimed, error } = await db.rpc('webhook_claim_deliveries', { p_limit: limit, p_lease_seconds: 120 })
-  if (error) throw error
-  const rows = (claimed ?? []) as DeliveryRow[]
+  // Platform task: claims due deliveries of every workspace (lease, SKIP LOCKED).
+  const rows = normalizeRaw(
+    await prisma.$queryRaw<DeliveryRow[]>`SELECT * FROM public.webhook_claim_deliveries(${limit}::integer, ${120}::integer)`,
+  )
   stats.claimed = rows.length
   if (!rows.length) {
     await cleanupOldDeliveries().catch(() => undefined)
     return stats
   }
 
-  const endpointIds = [...new Set(rows.map((r) => r.endpoint_id))]
-  const { data: endpoints } = await db
-    .from('webhook_endpoints')
-    .select('id, workspace_id, url, secret_encrypted, active, failure_count')
-    .in('id', endpointIds)
+  // Each endpoint is read together with the workspace of its deliveries.
+  const endpointKeys = new Map(rows.map((r) => [r.endpoint_id, r.workspace_id]))
+  const endpoints = await prisma.webhook_endpoints
+    .findMany({
+      select: ENDPOINT_SELECT,
+      where: { OR: [...endpointKeys].map(([id, workspace_id]) => ({ id, workspace_id })) },
+    })
+    .catch(() => null)
   const byId = new Map((endpoints ?? []).map((e) => [e.id as string, e as EndpointRow]))
 
   const groups = new Map<string, DeliveryRow[]>()
@@ -286,10 +314,12 @@ export async function processWebhookDeliveries(limit = 100): Promise<ProcessStat
   const runGroup = async (endpointId: string, list: DeliveryRow[]) => {
     const endpoint = byId.get(endpointId)
     if (!endpoint || !endpoint.active) {
-      await db
-        .from('webhook_deliveries')
-        .update({ status: 'failed', next_attempt_at: null, error: 'endpoint_disabled' })
-        .in('id', list.map((r) => r.id))
+      await quiet(
+        tenantDb(list[0].workspace_id).webhook_deliveries.updateMany({
+          where: { id: { in: list.map((r) => r.id) } },
+          data: { status: 'failed', next_attempt_at: null, error: 'endpoint_disabled' },
+        }),
+      )
       stats.failed += list.length
       return
     }
@@ -297,10 +327,12 @@ export async function processWebhookDeliveries(limit = 100): Promise<ProcessStat
     for (const row of list) {
       if (failedThisRun || Date.now() > deadline || !endpoint.active) {
         // Try again soon without spending an attempt.
-        await db
-          .from('webhook_deliveries')
-          .update({ next_attempt_at: new Date(Date.now() + (failedThisRun ? 60_000 : 0)).toISOString() })
-          .eq('id', row.id)
+        await quiet(
+          tenantDb(row.workspace_id).webhook_deliveries.updateMany({
+            where: { id: row.id },
+            data: { next_attempt_at: new Date(Date.now() + (failedThisRun ? 60_000 : 0)).toISOString() },
+          }),
+        )
         stats.deferred++
         continue
       }
@@ -324,7 +356,8 @@ export async function processWebhookDeliveries(limit = 100): Promise<ProcessStat
 /** Keeps the deliveries log bounded (30 days). */
 export async function cleanupOldDeliveries(): Promise<void> {
   const cutoff = new Date(Date.now() - RETENTION_DAYS * 86_400_000).toISOString()
-  await supabaseAdmin().from('webhook_deliveries').delete().lt('created_at', cutoff).neq('status', 'pending')
+  // Platform task: retention over every workspace.
+  await quiet(prisma.webhook_deliveries.deleteMany({ where: { created_at: { lt: cutoff }, status: { not: 'pending' } } }))
 }
 
 // ------------------------------------------------------------
@@ -332,28 +365,35 @@ export async function cleanupOldDeliveries(): Promise<void> {
 // ------------------------------------------------------------
 
 async function loadEndpoint(workspaceId: string, endpointId: string): Promise<EndpointRow | null> {
-  const { data } = await supabaseAdmin()
-    .from('webhook_endpoints')
-    .select('id, workspace_id, url, secret_encrypted, active, failure_count')
-    .eq('id', endpointId)
-    .eq('workspace_id', workspaceId)
-    .maybeSingle()
-  return (data as EndpointRow) ?? null
+  const data = await tenantDb(workspaceId)
+    .webhook_endpoints.findFirst({ select: ENDPOINT_SELECT, where: { id: endpointId, workspace_id: workspaceId } })
+    .catch(() => null)
+  return (data as EndpointRow | null) ?? null
 }
 
 async function insertDelivery(row: Omit<DeliveryRow, 'id' | 'status' | 'attempts' | 'next_attempt_at' | 'created_at'>, pending: boolean): Promise<DeliveryRow> {
-  const { data, error } = await supabaseAdmin()
-    .from('webhook_deliveries')
-    .insert({
+  const data = await tenantDb(row.workspace_id).webhook_deliveries.create({
+    data: {
       ...row,
+      payload: row.payload as Prisma.InputJsonValue,
       status: 'pending',
       // Not claimable by the cron while we send it right now.
       next_attempt_at: pending ? new Date(Date.now() + 120_000).toISOString() : null,
-    })
-    .select('id, workspace_id, endpoint_id, event_id, event_type, payload, status, attempts, next_attempt_at, created_at')
-    .single()
-  if (error || !data) throw error ?? new Error('delivery insert failed')
-  return data as DeliveryRow
+    },
+    select: {
+      id: true,
+      workspace_id: true,
+      endpoint_id: true,
+      event_id: true,
+      event_type: true,
+      payload: true,
+      status: true,
+      attempts: true,
+      next_attempt_at: true,
+      created_at: true,
+    },
+  })
+  return data as unknown as DeliveryRow
 }
 
 /** Sends a `ping` event to one endpoint now (no retries, doesn't count as a failure). */
@@ -375,19 +415,18 @@ export async function sendTestPing(workspaceId: string, endpointId: string): Pro
 
 /** Re-sends a past delivery (same event id) now; failures follow the normal retry schedule. */
 export async function resendDelivery(workspaceId: string, deliveryId: string): Promise<(AttemptOutcome & { deliveryId: string }) | { error: 'not_found' | 'endpoint_disabled' }> {
-  const db = supabaseAdmin()
-  const { data: original } = await db
-    .from('webhook_deliveries')
-    .select('endpoint_id, event_id, event_type, payload')
-    .eq('id', deliveryId)
-    .eq('workspace_id', workspaceId)
-    .maybeSingle()
+  const original = await tenantDb(workspaceId)
+    .webhook_deliveries.findFirst({
+      select: { endpoint_id: true, event_id: true, event_type: true, payload: true },
+      where: { id: deliveryId, workspace_id: workspaceId },
+    })
+    .catch(() => null)
   if (!original) return { error: 'not_found' }
   const endpoint = await loadEndpoint(workspaceId, original.endpoint_id)
   if (!endpoint) return { error: 'not_found' }
   if (!endpoint.active) return { error: 'endpoint_disabled' }
   const delivery = await insertDelivery(
-    { workspace_id: workspaceId, endpoint_id: endpoint.id, event_id: original.event_id, event_type: original.event_type, payload: original.payload },
+    { workspace_id: workspaceId, endpoint_id: endpoint.id, event_id: original.event_id, event_type: original.event_type, payload: original.payload as Record<string, unknown> },
     true,
   )
   const out = await attemptDelivery(endpoint, delivery, { retry: original.event_type !== 'ping', countFailures: original.event_type !== 'ping' })

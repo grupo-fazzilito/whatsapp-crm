@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { SupabaseClient, User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
 import { tenantDb, type TenantDb } from '@/lib/db/tenant'
 import { WORKSPACE_COOKIE, hasRole, isUuid, type WorkspaceRole } from './constants'
 import type { Workspace } from './types'
@@ -25,16 +25,15 @@ export interface Membership {
 
 /** Every active workspace the user belongs to, oldest first. */
 export async function listMemberships(userId: string): Promise<Membership[]> {
-  const { data, error } = await supabaseAdmin()
-    .from('workspace_members')
-    .select('role, created_at, workspace:workspaces(*)')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .order('created_at', { ascending: true })
-  if (error) throw error
-  return (data ?? [])
-    .filter((m) => m.workspace)
-    .map((m) => ({ role: m.role as WorkspaceRole, workspace: m.workspace as unknown as Workspace }))
+  // Platform client: memberships of one user across workspaces.
+  const data = await prisma.workspace_members.findMany({
+    where: { user_id: userId, status: 'active' },
+    select: { role: true, created_at: true, workspaces: true },
+    orderBy: { created_at: 'asc' },
+  })
+  return data
+    .filter((m) => m.workspaces)
+    .map((m) => ({ role: m.role as WorkspaceRole, workspace: m.workspaces as unknown as Workspace }))
 }
 
 /**

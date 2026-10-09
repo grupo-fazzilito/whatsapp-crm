@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-vi.mock('@/lib/supabase/admin', () => ({ supabaseAdmin: vi.fn() }))
+vi.mock('@/lib/db/prisma', () => ({ prisma: {} }))
+vi.mock('@/lib/db/tenant', () => ({ tenantDb: vi.fn() }))
 vi.mock('@/lib/messaging/send', () => ({ sendMessage: vi.fn() }))
 vi.mock('./engine', () => ({ runAgent: vi.fn(), handOverToHuman: vi.fn() }))
 

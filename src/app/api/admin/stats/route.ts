@@ -1,6 +1,7 @@
 import { isPlatformAdmin } from "@/lib/admin/guard";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { prisma } from "@/lib/db/prisma";
 
 async function isAuthed(): Promise<boolean> {
   return isPlatformAdmin();
@@ -10,9 +11,8 @@ export async function GET() {
   if (!(await isAuthed()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const db = supabaseAdmin();
-
-  const { data: authData } = await db.auth.admin.listUsers({ perPage: 500 });
+  // Auth users still come from Supabase Auth (moves with the login, P3).
+  const { data: authData } = await supabaseAdmin().auth.admin.listUsers({ perPage: 500 });
   const users = (authData?.users ?? []) as { id: string; created_at?: string; email_confirmed_at?: string }[];
 
   const now = new Date();
@@ -32,13 +32,14 @@ export async function GET() {
     });
   }
 
-  // Platform-wide totals across every workspace. Counted server-side so
-  // they aren't capped by the API row limit.
+  // Platform-wide totals across every workspace (platform client). Counted
+  // server-side so they aren't capped by a row limit. A failed count is 0.
+  const count = (p: Promise<number>) => p.then((n) => ({ count: n }), () => ({ count: null as number | null }));
   const [waConnected, contacts, conversations, openConversations] = await Promise.all([
-    db.from("channels").select("id", { count: "exact", head: true }).eq("status", "connected"),
-    db.from("contacts").select("id", { count: "exact", head: true }),
-    db.from("conversations").select("id", { count: "exact", head: true }),
-    db.from("conversations").select("id", { count: "exact", head: true }).eq("status", "open"),
+    count(prisma.channels.count({ where: { status: "connected" } })),
+    count(prisma.contacts.count()),
+    count(prisma.conversations.count()),
+    count(prisma.conversations.count({ where: { status: "open" } })),
   ]);
 
   const confirmedCount = users.filter(u => !!u.email_confirmed_at).length;

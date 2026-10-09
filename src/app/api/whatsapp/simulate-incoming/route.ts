@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { defaultChannel, loadChannel } from '@/lib/channels/store'
 import { ingestMessage } from '@/lib/messaging/ingest'
 import type { InboundEvent } from '@/lib/channels'
@@ -17,7 +16,7 @@ export async function POST(request: Request) {
   try {
     const guard = await requireWorkspace()
     if (!guard.ok) return guard.response
-    const { supabase, workspace } = guard.ctx
+    const { db, workspace } = guard.ctx
 
     const body = await request.json()
     const { conversationId, messageText } = body
@@ -29,23 +28,22 @@ export async function POST(request: Request) {
       )
     }
 
-    const { data: conversation, error: convError } = await supabase
-      .from('conversations')
-      .select('id, channel_id, contact:contacts(id, name, phone)')
-      .eq('id', conversationId)
-      .eq('workspace_id', workspace.id)
-      .single()
+    // A malformed id fails the query: same 404 as a missing row.
+    const conversation = await db.conversations
+      .findFirst({
+        select: { id: true, channel_id: true, contacts: { select: { id: true, name: true, phone: true } } },
+        where: { id: conversationId, workspace_id: workspace.id },
+      })
+      .catch(() => null)
 
-    if (convError || !conversation) {
+    if (!conversation) {
       return NextResponse.json(
         { error: 'Conversation not found' },
         { status: 404 }
       )
     }
 
-    const contact = (Array.isArray(conversation.contact) ? conversation.contact[0] : conversation.contact) as
-      | { id: string; name: string | null; phone: string | null }
-      | null
+    const contact = conversation.contacts as { id: string; name: string | null; phone: string | null } | null
     if (!contact) {
       return NextResponse.json(
         { error: 'Contact not found' },
@@ -53,7 +51,6 @@ export async function POST(request: Request) {
       )
     }
 
-    const db = supabaseAdmin()
     const channel = conversation.channel_id
       ? await loadChannel(workspace.id, conversation.channel_id)
       : await defaultChannel(workspace.id, 'whatsapp')
@@ -63,19 +60,17 @@ export async function POST(request: Request) {
     // Legacy conversation without channel: attach it so ingest lands the
     // message here instead of opening a new conversation.
     if (!conversation.channel_id) {
-      await db.from('conversations').update({ channel_id: channel.id }).eq('id', conversation.id)
+      await db.conversations.updateMany({ where: { id: conversation.id }, data: { channel_id: channel.id } }).catch(() => {})
     }
 
     // The customer's id on this channel (identity, or phone on WhatsApp).
-    const { data: identity } = await db
-      .from('contact_identities')
-      .select('external_id, handle')
-      .eq('workspace_id', workspace.id)
-      .eq('contact_id', contact.id)
-      .eq('channel_type', channel.type)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    const identity = await db.contact_identities
+      .findFirst({
+        select: { external_id: true, handle: true },
+        where: { workspace_id: workspace.id, contact_id: contact.id, channel_type: channel.type },
+        orderBy: { created_at: 'desc' },
+      })
+      .catch(() => null)
     const externalId =
       identity?.external_id ?? (channel.type === 'whatsapp' && contact.phone ? normalizePhone(contact.phone) : null)
     if (!externalId) {
@@ -104,12 +99,11 @@ export async function POST(request: Request) {
     }
 
     // Did the AI agent answer? (a bot message after the simulated one)
-    const { count: botReplies } = await db
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('conversation_id', outcome.conversationId)
-      .eq('sender_type', 'bot')
-      .gte('created_at', new Date(now).toISOString())
+    const botReplies = await db.messages
+      .count({
+        where: { conversation_id: outcome.conversationId, sender_type: 'bot', created_at: { gte: new Date(now).toISOString() } },
+      })
+      .catch(() => null)
 
     return NextResponse.json({
       success: true,

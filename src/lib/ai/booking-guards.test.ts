@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-vi.mock('@/lib/supabase/admin', () => ({ supabaseAdmin: () => ({}) }))
+vi.mock('@/lib/db/prisma', () => ({ prisma: {} }))
+vi.mock('@/lib/db/tenant', () => ({ tenantDb: () => ({}) }))
 vi.mock('@/lib/messaging/send', () => ({ sendMessage: vi.fn() }))
 
 import { isAffirmative, resolveDraftIds } from './engine'

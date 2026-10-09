@@ -1,5 +1,6 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
+import type { Prisma } from '@/generated/prisma/client'
 import { sendMessage } from '@/lib/messaging/send'
 import type { LoadedChannel, OutboundContent } from '@/lib/channels'
 import { handOverToHuman, runAgent } from './engine'
@@ -59,8 +60,8 @@ export interface RouteInput {
 
 async function loadAgent(workspaceId: string, id: string | null | undefined): Promise<AiAgentRow | null> {
   if (!id) return null
-  const { data } = await supabaseAdmin().from('ai_agents').select('*').eq('id', id).eq('workspace_id', workspaceId).maybeSingle()
-  return data?.enabled ? (data as AiAgentRow) : null
+  const data = await tenantDb(workspaceId).ai_agents.findFirst({ where: { id, workspace_id: workspaceId } }).catch(() => null)
+  return data?.enabled ? (data as unknown as AiAgentRow) : null
 }
 
 /**
@@ -69,8 +70,11 @@ async function loadAgent(workspaceId: string, id: string | null | undefined): Pr
  * Returns true when something replied (agent, menu, or handover).
  */
 export async function routeInbound(input: RouteInput): Promise<boolean> {
-  const db = supabaseAdmin()
   const ws = input.workspaceId
+  const db = tenantDb(ws)
+  // Failed writes were ignored with PostgREST's `{ error }`; keep it that way.
+  const updateConversation = (data: Record<string, unknown>) =>
+    db.conversations.updateMany({ where: { id: input.conversationId }, data: data as Prisma.conversationsUncheckedUpdateManyInput }).catch(() => undefined)
   const base = {
     workspaceId: ws,
     channel: input.channel,
@@ -93,11 +97,11 @@ export async function routeInbound(input: RouteInput): Promise<boolean> {
       if (choice) {
         const state = { ...input.aiState, menu_pending: false, menu_attempts: 0 }
         if (choice.target.type === 'agent') {
-          await db.from('conversations').update({ ai_agent_id: choice.target.agent_id, ai_state: state }).eq('id', input.conversationId)
+          await updateConversation({ ai_agent_id: choice.target.agent_id, ai_state: state })
           const agent = await loadAgent(ws, choice.target.agent_id)
           if (agent) return runAgent({ ...base, agent, messageText: choice.label, isFirstInboundMessage: true })
         } else {
-          await db.from('conversations').update({ ai_state: state }).eq('id', input.conversationId)
+          await updateConversation({ ai_state: state })
           await sendMessage({
             workspaceId: ws,
             conversationId: input.conversationId,
@@ -108,24 +112,15 @@ export async function routeInbound(input: RouteInput): Promise<boolean> {
           return true
         }
       } else if ((input.aiState.menu_attempts ?? 0) < MAX_MENU_ATTEMPTS) {
-        await db
-          .from('conversations')
-          .update({ ai_state: { ...input.aiState, menu_attempts: (input.aiState.menu_attempts ?? 0) + 1 } })
-          .eq('id', input.conversationId)
+        await updateConversation({ ai_state: { ...input.aiState, menu_attempts: (input.aiState.menu_attempts ?? 0) + 1 } })
         await sendMenu(ws, input.conversationId, menu)
         return true
       } else {
         // Didn't pick after several tries: let the channel's agent take it.
-        await db
-          .from('conversations')
-          .update({ ai_state: { ...input.aiState, menu_pending: false } })
-          .eq('id', input.conversationId)
+        await updateConversation({ ai_state: { ...input.aiState, menu_pending: false } })
       }
     } else if (!input.aiState.menu_pending && input.aiState.menu_attempts === undefined) {
-      await db
-        .from('conversations')
-        .update({ ai_state: { ...input.aiState, menu_pending: true, menu_attempts: 0 } })
-        .eq('id', input.conversationId)
+      await updateConversation({ ai_state: { ...input.aiState, menu_pending: true, menu_attempts: 0 } })
       await sendMenu(ws, input.conversationId, menu)
       return true
     }

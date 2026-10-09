@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireWorkspace } from '@/lib/workspace/context'
+import { isUuid } from '@/lib/workspace/constants'
 import { resolveIndustry } from '@/lib/industries'
 import { completeJson, LlmUnavailableError, parseJsonLoose } from '@/lib/ai/llm'
 
@@ -40,7 +40,7 @@ const SCHEMA = {
 export async function POST(request: Request) {
   const guard = await requireWorkspace()
   if (!guard.ok) return guard.response
-  const ws = guard.ctx.workspace
+  const { workspace: ws, db } = guard.ctx
 
   if (!resolveIndustry(ws.industry, ws.settings).modules.triage) {
     return NextResponse.json({ error: 'Triage is not enabled for this workspace' }, { status: 403 })
@@ -55,21 +55,15 @@ export async function POST(request: Request) {
   const symptoms = body?.symptoms?.trim()
   if (!symptoms) return NextResponse.json({ error: 'symptoms are required' }, { status: 400 })
 
-  const db = supabaseAdmin()
   const contactParam = body?.contactId ?? body?.userId
   let contactId: string | null = null
-  if (contactParam) {
-    const { data } = await db.from('contacts').select('id').eq('workspace_id', ws.id).eq('id', contactParam).maybeSingle()
+  if (contactParam && isUuid(contactParam)) {
+    const data = await db.contacts.findFirst({ select: { id: true }, where: { id: contactParam } })
     contactId = data?.id ?? null
   }
 
-  const { data: staff } = await db
-    .from('staff')
-    .select('id, name, title')
-    .eq('workspace_id', ws.id)
-    .eq('is_active', true)
-    .order('name')
-  const staffList = (staff ?? []).map((s) => `- ${s.name} (${s.title || 'General'}) [ID: ${s.id}]`).join('\n')
+  const staff = await db.staff.findMany({ select: { id: true, name: true, title: true }, where: { is_active: true }, orderBy: { name: 'asc' } })
+  const staffList = staff.map((s) => `- ${s.name} (${s.title || 'General'}) [ID: ${s.id}]`).join('\n')
   const language = ws.locale === 'en' ? 'English' : 'Spanish'
 
   const system = `You are a medical triage assistant for "${ws.name}". You do NOT diagnose conditions or prescribe treatments. Assess the reported symptoms, decide the urgency and route to the right professional.
@@ -96,7 +90,7 @@ Answer with JSON: {"urgency": "emergency"|"urgent"|"routine"|"self_care", "recom
     })
     const parsed = parseJsonLoose<Partial<TriageResult>>(raw)
     if (!parsed || typeof parsed.suggested_action !== 'string') throw new Error('Invalid triage response')
-    const validStaff = new Set((staff ?? []).map((s) => s.id))
+    const validStaff = new Set(staff.map((s) => s.id))
     result = {
       urgency: URGENCY.includes(parsed.urgency as TriageResult['urgency']) ? (parsed.urgency as TriageResult['urgency']) : 'routine',
       recommended_specialist: parsed.recommended_specialist || null,
@@ -114,22 +108,25 @@ Answer with JSON: {"urgency": "emergency"|"urgent"|"routine"|"self_care", "recom
     return NextResponse.json({ error: msg }, { status: 502 })
   }
 
-  if (body?.intakeId) {
-    await db
-      .from('patient_intake')
-      .update({ urgency_level: result.urgency, triage_result: result })
-      .eq('workspace_id', ws.id)
-      .eq('id', body.intakeId)
+  // Both writes are best effort, as before (errors never failed the request).
+  if (body?.intakeId && isUuid(body.intakeId)) {
+    await db.patient_intake
+      .updateMany({ where: { id: body.intakeId }, data: { urgency_level: result.urgency, triage_result: { ...result } } })
+      .catch((err) => console.error('[triage] intake update failed:', err instanceof Error ? err.message : err))
   }
   if (contactId) {
-    await db.from('ai_chat_logs').insert({
-      workspace_id: ws.id,
-      contact_id: contactId,
-      user_message: `[SYMPTOM TRIAGE] ${symptoms}`,
-      ai_response: JSON.stringify(result),
-      detected_intent: 'symptom_triage',
-      confidence_score: 0.9,
-    })
+    await db.ai_chat_logs
+      .create({
+        data: {
+          workspace_id: ws.id,
+          contact_id: contactId,
+          user_message: `[SYMPTOM TRIAGE] ${symptoms}`,
+          ai_response: JSON.stringify(result),
+          detected_intent: 'symptom_triage',
+          confidence_score: 0.9,
+        },
+      })
+      .catch((err) => console.error('[triage] chat log failed:', err instanceof Error ? err.message : err))
   }
 
   return NextResponse.json(result)

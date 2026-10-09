@@ -1,5 +1,5 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
 import { waMediaProxyUrl, type CoexBatch, type CoexMessage } from '@/lib/channels/parsers/whatsapp'
 import type { LoadedChannel } from '@/lib/channels'
 import { findOrCreateContact, findOrCreateConversation } from './ingest'
@@ -103,33 +103,31 @@ async function threadFor(channel: LoadedChannel, customer: string) {
 async function existingIds(workspaceId: string, ids: string[]): Promise<Set<string>> {
   const found = new Set<string>()
   for (let i = 0; i < ids.length; i += 200) {
-    const { data } = await supabaseAdmin()
-      .from('messages')
-      .select('message_id')
-      .eq('workspace_id', workspaceId)
-      .in('message_id', ids.slice(i, i + 200))
-    for (const r of data ?? []) if (r.message_id) found.add(r.message_id)
+    const data = await tenantDb(workspaceId).messages.findMany({
+      where: { message_id: { in: ids.slice(i, i + 200) } },
+      select: { message_id: true },
+    })
+    for (const r of data) if (r.message_id) found.add(r.message_id)
   }
   return found
 }
 
-async function replyTargets(conversationId: string, ids: (string | null | undefined)[]): Promise<Map<string, string>> {
+async function replyTargets(workspaceId: string, conversationId: string, ids: (string | null | undefined)[]): Promise<Map<string, string>> {
   const wanted = [...new Set(ids.filter((x): x is string => !!x))]
   if (!wanted.length) return new Map()
-  const { data } = await supabaseAdmin()
-    .from('messages')
-    .select('id, message_id')
-    .eq('conversation_id', conversationId)
-    .in('message_id', wanted.slice(0, 200))
-  return new Map((data ?? []).map((r) => [r.message_id as string, r.id as string]))
+  const data = await tenantDb(workspaceId).messages.findMany({
+    where: { conversation_id: conversationId, message_id: { in: wanted.slice(0, 200) } },
+    select: { id: true, message_id: true },
+  })
+  return new Map(data.map((r) => [r.message_id as string, r.id]))
 }
 
 // ------------------------------------------------------------
 // smb_message_echoes
 // ------------------------------------------------------------
 export async function storeEchoes(channel: LoadedChannel, echoes: CoexMessage[]): Promise<number> {
-  const db = supabaseAdmin()
   const ws = channel.workspace_id
+  const db = tenantDb(ws)
   let stored = 0
   for (const [customer, list] of groupByCustomer(echoes)) {
     const thread = await threadFor(channel, customer)
@@ -138,14 +136,15 @@ export async function storeEchoes(channel: LoadedChannel, echoes: CoexMessage[])
     const known = await existingIds(ws, list.map((m) => m.externalMessageId))
     const fresh = list.filter((m) => !known.has(m.externalMessageId))
     if (!fresh.length) continue
-    const replies = await replyTargets(conversation.id, fresh.map((m) => m.replyToExternalId))
+    const replies = await replyTargets(ws, conversation.id, fresh.map((m) => m.replyToExternalId))
     const rows = fresh.map((m) => ({
       ...coexMessageRow(m, { workspaceId: ws, conversationId: conversation.id, channelId: channel.id, history: false }),
       reply_to_message_id: m.replyToExternalId ? replies.get(m.replyToExternalId) ?? null : null,
     }))
-    const { error } = await db.from('messages').insert(rows)
-    if (error) {
-      console.error('[echo] insert failed:', error.message)
+    try {
+      await db.messages.createMany({ data: rows })
+    } catch (error) {
+      console.error('[echo] insert failed:', error instanceof Error ? error.message : error)
       continue
     }
     stored += rows.length
@@ -153,26 +152,28 @@ export async function storeEchoes(channel: LoadedChannel, echoes: CoexMessage[])
     const last = fresh[fresh.length - 1]
     const pauseUntil = new Date(Date.now() + HUMAN_TAKEOVER_MS)
     const currentPause = conversation.ai_paused_until ? new Date(conversation.ai_paused_until) : null
-    await db
-      .from('conversations')
-      .update({
+    await db.conversations
+      .updateMany({
+        where: { id: conversation.id },
+        data: {
         last_message_text: preview(last),
         last_message_at: new Date(last.timestamp).toISOString(),
         updated_at: new Date().toISOString(),
         // A person is answering from the phone: keep the AI agent quiet.
         ai_paused_until: (currentPause && currentPause > pauseUntil ? currentPause : pauseUntil).toISOString(),
+        },
       })
-      .eq('id', conversation.id)
-      .eq('workspace_id', ws)
+      .catch(() => {})
 
     // Same as an inbox reply: an active flow run yields to the human.
-    const { error: flowErr } = await db
-      .from('flow_runs')
-      .update({ status: 'paused_by_agent', ended_at: new Date().toISOString(), end_reason: 'agent_replied' })
-      .eq('workspace_id', ws)
-      .eq('contact_id', contactId)
-      .eq('status', 'active')
-    if (flowErr) console.error('[echo] flow pause failed:', flowErr.message)
+    try {
+      await db.flow_runs.updateMany({
+        where: { contact_id: contactId, status: 'active' },
+        data: { status: 'paused_by_agent', ended_at: new Date().toISOString(), end_reason: 'agent_replied' },
+      })
+    } catch (flowErr) {
+      console.error('[echo] flow pause failed:', flowErr instanceof Error ? flowErr.message : flowErr)
+    }
   }
   return stored
 }
@@ -181,8 +182,8 @@ export async function storeEchoes(channel: LoadedChannel, echoes: CoexMessage[])
 // history
 // ------------------------------------------------------------
 export async function importHistory(channel: LoadedChannel, history: CoexMessage[]): Promise<number> {
-  const db = supabaseAdmin()
   const ws = channel.workspace_id
+  const db = tenantDb(ws)
   let imported = 0
   for (const [customer, list] of groupByCustomer(history)) {
     const thread = await threadFor(channel, customer)
@@ -193,9 +194,12 @@ export async function importHistory(channel: LoadedChannel, history: CoexMessage
     if (!fresh.length) continue
     const rows = fresh.map((m) => coexMessageRow(m, { workspaceId: ws, conversationId: conversation.id, channelId: channel.id, history: true }))
     for (let i = 0; i < rows.length; i += 500) {
-      const { error } = await db.from('messages').insert(rows.slice(i, i + 500))
-      if (error) console.error('[history] insert failed:', error.message)
-      else imported += Math.min(500, rows.length - i)
+      try {
+        await db.messages.createMany({ data: rows.slice(i, i + 500) })
+        imported += Math.min(500, rows.length - i)
+      } catch (error) {
+        console.error('[history] insert failed:', error instanceof Error ? error.message : error)
+      }
     }
 
     // Only move the conversation preview forward (history is older than live traffic).
@@ -213,7 +217,7 @@ export async function importHistory(channel: LoadedChannel, history: CoexMessage
       update.last_customer_message_at = new Date(newestCustomer.timestamp).toISOString()
     }
     if (Object.keys(update).length) {
-      await db.from('conversations').update(update).eq('id', conversation.id).eq('workspace_id', ws)
+      await db.conversations.updateMany({ where: { id: conversation.id }, data: update }).catch(() => {})
     }
   }
   return imported
@@ -221,36 +225,35 @@ export async function importHistory(channel: LoadedChannel, history: CoexMessage
 
 /** History media arrives after the thread (as `media_placeholder`): fill it in. */
 export async function applyHistoryMedia(channel: LoadedChannel, media: CoexMessage[]): Promise<void> {
-  const db = supabaseAdmin()
   const ws = channel.workspace_id
+  const db = tenantDb(ws)
   const missing: CoexMessage[] = []
   for (const m of media) {
-    const { data: row } = await db
-      .from('messages')
-      .select('id')
-      .eq('workspace_id', ws)
-      .eq('message_id', m.externalMessageId)
-      .maybeSingle()
+    // maybeSingle(): more than one match counted as none.
+    const found = await db.messages.findMany({ where: { message_id: m.externalMessageId }, select: { id: true }, take: 2 })
+    const row = found.length === 1 ? found[0] : null
     if (!row) {
       missing.push(m)
       continue
     }
-    await db
-      .from('messages')
-      .update({
-        content_type: DB_CONTENT_TYPE[m.content.contentType],
-        content_text: m.content.text,
-        media_url: mediaUrlFor(channel.id, m.content.mediaUrl),
+    await db.messages
+      .updateMany({
+        where: { id: row.id },
+        data: {
+          content_type: DB_CONTENT_TYPE[m.content.contentType],
+          content_text: m.content.text,
+          media_url: mediaUrlFor(channel.id, m.content.mediaUrl),
+        },
       })
-      .eq('id', row.id)
+      .catch(() => {})
   }
   if (missing.length) await importHistory(channel, missing)
 }
 
 async function saveHistoryState(channel: LoadedChannel, batch: CoexBatch, imported: number) {
   if (!batch.historyProgress && !batch.historyError && !imported) return
-  const db = supabaseAdmin()
-  const { data } = await db.from('channels').select('settings').eq('id', channel.id).maybeSingle()
+  const db = tenantDb(channel.workspace_id)
+  const data = await db.channels.findFirst({ where: { id: channel.id }, select: { settings: true } }).catch(() => null)
   const settings = (data?.settings ?? {}) as Record<string, unknown>
   const sync = (settings.coexistence_sync ?? {}) as Record<string, unknown>
   const prev = (sync.history ?? {}) as Record<string, unknown>
@@ -261,17 +264,16 @@ async function saveHistoryState(channel: LoadedChannel, batch: CoexBatch, import
     ...(batch.historyError ? { error: batch.historyError } : {}),
     updated_at: new Date().toISOString(),
   }
-  await db
-    .from('channels')
-    .update({ settings: { ...settings, coexistence_sync: { ...sync, history } } })
-    .eq('id', channel.id)
+  await db.channels
+    .updateMany({ where: { id: channel.id }, data: { settings: { ...settings, coexistence_sync: { ...sync, history } } as object } })
+    .catch(() => {})
 }
 
 // ------------------------------------------------------------
 // smb_app_state_sync (contacts)
 // ------------------------------------------------------------
 export async function syncAppContacts(channel: LoadedChannel, contacts: CoexBatch['contacts']): Promise<number> {
-  const db = supabaseAdmin()
+  const db = tenantDb(channel.workspace_id)
   let changed = 0
   for (const c of contacts) {
     // Removing a contact from the phone's address book doesn't delete CRM data.
@@ -283,9 +285,9 @@ export async function syncAppContacts(channel: LoadedChannel, contacts: CoexBatc
       continue
     }
     if (!c.name) continue
-    const { data: row } = await db.from('contacts').select('name').eq('id', contact.id).maybeSingle()
+    const row = await db.contacts.findFirst({ where: { id: contact.id }, select: { name: true } }).catch(() => null)
     if (row && isPlaceholderName(row.name, c.phone)) {
-      await db.from('contacts').update({ name: c.name.slice(0, 200) }).eq('id', contact.id).eq('workspace_id', channel.workspace_id)
+      await db.contacts.updateMany({ where: { id: contact.id }, data: { name: c.name.slice(0, 200) } }).catch(() => {})
       changed++
     }
   }

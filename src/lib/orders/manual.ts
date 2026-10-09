@@ -1,5 +1,6 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
+import { isUuid } from '@/lib/workspace/constants'
 import { cartCurrencyConflict } from '@/lib/catalog/currency'
 import { getPreset } from '@/lib/industries'
 import type { Workspace } from '@/lib/workspace/types'
@@ -33,31 +34,27 @@ export async function createManualOrder(args: {
   addressReference?: string | null
   notes?: string | null
 }): Promise<ManualOrderResult> {
-  const db = supabaseAdmin()
   const ws = args.workspace
+  const db = tenantDb(ws.id)
   const settings = orderSettings(ws, getPreset(ws.industry).fulfillment as Fulfillment[])
   if (!settings.fulfillment.includes(args.fulfillment)) return { ok: false, error: 'fulfillment_not_allowed' }
   if (args.fulfillment === 'delivery' && !args.address?.trim()) return { ok: false, error: 'address_required' }
   if (!args.items.length) return { ok: false, error: 'empty' }
 
-  const { data: contact } = await db
-    .from('contacts')
-    .select('id, name, phone')
-    .eq('id', args.contactId)
-    .eq('workspace_id', ws.id)
-    .maybeSingle()
+  const contact = isUuid(args.contactId)
+    ? await db.contacts.findFirst({ select: { id: true, name: true, phone: true }, where: { id: args.contactId } })
+    : null
   if (!contact) return { ok: false, error: 'contact_not_found' }
 
   const productIds = [...new Set(args.items.map((i) => i.product_id))]
   const variantIds = [...new Set(args.items.map((i) => i.variant_id).filter((v): v is string => !!v))]
-  const { data: products } = await db
-    .from('products')
-    .select('id, name, sku, price, currency, is_active')
-    .eq('workspace_id', ws.id)
-    .in('id', productIds)
-  const { data: variants } = variantIds.length
-    ? await db.from('product_variants').select('id, product_id, name, sku, price, is_active').in('id', variantIds)
-    : { data: [] as { id: string; product_id: string; name: string; sku: string | null; price: number | null; is_active: boolean }[] }
+  // A malformed id made PostgREST fail the whole query (no rows).
+  const products = productIds.every(isUuid)
+    ? await db.products.findMany({ select: { id: true, name: true, sku: true, price: true, currency: true, is_active: true }, where: { id: { in: productIds } } })
+    : []
+  const variants = variantIds.length && variantIds.every(isUuid)
+    ? await db.product_variants.findMany({ select: { id: true, product_id: true, name: true, sku: true, price: true, is_active: true }, where: { id: { in: variantIds } } })
+    : []
 
   const lines: (CartLine & { productId: string; variantId: string | null; variantName: string | null; sku: string | null })[] = []
   for (const item of args.items) {
@@ -88,19 +85,15 @@ export async function createManualOrder(args: {
 
   const totals = computeTotals(lines, settings, args.fulfillment)
 
-  const { data: conv } = await db
-    .from('conversations')
-    .select('id, channel_id')
-    .eq('workspace_id', ws.id)
-    .eq('contact_id', contact.id)
-    .order('last_message_at', { ascending: false, nullsFirst: false })
-    .limit(1)
-    .maybeSingle()
+  const conv = await db.conversations.findFirst({
+    select: { id: true, channel_id: true },
+    where: { contact_id: contact.id },
+    orderBy: { last_message_at: { sort: 'desc', nulls: 'last' } },
+  })
 
   const customerName = contact.name && !/^\+?\d+$/.test(contact.name) ? contact.name : null
-  const { data: order, error } = await db
-    .from('orders')
-    .insert({
+  const order = await db.orders.create({
+    data: {
       workspace_id: ws.id,
       contact_id: contact.id,
       conversation_id: conv?.id ?? null,
@@ -117,30 +110,30 @@ export async function createManualOrder(args: {
       total: totals.total,
       source: 'manual',
       created_by: args.userId,
-    })
-    .select('id, number')
-    .single()
-  if (error || !order) throw error ?? new Error('order insert failed')
+    },
+    select: { id: true, number: true },
+  })
 
-  const { error: itemsError } = await db.from('order_items').insert(
-    lines.map((l, i) => ({
-      workspace_id: ws.id,
-      order_id: order.id,
-      product_id: l.productId,
-      variant_id: l.variantId,
-      name: l.variantName ? `${l.name} (${l.variantName})` : l.name,
-      variant_name: l.variantName,
-      sku: l.sku,
-      quantity: l.quantity,
-      unit_price: l.unitPrice,
-      total: round2(l.unitPrice * l.quantity),
-      sort_order: i,
-    })),
-  )
-  if (itemsError) {
-    await db.from('orders').delete().eq('id', order.id)
+  try {
+    await db.order_items.createMany({
+      data: lines.map((l, i) => ({
+        workspace_id: ws.id,
+        order_id: order.id,
+        product_id: l.productId,
+        variant_id: l.variantId,
+        name: l.variantName ? `${l.name} (${l.variantName})` : l.name,
+        variant_name: l.variantName,
+        sku: l.sku,
+        quantity: l.quantity,
+        unit_price: l.unitPrice,
+        total: round2(l.unitPrice * l.quantity),
+        sort_order: i,
+      })),
+    })
+  } catch (itemsError) {
+    await db.orders.deleteMany({ where: { id: order.id } })
     throw itemsError
   }
-  await db.from('order_events').insert({ workspace_id: ws.id, order_id: order.id, type: 'created', to_value: 'pending', note: 'manual', user_id: args.userId })
+  await db.order_events.create({ data: { workspace_id: ws.id, order_id: order.id, type: 'created', to_value: 'pending', note: 'manual', user_id: args.userId } })
   return { ok: true, order: { id: order.id, number: Number(order.number) } }
 }

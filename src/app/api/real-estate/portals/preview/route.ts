@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { productAttributesFor } from '@/lib/catalog/attributes'
 import { isUuid } from '@/lib/workspace/constants'
 import { feedErrorCode, feedSource, fileSource, toListings } from '@/lib/real-estate/portals/feed/import'
@@ -39,14 +38,22 @@ export async function POST(request: Request) {
   const source = typeof body.feed_id === 'string' && isUuid(body.feed_id) ? feedSource(body.feed_id) : typeof body.label === 'string' && body.label.trim() ? fileSource(body.label) : null
   const existing: ExistingExternal[] = []
   if (source) {
-    const { data } = await supabaseAdmin()
-      .from('products')
-      .select('id, external_id, attributes, images, is_active, external_missing_since')
-      .eq('workspace_id', ws.id)
-      .eq('external_source', source)
-      .limit(5000)
+    const data = await guard.ctx.db.products
+      .findMany({
+        select: { id: true, external_id: true, attributes: true, images: true, is_active: true, external_missing_since: true },
+        where: { external_source: source },
+        take: 5000,
+      })
+      .catch(() => null)
     for (const p of data ?? []) {
-      existing.push({ id: p.id, externalId: String(p.external_id), attributes: p.attributes ?? {}, images: p.images ?? [], isActive: !!p.is_active, missingSince: p.external_missing_since ?? null })
+      existing.push({
+        id: p.id,
+        externalId: String(p.external_id),
+        attributes: (p.attributes ?? {}) as Record<string, unknown>,
+        images: p.images ?? [],
+        isActive: !!p.is_active,
+        missingSince: p.external_missing_since ?? null,
+      })
     }
   }
 

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { isUuid } from '@/lib/workspace/constants'
 import { getLeadProfile, saveLeadProfile } from '@/lib/real-estate/leads/service'
 import { sanitizeUserLeadPatch } from '@/lib/real-estate/leads/profile'
@@ -17,11 +16,11 @@ async function guardContact(contactId: string) {
   const guard = await requireWorkspace('agent')
   if (!guard.ok) return { response: guard.response } as const
   if (!isUuid(contactId)) return { response: NextResponse.json({ error: 'Invalid id' }, { status: 400 }) } as const
-  const { supabase, workspace, user } = guard.ctx
-  // RLS read: the contact must belong to the active workspace.
-  const { data: contact } = await supabase.from('contacts').select('id').eq('id', contactId).eq('workspace_id', workspace.id).maybeSingle()
+  const { db, workspace, user } = guard.ctx
+  // Tenant read: the contact must belong to the active workspace.
+  const contact = await db.contacts.findFirst({ select: { id: true }, where: { id: contactId } }).catch(() => null)
   if (!contact) return { response: NextResponse.json({ error: 'Not found' }, { status: 404 }) } as const
-  return { workspace, user } as const
+  return { workspace, user, db } as const
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ contactId: string }> }) {
@@ -42,13 +41,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ co
   const patch = sanitizeUserLeadPatch(body)
   const conversationId = typeof body.conversation_id === 'string' && isUuid(body.conversation_id) ? body.conversation_id : null
   if (conversationId) {
-    const { data: conv } = await supabaseAdmin()
-      .from('conversations')
-      .select('id')
-      .eq('id', conversationId)
-      .eq('workspace_id', g.workspace.id)
-      .eq('contact_id', contactId)
-      .maybeSingle()
+    const conv = await g.db.conversations.findFirst({ select: { id: true }, where: { id: conversationId, contact_id: contactId } }).catch(() => null)
     if (!conv) return NextResponse.json({ error: 'Invalid conversation' }, { status: 400 })
   }
   if (!Object.keys(patch).length && !(await getLeadProfile(g.workspace.id, contactId))) {

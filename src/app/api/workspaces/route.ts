@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
 import { getWorkspaceContext, listMemberships, workspaceCookieOptions } from '@/lib/workspace/context'
 import { WORKSPACE_COOKIE } from '@/lib/workspace/constants'
 import { INDUSTRY_IDS } from '@/lib/industries'
@@ -43,30 +44,31 @@ export async function POST(req: NextRequest) {
   if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
   const industry = INDUSTRY_IDS.includes(body.industry) ? body.industry : 'generic'
 
-  const db = supabaseAdmin()
-  const { data: slug } = await db.rpc('make_ws_slug', { n: name })
-  const { data: ws, error } = await db
-    .from('workspaces')
-    .insert({
-      name,
-      slug,
-      industry,
-      country: body.country || null,
-      currency: body.currency || 'USD',
-      timezone: body.timezone || 'UTC',
-      locale: body.locale === 'en' ? 'en' : 'es',
-      created_by: user.id,
+  // Platform client: the workspace does not exist yet.
+  let ws
+  try {
+    const [row] = await prisma.$queryRaw<{ slug: string }[]>`SELECT public.make_ws_slug(${name}::text) AS slug`
+    ws = await prisma.workspaces.create({
+      data: {
+        name,
+        slug: row?.slug as string,
+        industry,
+        country: body.country || null,
+        currency: body.currency || 'USD',
+        timezone: body.timezone || 'UTC',
+        locale: body.locale === 'en' ? 'en' : 'es',
+        created_by: user.id,
+      },
     })
-    .select('*')
-    .single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+  }
 
-  const { error: memErr } = await db
-    .from('workspace_members')
-    .insert({ workspace_id: ws.id, user_id: user.id, role: 'owner' })
-  if (memErr) {
-    await db.from('workspaces').delete().eq('id', ws.id)
-    return NextResponse.json({ error: memErr.message }, { status: 500 })
+  try {
+    await tenantDb(ws.id).workspace_members.create({ data: { workspace_id: ws.id, user_id: user.id, role: 'owner' } })
+  } catch (err) {
+    await prisma.workspaces.deleteMany({ where: { id: ws.id } }).catch(() => {})
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 
   const res = NextResponse.json({ workspace: ws })

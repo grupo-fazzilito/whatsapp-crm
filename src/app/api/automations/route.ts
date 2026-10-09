@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/automations/admin-client'
 import { getTemplate } from '@/lib/automations/templates'
 import { insertSteps, type BuilderStepInput } from '@/lib/automations/steps-tree'
 import {
@@ -15,21 +14,23 @@ import {
 export async function GET() {
   const guard = await requireWorkspace()
   if (!guard.ok) return guard.response
-  const { supabase, workspace } = guard.ctx
+  const { db, workspace } = guard.ctx
 
-  const { data, error } = await supabase
-    .from('automations')
-    .select('*')
-    .eq('workspace_id', workspace.id)
-    .order('created_at', { ascending: false })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ automations: data ?? [] })
+  try {
+    const data = await db.automations.findMany({
+      where: { workspace_id: workspace.id },
+      orderBy: { created_at: 'desc' },
+    })
+    return NextResponse.json({ automations: data })
+  } catch (error) {
+    return NextResponse.json({ error: errMessage(error) }, { status: 500 })
+  }
 }
 
 export async function POST(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
-  const { user, workspace } = guard.ctx
+  const { user, workspace, db } = guard.ctx
 
   const body = await request.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
@@ -64,11 +65,12 @@ export async function POST(request: Request) {
   // letting every trigger silently produce a failed log row. Drafts
   // (is_active=false) are allowed to be incomplete so users can save
   // progress mid-build.
-  const admin = supabaseAdmin()
   let warnings: ValidationIssue[] = []
   if (is_active) {
     const stepsForCheck = (effectiveSteps ?? []) as unknown as { step_type: string; step_config: Record<string, unknown> }[]
-    const { data: channels } = await admin.from('channels').select('id, type').eq('workspace_id', workspace.id)
+    const channels = await db.channels
+      .findMany({ select: { id: true, type: true }, where: { workspace_id: workspace.id } })
+      .catch(() => null)
     const { errors, warnings: w } = partitionIssues([
       ...validateTriggerForActivation(effectiveTriggerType, effectiveTriggerConfig ?? {}),
       ...validateStepsForActivation(stepsForCheck),
@@ -88,25 +90,21 @@ export async function POST(request: Request) {
     warnings = w
   }
 
-  const { data: automation, error: insertErr } = await admin
-    .from('automations')
-    .insert({
-      workspace_id: workspace.id,
-      user_id: user.id,
-      name: effectiveName,
-      description: effectiveDescription ?? null,
-      trigger_type: effectiveTriggerType,
-      trigger_config: effectiveTriggerConfig ?? {},
-      is_active: !!is_active,
+  let automation
+  try {
+    automation = await db.automations.create({
+      data: {
+        workspace_id: workspace.id,
+        user_id: user.id,
+        name: effectiveName,
+        description: effectiveDescription ?? null,
+        trigger_type: effectiveTriggerType,
+        trigger_config: effectiveTriggerConfig ?? {},
+        is_active: !!is_active,
+      },
     })
-    .select()
-    .single()
-
-  if (insertErr || !automation) {
-    return NextResponse.json(
-      { error: insertErr?.message ?? 'insert failed' },
-      { status: 500 },
-    )
+  } catch (insertErr) {
+    return NextResponse.json({ error: errMessage(insertErr) || 'insert failed' }, { status: 500 })
   }
 
   if (effectiveSteps && effectiveSteps.length > 0) {
@@ -115,4 +113,8 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ automation, warnings }, { status: 201 })
+}
+
+function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }

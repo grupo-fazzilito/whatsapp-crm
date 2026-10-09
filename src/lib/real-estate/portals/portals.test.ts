@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-vi.mock('@/lib/supabase/admin', () => ({ supabaseAdmin: () => ({}) }))
+// Pure tests: nothing here touches the database (the platform settings module imports the client).
+vi.mock('@/lib/db/prisma', () => ({ prisma: {} }))
 
 import { productAttributesFor } from '@/lib/catalog/attributes'
 import { productPayload } from '@/lib/catalog/import'

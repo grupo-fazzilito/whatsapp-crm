@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
-import { CONNECTION_COLUMNS, type CalendarConnection } from '@/lib/integrations/google/api'
+import { prisma } from '@/lib/db/prisma'
+import { CONNECTION_SELECT, type CalendarConnection } from '@/lib/integrations/google/api'
 import { runAfterResponse, syncConnectionChanges } from '@/lib/integrations/google/sync'
 import { checkNotification, readNotificationHeaders } from '@/lib/integrations/google/webhook'
 
@@ -13,11 +13,15 @@ export async function POST(request: Request) {
   const h = readNotificationHeaders(request.headers)
   if (!h.channelId) return NextResponse.json({ error: 'missing channel' }, { status: 400 })
 
-  const db = supabaseAdmin()
-  const { data: conn } = await db.from('calendar_connections').select(CONNECTION_COLUMNS).eq('watch_channel_id', h.channelId).maybeSingle()
-  const { data: secrets } = conn
-    ? await db.from('calendar_connection_secrets').select('watch_token').eq('connection_id', conn.id).maybeSingle()
-    : { data: null }
+  // Platform client: the workspace is only known from the channel id.
+  const conn = await prisma.calendar_connections
+    .findFirst({ select: CONNECTION_SELECT, where: { watch_channel_id: h.channelId } })
+    .catch(() => null)
+  const secrets = conn
+    ? await prisma.calendar_connection_secrets
+        .findFirst({ select: { watch_token: true }, where: { connection_id: conn.id, workspace_id: conn.workspace_id } })
+        .catch(() => null)
+    : null
 
   const check = checkNotification(
     h,

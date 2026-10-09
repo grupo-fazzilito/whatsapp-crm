@@ -1,7 +1,8 @@
 import 'server-only'
 import { canSpend, spend } from '@/lib/billing/credits'
 import { messageTextForAi } from './assist/core'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
+import type { Prisma } from '@/generated/prisma/client'
 import { sendMessage } from '@/lib/messaging/send'
 import { getPreset, industryLabel } from '@/lib/industries'
 import type { LoadedChannel } from '@/lib/channels'
@@ -89,16 +90,21 @@ export interface RunAgentInput {
   depth?: number
 }
 
+/** Writes whose failure the agent ignores (as it did with PostgREST's `{ error }`). */
+async function quiet(p: Promise<unknown>): Promise<void> {
+  try {
+    await p
+  } catch (err) {
+    console.warn('[ai] write failed:', err instanceof Error ? err.message.slice(0, 300) : err)
+  }
+}
+
 async function reply(input: RunAgentInput, agent: AiAgentRow, text: string, quote = false) {
-  const db = supabaseAdmin()
   let replyToMessageId: string | null = null
   if (quote && input.contextMessageId) {
-    const { data } = await db
-      .from('messages')
-      .select('id')
-      .eq('conversation_id', input.conversationId)
-      .eq('message_id', input.contextMessageId)
-      .maybeSingle()
+    const data = await tenantDb(input.workspaceId)
+      .messages.findFirst({ select: { id: true }, where: { conversation_id: input.conversationId, message_id: input.contextMessageId } })
+      .catch(() => null)
     replyToMessageId = data?.id ?? null
   }
   return sendMessage({
@@ -111,7 +117,7 @@ async function reply(input: RunAgentInput, agent: AiAgentRow, text: string, quot
 }
 
 async function log(input: RunAgentInput, agent: AiAgentRow, response: string, intent: string, confidence: number) {
-  await supabaseAdmin().from('ai_chat_logs').insert({
+  await quiet(tenantDb(input.workspaceId).ai_chat_logs.create({ data: {
     workspace_id: input.workspaceId,
     contact_id: input.contactId,
     conversation_id: input.conversationId,
@@ -121,11 +127,11 @@ async function log(input: RunAgentInput, agent: AiAgentRow, response: string, in
     ai_response: response,
     detected_intent: intent,
     confidence_score: Math.max(0, Math.min(1, confidence)),
-  })
+  } }))
 }
 
-async function setState(conversationId: string, patch: Record<string, unknown>) {
-  await supabaseAdmin().from('conversations').update(patch).eq('id', conversationId)
+async function setState(workspaceId: string, conversationId: string, patch: Record<string, unknown>) {
+  await quiet(tenantDb(workspaceId).conversations.updateMany({ where: { id: conversationId }, data: patch as Prisma.conversationsUncheckedUpdateManyInput }))
 }
 
 /** Pass to humans: pause the AI, flag the conversation, leave a note. */
@@ -134,19 +140,19 @@ export async function handOverToHuman(
   reason: string,
   assigneeUserId?: string | null,
 ) {
-  const db = supabaseAdmin()
-  const { data: conv } = await db.from('conversations').select('unread_count').eq('id', input.conversationId).maybeSingle()
-  await setState(input.conversationId, {
+  const db = tenantDb(input.workspaceId)
+  const conv = await db.conversations.findFirst({ select: { unread_count: true }, where: { id: input.conversationId } }).catch(() => null)
+  await setState(input.workspaceId, input.conversationId, {
     status: 'open',
     ai_paused_until: new Date(Date.now() + HANDOVER_PAUSE_MS).toISOString(),
     unread_count: Math.max(1, conv?.unread_count ?? 0),
     ...(assigneeUserId ? { assigned_agent_id: assigneeUserId } : {}),
   })
-  await db.from('contact_notes').insert({
+  await quiet(db.contact_notes.create({ data: {
     workspace_id: input.workspaceId,
     contact_id: input.contactId,
     note_text: `[IA → humano] ${reason}. Último mensaje: "${input.messageText.slice(0, 300)}"`,
-  })
+  } }))
   // Nobody picked yet: round-robin when the workspace enabled it.
   if (!assigneeUserId) await autoAssignConversation(input.workspaceId, input.conversationId, 'ai_handover')
 }
@@ -158,18 +164,22 @@ function isClosedNow(ctx: BusinessContext): boolean {
   return !windows || !windows.some((w) => m >= w.start && m < w.end)
 }
 
-async function history(conversationId: string, locale: 'es' | 'en' = 'es'): Promise<ChatTurn[]> {
-  const { data } = await supabaseAdmin()
-    .from('messages')
-    .select('sender_type, content_text, content_type, transcript, ai_media_text, created_at')
-    .eq('conversation_id', conversationId)
-    .neq('content_type', 'system')
-    // Team-only notes never reach the model.
-    .neq('is_internal', true)
-    .order('created_at', { ascending: false })
-    .limit(HISTORY_TURNS)
+async function history(workspaceId: string, conversationId: string, locale: 'es' | 'en' = 'es'): Promise<ChatTurn[]> {
+  const data = await tenantDb(workspaceId)
+    .messages.findMany({
+      select: { sender_type: true, content_text: true, content_type: true, transcript: true, ai_media_text: true, created_at: true },
+      where: {
+        conversation_id: conversationId,
+        content_type: { not: 'system' },
+        // Team-only notes never reach the model.
+        is_internal: { not: true },
+      },
+      orderBy: { created_at: 'desc' },
+      take: HISTORY_TURNS,
+    })
+    .catch(() => [])
   const turns: ChatTurn[] = []
-  for (const m of (data ?? []).reverse()) {
+  for (const m of data.reverse()) {
     // Voice notes read as their transcript, images/PDFs as "[Imagen: …]" (AI assist).
     const content = messageTextForAi(m, locale)
     const role: ChatTurn['role'] = m.sender_type === 'customer' ? 'user' : 'assistant'
@@ -240,7 +250,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
   const { agent } = input
   const ctx = await loadBusinessContext(input.workspaceId)
   if (!ctx) return false
-  const db = supabaseAdmin()
+  const db = tenantDb(input.workspaceId)
   const text = input.messageText.trim()
   const lower = text.toLowerCase()
 
@@ -286,28 +296,30 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
   }
 
   // 4) Model turn.
-  const { data: conv } = await db
-    .from('conversations')
-    .select('ai_state, contact:contacts(name)')
-    .eq('id', input.conversationId)
-    .maybeSingle()
+  const conv = await db.conversations
+    .findFirst({ select: { ai_state: true, contacts: { select: { name: true } } }, where: { id: input.conversationId } })
+    .catch(() => null)
   const state = (conv?.ai_state ?? {}) as ConversationAiState
-  const contactName = (conv?.contact as unknown as { name?: string } | null)?.name ?? null
+  const contactName = (conv?.contacts as { name?: string | null } | null | undefined)?.name ?? null
 
-  const { data: upcoming } = await db
-    .from('bookings')
-    .select('id, booking_date, booking_time, service:services(name), staff:staff(name)')
-    .eq('workspace_id', input.workspaceId)
-    .eq('contact_id', input.contactId)
-    .in('status', ['pending', 'confirmed'])
-    .gte('booking_date', zonedNow(ctx.timeZone).date)
-    .order('booking_date')
-    .limit(5)
+  const upcoming = await db.bookings
+    .findMany({
+      select: { id: true, booking_date: true, booking_time: true, services: { select: { name: true } }, staff: { select: { name: true } } },
+      where: {
+        workspace_id: input.workspaceId,
+        contact_id: input.contactId,
+        status: { in: ['pending', 'confirmed'] },
+        booking_date: { gte: zonedNow(ctx.timeZone).date },
+      },
+      orderBy: { booking_date: 'asc' },
+      take: 5,
+    })
+    .catch(() => null)
 
   const targets = transferTargets(agent, ctx)
   const sells = agent.skills.includes('orders') && ordersEnabled(ctx.workspace)
   const openCart = sells ? await getOpenCart(input.workspaceId, input.conversationId, input.contactId, false) : null
-  const openLines = openCart ? await cartItems(openCart.id) : []
+  const openLines = openCart ? await cartItems(openCart.id, input.workspaceId) : []
   // Real estate: what we know about the buyer/tenant so far.
   const leadAgent = qualifiesLeads(ctx.workspace.industry, agent.skills)
   const leadProfile = leadAgent ? await leadForPrompt(input.workspaceId, input.contactId) : null
@@ -324,14 +336,14 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
       id: b.id,
       booking_date: b.booking_date,
       booking_time: b.booking_time,
-      service_name: (b.service as unknown as { name?: string } | null)?.name ?? null,
+      service_name: (b.services as { name?: string } | null)?.name ?? null,
       staff_name: (b.staff as unknown as { name?: string } | null)?.name ?? null,
     })),
     customerName: contactName,
     channelLabel: CHANNEL_LABEL[input.channel.type] ?? input.channel.type,
   }
 
-  const turns = await history(input.conversationId, ctx.workspace.locale === 'en' ? 'en' : 'es')
+  const turns = await history(input.workspaceId, input.conversationId, ctx.workspace.locale === 'en' ? 'en' : 'es')
   if (!turns.length || turns[turns.length - 1].role !== 'user') turns.push({ role: 'user', content: text || '[attachment]' })
 
   const meter = { workspaceId: input.workspaceId, purpose: 'reply', aiAgentId: agent.id, conversationId: input.conversationId, channelId: input.channel.id }
@@ -395,8 +407,8 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
   // 5) Transfer to another agent: it answers the same message right away.
   const target = out.transfer_to_agent_id ? targets.find((a) => a.id === out!.transfer_to_agent_id) : undefined
   if (target && (input.depth ?? 0) < 1) {
-    await setState(input.conversationId, { ai_agent_id: target.id })
-    await db.from('messages').insert({
+    await setState(input.workspaceId, input.conversationId, { ai_agent_id: target.id })
+    await quiet(db.messages.create({ data: {
       workspace_id: input.workspaceId,
       conversation_id: input.conversationId,
       sender_type: 'bot',
@@ -405,7 +417,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
       content_text: `${agent.name} → ${target.name}`,
       status: 'delivered',
       metadata: { event: 'agent_transfer', from: agent.id, to: target.id },
-    })
+    } }))
     await log(input, agent, out.reply, 'transfer', out.confidence ?? 1)
     const handled = await runAgent({ ...input, agent: target, isFirstInboundMessage: false, depth: (input.depth ?? 0) + 1 })
     if (!handled && out.reply.trim()) await reply(input, agent, out.reply)
@@ -434,7 +446,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     if (out.booking_action === 'cancel') {
       const cancelled = await cancelNextBooking(input.workspaceId, input.contactId, draft)
       const msg = cancelled ? fill(T.cancelled, { booking: bookingNoun, date: longDate(cancelled.date, lang, ctx), time: cancelled.time }) : T.noBooking
-      await setState(input.conversationId, { ai_state: { ...state, booking: undefined } })
+      await setState(input.workspaceId, input.conversationId, { ai_state: { ...state, booking: undefined } })
       await reply(input, agent, msg)
       await log(input, agent, msg, 'cancel_booking', out.confidence ?? 1)
       return true
@@ -444,7 +456,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
       // Bookings about a product (property viewing): if the model didn't
       // say which, use the product most recently shown in this chat.
       if (!draft.product_id && getPreset(ctx.workspace.industry).bookingFields.some((f) => f.type === 'product')) {
-        draft.product_id = await lastShownProductId(input.conversationId)
+        draft.product_id = await lastShownProductId(input.workspaceId, input.conversationId)
       }
       const result = await createBookingFromDraft({
         workspaceId: input.workspaceId,
@@ -457,7 +469,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
       if (result.ok) {
         const extra = [result.serviceName ? fill(T.for, { service: result.serviceName }) : '', result.staffName ? fill(T.with, { staff: result.staffName }) : ''].join('')
         const msg = fill(T.booked, { booking: bookingNoun, date: longDate(draft.date!, lang, ctx), time: draft.time!.padStart(5, '0'), extra })
-        await setState(input.conversationId, { ai_state: { ...state, booking: undefined } })
+        await setState(input.workspaceId, input.conversationId, { ai_state: { ...state, booking: undefined } })
         await reply(input, agent, msg)
         // Viewing of a listing: deal → "Visita agendada" + map pin.
         if (draft.product_id) await onViewingConfirmed(input.workspaceId, result.bookingId, { sendLocation: true, aiAgentId: agent.id })
@@ -473,13 +485,13 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
       else if (result.reason === 'missing') msg = fill(T.missing, { booking: bookingNoun, fields: describeMissing(result.missing, lang, ctx) })
       if (process.env.AI_DEBUG) console.log('[ai] booking not created:', JSON.stringify(result), JSON.stringify(draft))
       const kept = { ...draft, ...(result.reason === 'missing' ? {} : { time: null }) }
-      await setState(input.conversationId, { ai_state: { ...state, booking: kept } })
+      await setState(input.workspaceId, input.conversationId, { ai_state: { ...state, booking: kept } })
       await reply(input, agent, msg)
       await log(input, agent, msg, 'booking', out.confidence ?? 0)
       return true
     }
 
-    await setState(input.conversationId, { ai_state: { ...state, booking: draft } })
+    await setState(input.workspaceId, input.conversationId, { ai_state: { ...state, booking: draft } })
   }
 
   // 8) Plain answer, then what the model asked the system to do:
@@ -516,13 +528,13 @@ const UUID_ANY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
 async function applyCartOps(c: CommerceCtx, ops: NonNullable<AgentOutput['cart_ops']>) {
   const cart = await getOpenCart(c.workspace.id, c.conversationId, c.contactId, true)
   if (!cart) return
-  const db = supabaseAdmin()
+  const db = tenantDb(c.workspace.id)
   const problems: string[] = []
   for (const op of ops.slice(0, 10)) {
     if (!op?.product_id || !UUID_ANY.test(op.product_id)) continue
     let variantId: string | null = null
     if (op.variant_name?.trim()) {
-      const { data: variants } = await db.from('product_variants').select('id, name').eq('product_id', op.product_id).eq('is_active', true)
+      const variants = await db.product_variants.findMany({ select: { id: true, name: true }, where: { product_id: op.product_id, is_active: true } }).catch(() => null)
       const want = norm(op.variant_name)
       variantId = variants?.find((v) => norm(v.name) === want)?.id ?? variants?.find((v) => norm(v.name).includes(want))?.id ?? null
     }
@@ -610,15 +622,11 @@ function bookingLooksComplete(draft: BookingDraft, ctx: BusinessContext): boolea
 }
 
 /** Product the bot showed last in this conversation (photo card or carousel). */
-async function lastShownProductId(conversationId: string): Promise<string | null> {
-  const { data } = await supabaseAdmin()
-    .from('messages')
-    .select('metadata')
-    .eq('conversation_id', conversationId)
-    .eq('sender_type', 'bot')
-    .order('created_at', { ascending: false })
-    .limit(15)
-  for (const row of data ?? []) {
+async function lastShownProductId(workspaceId: string, conversationId: string): Promise<string | null> {
+  const data = await tenantDb(workspaceId)
+    .messages.findMany({ select: { metadata: true }, where: { conversation_id: conversationId, sender_type: 'bot' }, orderBy: { created_at: 'desc' }, take: 15 })
+    .catch(() => [])
+  for (const row of data) {
     const md = (row.metadata ?? {}) as { product_id?: string; product_ids?: string[] }
     if (md.product_id) return md.product_id
     if (md.product_ids?.length === 1) return md.product_ids[0]

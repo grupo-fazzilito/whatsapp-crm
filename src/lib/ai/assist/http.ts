@@ -27,14 +27,14 @@ export async function assistGuard(bucket: keyof typeof ASSIST_LIMITS): Promise<G
 /** The caller can see this message (RLS) in the active workspace. */
 export async function visibleMessage(ctx: WorkspaceContext, id: string): Promise<boolean> {
   if (!isUuid(id)) return false
-  const { data } = await ctx.supabase.from('messages').select('id').eq('id', id).eq('workspace_id', ctx.workspace.id).maybeSingle()
+  const data = await ctx.db.messages.findFirst({ select: { id: true }, where: { id, workspace_id: ctx.workspace.id } })
   return !!data
 }
 
 /** The caller can see this conversation (RLS) in the active workspace. */
 export async function visibleConversation(ctx: WorkspaceContext, id: string): Promise<boolean> {
   if (!isUuid(id)) return false
-  const { data } = await ctx.supabase.from('conversations').select('id').eq('id', id).eq('workspace_id', ctx.workspace.id).maybeSingle()
+  const data = await ctx.db.conversations.findFirst({ select: { id: true }, where: { id, workspace_id: ctx.workspace.id } })
   return !!data
 }
 

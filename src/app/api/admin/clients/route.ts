@@ -1,7 +1,10 @@
 import { isPlatformAdmin } from "@/lib/admin/guard";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { prisma } from "@/lib/db/prisma";
 
+// Auth users (list, ban, delete) still go through Supabase Auth until the
+// login moves (P3); every data query uses the platform Prisma client.
 function adminClient() {
   return supabaseAdmin();
 }
@@ -16,14 +19,9 @@ async function isAuthed(): Promise<boolean> {
  * accept a raw auth user id).
  */
 async function resolveOwnerUserId(id: string): Promise<string> {
-  const { data } = await adminClient()
-    .from("workspace_members")
-    .select("user_id")
-    .eq("workspace_id", id)
-    .eq("role", "owner")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const data = await prisma.workspace_members
+    .findFirst({ where: { workspace_id: id, role: "owner" }, select: { user_id: true }, orderBy: { created_at: "asc" } })
+    .catch(() => null);
   return data?.user_id ?? id;
 }
 
@@ -32,31 +30,39 @@ export async function GET() {
   if (!(await isAuthed()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const db = adminClient();
-
-  const { data: workspaces, error: wsErr } = await db
-    .from("workspaces")
-    .select("id, name, industry, business_type_detail, city, phone, created_at, created_by")
-    .order("created_at", { ascending: false });
-  if (wsErr) return NextResponse.json({ error: wsErr.message }, { status: 500 });
+  let workspaces: { id: string; name: string; industry: string; business_type_detail: string | null; city: string | null; phone: string | null; created_at: string | null; created_by: string | null }[];
+  try {
+    workspaces = (await prisma.workspaces.findMany({
+      select: { id: true, name: true, industry: true, business_type_detail: true, city: true, phone: true, created_at: true, created_by: true },
+      orderBy: { created_at: "desc" },
+    })) as unknown as typeof workspaces;
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
   if (!workspaces || workspaces.length === 0) return NextResponse.json({ clients: [] });
 
-  const { data: authData, error: authErr } = await db.auth.admin.listUsers({ perPage: 500 });
+  const { data: authData, error: authErr } = await adminClient().auth.admin.listUsers({ perPage: 500 });
   if (authErr) return NextResponse.json({ error: authErr.message }, { status: 500 });
   const userMap = new Map((authData?.users ?? []).map(u => [u.id, u]));
 
   const wsIds = workspaces.map(w => w.id);
 
+  // A failed query reads as no rows, as before.
+  const safe = <T,>(p: Promise<T[]>) => p.then((data) => ({ data }), (err) => {
+    console.error("[admin/clients] query failed:", err instanceof Error ? err.message : err);
+    return { data: null as T[] | null };
+  });
+
   // Fetch all related data in parallel
   const [owners, profiles, contacts, conversations, waConfigs, broadcasts, automations, clinics] =
     await Promise.all([
-      db.from("workspace_members").select("workspace_id, user_id, created_at").eq("role", "owner").in("workspace_id", wsIds).order("created_at", { ascending: true }),
-      db.from("profiles").select("user_id, full_name, email, avatar_url, role, created_at"),
-      db.from("contacts").select("workspace_id").in("workspace_id", wsIds),
-      db.from("conversations").select("workspace_id, status, created_at").in("workspace_id", wsIds),
-      db.from("channels").select("workspace_id, type, status, external_id, settings, created_at").in("workspace_id", wsIds).order("created_at"),
-      db.from("broadcasts").select("workspace_id, status, total_recipients, sent_count").in("workspace_id", wsIds),
-      db.from("automations").select("workspace_id, is_active").in("workspace_id", wsIds),
+      safe(prisma.workspace_members.findMany({ select: { workspace_id: true, user_id: true, created_at: true }, where: { role: "owner", workspace_id: { in: wsIds } }, orderBy: { created_at: "asc" } })),
+      safe(prisma.profiles.findMany({ select: { user_id: true, full_name: true, email: true, avatar_url: true, role: true, created_at: true } })),
+      safe(prisma.contacts.groupBy({ by: ["workspace_id"], where: { workspace_id: { in: wsIds } }, _count: { _all: true } })),
+      safe(prisma.conversations.groupBy({ by: ["workspace_id", "status"], where: { workspace_id: { in: wsIds } }, _count: { _all: true } })),
+      safe(prisma.channels.findMany({ select: { workspace_id: true, type: true, status: true, external_id: true, settings: true, created_at: true }, where: { workspace_id: { in: wsIds } }, orderBy: { created_at: "asc" } })),
+      safe(prisma.broadcasts.groupBy({ by: ["workspace_id"], where: { workspace_id: { in: wsIds } }, _count: { _all: true } })),
+      safe(prisma.automations.groupBy({ by: ["workspace_id"], where: { workspace_id: { in: wsIds } }, _count: { _all: true } })),
       // Business profile now lives on the workspace row itself.
       Promise.resolve({ data: workspaces.map((w: { id: string; name: string; business_type_detail?: string | null; industry: string; city?: string | null; phone?: string | null }) => ({ workspace_id: w.id, clinic_name: w.name, clinic_type: w.business_type_detail ?? w.industry, city: w.city ?? null, phone: w.phone ?? null })) }),
     ]);
@@ -74,7 +80,8 @@ export async function GET() {
     channelCount.set(ch.workspace_id, (channelCount.get(ch.workspace_id) ?? 0) + 1);
     if (ch.type !== "whatsapp") continue;
     const prev = waMap.get(ch.workspace_id);
-    if (!prev || (prev.status !== "connected" && ch.status === "connected")) waMap.set(ch.workspace_id, ch);
+    if (!prev || (prev.status !== "connected" && ch.status === "connected"))
+      waMap.set(ch.workspace_id, { ...ch, settings: (ch.settings ?? {}) as Record<string, unknown>, created_at: ch.created_at as unknown as string });
   }
   const clinicMap     = new Map((clinics.data     ?? []).map(c => [c.workspace_id, c]));
 
@@ -84,20 +91,21 @@ export async function GET() {
   const broadcastCount= new Map<string, number>();
   const autoCount     = new Map<string, number>();
 
+  // Rows are grouped per workspace (and status) with their counts.
   for (const c of (contacts.data ?? []))
-    contactCount.set(c.workspace_id, (contactCount.get(c.workspace_id) ?? 0) + 1);
+    contactCount.set(c.workspace_id, (contactCount.get(c.workspace_id) ?? 0) + c._count._all);
 
   for (const c of (conversations.data ?? [])) {
-    convCount.set(c.workspace_id, (convCount.get(c.workspace_id) ?? 0) + 1);
+    convCount.set(c.workspace_id, (convCount.get(c.workspace_id) ?? 0) + c._count._all);
     if (c.status === "open")
-      openConvCount.set(c.workspace_id, (openConvCount.get(c.workspace_id) ?? 0) + 1);
+      openConvCount.set(c.workspace_id, (openConvCount.get(c.workspace_id) ?? 0) + c._count._all);
   }
 
   for (const b of (broadcasts.data ?? []))
-    broadcastCount.set(b.workspace_id, (broadcastCount.get(b.workspace_id) ?? 0) + 1);
+    broadcastCount.set(b.workspace_id, (broadcastCount.get(b.workspace_id) ?? 0) + b._count._all);
 
   for (const a of (automations.data ?? []))
-    autoCount.set(a.workspace_id, (autoCount.get(a.workspace_id) ?? 0) + 1);
+    autoCount.set(a.workspace_id, (autoCount.get(a.workspace_id) ?? 0) + a._count._all);
 
   const clients = workspaces.map(w => {
     const ownerId = ownerMap.get(w.id) ?? w.created_by ?? null;

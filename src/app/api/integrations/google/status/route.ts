@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { hasRole } from '@/lib/workspace/constants'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getGoogleConfig } from '@/lib/integrations/google/config'
 
 /**
@@ -12,29 +11,26 @@ import { getGoogleConfig } from '@/lib/integrations/google/config'
 export async function GET() {
   const guard = await requireWorkspace()
   if (!guard.ok) return guard.response
-  const { user, workspace, role } = guard.ctx
-  const db = supabaseAdmin()
+  const { user, role, db } = guard.ctx
   const [cfg, conns, mine] = await Promise.all([
     getGoogleConfig(),
-    db
-      .from('calendar_connections')
-      .select('id, staff_id, google_email, status, last_error, last_synced_at, watch_expires_at, created_at')
-      .eq('workspace_id', workspace.id),
-    db.from('staff').select('id, name').eq('workspace_id', workspace.id).eq('member_user_id', user.id).limit(1).maybeSingle(),
+    db.calendar_connections
+      .findMany({
+        select: { id: true, staff_id: true, google_email: true, status: true, last_error: true, last_synced_at: true, watch_expires_at: true, created_at: true },
+      })
+      .catch(() => null),
+    db.staff.findFirst({ select: { id: true, name: true }, where: { member_user_id: user.id } }).catch(() => null),
   ])
-  const pending = await db
-    .from('bookings')
-    .select('staff_id', { count: 'exact', head: false })
-    .eq('workspace_id', workspace.id)
-    .eq('google_sync_state', 'error')
-    .limit(200)
+  const pending = await db.bookings
+    .findMany({ select: { staff_id: true }, where: { google_sync_state: 'error' }, take: 200 })
+    .catch(() => null)
   const errorsByStaff: Record<string, number> = {}
-  for (const r of pending.data ?? []) if (r.staff_id) errorsByStaff[r.staff_id] = (errorsByStaff[r.staff_id] ?? 0) + 1
+  for (const r of pending ?? []) if (r.staff_id) errorsByStaff[r.staff_id] = (errorsByStaff[r.staff_id] ?? 0) + 1
 
   return NextResponse.json({
     configured: !!cfg,
     can_manage_all: hasRole(role, 'admin'),
-    my_staff: mine.data ?? null,
-    connections: (conns.data ?? []).map((c) => ({ ...c, sync_errors: errorsByStaff[c.staff_id] ?? 0 })),
+    my_staff: mine ?? null,
+    connections: (conns ?? []).map((c) => ({ ...c, sync_errors: errorsByStaff[c.staff_id] ?? 0 })),
   })
 }

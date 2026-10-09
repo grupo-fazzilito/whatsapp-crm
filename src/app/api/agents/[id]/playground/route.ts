@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { isUuid } from '@/lib/workspace/constants'
 import { previewAgentTurn } from '@/lib/ai/engine'
 import { LlmUnavailableError, type ChatTurn } from '@/lib/ai/llm'
@@ -76,33 +75,33 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (!turns) return bad('turns must be a non-empty list of {role, content} ending with a user message')
   const draft = parseDraft(body.draft)
 
-  const db = supabaseAdmin()
-  const { data: agent } = await db.from('ai_agents').select('*').eq('id', id).eq('workspace_id', wsId).maybeSingle()
+  const db = guard.ctx.db
+  const agent = await db.ai_agents.findFirst({ where: { id, workspace_id: wsId } })
   if (!agent) return bad('Not found', 404)
 
   try {
-    const result = await previewAgentTurn({ workspaceId: wsId, agent: agent as AiAgentRow, turns, draft, channelType: 'webchat' })
+    const result = await previewAgentTurn({ workspaceId: wsId, agent: agent as unknown as AiAgentRow, turns, draft, channelType: 'webchat' })
 
     // Human-readable names for the ids in the draft.
     const [service, staff, shown] = await Promise.all([
-      result.draft.service_id
-        ? db.from('services').select('name').eq('id', result.draft.service_id).eq('workspace_id', wsId).maybeSingle()
-        : Promise.resolve({ data: null }),
-      result.draft.staff_id
-        ? db.from('staff').select('name').eq('id', result.draft.staff_id).eq('workspace_id', wsId).maybeSingle()
-        : Promise.resolve({ data: null }),
+      result.draft.service_id && isUuid(result.draft.service_id)
+        ? db.services.findFirst({ select: { name: true }, where: { id: result.draft.service_id, workspace_id: wsId } })
+        : Promise.resolve(null),
+      result.draft.staff_id && isUuid(result.draft.staff_id)
+        ? db.staff.findFirst({ select: { name: true }, where: { id: result.draft.staff_id, workspace_id: wsId } })
+        : Promise.resolve(null),
       // Products the agent would send as photos.
       result.showProductIds.length
-        ? db.from('products').select('id, name, images').in('id', result.showProductIds.filter(isUuid)).eq('workspace_id', wsId)
-        : Promise.resolve({ data: [] }),
+        ? db.products.findMany({ select: { id: true, name: true, images: true }, where: { id: { in: result.showProductIds.filter(isUuid) }, workspace_id: wsId } })
+        : Promise.resolve([]),
     ])
-    const byId = new Map(((shown.data ?? []) as { id: string; name: string; images: string[] | null }[]).map((p) => [p.id, p]))
+    const byId = new Map((shown as { id: string; name: string; images: string[] | null }[]).map((p) => [p.id, p]))
 
     return NextResponse.json({
       ...result,
       draftLabels: {
-        service: (service.data as { name?: string } | null)?.name ?? null,
-        staff: (staff.data as { name?: string } | null)?.name ?? null,
+        service: service?.name ?? null,
+        staff: staff?.name ?? null,
       },
       shownProducts: result.showProductIds
         .map((pid) => byId.get(pid))

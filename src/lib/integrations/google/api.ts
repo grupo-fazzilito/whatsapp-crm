@@ -1,5 +1,5 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
 import { decrypt, encrypt } from '@/lib/whatsapp/encryption'
 import { getGoogleConfig } from './config'
 import { googleEndpoints } from './endpoints'
@@ -28,6 +28,23 @@ export interface CalendarConnection {
 export const CONNECTION_COLUMNS =
   'id, workspace_id, staff_id, connected_by, google_email, calendar_id, token_expires_at, watch_channel_id, watch_resource_id, watch_expires_at, status, last_error, last_synced_at'
 
+/** Prisma `select` for the CalendarConnection columns. */
+export const CONNECTION_SELECT = {
+  id: true,
+  workspace_id: true,
+  staff_id: true,
+  connected_by: true,
+  google_email: true,
+  calendar_id: true,
+  token_expires_at: true,
+  watch_channel_id: true,
+  watch_resource_id: true,
+  watch_expires_at: true,
+  status: true,
+  last_error: true,
+  last_synced_at: true,
+} as const
+
 interface Secrets {
   access_token: string
   refresh_token: string
@@ -36,17 +53,22 @@ interface Secrets {
 }
 
 export async function loadSecrets(conn: Pick<CalendarConnection, 'id' | 'workspace_id'>): Promise<Secrets | null> {
-  const { data } = await supabaseAdmin()
-    .from('calendar_connection_secrets')
-    .select('access_token, refresh_token, sync_token, watch_token')
-    .eq('connection_id', conn.id)
-    .eq('workspace_id', conn.workspace_id)
-    .maybeSingle()
-  return (data as Secrets | null) ?? null
+  try {
+    const data = await tenantDb(conn.workspace_id).calendar_connection_secrets.findFirst({
+      select: { access_token: true, refresh_token: true, sync_token: true, watch_token: true },
+      where: { connection_id: conn.id },
+    })
+    return data ?? null
+  } catch {
+    return null
+  }
 }
 
 export async function markConnection(conn: Pick<CalendarConnection, 'id' | 'workspace_id'>, patch: Partial<CalendarConnection>) {
-  await supabaseAdmin().from('calendar_connections').update(patch).eq('id', conn.id).eq('workspace_id', conn.workspace_id)
+  // Errors were ignored with supabase-js; keep it best-effort.
+  await tenantDb(conn.workspace_id)
+    .calendar_connections.updateMany({ where: { id: conn.id }, data: patch })
+    .catch(() => undefined)
 }
 
 /** Valid access token; refreshes (and persists) when about to expire. */
@@ -61,15 +83,16 @@ export async function getAccessToken(conn: CalendarConnection, force = false): P
   try {
     const tok = await refreshAccessToken(cfg, decrypt(secrets.refresh_token))
     const expiresAt = new Date(Date.now() + (tok.expires_in ?? 3600) * 1000).toISOString()
-    const db = supabaseAdmin()
-    await db
-      .from('calendar_connection_secrets')
-      .update({
-        access_token: encrypt(tok.access_token),
-        ...(tok.refresh_token ? { refresh_token: encrypt(tok.refresh_token) } : {}),
-        updated_at: new Date().toISOString(),
+    await tenantDb(conn.workspace_id)
+      .calendar_connection_secrets.updateMany({
+        where: { connection_id: conn.id },
+        data: {
+          access_token: encrypt(tok.access_token),
+          ...(tok.refresh_token ? { refresh_token: encrypt(tok.refresh_token) } : {}),
+          updated_at: new Date().toISOString(),
+        },
       })
-      .eq('connection_id', conn.id)
+      .catch(() => undefined)
     await markConnection(conn, { token_expires_at: expiresAt, ...(conn.status === 'error' ? { status: 'active', last_error: null } : {}) })
     conn.token_expires_at = expiresAt
     return tok.access_token

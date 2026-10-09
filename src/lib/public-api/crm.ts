@@ -1,30 +1,37 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import type { Prisma } from '@/generated/prisma/client'
+import { isPrismaError } from '@/lib/db/errors'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
 import { TASK_PRIORITIES, TASK_STATUSES } from '@/lib/crm/tasks'
 import type { ApiContext } from './auth'
 import { badRequest, notFound, unprocessable } from './errors'
-import { listPage } from './list'
+import { pgError } from './db-error'
+import { keysetPage, selectOf } from './keyset'
 import { parseIsoParam } from './pagination'
 import { DEAL_SELECT, TASK_SELECT_API, serializeDeal, serializeTask } from './serializers'
 import { isIsoDateOnly, isoDateTime, isUuidLike, num, oneOf, queryEnum, queryUuid, str, uuid } from './validate'
 
 type Body = Record<string, unknown>
 const DEAL_STATUSES = ['open', 'won', 'lost'] as const
+const DEAL_FIELDS = selectOf(DEAL_SELECT)
+const TASK_FIELDS = selectOf(TASK_SELECT_API)
+type Row = Record<string, unknown> & { id: string }
 
 // ------------------------------------------------------------
 // Members & pipelines (lookups for ids)
 // ------------------------------------------------------------
 export async function listMembers(workspaceId: string) {
-  const db = supabaseAdmin()
-  const { data: members } = await db
-    .from('workspace_members')
-    .select('user_id, role, available')
-    .eq('workspace_id', workspaceId)
-    .eq('status', 'active')
+  const members = await tenantDb(workspaceId)
+    .workspace_members.findMany({ select: { user_id: true, role: true, available: true }, where: { workspace_id: workspaceId, status: 'active' } })
+    .catch(() => null)
   const ids = (members ?? []).map((m) => m.user_id as string)
-  const { data: profiles } = ids.length
-    ? await db.from('profiles').select('id, user_id, full_name, email').in('user_id', ids)
-    : { data: [] as { id: string; user_id: string; full_name: string | null; email: string }[] }
+  // profiles has no workspace_id: read with the system client, limited to the members above.
+  const profiles = ids.length
+    ? await prisma.profiles
+        .findMany({ select: { id: true, user_id: true, full_name: true, email: true }, where: { user_id: { in: ids } } })
+        .catch(() => null)
+    : []
   const byUser = new Map((profiles ?? []).map((p) => [p.user_id as string, p]))
   return {
     data: (members ?? []).map((m) => {
@@ -42,17 +49,25 @@ export async function listMembers(workspaceId: string) {
 }
 
 export async function listPipelines(workspaceId: string) {
-  const { data } = await supabaseAdmin()
-    .from('pipelines')
-    .select('id, name, key, created_at, pipeline_stages(id, name, key, position, color)')
-    .eq('workspace_id', workspaceId)
-    .order('created_at')
+  const data = await tenantDb(workspaceId)
+    .pipelines.findMany({
+      select: {
+        id: true,
+        name: true,
+        key: true,
+        created_at: true,
+        pipeline_stages: { select: { id: true, name: true, key: true, position: true, color: true } },
+      },
+      where: { workspace_id: workspaceId },
+      orderBy: { created_at: 'asc' },
+    })
+    .catch(() => null)
   return {
     data: (data ?? []).map((p) => ({
       id: p.id as string,
       name: p.name as string,
       key: (p.key as string) ?? null,
-      stages: ((p.pipeline_stages as { id: string; name: string; key: string | null; position: number; color: string }[]) ?? [])
+      stages: ((p.pipeline_stages as unknown as { id: string; name: string; key: string | null; position: number; color: string }[]) ?? [])
         .slice()
         .sort((a, b) => a.position - b.position)
         .map((s) => ({ id: s.id, name: s.name, key: s.key ?? null, position: s.position, color: s.color })),
@@ -64,24 +79,34 @@ export async function listPipelines(workspaceId: string) {
 // Deals
 // ------------------------------------------------------------
 export async function listDeals(workspaceId: string, url: URL) {
-  let q = supabaseAdmin().from('deals').select(DEAL_SELECT).eq('workspace_id', workspaceId)
+  const where: Record<string, unknown> = { workspace_id: workspaceId }
   for (const key of ['pipeline_id', 'stage_id', 'contact_id'] as const) {
     const v = queryUuid(url, key)
-    if (v) q = q.eq(key, v)
+    if (v) where[key] = v
   }
   const status = queryEnum(url, 'status', DEAL_STATUSES)
-  if (status) q = q.eq('status', status)
+  if (status) where.status = status
   const since = parseIsoParam(url.searchParams.get('updated_since'))
-  if (since) q = q.gte('updated_at', since)
-  const page = await listPage<Record<string, unknown> & { id: string }>(q, 'created_at', url)
+  if (since) where.updated_at = { gte: since }
+  const db = tenantDb(workspaceId)
+  const page = await keysetPage({
+    workspaceId,
+    table: 'deals',
+    column: 'created_at',
+    where,
+    url,
+    findMany: (args) => db.deals.findMany({ ...args, select: DEAL_FIELDS }) as unknown as Promise<Row[]>,
+  })
   return { data: page.data.map(serializeDeal), next_cursor: page.next_cursor }
 }
 
 async function dealRow(workspaceId: string, id: string) {
   if (!isUuidLike(id)) throw notFound('Deal')
-  const { data } = await supabaseAdmin().from('deals').select(DEAL_SELECT).eq('id', id).eq('workspace_id', workspaceId).maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .deals.findFirst({ select: DEAL_FIELDS, where: { id, workspace_id: workspaceId } })
+    .catch(() => null)
   if (!data) throw notFound('Deal')
-  return data as Record<string, unknown> & { id: string; pipeline_id: string; stage_id: string }
+  return data as unknown as Row & { pipeline_id: string; stage_id: string }
 }
 
 export async function getDeal(workspaceId: string, id: string) {
@@ -89,20 +114,24 @@ export async function getDeal(workspaceId: string, id: string) {
 }
 
 async function stageOf(workspaceId: string, pipelineId: string, stageId: string | null | undefined) {
-  const db = supabaseAdmin()
-  let q = db.from('pipeline_stages').select('id').eq('workspace_id', workspaceId).eq('pipeline_id', pipelineId)
-  q = stageId ? q.eq('id', stageId) : q.order('position').limit(1)
-  const { data } = await q.maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .pipeline_stages.findFirst({
+      select: { id: true },
+      where: { workspace_id: workspaceId, pipeline_id: pipelineId, ...(stageId ? { id: stageId } : {}) },
+      ...(stageId ? {} : { orderBy: { position: 'asc' as const } }),
+    })
+    .catch(() => null)
   if (!data) throw unprocessable('invalid_stage', stageId ? 'stage_id is not a stage of this pipeline.' : 'The pipeline has no stages.', { field: 'stage_id' })
   return data.id as string
 }
 
 async function checkRefs(workspaceId: string, row: Record<string, unknown>) {
-  const db = supabaseAdmin()
+  const db = tenantDb(workspaceId)
   for (const [field, table] of [['contact_id', 'contacts'], ['conversation_id', 'conversations']] as const) {
     const id = row[field] as string | null | undefined
     if (!id) continue
-    const { data } = await db.from(table).select('id').eq('id', id).eq('workspace_id', workspaceId).maybeSingle()
+    const args = { select: { id: true }, where: { id, workspace_id: workspaceId } } as const
+    const data = await (table === 'contacts' ? db.contacts.findFirst(args) : db.conversations.findFirst(args)).catch(() => null)
     if (!data) throw unprocessable('invalid_reference', `${field} doesn't belong to this workspace.`, { field })
   }
   const assigned = row.assigned_to as string | null | undefined
@@ -124,7 +153,9 @@ function readCurrencyCode(body: Body): string | undefined {
 export async function createDeal(ctx: ApiContext, body: Body) {
   const ws = ctx.workspace.id
   const pipelineId = uuid(body, 'pipeline_id', { required: true })!
-  const { data: pipeline } = await supabaseAdmin().from('pipelines').select('id').eq('id', pipelineId).eq('workspace_id', ws).maybeSingle()
+  const pipeline = await tenantDb(ws)
+    .pipelines.findFirst({ select: { id: true }, where: { id: pipelineId, workspace_id: ws } })
+    .catch(() => null)
   if (!pipeline) throw unprocessable('invalid_reference', 'pipeline_id is not a pipeline of this workspace.', { field: 'pipeline_id' })
   const row: Record<string, unknown> = {
     workspace_id: ws,
@@ -144,8 +175,7 @@ export async function createDeal(ctx: ApiContext, body: Body) {
     row.expected_close_date = close
   }
   await checkRefs(ws, row)
-  const { data, error } = await supabaseAdmin().from('deals').insert(row).select('id').single()
-  if (error || !data) throw new Error(error?.message ?? 'deal insert failed')
+  const data = await tenantDb(ws).deals.create({ data: row as Prisma.dealsUncheckedCreateInput, select: { id: true } })
   return getDeal(ws, data.id)
 }
 
@@ -183,8 +213,7 @@ export async function updateDeal(ctx: ApiContext, id: string, body: Body) {
   }
   if (!Object.keys(patch).length) throw badRequest('Nothing to update.')
   await checkRefs(ws, patch)
-  const { error } = await supabaseAdmin().from('deals').update(patch).eq('id', id).eq('workspace_id', ws)
-  if (error) throw new Error(error.message)
+  await tenantDb(ws).deals.updateMany({ where: { id, workspace_id: ws }, data: patch })
   return getDeal(ws, id)
 }
 
@@ -192,14 +221,22 @@ export async function updateDeal(ctx: ApiContext, id: string, body: Body) {
 // Tasks
 // ------------------------------------------------------------
 export async function listTasks(workspaceId: string, url: URL) {
-  let q = supabaseAdmin().from('tasks').select(TASK_SELECT_API).eq('workspace_id', workspaceId)
+  const where: Record<string, unknown> = { workspace_id: workspaceId }
   const status = queryEnum(url, 'status', TASK_STATUSES)
-  if (status) q = q.eq('status', status)
+  if (status) where.status = status
   for (const key of ['assignee_user_id', 'contact_id', 'deal_id', 'conversation_id'] as const) {
     const v = queryUuid(url, key)
-    if (v) q = q.eq(key, v)
+    if (v) where[key] = v
   }
-  const page = await listPage<Record<string, unknown> & { id: string }>(q, 'created_at', url)
+  const db = tenantDb(workspaceId)
+  const page = await keysetPage({
+    workspaceId,
+    table: 'tasks',
+    column: 'created_at',
+    where,
+    url,
+    findMany: (args) => db.tasks.findMany({ ...args, select: TASK_FIELDS }) as unknown as Promise<Row[]>,
+  })
   return { data: page.data.map(serializeTask), next_cursor: page.next_cursor }
 }
 
@@ -217,13 +254,16 @@ export async function createTask(ctx: ApiContext, body: Body) {
     deal_id: uuid(body, 'deal_id') ?? null,
     created_by: ctx.createdBy,
   }
-  const { data, error } = await supabaseAdmin().from('tasks').insert(row).select(TASK_SELECT_API).single()
-  if (error) {
+  let data: Row
+  try {
+    data = (await tenantDb(ws).tasks.create({ data: row as Prisma.tasksUncheckedCreateInput, select: TASK_FIELDS })) as unknown as Row
+  } catch (err) {
     // Same-workspace checks live in the tasks trigger (033).
-    if (error.code === '23514' || error.code === '23503') {
+    const error = pgError(err)
+    if (error.code === '23514' || error.code === '23503' || isPrismaError(err, 'P2003')) {
       throw unprocessable('invalid_reference', error.message.includes('assignee') ? 'assignee_user_id is not an active member.' : 'A linked contact, conversation or deal is not in this workspace.')
     }
-    throw new Error(error.message)
+    throw err
   }
   return serializeTask(data)
 }

@@ -1,51 +1,86 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
 import { markOrderPaid, updateOrderStatus } from '@/lib/orders/service'
 import { createManualOrder } from '@/lib/orders/manual'
 import type { Fulfillment, OrderStatus } from '@/lib/orders/texts'
 import type { ApiContext } from './auth'
 import { ApiError, badRequest, notFound, unprocessable } from './errors'
-import { listPage } from './list'
+import { keysetPage } from './keyset'
 import { parseIsoParam } from './pagination'
-import { ORDER_SELECT, serializeOrder } from './serializers'
+import { serializeOrder } from './serializers'
 import { bool, isUuidLike, oneOf, queryEnum, queryUuid, str, uuid } from './validate'
 
 export const ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'shipped', 'delivered', 'cancelled'] as const
 const PAYMENT_STATUSES = ['unpaid', 'awaiting_proof', 'proof_received', 'paid', 'refunded'] as const
 
+// ORDER_SELECT (serializers.ts) as a Prisma select.
+const ORDER_FIELDS = {
+  id: true,
+  number: true,
+  status: true,
+  payment_status: true,
+  fulfillment: true,
+  contact_id: true,
+  conversation_id: true,
+  customer_name: true,
+  customer_phone: true,
+  address: true,
+  address_reference: true,
+  notes: true,
+  currency: true,
+  subtotal: true,
+  delivery_fee: true,
+  discount: true,
+  total: true,
+  payment_method_name: true,
+  paid_at: true,
+  source: true,
+  created_at: true,
+  updated_at: true,
+  order_items: {
+    select: { id: true, product_id: true, variant_id: true, name: true, sku: true, quantity: true, unit_price: true, total: true, sort_order: true },
+  },
+} as const
+
 export async function listOrders(workspaceId: string, url: URL) {
-  let q = supabaseAdmin().from('orders').select(ORDER_SELECT).eq('workspace_id', workspaceId)
+  const where: Record<string, unknown> = { workspace_id: workspaceId }
   const status = queryEnum(url, 'status', ORDER_STATUSES)
-  if (status) q = q.eq('status', status)
+  if (status) where.status = status
   const payment = queryEnum(url, 'payment_status', PAYMENT_STATUSES)
-  if (payment) q = q.eq('payment_status', payment)
+  if (payment) where.payment_status = payment
   const contactId = queryUuid(url, 'contact_id')
-  if (contactId) q = q.eq('contact_id', contactId)
+  if (contactId) where.contact_id = contactId
   const since = parseIsoParam(url.searchParams.get('updated_since'))
-  if (since) q = q.gte('updated_at', since)
   const createdSince = parseIsoParam(url.searchParams.get('created_since'))
-  if (createdSince) q = q.gte('created_at', createdSince)
-  const page = await listPage<Record<string, unknown> & { id: string }>(q, 'created_at', url)
+  if (since) where.updated_at = { gte: since }
+  if (createdSince) where.created_at = { gte: createdSince }
+  const db = tenantDb(workspaceId)
+  const page = await keysetPage({
+    workspaceId,
+    table: 'orders',
+    column: 'created_at',
+    where,
+    url,
+    findMany: (args) => db.orders.findMany({ ...args, select: ORDER_FIELDS }) as unknown as Promise<(Record<string, unknown> & { id: string })[]>,
+  })
   return { data: page.data.map(serializeOrder), next_cursor: page.next_cursor }
 }
 
 export async function getOrder(workspaceId: string, id: string) {
   if (!isUuidLike(id)) throw notFound('Order')
-  const { data } = await supabaseAdmin().from('orders').select(ORDER_SELECT).eq('id', id).eq('workspace_id', workspaceId).maybeSingle()
+  const data = await tenantDb(workspaceId)
+    .orders.findFirst({ select: ORDER_FIELDS, where: { id, workspace_id: workspaceId } })
+    .catch(() => null)
   if (!data) throw notFound('Order')
-  return serializeOrder(data)
+  return serializeOrder(data as unknown as Record<string, unknown>)
 }
 
 /** The key's creator, or the workspace owner when that user is gone. */
 export async function actorUserId(ctx: ApiContext): Promise<string> {
   if (ctx.createdBy) return ctx.createdBy
-  const { data } = await supabaseAdmin()
-    .from('workspace_members')
-    .select('user_id')
-    .eq('workspace_id', ctx.workspace.id)
-    .eq('role', 'owner')
-    .limit(1)
-    .maybeSingle()
+  const data = await tenantDb(ctx.workspace.id)
+    .workspace_members.findFirst({ select: { user_id: true }, where: { workspace_id: ctx.workspace.id, role: 'owner' } })
+    .catch(() => null)
   if (!data) throw new Error('workspace has no owner')
   return data.user_id as string
 }

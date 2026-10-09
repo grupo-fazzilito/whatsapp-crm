@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/flows/admin-client'
 import { validateFlowForActivation } from '@/lib/flows/validate'
 
 /**
@@ -25,7 +24,7 @@ export async function POST(
 
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
-  const { supabase, workspace } = guard.ctx
+  const { db, workspace } = guard.ctx
 
   const body = (await request.json().catch(() => null)) as
     | { status?: 'draft' | 'active' | 'archived' }
@@ -38,51 +37,45 @@ export async function POST(
     )
   }
 
-  // Ownership via RLS — caller's client, scoped to the active workspace.
-  const { data: existing } = await supabase
-    .from('flows')
-    .select('id')
-    .eq('id', id)
-    .eq('workspace_id', workspace.id)
-    .maybeSingle()
+  // Ownership — tenant client, scoped to the active workspace.
+  const existing = await db.flows
+    .findFirst({ select: { id: true }, where: { id, workspace_id: workspace.id } })
+    .catch(() => null)
   if (!existing) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  const admin = supabaseAdmin()
-
   if (status === 'active') {
     // Re-load with the full payload the validator needs.
-    const [{ data: flow }, { data: nodes }, { data: agents }] = await Promise.all([
-      admin
-        .from('flows')
-        .select('name, trigger_type, trigger_config, entry_node_id')
-        .eq('id', id)
-        .eq('workspace_id', workspace.id)
-        .maybeSingle(),
-      admin
-        .from('flow_nodes')
-        .select('node_key, node_type, config')
-        .eq('flow_id', id)
-        .eq('workspace_id', workspace.id),
+    const [flow, nodes, agents] = await Promise.all([
+      db.flows
+        .findFirst({
+          select: { name: true, trigger_type: true, trigger_config: true, entry_node_id: true },
+          where: { id, workspace_id: workspace.id },
+        })
+        .catch(() => null),
+      db.flow_nodes
+        .findMany({
+          select: { node_key: true, node_type: true, config: true },
+          where: { flow_id: id, workspace_id: workspace.id },
+        })
+        .catch(() => null),
       // handoff_ai_agent nodes must point at an enabled agent of this workspace.
-      admin
-        .from('ai_agents')
-        .select('id')
-        .eq('workspace_id', workspace.id)
-        .eq('enabled', true),
+      db.ai_agents
+        .findMany({ select: { id: true }, where: { workspace_id: workspace.id, enabled: true } })
+        .catch(() => null),
     ])
     if (!flow) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
     const issues = validateFlowForActivation(
-      flow as {
+      flow as unknown as {
         name: string
         trigger_type: 'keyword' | 'first_inbound_message' | 'manual'
         trigger_config: Record<string, unknown>
         entry_node_id: string | null
       },
-      (nodes ?? []) as Array<{
+      (nodes ?? []) as unknown as Array<{
         node_key: string
         node_type: string
         config: Record<string, unknown>
@@ -101,15 +94,19 @@ export async function POST(
     }
   }
 
-  const { data: updated, error } = await admin
-    .from('flows')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('workspace_id', workspace.id)
-    .select()
-    .maybeSingle()
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  let updated
+  try {
+    const rows = await db.flows.updateManyAndReturn({
+      where: { id, workspace_id: workspace.id },
+      data: { status, updated_at: new Date().toISOString() },
+    })
+    updated = rows[0] ?? null
+  } catch (error) {
+    return NextResponse.json({ error: errMessage(error) }, { status: 500 })
   }
   return NextResponse.json({ flow: updated })
+}
+
+function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }

@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { hasRole, isUuid } from '@/lib/workspace/constants'
 import { newInviteToken } from '@/lib/workspace/invitations'
 import { sendEmail } from '@/lib/email/send'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const INVITATION_COLUMNS = { id: true, workspace_id: true, email: true, role: true, expires_at: true, accepted_at: true, created_at: true } as const
 
 export async function GET() {
   const g = await requireWorkspace('admin')
   if (!g.ok) return g.response
-  const { data, error } = await supabaseAdmin()
-    .from('workspace_invitations')
-    .select('id, workspace_id, email, role, expires_at, accepted_at, created_at')
-    .eq('workspace_id', g.ctx.workspace.id)
-    .is('accepted_at', null)
-    .order('created_at', { ascending: false })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ invitations: data ?? [] })
+  try {
+    const data = await g.ctx.db.workspace_invitations.findMany({
+      where: { accepted_at: null },
+      select: INVITATION_COLUMNS,
+      orderBy: { created_at: 'desc' },
+    })
+    return NextResponse.json({ invitations: data })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+  }
 }
 
 // POST {email, role} — creates (or refreshes) an invitation and emails the link.
@@ -32,33 +35,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Only owners can invite admins' }, { status: 403 })
   }
 
-  const db = supabaseAdmin()
-  const { data: existingProfile } = await db.from('profiles').select('user_id').ilike('email', email).maybeSingle()
+  const db = g.ctx.db
+  // Platform client: profiles are not per workspace.
+  const existingProfile = await prisma.profiles
+    .findFirst({ where: { email: { equals: email, mode: 'insensitive' } }, select: { user_id: true } })
+    .catch(() => null)
   if (existingProfile) {
-    const { data: already } = await db
-      .from('workspace_members')
-      .select('id')
-      .eq('workspace_id', g.ctx.workspace.id)
-      .eq('user_id', existingProfile.user_id)
-      .maybeSingle()
+    const already = await db.workspace_members
+      .findFirst({ where: { user_id: existingProfile.user_id }, select: { id: true } })
+      .catch(() => null)
     if (already) return NextResponse.json({ error: 'Already a member' }, { status: 400 })
   }
 
   // One pending invitation per email.
-  await db
-    .from('workspace_invitations')
-    .delete()
-    .eq('workspace_id', g.ctx.workspace.id)
-    .ilike('email', email)
-    .is('accepted_at', null)
+  await db.workspace_invitations
+    .deleteMany({ where: { email: { equals: email, mode: 'insensitive' }, accepted_at: null } })
+    .catch((err) => console.error('[invitations] cleanup failed:', err instanceof Error ? err.message : String(err)))
 
   const { token, hash } = newInviteToken()
-  const { data: inv, error } = await db
-    .from('workspace_invitations')
-    .insert({ workspace_id: g.ctx.workspace.id, email, role, token_hash: hash, invited_by: g.ctx.user.id })
-    .select('id, workspace_id, email, role, expires_at, accepted_at, created_at')
-    .single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  let inv
+  try {
+    inv = await db.workspace_invitations.create({
+      data: { workspace_id: g.ctx.workspace.id, email, role, token_hash: hash, invited_by: g.ctx.user.id },
+      select: INVITATION_COLUMNS,
+    })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+  }
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin
   const link = `${origin}/invite/${token}`
@@ -86,11 +89,10 @@ export async function DELETE(req: NextRequest) {
   if (!g.ok) return g.response
   const id = req.nextUrl.searchParams.get('id')
   if (!isUuid(id)) return NextResponse.json({ error: 'Invalid invitation' }, { status: 400 })
-  const { error } = await supabaseAdmin()
-    .from('workspace_invitations')
-    .delete()
-    .eq('id', id)
-    .eq('workspace_id', g.ctx.workspace.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  try {
+    await g.ctx.db.workspace_invitations.deleteMany({ where: { id } })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+  }
   return NextResponse.json({ ok: true })
 }

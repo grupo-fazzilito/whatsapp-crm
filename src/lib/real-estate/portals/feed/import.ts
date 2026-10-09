@@ -1,5 +1,5 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
 import { productAttributesFor } from '@/lib/catalog/attributes'
 import { FetchBlockedError, decodeText, safeFetch } from '../net'
 import { finishRun, loadWorkspace, portalDevFlags, startRun, writeListings, type ImportSummary, type RunTrigger } from '../sync'
@@ -107,7 +107,9 @@ export async function importFeed(feed: FeedRow, opts: { trigger: RunTrigger; use
     feedSource(feed.id),
     feed.deactivate_missing,
   )
-  await supabaseAdmin().from('portal_feeds').update({ last_run_at: new Date().toISOString() }).eq('id', feed.id)
+  await tenantDb(feed.workspace_id)
+    .portal_feeds.updateMany({ where: { id: feed.id }, data: { last_run_at: new Date().toISOString() } })
+    .catch(() => undefined)
   return result
 }
 

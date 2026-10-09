@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getMlConfig } from '@/lib/real-estate/portals/mercadolibre/config'
 import { getMlConnection } from '@/lib/real-estate/portals/mercadolibre/connection'
 import { requirePortalsAdmin } from './_lib/guard'
@@ -13,14 +12,53 @@ export async function GET() {
   const guard = await requirePortalsAdmin()
   if (!guard.ok) return guard.response
   const ws = guard.ctx.workspace
-  const db = supabaseAdmin()
+  const db = guard.ctx.db
 
   const [cfg, conn, feeds, runs, imported] = await Promise.all([
     getMlConfig(),
     getMlConnection(ws.id),
-    db.from('portal_feeds').select('id, name, portal, url, format, mapping, item_path, schedule, deactivate_missing, last_run_at, created_at').eq('workspace_id', ws.id).order('created_at'),
-    db.from('portal_import_runs').select('id, source, feed_id, trigger, status, total, created, updated, deactivated, failed, errors, notes, error, started_at, finished_at').eq('workspace_id', ws.id).order('started_at', { ascending: false }).limit(15),
-    db.from('products').select('id', { count: 'exact', head: true }).eq('workspace_id', ws.id).not('external_source', 'is', null),
+    db.portal_feeds
+      .findMany({
+        select: {
+          id: true,
+          name: true,
+          portal: true,
+          url: true,
+          format: true,
+          mapping: true,
+          item_path: true,
+          schedule: true,
+          deactivate_missing: true,
+          last_run_at: true,
+          created_at: true,
+        },
+        orderBy: { created_at: 'asc' },
+      })
+      .catch(() => null),
+    db.portal_import_runs
+      .findMany({
+        select: {
+          id: true,
+          source: true,
+          feed_id: true,
+          trigger: true,
+          status: true,
+          total: true,
+          created: true,
+          updated: true,
+          deactivated: true,
+          failed: true,
+          errors: true,
+          notes: true,
+          error: true,
+          started_at: true,
+          finished_at: true,
+        },
+        orderBy: { started_at: 'desc' },
+        take: 15,
+      })
+      .catch(() => null),
+    db.products.count({ where: { external_source: { not: null } } }).catch(() => null),
   ])
 
   return NextResponse.json({
@@ -40,8 +78,8 @@ export async function GET() {
           }
         : null,
     },
-    feeds: feeds.data ?? [],
-    runs: runs.data ?? [],
-    imported: imported.count ?? 0,
+    feeds: feeds ?? [],
+    runs: runs ?? [],
+    imported: imported ?? 0,
   })
 }

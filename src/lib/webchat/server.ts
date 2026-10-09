@@ -1,7 +1,8 @@
 import 'server-only'
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto'
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
 import type { ChannelRow, LoadedChannel } from '@/lib/channels'
 
 // ------------------------------------------------------------
@@ -83,6 +84,8 @@ export function settingsOf(channel: ChannelRow): WebchatSettings {
   return (channel.settings ?? {}) as WebchatSettings
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 // Web chat has no provider credentials, so secrets are always empty.
 function asLoaded(row: ChannelRow | null): LoadedChannel | null {
   return row ? { ...row, secrets: {} } : null
@@ -90,23 +93,16 @@ function asLoaded(row: ChannelRow | null): LoadedChannel | null {
 
 export async function webchatChannelByKey(key: unknown): Promise<LoadedChannel | null> {
   if (typeof key !== 'string' || !/^[A-Za-z0-9_-]{4,128}$/.test(key)) return null
-  const { data } = await supabaseAdmin()
-    .from('channels')
-    .select('*')
-    .eq('type', 'webchat')
-    .eq('external_id', key)
-    .maybeSingle()
-  return asLoaded(data as ChannelRow | null)
+  // Platform lookup: the workspace is only known once the channel is found.
+  const data = await prisma.channels.findFirst({ where: { type: 'webchat', external_id: key } })
+  return asLoaded(data as unknown as ChannelRow | null)
 }
 
 export async function webchatChannelById(id: string): Promise<LoadedChannel | null> {
-  const { data } = await supabaseAdmin()
-    .from('channels')
-    .select('*')
-    .eq('type', 'webchat')
-    .eq('id', id)
-    .maybeSingle()
-  return asLoaded(data as ChannelRow | null)
+  if (!UUID.test(id)) return null
+  // Platform lookup: the id comes from a signed visitor token.
+  const data = await prisma.channels.findFirst({ where: { type: 'webchat', id } })
+  return asLoaded(data as unknown as ChannelRow | null)
 }
 
 /**
@@ -205,28 +201,21 @@ export function clientIp(req: Request): string {
 // Visitor conversation & messages
 // ------------------------------------------------------------
 export async function visitorContactId(channel: ChannelRow, visitorId: string): Promise<string | null> {
-  const { data } = await supabaseAdmin()
-    .from('contact_identities')
-    .select('contact_id')
-    .eq('workspace_id', channel.workspace_id)
-    .eq('channel_type', 'webchat')
-    .eq('external_id', visitorId)
-    .maybeSingle()
+  const data = await tenantDb(channel.workspace_id).contact_identities.findFirst({
+    select: { contact_id: true },
+    where: { workspace_id: channel.workspace_id, channel_type: 'webchat', external_id: visitorId },
+  })
   return data?.contact_id ?? null
 }
 
 export async function visitorConversationId(channel: ChannelRow, visitorId: string): Promise<string | null> {
   const contactId = await visitorContactId(channel, visitorId)
   if (!contactId) return null
-  const { data } = await supabaseAdmin()
-    .from('conversations')
-    .select('id')
-    .eq('workspace_id', channel.workspace_id)
-    .eq('channel_id', channel.id)
-    .eq('contact_id', contactId)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle()
+  const data = await tenantDb(channel.workspace_id).conversations.findFirst({
+    select: { id: true },
+    where: { workspace_id: channel.workspace_id, channel_id: channel.id, contact_id: contactId },
+    orderBy: { created_at: 'asc' },
+  })
   return data?.id ?? null
 }
 
@@ -299,24 +288,32 @@ export async function visitorMessages(
   after: string | null,
   limit = 100,
 ): Promise<PublicMessage[]> {
-  let q = supabaseAdmin()
-    .from('messages')
-    .select('id, sender_type, content_type, content_text, media_url, metadata, created_at, status, is_internal')
-    .eq('workspace_id', channel.workspace_id)
-    .eq('conversation_id', conversationId)
-    .in('sender_type', ['customer', 'agent', 'bot'])
-    .neq('content_type', 'system')
-    .neq('status', 'failed')
+  const db = tenantDb(channel.workspace_id)
+  const select = {
+    id: true, sender_type: true, content_type: true, content_text: true, media_url: true,
+    metadata: true, created_at: true, status: true, is_internal: true,
+  } as const
+  const where = {
+    workspace_id: channel.workspace_id,
+    conversation_id: conversationId,
+    sender_type: { in: ['customer', 'agent', 'bot'] },
+    content_type: { not: 'system' },
+    status: { not: 'failed' },
     // Internal notes are team-only: never shown to the visitor.
-    .eq('is_internal', false)
+    is_internal: false,
+  }
   const afterMs = after ? Date.parse(after) : NaN
   if (!Number.isNaN(afterMs)) {
-    q = q.gt('created_at', new Date(afterMs - CURSOR_OVERLAP_MS).toISOString()).order('created_at', { ascending: true })
-    const { data } = await q.limit(limit)
-    return (data ?? []).filter(isVisible).map(publicMessage)
+    const data = await db.messages.findMany({
+      select,
+      where: { ...where, created_at: { gt: new Date(afterMs - CURSOR_OVERLAP_MS).toISOString() } },
+      orderBy: { created_at: 'asc' },
+      take: limit,
+    })
+    return (data as Record<string, unknown>[]).filter(isVisible).map(publicMessage)
   }
-  const { data } = await q.order('created_at', { ascending: false }).limit(limit)
-  return (data ?? []).filter(isVisible).reverse().map(publicMessage)
+  const data = await db.messages.findMany({ select, where, orderBy: { created_at: 'desc' }, take: limit })
+  return (data as Record<string, unknown>[]).filter(isVisible).reverse().map(publicMessage)
 }
 
 function isVisible(row: Record<string, unknown>): boolean {

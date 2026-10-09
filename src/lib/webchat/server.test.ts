@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
+// Pure helpers only: no database client needed.
+vi.mock('@/lib/db/prisma', () => ({ prisma: {} }))
+vi.mock('@/lib/db/tenant', () => ({ tenantDb: () => ({}) }))
 
 import { originAllowed, publicMessage, signVisitorToken, verifyVisitorToken } from './server'
 import type { ChannelRow } from '@/lib/channels'

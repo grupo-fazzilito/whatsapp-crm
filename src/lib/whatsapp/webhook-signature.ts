@@ -145,15 +145,20 @@ export const loadChannelAppSecrets: ChannelSecretLoader = async (type, externalI
     } else missing.push(id)
   }
   if (missing.length) {
-    const [{ supabaseAdmin }, { decrypt }] = await Promise.all([import('@/lib/supabase/admin'), import('./encryption')])
-    const { data } = await supabaseAdmin()
-      .from('channels')
-      .select('external_id, channel_secrets(secrets)')
-      .eq('type', type)
-      .in('external_id', missing)
+    // Platform lookup (the workspace is unknown until the signature is trusted).
+    const [{ prisma }, { decrypt }] = await Promise.all([import('@/lib/db/prisma'), import('./encryption')])
+    let data: { external_id: string; channel_secrets: { secrets: unknown } | null }[] = []
+    try {
+      data = await prisma.channels.findMany({
+        where: { type, external_id: { in: missing } },
+        select: { external_id: true, channel_secrets: { select: { secrets: true } } },
+      })
+    } catch {
+      data = []
+    }
     const found = new Map<string, string | null>()
-    for (const row of (data ?? []) as { external_id: string; channel_secrets: { secrets: Record<string, string> } | { secrets: Record<string, string> }[] | null }[]) {
-      const cs = Array.isArray(row.channel_secrets) ? row.channel_secrets[0] : row.channel_secrets
+    for (const row of data) {
+      const cs = row.channel_secrets as { secrets?: Record<string, string> } | null
       const enc = cs?.secrets?.app_secret
       let secret: string | null = null
       if (enc) {

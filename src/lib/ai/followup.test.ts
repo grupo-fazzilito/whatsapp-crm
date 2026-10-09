@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-vi.mock('@/lib/supabase/admin', () => ({ supabaseAdmin: vi.fn() }))
+vi.mock('@/lib/db/prisma', () => ({ prisma: {} }))
+vi.mock('@/lib/db/tenant', () => ({ tenantDb: vi.fn() }))
 vi.mock('./llm', async (orig) => ({ ...(await orig<typeof import('./llm')>()), completeJson: vi.fn() }))
 
 import { completeJson, LlmUnavailableError } from './llm'

@@ -1,5 +1,6 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import type { Prisma } from '@/generated/prisma/client'
+import { tenantDb } from '@/lib/db/tenant'
 import { getAdapter, ChannelSendError, type LoadedChannel, type OutboundContent } from '@/lib/channels'
 import { locationText } from '@/lib/channels/types'
 import { defaultChannel, loadChannel } from '@/lib/channels/store'
@@ -65,19 +66,15 @@ function dbContentType(content: OutboundContent): string {
  * type, falling back to the phone number for WhatsApp.
  */
 async function resolveRecipient(channel: LoadedChannel, contactId: string): Promise<string | null> {
-  const db = supabaseAdmin()
-  const { data: identity } = await db
-    .from('contact_identities')
-    .select('external_id')
-    .eq('workspace_id', channel.workspace_id)
-    .eq('contact_id', contactId)
-    .eq('channel_type', channel.type)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const db = tenantDb(channel.workspace_id)
+  const identity = await db.contact_identities.findFirst({
+    where: { contact_id: contactId, channel_type: channel.type },
+    select: { external_id: true },
+    orderBy: { created_at: 'desc' },
+  })
   if (identity?.external_id) return identity.external_id
   if (channel.type === 'whatsapp') {
-    const { data: contact } = await db.from('contacts').select('phone').eq('id', contactId).maybeSingle()
+    const contact = await db.contacts.findFirst({ where: { id: contactId }, select: { phone: true } })
     return contact?.phone ?? null
   }
   return null
@@ -90,16 +87,13 @@ async function resolveRecipient(channel: LoadedChannel, contactId: string): Prom
  * shows them) and reported in the result instead of thrown.
  */
 export async function sendMessage(input: SendMessageInput): Promise<SendMessageResult> {
-  const db = supabaseAdmin()
   const { workspaceId, conversationId, content, sender } = input
+  const db = tenantDb(workspaceId)
 
-  const { data: conversation, error: convErr } = await db
-    .from('conversations')
-    .select('id, contact_id, channel_id')
-    .eq('id', conversationId)
-    .eq('workspace_id', workspaceId)
-    .maybeSingle()
-  if (convErr || !conversation) throw new Error('Conversation not found')
+  const conversation = await db.conversations
+    .findFirst({ where: { id: conversationId }, select: { id: true, contact_id: true, channel_id: true } })
+    .catch(() => null)
+  if (!conversation) throw new Error('Conversation not found')
 
   const channel = conversation.channel_id
     ? await loadChannel(workspaceId, conversation.channel_id)
@@ -107,12 +101,9 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
 
   let replyToExternalId: string | null = null
   if (input.replyToMessageId) {
-    const { data: parent } = await db
-      .from('messages')
-      .select('message_id')
-      .eq('id', input.replyToMessageId)
-      .eq('conversation_id', conversationId)
-      .maybeSingle()
+    const parent = await db.messages
+      .findFirst({ where: { id: input.replyToMessageId, conversation_id: conversationId }, select: { message_id: true } })
+      .catch(() => null)
     replyToExternalId = parent?.message_id ?? null
   }
 
@@ -137,9 +128,9 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
 
   const now = new Date().toISOString()
   const preview = contentPreview(content)
-  const { data: row, error: insErr } = await db
-    .from('messages')
-    .insert({
+  const row = await db.messages.create({
+    select: { id: true },
+    data: {
       workspace_id: workspaceId,
       conversation_id: conversationId,
       sender_type: sender.type,
@@ -161,26 +152,24 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
           ? { location: { latitude: content.latitude, longitude: content.longitude, name: content.name ?? null, address: content.address ?? null } }
           : {}),
         ...(error ? { error } : {}),
-      },
-    })
-    .select('id')
-    .single()
-  if (insErr) throw insErr
+      } as Prisma.InputJsonObject,
+    },
+  })
 
   if (status !== 'failed') {
-    await db
-      .from('conversations')
-      .update({ last_message_text: preview, last_message_at: now, updated_at: now })
-      .eq('id', conversationId)
+    await db.conversations
+      .updateMany({ where: { id: conversationId }, data: { last_message_text: preview, last_message_at: now, updated_at: now } })
+      .catch(() => {})
 
     // WhatsApp may have accepted a different variant of the number;
     // remember it so the next send goes straight through.
     if (channel?.type === 'whatsapp' && usedRecipient) {
-      await db
-        .from('contacts')
-        .update({ phone: `+${usedRecipient}` })
-        .eq('id', conversation.contact_id)
-        .neq('phone', `+${usedRecipient}`)
+      await db.contacts
+        .updateMany({
+          where: { id: conversation.contact_id, phone: { not: `+${usedRecipient}` } },
+          data: { phone: `+${usedRecipient}` },
+        })
+        .catch(() => {})
     }
 
     // "Seguimientos": we spoke last — (re)arm the no_reply automations.
@@ -210,15 +199,13 @@ export async function sendReaction(input: {
   messageId: string
   emoji: string
 }): Promise<void> {
-  const db = supabaseAdmin()
-  const { data: msg } = await db
-    .from('messages')
-    .select('message_id, conversation:conversations(contact_id, channel_id)')
-    .eq('id', input.messageId)
-    .eq('conversation_id', input.conversationId)
-    .eq('workspace_id', input.workspaceId)
-    .maybeSingle()
-  const conv = msg?.conversation as unknown as { contact_id: string; channel_id: string | null } | null
+  const msg = await tenantDb(input.workspaceId)
+    .messages.findFirst({
+      where: { id: input.messageId, conversation_id: input.conversationId },
+      select: { message_id: true, conversations: { select: { contact_id: true, channel_id: true } } },
+    })
+    .catch(() => null)
+  const conv = msg?.conversations ?? null
   if (!msg?.message_id || !conv) return
   const channel = conv.channel_id
     ? await loadChannel(input.workspaceId, conv.channel_id)

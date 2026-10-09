@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { isPlatformAdmin } from '@/lib/admin/guard'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
 
 /**
  * GET /api/admin/billing → per-workspace credits and this month's sales vs.
@@ -8,20 +8,34 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
  */
 export async function GET() {
   if (!(await isPlatformAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const db = supabaseAdmin()
+  // Platform client: totals across every workspace for the superadmin.
+  const db = prisma
   const monthStart = new Date()
   monthStart.setUTCDate(1)
   monthStart.setUTCHours(0, 0, 0, 0)
-  const since = monthStart.toISOString()
-  const now = new Date().toISOString()
+  const since = monthStart
+  const now = new Date()
 
+  // A failed query reads as no rows, as before.
+  const safe = <T,>(p: Promise<T[]>) => p.then((data) => ({ data }), (err) => {
+    console.error('[admin/billing] query failed:', err instanceof Error ? err.message : err)
+    return { data: null as T[] | null }
+  })
   const [workspaces, lots, paidMonth, usageMonth, costMonth, payments] = await Promise.all([
-    db.from('workspaces').select('id, name, industry, created_at').order('created_at', { ascending: false }).limit(500),
-    db.from('credit_lots').select('workspace_id, credits_remaining').gt('credits_remaining', 0).gt('expires_at', now).limit(20000),
-    db.from('billing_payments').select('workspace_id, amount').eq('status', 'paid').gte('paid_at', since).limit(20000),
-    db.from('credit_ledger').select('workspace_id, credits').eq('kind', 'usage').gte('created_at', since).limit(50000),
-    db.from('ai_usage').select('workspace_id, cost_usd').gte('created_at', since).limit(100000),
-    db.from('billing_payments').select('id, workspace_id, amount, credits, status, provider_order_id, paid_at, error, created_at, workspace:workspaces(name)').order('created_at', { ascending: false }).limit(50),
+    safe(db.workspaces.findMany({ select: { id: true, name: true, industry: true, created_at: true }, orderBy: { created_at: 'desc' }, take: 500 })),
+    safe(db.credit_lots.findMany({ select: { workspace_id: true, credits_remaining: true }, where: { credits_remaining: { gt: 0 }, expires_at: { gt: now } }, take: 20000 })),
+    safe(db.billing_payments.findMany({ select: { workspace_id: true, amount: true }, where: { status: 'paid', paid_at: { gte: since } }, take: 20000 })),
+    safe(db.credit_ledger.findMany({ select: { workspace_id: true, credits: true }, where: { kind: 'usage', created_at: { gte: since } }, take: 50000 })),
+    safe(db.ai_usage.findMany({ select: { workspace_id: true, cost_usd: true }, where: { created_at: { gte: since } }, take: 100000 })),
+    safe(
+      db.billing_payments
+        .findMany({
+          select: { id: true, workspace_id: true, amount: true, credits: true, status: true, provider_order_id: true, paid_at: true, error: true, created_at: true, workspaces: { select: { name: true } } },
+          orderBy: { created_at: 'desc' },
+          take: 50,
+        })
+        .then((list) => list.map(({ workspaces: workspace, ...p }) => ({ ...p, workspace }))),
+    ),
   ])
 
   const sum = <T,>(rows: T[] | null, key: (r: T) => string, val: (r: T) => number) => {

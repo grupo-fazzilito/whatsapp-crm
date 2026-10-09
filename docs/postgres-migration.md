@@ -20,7 +20,7 @@ Supabase, validado en local antes de desplegar.
 ## Fases (cada una deja la app funcionando y verificada)
 
 - [x] **P0 Base**: Postgres local sin Supabase (`docker-compose.postgres.yml`), Prisma configurado, `schema.prisma` introspectado, cliente con guardia de workspace, scripts.
-- [ ] **P1 Servidor → Prisma**: `src/lib/**` y `src/app/api/**` dejan `supabaseAdmin()`/`createClient()` por Prisma, módulo por módulo. Mientras tanto Prisma apunta a la BD local de Supabase (mismo esquema `public`), así la app sigue funcionando con el login actual; no usar la relación `users` hasta P3.
+- [x] **P1 Servidor → Prisma**: `src/lib/**` y `src/app/api/**` dejan `supabaseAdmin()`/`createClient()` por Prisma, módulo por módulo. Mientras tanto Prisma apunta a la BD local de Supabase (mismo esquema `public`), así la app sigue funcionando con el login actual; no usar la relación `users` hasta P3.
 - [ ] **P2 Navegador → API**: los 77 componentes que consultan directo pasan a rutas de API / Server Actions.
 - [ ] **P3 Login**: Better Auth; tabla `users` propia reemplaza `auth.users` (FKs, triggers de alta de workspace, superadmin, invitaciones, OTP); script de migración de usuarios.
 - [ ] **P4 Archivos**: driver S3 (y disco local para desarrollo); script que copia los archivos existentes.

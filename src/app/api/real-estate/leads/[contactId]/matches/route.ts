@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { isUuid } from '@/lib/workspace/constants'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getLeadProfile } from '@/lib/real-estate/leads/service'
 import { leadMatches, loadProperty, sendProperties } from '@/lib/real-estate/leads/properties'
 import { propertyCurrency } from '@/lib/real-estate/leads/match'
@@ -18,10 +17,10 @@ import { createTranslator } from '@/i18n/translate'
 export async function GET(_req: Request, { params }: { params: Promise<{ contactId: string }> }) {
   const guard = await requireWorkspace('agent')
   if (!guard.ok) return guard.response
-  const { supabase, workspace } = guard.ctx
+  const { db, workspace } = guard.ctx
   const { contactId } = await params
   if (!isUuid(contactId)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
-  const { data: contact } = await supabase.from('contacts').select('id').eq('id', contactId).eq('workspace_id', workspace.id).maybeSingle()
+  const contact = await db.contacts.findFirst({ select: { id: true }, where: { id: contactId } }).catch(() => null)
   if (!contact) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const matches = await leadMatches(workspace.id, contactId)
@@ -42,7 +41,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ contact
 export async function POST(request: Request, { params }: { params: Promise<{ contactId: string }> }) {
   const guard = await requireWorkspace('agent')
   if (!guard.ok) return guard.response
-  const { workspace, user } = guard.ctx
+  const { workspace, user, db } = guard.ctx
   const { contactId } = await params
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
   const productId = typeof body?.product_id === 'string' ? body.product_id : ''
@@ -50,13 +49,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ con
   if (!isUuid(contactId) || !isUuid(productId) || !isUuid(conversationId)) {
     return NextResponse.json({ error: 'product_id and conversation_id are required' }, { status: 400 })
   }
-  const { data: conv } = await supabaseAdmin()
-    .from('conversations')
-    .select('id')
-    .eq('id', conversationId)
-    .eq('workspace_id', workspace.id)
-    .eq('contact_id', contactId)
-    .maybeSingle()
+  const conv = await db.conversations.findFirst({ select: { id: true }, where: { id: conversationId, contact_id: contactId } }).catch(() => null)
   if (!conv) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   const product = await loadProperty(workspace.id, productId)
   if (!product || !product.is_active) return NextResponse.json({ error: 'not_available' }, { status: 409 })
@@ -71,9 +64,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ con
   )
   if (!sent) return NextResponse.json({ error: 'send_failed' }, { status: 502 })
   if (lead) {
-    await supabaseAdmin()
-      .from('lead_property_alerts')
-      .upsert({ workspace_id: workspace.id, lead_profile_id: lead.id, product_id: product.id, delivery: 'customer' }, { onConflict: 'lead_profile_id,product_id', ignoreDuplicates: true })
+    await db.lead_property_alerts
+      .createMany({
+        data: [{ workspace_id: workspace.id, lead_profile_id: lead.id, product_id: product.id, delivery: 'customer' }],
+        skipDuplicates: true,
+      })
+      .catch(() => undefined)
   }
   return NextResponse.json({ ok: true })
 }

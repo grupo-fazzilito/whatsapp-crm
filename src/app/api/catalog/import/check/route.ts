@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { MAX_IMPORT_ROWS } from '@/lib/catalog/import'
 
 /**
@@ -11,7 +10,7 @@ import { MAX_IMPORT_ROWS } from '@/lib/catalog/import'
 export async function POST(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
-  const ws = guard.ctx.workspace
+  const { db } = guard.ctx
 
   const body = (await request.json().catch(() => null)) as { skus?: unknown } | null
   const wanted = new Set(
@@ -24,19 +23,22 @@ export async function POST(request: Request) {
   if (wanted.size === 0) return NextResponse.json({ existing })
 
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await supabaseAdmin()
-      .from('products')
-      .select('id, sku')
-      .eq('workspace_id', ws.id)
-      .not('sku', 'is', null)
-      .neq('sku', '')
-      .order('id')
-      .range(from, from + 999)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    for (const p of data ?? []) {
-      if (wanted.has(String(p.sku).trim().toLowerCase())) existing[p.sku] = p.id
+    let data: { id: string; sku: string | null }[]
+    try {
+      data = await db.products.findMany({
+        select: { id: true, sku: true },
+        where: { AND: [{ sku: { not: null } }, { sku: { not: '' } }] },
+        orderBy: { id: 'asc' },
+        skip: from,
+        take: 1000,
+      })
+    } catch (err) {
+      return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
     }
-    if (!data || data.length < 1000) break
+    for (const p of data) {
+      if (p.sku && wanted.has(String(p.sku).trim().toLowerCase())) existing[p.sku] = p.id
+    }
+    if (data.length < 1000) break
   }
   return NextResponse.json({ existing })
 }

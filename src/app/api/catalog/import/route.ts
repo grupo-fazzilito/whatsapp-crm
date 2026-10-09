@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Prisma } from '@/generated/prisma/client'
+import type { TenantDb } from '@/lib/db/tenant'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { invalidateBusinessContext } from '@/lib/ai/context'
 import { productAttributesFor } from '@/lib/catalog/attributes'
 import {
@@ -21,39 +21,33 @@ interface Failure {
 }
 
 /** Every product with a SKU in the workspace: sku → {id, attributes}. */
-async function existingBySku(db: SupabaseClient, workspaceId: string) {
+async function existingBySku(db: TenantDb) {
   const out = new Map<string, { id: string; attributes: Record<string, unknown> }>()
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await db
-      .from('products')
-      .select('id, sku, attributes')
-      .eq('workspace_id', workspaceId)
-      .not('sku', 'is', null)
-      .neq('sku', '')
-      .order('id')
-      .range(from, from + 999)
-    if (error) throw new Error(error.message)
-    for (const p of data ?? []) out.set(String(p.sku).trim().toLowerCase(), { id: p.id, attributes: p.attributes ?? {} })
-    if (!data || data.length < 1000) break
+    const data = await db.products.findMany({
+      select: { id: true, sku: true, attributes: true },
+      where: { AND: [{ sku: { not: null } }, { sku: { not: '' } }] },
+      orderBy: { id: 'asc' },
+      skip: from,
+      take: 1000,
+    })
+    for (const p of data) out.set(String(p.sku).trim().toLowerCase(), { id: p.id, attributes: (p.attributes ?? {}) as Record<string, unknown> })
+    if (data.length < 1000) break
   }
   return out
 }
 
 /** Category name (lowercase) → id, creating the missing ones. */
-async function ensureCategories(db: SupabaseClient, workspaceId: string, names: string[]) {
+async function ensureCategories(db: TenantDb, workspaceId: string, names: string[]) {
   const map = new Map<string, string>()
   const load = async () => {
-    const { data, error } = await db.from('product_categories').select('id, name').eq('workspace_id', workspaceId)
-    if (error) throw new Error(error.message)
-    for (const c of data ?? []) map.set(String(c.name).trim().toLowerCase(), c.id)
+    const data = await db.product_categories.findMany({ select: { id: true, name: true } })
+    for (const c of data) map.set(String(c.name).trim().toLowerCase(), c.id)
   }
   await load()
   const missing = names.filter((n) => !map.has(n.toLowerCase()))
   if (missing.length) {
-    const { error } = await db
-      .from('product_categories')
-      .upsert(missing.map((name) => ({ workspace_id: workspaceId, name })), { onConflict: 'workspace_id,name', ignoreDuplicates: true })
-    if (error) throw new Error(error.message)
+    await db.product_categories.createMany({ data: missing.map((name) => ({ workspace_id: workspaceId, name })), skipDuplicates: true })
     await load()
   }
   return map
@@ -69,7 +63,7 @@ const describe = (r: PlannedRow) => r.errors.map((e) => `${e.field}: ${e.code}`)
 export async function POST(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
-  const { workspace: ws, user } = guard.ctx
+  const { workspace: ws, user, db } = guard.ctx
 
   const body = (await request.json().catch(() => null)) as { rows?: unknown } | null
   const input = Array.isArray(body?.rows) ? (body.rows as (RawRecord & { row?: unknown })[]) : null
@@ -78,7 +72,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Too many rows (max ${MAX_IMPORT_ROWS})` }, { status: 400 })
   }
 
-  const db = supabaseAdmin()
   const fields = productAttributesFor(ws.industry, ws.settings)
   const normalized = input.map((r, i) => {
     const n = Number(r?.row)
@@ -86,7 +79,7 @@ export async function POST(request: Request) {
   })
 
   try {
-    const existing = await existingBySku(db, ws.id)
+    const existing = await existingBySku(db)
     const plan = planUpsert(normalized, new Map([...existing].map(([sku, p]) => [sku, p.id])), fields)
     const failed: Failure[] = plan.rows.filter((r) => r.action === 'error').map((r) => ({ row: r.row, error: describe(r) }))
     const todo = plan.rows.filter((r) => r.action !== 'error')
@@ -100,16 +93,21 @@ export async function POST(request: Request) {
     const creates = todo.filter((r) => r.action === 'create')
     for (let i = 0; i < creates.length; i += IMPORT_BATCH) {
       const batch = creates.slice(i, i + IMPORT_BATCH)
-      const payload = (r: PlannedRow) => ({ ...productPayload(r.data, categoryOf(r), 'create'), workspace_id: ws.id, created_by: user.id })
-      const { data, error } = await db.from('products').insert(batch.map(payload)).select('id')
-      if (!error) {
-        created += data?.length ?? batch.length
+      const payload = (r: PlannedRow) =>
+        ({ ...productPayload(r.data, categoryOf(r), 'create'), workspace_id: ws.id, created_by: user.id }) as Prisma.productsUncheckedCreateInput
+      try {
+        created += (await db.products.createMany({ data: batch.map(payload) })).count
         continue
+      } catch {
+        // pinned row by row below
       }
       for (const r of batch) {
-        const { error: rowError } = await db.from('products').insert(payload(r))
-        if (rowError) failed.push({ row: r.row, error: rowError.message })
-        else created++
+        try {
+          await db.products.create({ data: payload(r), select: { id: true } })
+          created++
+        } catch (rowError) {
+          failed.push({ row: r.row, error: rowError instanceof Error ? rowError.message : String(rowError) })
+        }
       }
     }
 
@@ -123,16 +121,19 @@ export async function POST(request: Request) {
         const results = await Promise.all(
           batch.slice(j, j + 20).map(async (r) => {
             const current = existing.get(r.data.sku!.trim().toLowerCase())
-            const { error } = await db
-              .from('products')
-              .update(productPayload(r.data, categoryOf(r), 'update', current?.attributes))
-              .eq('workspace_id', ws.id)
-              .eq('id', r.productId!)
-            return { r, error }
+            try {
+              await db.products.updateMany({
+                where: { id: r.productId! },
+                data: productPayload(r.data, categoryOf(r), 'update', current?.attributes) as Prisma.productsUncheckedUpdateManyInput,
+              })
+              return { r, error: null }
+            } catch (err) {
+              return { r, error: err instanceof Error ? err.message : String(err) }
+            }
           }),
         )
         for (const { r, error } of results) {
-          if (error) failed.push({ row: r.row, error: error.message })
+          if (error) failed.push({ row: r.row, error })
           else updated++
         }
       }

@@ -1,4 +1,6 @@
-import { supabaseAdmin } from './admin-client'
+import { Prisma } from '@/generated/prisma/client'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
 import type { Automation } from '@/types'
 import type { ChannelType } from '@/lib/channels/types'
 import {
@@ -34,15 +36,17 @@ export interface OutboundEvent {
 /** (Re)arms one pending schedule per active no_reply automation. Returns how many. */
 export async function armFollowupsForOutbound(ev: OutboundEvent): Promise<number> {
   if (!outboundArmsFollowups({ status: ev.status, metadata: ev.metadata })) return 0
-  const db = supabaseAdmin()
-  const { data: automations, error } = await db
-    .from('automations')
-    .select('id, trigger_config')
-    .eq('workspace_id', ev.workspaceId)
-    .eq('trigger_type', 'no_reply')
-    .eq('is_active', true)
-  if (error) throw new Error(`no_reply automations lookup failed: ${error.message}`)
-  if (!automations?.length) return 0
+  const db = tenantDb(ev.workspaceId)
+  let automations: { id: string; trigger_config: unknown }[]
+  try {
+    automations = await db.automations.findMany({
+      select: { id: true, trigger_config: true },
+      where: { workspace_id: ev.workspaceId, trigger_type: 'no_reply', is_active: true },
+    })
+  } catch (error) {
+    throw new Error(`no_reply automations lookup failed: ${errMessage(error)}`)
+  }
+  if (!automations.length) return 0
 
   const now = ev.now ?? new Date()
   const rows = automations
@@ -60,11 +64,36 @@ export async function armFollowupsForOutbound(ev: OutboundEvent): Promise<number
       }),
     )
   if (!rows.length) return 0
-  const { error: upErr } = await db
-    .from('followup_schedules')
-    .upsert(rows, { onConflict: 'automation_id,conversation_id' })
-  if (upErr) throw new Error(`followup schedule upsert failed: ${upErr.message}`)
+  // One atomic INSERT … ON CONFLICT (what PostgREST's upsert did); re-arming
+  // replaces the schedule of the same automation + conversation.
+  try {
+    await prisma.$executeRaw`
+      INSERT INTO public.followup_schedules
+        (workspace_id, automation_id, conversation_id, contact_id, anchor_message_id, anchored_at, due_at, status, fired_at, cancelled_at)
+      VALUES ${Prisma.join(
+        rows.map(
+          (r) => Prisma.sql`(${r.workspace_id}::uuid, ${r.automation_id}::uuid, ${r.conversation_id}::uuid, ${r.contact_id}::uuid,
+            ${r.anchor_message_id}::uuid, ${r.anchored_at}::timestamptz, ${r.due_at}::timestamptz, ${r.status}, NULL, NULL)`,
+        ),
+      )}
+      ON CONFLICT (automation_id, conversation_id) DO UPDATE SET
+        workspace_id = EXCLUDED.workspace_id,
+        contact_id = EXCLUDED.contact_id,
+        anchor_message_id = EXCLUDED.anchor_message_id,
+        anchored_at = EXCLUDED.anchored_at,
+        due_at = EXCLUDED.due_at,
+        status = EXCLUDED.status,
+        fired_at = EXCLUDED.fired_at,
+        cancelled_at = EXCLUDED.cancelled_at
+      WHERE followup_schedules.workspace_id = EXCLUDED.workspace_id`
+  } catch (upErr) {
+    throw new Error(`followup schedule upsert failed: ${errMessage(upErr)}`)
+  }
   return rows.length
+}
+
+function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }
 
 /**
@@ -72,24 +101,30 @@ export async function armFollowupsForOutbound(ev: OutboundEvent): Promise<number
  * and every parked wait of follow-up runs already in progress.
  */
 export async function cancelFollowupsForInbound(workspaceId: string, conversationId: string): Promise<void> {
-  const db = supabaseAdmin()
+  const db = tenantDb(workspaceId)
   const now = new Date().toISOString()
-  const [{ error: e1 }, { error: e2 }] = await Promise.all([
-    db
-      .from('followup_schedules')
-      .update({ status: 'cancelled', cancelled_at: now })
-      .eq('workspace_id', workspaceId)
-      .eq('conversation_id', conversationId)
-      .eq('status', 'pending'),
-    db
-      .from('automation_pending_executions')
-      .update({ status: 'cancelled' })
-      .eq('workspace_id', workspaceId)
-      .eq('status', 'pending')
-      .eq('context->>conversation_id', conversationId)
-      .eq('context->>followup', 'true'),
-  ])
-  if (e1 || e2) throw new Error(`followup cancel failed: ${(e1 ?? e2)!.message}`)
+  try {
+    await Promise.all([
+      db.followup_schedules.updateMany({
+        where: { workspace_id: workspaceId, conversation_id: conversationId, status: 'pending' },
+        data: { status: 'cancelled', cancelled_at: now },
+      }),
+      db.automation_pending_executions.updateMany({
+        where: {
+          workspace_id: workspaceId,
+          status: 'pending',
+          // context->>'conversation_id' = conversationId AND context->>'followup' = 'true'
+          AND: [
+            { context: { path: ['conversation_id'], equals: conversationId } },
+            { OR: [{ context: { path: ['followup'], equals: true } }, { context: { path: ['followup'], equals: 'true' } }] },
+          ],
+        },
+        data: { status: 'cancelled' },
+      }),
+    ])
+  } catch (err) {
+    throw new Error(`followup cancel failed: ${errMessage(err)}`)
+  }
 }
 
 // ------------------------------------------------------------
@@ -108,23 +143,19 @@ export interface ConversationInfo {
 }
 
 export async function loadConversationInfo(workspaceId: string, conversationId: string): Promise<ConversationInfo | null> {
-  const db = supabaseAdmin()
-  const { data: conv } = await db
-    .from('conversations')
-    .select('id, contact_id, status, channel_id, ai_agent_id, ai_paused_until')
-    .eq('id', conversationId)
-    .eq('workspace_id', workspaceId)
-    .maybeSingle()
+  const db = tenantDb(workspaceId)
+  const conv = await db.conversations.findFirst({
+    select: { id: true, contact_id: true, status: true, channel_id: true, ai_agent_id: true, ai_paused_until: true },
+    where: { id: conversationId, workspace_id: workspaceId },
+  }).catch(() => null)
   if (!conv) return null
   let channelType: ChannelType = 'whatsapp'
   let channelAgentId: string | null = null
   if (conv.channel_id) {
-    const { data: ch } = await db
-      .from('channels')
-      .select('type, ai_agent_id')
-      .eq('id', conv.channel_id)
-      .eq('workspace_id', workspaceId)
-      .maybeSingle()
+    const ch = await db.channels.findFirst({
+      select: { type: true, ai_agent_id: true },
+      where: { id: conv.channel_id, workspace_id: workspaceId },
+    }).catch(() => null)
     if (ch) {
       channelType = ch.type as ChannelType
       channelAgentId = ch.ai_agent_id ?? null
@@ -143,15 +174,11 @@ export async function loadConversationInfo(workspaceId: string, conversationId: 
 }
 
 async function lastCustomerMessageAt(workspaceId: string, conversationId: string): Promise<string | null> {
-  const { data } = await supabaseAdmin()
-    .from('messages')
-    .select('created_at')
-    .eq('workspace_id', workspaceId)
-    .eq('conversation_id', conversationId)
-    .eq('sender_type', 'customer')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const data = await tenantDb(workspaceId).messages.findFirst({
+    select: { created_at: true },
+    where: { workspace_id: workspaceId, conversation_id: conversationId, sender_type: 'customer' },
+    orderBy: { created_at: 'desc' },
+  }).catch(() => null)
   return (data?.created_at as string | undefined) ?? null
 }
 
@@ -180,28 +207,27 @@ export interface FollowupRunResult {
 }
 
 export async function processDueFollowups(limit = 50, now = new Date()): Promise<FollowupRunResult> {
-  const db = supabaseAdmin()
-  const { data: due, error } = await db
-    .from('followup_schedules')
-    .select('id, workspace_id, automation_id, conversation_id, contact_id, anchored_at, due_at')
-    .eq('status', 'pending')
-    .lte('due_at', now.toISOString())
-    .order('due_at', { ascending: true })
-    .limit(limit)
-  if (error) throw new Error(error.message)
+  // Platform task: drains the due schedules of every workspace.
+  const due: ScheduleRow[] = await prisma.followup_schedules.findMany({
+    select: { id: true, workspace_id: true, automation_id: true, conversation_id: true, contact_id: true, anchored_at: true, due_at: true },
+    where: { status: 'pending', due_at: { lte: now.toISOString() } },
+    orderBy: { due_at: 'asc' },
+    take: limit,
+  })
 
   const result: FollowupRunResult = { fired: 0, skipped: 0 }
-  for (const row of (due ?? []) as ScheduleRow[]) {
+  for (const row of due) {
     // Claim: only if still pending AND not re-armed since we read it.
-    const { data: claim } = await db
-      .from('followup_schedules')
-      .update({ status: 'fired', fired_at: new Date().toISOString() })
-      .eq('id', row.id)
-      .eq('status', 'pending')
-      .eq('due_at', row.due_at)
-      .select('id')
-      .maybeSingle()
-    if (!claim) continue
+    let claimed = 0
+    try {
+      ;({ count: claimed } = await tenantDb(row.workspace_id).followup_schedules.updateMany({
+        where: { id: row.id, workspace_id: row.workspace_id, status: 'pending', due_at: row.due_at },
+        data: { status: 'fired', fired_at: new Date().toISOString() },
+      }))
+    } catch (err) {
+      console.error('[followups] claim failed:', row.id, err)
+    }
+    if (!claimed) continue
     try {
       const ran = await fireSchedule(row)
       if (ran) result.fired++
@@ -215,19 +241,23 @@ export async function processDueFollowups(limit = 50, now = new Date()): Promise
 }
 
 async function fireSchedule(row: ScheduleRow): Promise<boolean> {
-  const db = supabaseAdmin()
+  const db = tenantDb(row.workspace_id)
   const skip = async (reason: string) => {
-    await db.from('followup_schedules').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', row.id)
+    try {
+      await db.followup_schedules.updateMany({
+        where: { id: row.id },
+        data: { status: 'cancelled', cancelled_at: new Date().toISOString() },
+      })
+    } catch (err) {
+      console.error('[followups] skip update failed:', row.id, err)
+    }
     console.info(`[followups] skipped ${row.id}: ${reason}`)
     return false
   }
 
-  const { data: automation } = await db
-    .from('automations')
-    .select('*')
-    .eq('id', row.automation_id)
-    .eq('workspace_id', row.workspace_id)
-    .maybeSingle()
+  const automation = await db.automations.findFirst({
+    where: { id: row.automation_id, workspace_id: row.workspace_id },
+  }).catch(() => null)
   if (!automation || !automation.is_active || automation.trigger_type !== 'no_reply') return skip('automation inactive')
 
   const info = await loadConversationInfo(row.workspace_id, row.conversation_id)
@@ -247,15 +277,13 @@ async function fireSchedule(row: ScheduleRow): Promise<boolean> {
   const lastIn = await lastCustomerMessageAt(row.workspace_id, row.conversation_id)
   if (lastIn && new Date(lastIn).getTime() > new Date(row.anchored_at).getTime()) return skip('customer replied')
 
-  const { data: contact } = await db
-    .from('contacts')
-    .select('name')
-    .eq('id', info.contactId)
-    .eq('workspace_id', row.workspace_id)
-    .maybeSingle()
+  const contact = await db.contacts.findFirst({
+    select: { name: true },
+    where: { id: info.contactId, workspace_id: row.workspace_id },
+  }).catch(() => null)
 
   const { runAutomationNow } = await import('./engine')
-  await runAutomationNow(automation as Automation & { workspace_id: string }, {
+  await runAutomationNow(automation as unknown as Automation & { workspace_id: string }, {
     workspaceId: row.workspace_id,
     triggerType: 'no_reply',
     contactId: info.contactId,

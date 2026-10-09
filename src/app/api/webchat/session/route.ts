@@ -1,4 +1,5 @@
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
+import { isPrismaError } from '@/lib/db/errors'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import {
   anyOriginCors,
@@ -71,40 +72,47 @@ async function upsertVisitorContact(
   visitorId: string,
   details: { name: string | null; email: string | null; phone: string | null },
 ): Promise<string | null> {
-  const db = supabaseAdmin()
   const ws = channel.workspace_id
+  const db = tenantDb(ws)
   const patch = Object.fromEntries(Object.entries(details).filter(([, v]) => v)) as Record<string, string>
+  const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
   const existing = await visitorContactId(channel, visitorId)
   if (existing) {
-    const { error } = await db
-      .from('contacts')
-      .update({ ...patch, updated_at: new Date().toISOString() })
-      .eq('id', existing)
-      .eq('workspace_id', ws)
-    return error?.message ?? null
+    try {
+      await db.contacts.updateMany({ where: { id: existing, workspace_id: ws }, data: { ...patch, updated_at: new Date().toISOString() } })
+      return null
+    } catch (err) {
+      return message(err)
+    }
   }
 
-  const { data: created, error } = await db
-    .from('contacts')
-    .insert({ workspace_id: ws, name: details.name || `webchat ${visitorId.slice(-4)}`, email: details.email, phone: details.phone })
-    .select('id')
-    .single()
-  if (error || !created) return error?.message ?? 'insert failed'
+  let created: { id: string }
+  try {
+    created = await db.contacts.create({
+      data: { workspace_id: ws, name: details.name || `webchat ${visitorId.slice(-4)}`, email: details.email, phone: details.phone },
+      select: { id: true },
+    })
+  } catch (err) {
+    return message(err)
+  }
 
-  const { error: idErr } = await db.from('contact_identities').insert({
-    workspace_id: ws,
-    contact_id: created.id,
-    channel_type: 'webchat',
-    external_id: visitorId,
-    handle: details.email ?? details.name ?? null,
-  })
-  if (idErr) {
+  try {
+    await db.contact_identities.create({
+      data: {
+        workspace_id: ws,
+        contact_id: created.id,
+        channel_type: 'webchat',
+        external_id: visitorId,
+        handle: details.email ?? details.name ?? null,
+      },
+    })
+  } catch (idErr) {
     // Concurrent request created the identity first: keep that contact.
-    await db.from('contacts').delete().eq('id', created.id).eq('workspace_id', ws)
-    if (idErr.code !== '23505') return idErr.message
+    await db.contacts.deleteMany({ where: { id: created.id, workspace_id: ws } }).catch(() => {})
+    if (!isPrismaError(idErr, 'P2002')) return message(idErr)
     const winner = await visitorContactId(channel, visitorId)
-    if (winner) await db.from('contacts').update(patch).eq('id', winner).eq('workspace_id', ws)
+    if (winner) await db.contacts.updateMany({ where: { id: winner, workspace_id: ws }, data: patch }).catch(() => {})
   }
   return null
 }

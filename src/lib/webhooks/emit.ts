@@ -1,5 +1,6 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { normalizeRaw } from '@/lib/db/compat'
 import type { WebhookEvent } from './events'
 
 /**
@@ -12,13 +13,11 @@ import type { WebhookEvent } from './events'
  */
 export async function emitEvent(workspaceId: string, type: WebhookEvent | 'ping', data: Record<string, unknown>): Promise<number> {
   try {
-    const { data: queued, error } = await supabaseAdmin().rpc('webhook_emit', {
-      p_workspace: workspaceId,
-      p_type: type,
-      p_data: data,
-    })
-    if (error) throw error
-    return Number(queued ?? 0)
+    const rows = normalizeRaw(
+      await prisma.$queryRaw<{ queued: number | null }[]>`
+        SELECT public.webhook_emit(${workspaceId}::uuid, ${type}, ${JSON.stringify(data)}::jsonb) AS queued`,
+    )
+    return Number(rows[0]?.queued ?? 0)
   } catch (err) {
     console.error(`[webhooks] emit ${type} failed:`, err instanceof Error ? err.message : err)
     return 0

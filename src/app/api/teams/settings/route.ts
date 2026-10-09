@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { isUuid } from '@/lib/workspace/constants'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import type { Prisma } from '@/generated/prisma/client'
 import { parseInboxSettings } from '@/lib/inbox/assignment'
 import { teamOf } from '@/lib/inbox/server'
 
@@ -12,12 +12,12 @@ import { teamOf } from '@/lib/inbox/server'
 export async function PATCH(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
-  const { supabase, workspace } = guard.ctx
+  const { db, workspace } = guard.ctx
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
   if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
 
   // Fresh read so concurrent edits of other settings keys aren't lost.
-  const { data: ws } = await supabaseAdmin().from('workspaces').select('settings').eq('id', workspace.id).single()
+  const ws = await db.workspaces.findFirst({ select: { settings: true }, where: { id: workspace.id } }).catch(() => null)
   const settings = (ws?.settings ?? {}) as Record<string, unknown>
   const current = parseInboxSettings(settings)
   const next = { ...((settings.inbox as Record<string, unknown>) ?? {}), ...current }
@@ -35,12 +35,10 @@ export async function PATCH(request: Request) {
     else return NextResponse.json({ error: 'default_team_id must be a team of this workspace' }, { status: 400 })
   }
 
-  const { error } = await supabase
-    .from('workspaces')
-    .update({ settings: { ...settings, inbox: next } })
-    .eq('id', workspace.id)
-  if (error) {
-    console.error('[teams/settings] update failed:', error.message)
+  try {
+    await db.workspaces.updateMany({ where: { id: workspace.id }, data: { settings: { ...settings, inbox: next } as Prisma.InputJsonValue } })
+  } catch (error) {
+    console.error('[teams/settings] update failed:', error instanceof Error ? error.message : error)
     return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 })
   }
   return NextResponse.json({ settings: parseInboxSettings({ inbox: next }) })

@@ -1,5 +1,5 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
 import type { Workspace } from '@/lib/workspace/types'
 import { bearerToken, keyMatchesHash, normalizeScopes, parseApiKey, type ApiScope } from './keys'
 
@@ -26,22 +26,24 @@ export async function authenticateApiKey(request: Request): Promise<AuthResult> 
   const parsed = parseApiKey(token)
   if (!token || !parsed) return { ok: false, code: 'unauthorized', message: 'Missing or malformed API key. Send "Authorization: Bearer cnx_live_…".' }
 
-  const db = supabaseAdmin()
-  const { data: rows } = await db
-    .from('api_keys')
-    .select('id, name, key_hash, scopes, created_by, workspace_id, last_used_at, expires_at, revoked_at')
-    .eq('prefix', parsed.prefix)
-    .limit(5)
+  // Platform lookup: the workspace is not known until the key matches.
+  const rows = await prisma.api_keys
+    .findMany({
+      select: { id: true, name: true, key_hash: true, scopes: true, created_by: true, workspace_id: true, last_used_at: true, expires_at: true, revoked_at: true },
+      where: { prefix: parsed.prefix },
+      take: 5,
+    })
+    .catch(() => null)
   const row = (rows ?? []).find((r) => keyMatchesHash(token, r.key_hash as string))
   if (!row) return { ok: false, code: 'unauthorized', message: 'Invalid API key.' }
   if (row.revoked_at) return { ok: false, code: 'key_revoked', message: 'This API key was revoked.' }
   if (row.expires_at && new Date(row.expires_at).getTime() <= Date.now()) return { ok: false, code: 'key_expired', message: 'This API key has expired.' }
 
-  const { data: workspace } = await db.from('workspaces').select('*').eq('id', row.workspace_id).maybeSingle()
+  const workspace = await prisma.workspaces.findFirst({ where: { id: row.workspace_id } }).catch(() => null)
   if (!workspace) return { ok: false, code: 'unauthorized', message: 'Invalid API key.' }
 
   if (!row.last_used_at || Date.now() - new Date(row.last_used_at).getTime() > LAST_USED_THROTTLE_MS) {
-    void db.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', row.id).then(
+    void prisma.api_keys.updateMany({ where: { id: row.id, workspace_id: row.workspace_id }, data: { last_used_at: new Date().toISOString() } }).then(
       () => undefined,
       () => undefined,
     )
@@ -54,7 +56,7 @@ export async function authenticateApiKey(request: Request): Promise<AuthResult> 
       keyName: row.name,
       scopes: normalizeScopes(row.scopes),
       createdBy: row.created_by ?? null,
-      workspace: workspace as Workspace,
+      workspace: workspace as unknown as Workspace,
     },
   }
 }

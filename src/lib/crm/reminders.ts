@@ -1,5 +1,6 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
+import { tenantDb } from '@/lib/db/tenant'
 import { createTranslator } from '@/i18n/translate'
 
 // Due reminders for tasks: one in-app notification per task, sent to the
@@ -9,8 +10,7 @@ import { createTranslator } from '@/i18n/translate'
 // due date or reopening the task re-arms it (DB trigger).
 //
 // Notifications live in the `notifications` table (inbox work, migration
-// 032). If that table doesn't exist yet we skip silently without claiming,
-// so tasks get reminded once it ships.
+// 032), part of the Postgres baseline (`notifications` is always true now).
 
 export const REMINDER_LEAD_MIN = 15
 /** Overdue tasks older than this are not reminded (avoids a flood on first run). */
@@ -37,47 +37,48 @@ interface DueTaskRow {
   workspace: { locale: string | null; timezone: string | null } | null
 }
 
-function missingTable(err: { code?: string; message?: string } | null): boolean {
-  if (!err) return false
-  return err.code === '42P01' || err.code === 'PGRST205' || /does not exist|could not find the table/i.test(err.message ?? '')
-}
-
 export async function remindDueTasks(now: Date = new Date()): Promise<RemindResult> {
-  const db = supabaseAdmin()
-
-  const probe = await db.from('notifications').select('id').limit(1)
-  if (missingTable(probe.error)) return { reminded: 0, skipped: 0, notifications: false }
-
-  const { data, error } = await db
-    .from('tasks')
-    .select('id, workspace_id, title, due_at, assignee_user_id, created_by, contact_id, conversation_id, deal_id, contact:contacts(name, phone), workspace:workspaces(locale, timezone)')
-    .eq('status', 'open')
-    .is('reminded_at', null)
-    .not('due_at', 'is', null)
-    .lte('due_at', new Date(now.getTime() + REMINDER_LEAD_MIN * 60_000).toISOString())
-    .gte('due_at', new Date(now.getTime() - REMINDER_MAX_AGE_DAYS * 86_400_000).toISOString())
-    .order('due_at', { ascending: true })
-    .limit(BATCH)
-  if (error) throw new Error(error.message)
+  // Platform cron over every workspace.
+  const data = await prisma.tasks.findMany({
+    select: {
+      id: true,
+      workspace_id: true,
+      title: true,
+      due_at: true,
+      assignee_user_id: true,
+      created_by: true,
+      contact_id: true,
+      conversation_id: true,
+      deal_id: true,
+      contacts: { select: { name: true, phone: true } },
+      workspaces: { select: { locale: true, timezone: true } },
+    },
+    where: {
+      status: 'open',
+      reminded_at: null,
+      due_at: {
+        not: null,
+        lte: new Date(now.getTime() + REMINDER_LEAD_MIN * 60_000),
+        gte: new Date(now.getTime() - REMINDER_MAX_AGE_DAYS * 86_400_000),
+      },
+    },
+    orderBy: { due_at: 'asc' },
+    take: BATCH,
+  })
 
   let reminded = 0
   let skipped = 0
-  for (const row of (data ?? []) as unknown as DueTaskRow[]) {
+  for (const { contacts, workspaces, ...rest } of data) {
+    const row = { ...rest, contact: contacts, workspace: workspaces } as unknown as DueTaskRow
+    const db = tenantDb(row.workspace_id)
     const userId = row.assignee_user_id ?? row.created_by
     if (!userId) {
       skipped++
       continue
     }
     // Claim first: only one run wins.
-    const { data: claim } = await db
-      .from('tasks')
-      .update({ reminded_at: now.toISOString() })
-      .eq('id', row.id)
-      .eq('workspace_id', row.workspace_id)
-      .is('reminded_at', null)
-      .select('id')
-      .maybeSingle()
-    if (!claim) {
+    const claim = await db.tasks.updateMany({ where: { id: row.id, reminded_at: null }, data: { reminded_at: now } })
+    if (!claim.count) {
       skipped++
       continue
     }
@@ -96,23 +97,25 @@ export async function remindDueTasks(now: Date = new Date()): Promise<RemindResu
     const who = row.contact?.name || row.contact?.phone || null
 
     // notifications.type is limited to mention|assigned|transferred|system (032).
-    const { error: insertError } = await db.from('notifications').insert({
-      workspace_id: row.workspace_id,
-      user_id: userId,
-      type: 'system',
-      title: t(overdue ? 'crm.reminders.overdueTitle' : 'crm.reminders.dueTitle', { title: row.title }).slice(0, 200),
-      body: who
-        ? t(overdue ? 'crm.reminders.bodyOverdueContact' : 'crm.reminders.bodyContact', { when, contact: who })
-        : t(overdue ? 'crm.reminders.bodyOverdue' : 'crm.reminders.body', { when }),
-      // The task itself (the sheet links to the chat).
-      link: `/tasks?task=${row.id}`,
-      conversation_id: row.conversation_id,
-    })
-    if (insertError) {
+    try {
+      await db.notifications.create({
+        data: {
+          workspace_id: row.workspace_id,
+          user_id: userId,
+          type: 'system',
+          title: t(overdue ? 'crm.reminders.overdueTitle' : 'crm.reminders.dueTitle', { title: row.title }).slice(0, 200),
+          body: who
+            ? t(overdue ? 'crm.reminders.bodyOverdueContact' : 'crm.reminders.bodyContact', { when, contact: who })
+            : t(overdue ? 'crm.reminders.bodyOverdue' : 'crm.reminders.body', { when }),
+          // The task itself (the sheet links to the chat).
+          link: `/tasks?task=${row.id}`,
+          conversation_id: row.conversation_id,
+        },
+      })
+    } catch (insertError) {
       // Release the claim so a later run can retry.
-      await db.from('tasks').update({ reminded_at: null }).eq('id', row.id).eq('workspace_id', row.workspace_id)
-      if (missingTable(insertError)) return { reminded, skipped, notifications: false }
-      console.error('[crm] task reminder failed:', insertError.message)
+      await db.tasks.updateMany({ where: { id: row.id }, data: { reminded_at: null } })
+      console.error('[crm] task reminder failed:', insertError instanceof Error ? insertError.message : insertError)
       skipped++
       continue
     }

@@ -1,5 +1,5 @@
 import 'server-only'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb } from '@/lib/db/tenant'
 import { completeJson, parseJsonLoose, type LlmRequest } from './llm'
 import type { AiAgentRow } from './types'
 
@@ -141,23 +141,21 @@ export async function loadFollowupInput(args: {
   channelId: string | null
   instructions?: string | null
 }): Promise<FollowupPromptInput> {
-  const db = supabaseAdmin()
-  const [{ data: ws }, { data: conv }, { data: msgs }] = await Promise.all([
-    db.from('workspaces').select('name, locale').eq('id', args.workspaceId).maybeSingle(),
-    db
-      .from('conversations')
-      .select('contact:contacts(name)')
-      .eq('id', args.conversationId)
-      .eq('workspace_id', args.workspaceId)
-      .maybeSingle(),
-    db
-      .from('messages')
-      .select('sender_type, content_text, content_type')
-      .eq('workspace_id', args.workspaceId)
-      .eq('conversation_id', args.conversationId)
-      .neq('is_internal', true)
-      .order('created_at', { ascending: false })
-      .limit(TRANSCRIPT_MESSAGES),
+  const db = tenantDb(args.workspaceId)
+  // A failed read counts as no row, as with PostgREST.
+  const [ws, conv, msgs] = await Promise.all([
+    db.workspaces.findFirst({ select: { name: true, locale: true }, where: { id: args.workspaceId } }).catch(() => null),
+    db.conversations
+      .findFirst({ select: { contacts: { select: { name: true } } }, where: { id: args.conversationId, workspace_id: args.workspaceId } })
+      .catch(() => null),
+    db.messages
+      .findMany({
+        select: { sender_type: true, content_text: true, content_type: true },
+        where: { workspace_id: args.workspaceId, conversation_id: args.conversationId, is_internal: { not: true } },
+        orderBy: { created_at: 'desc' },
+        take: TRANSCRIPT_MESSAGES,
+      })
+      .catch(() => null),
   ])
   return {
     workspaceId: args.workspaceId,
@@ -167,7 +165,7 @@ export async function loadFollowupInput(args: {
     channelType: args.channelType,
     channelId: args.channelId,
     conversationId: args.conversationId,
-    contactName: (conv?.contact as unknown as { name?: string } | null)?.name ?? null,
+    contactName: (conv?.contacts as { name?: string | null } | null | undefined)?.name ?? null,
     transcript: ((msgs ?? []) as TranscriptLine[]).reverse(),
     instructions: args.instructions ?? null,
   }

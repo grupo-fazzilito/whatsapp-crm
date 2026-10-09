@@ -1,6 +1,6 @@
 import 'server-only'
 import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/db/prisma'
 
 /**
  * Platform (SaaS operator) admin: a Supabase user with
@@ -13,8 +13,12 @@ export async function isPlatformAdmin(): Promise<boolean> {
   } = await (await createClient(null)).auth.getUser()
   if (!user) return false
 
-  const db = supabaseAdmin()
-  const { data } = await db.from('profiles').select('is_platform_admin').eq('user_id', user.id).maybeSingle()
+  const data = await prisma.profiles
+    .findUnique({ where: { user_id: user.id }, select: { is_platform_admin: true } })
+    .catch((err) => {
+      console.error('[admin] profile lookup failed:', err instanceof Error ? err.message : err)
+      return null
+    })
   if (data?.is_platform_admin) return true
 
   const allow = (process.env.PLATFORM_ADMIN_EMAILS ?? '')
@@ -22,7 +26,9 @@ export async function isPlatformAdmin(): Promise<boolean> {
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean)
   if (user.email && allow.includes(user.email.toLowerCase())) {
-    await db.from('profiles').update({ is_platform_admin: true }).eq('user_id', user.id)
+    await prisma.profiles
+      .updateMany({ where: { user_id: user.id }, data: { is_platform_admin: true } })
+      .catch((err) => console.error('[admin] promote failed:', err instanceof Error ? err.message : err))
     return true
   }
   return false
