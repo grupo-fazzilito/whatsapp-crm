@@ -5,10 +5,11 @@ import { prisma } from '@/lib/db/prisma'
 /**
  * Platform (SaaS operator) admin: a Supabase user with
  * profiles.is_platform_admin. Emails listed in PLATFORM_ADMIN_EMAILS are
- * promoted on first check, which bootstraps the first admin.
+ * promoted on first check, which bootstraps the first admin. Pass the
+ * request headers when there is no request scope (the proxy).
  */
-export async function isPlatformAdmin(): Promise<boolean> {
-  const user = await getSessionUser()
+export async function isPlatformAdmin(requestHeaders?: Headers): Promise<boolean> {
+  const user = await getSessionUser(requestHeaders)
   if (!user) return false
 
   const data = await prisma.profiles
