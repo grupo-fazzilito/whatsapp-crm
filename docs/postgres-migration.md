@@ -107,3 +107,44 @@ Reglas:
 - No cambiar comportamiento ni respuestas de API: es una migración, no un refactor.
 - Tests: los que usan `FakeDb` (`@/lib/test-utils/fake-supabase`) pasan a pruebas contra Postgres real con `@/lib/test-utils/pg` (se saltan sin `TEST_DATABASE_URL`).
 - No tocar todavía: login (`auth.*`), Storage, Realtime, `createClient` del navegador (son P2–P5).
+
+## Guía de conversión (P2/P4/P5: navegador, archivos, tiempo real)
+
+**Consultas del navegador.** Un componente `'use client'` no puede usar Prisma. Cada
+`createClient().from(...)` del navegador pasa a `fetch` contra una ruta de API:
+reutilizar la ruta existente si ya devuelve lo necesario; si no, crear una nueva en
+`src/app/api/<área>/...` con `requireWorkspace(rol)` + `ctx.db`, respetando los roles
+que imponía RLS (lecturas `agent`, configuración `admin`). Mantener la forma de los datos
+que el componente espera.
+
+**Tiempo real** (`src/lib/realtime/client.ts`):
+
+```ts
+const { workspace } = useWorkspace()
+useRealtimeChanges<Message>({
+  workspaceId: workspace?.id,
+  tables: ['messages'],
+  onChange: (c) => { /* c.eventType 'INSERT'|'UPDATE'|'DELETE', c.new (fila completa), c.old (claves en DELETE) */ },
+})
+const connected = useRealtimeConnected()
+```
+
+Las tablas disponibles están en `src/lib/realtime/types.ts` (agregar una tabla requiere
+el trigger `realtime_notify` en una migración). Los filtros que antes iban en
+`postgres_changes` (`conversation_id=eq.X`) se aplican en `onChange`. Las notificaciones
+solo llegan a su destinatario.
+
+**Archivos** (`src/lib/storage`): buckets `attachments` (privado), `catalog` y `avatars` (públicos).
+
+| Antes (Supabase) | Después |
+|---|---|
+| navegador `storage.from(b).upload(path, file)` | `uploadFile(b, file, { path })` de `@/lib/storage/client` → `{ path, url }` |
+| navegador `createSignedUrl(path, ttl)` | `signFile(b, path, { expiresIn })` / `signFiles(b, paths)` |
+| navegador `getPublicUrl(path)` | la `url` que devuelve `uploadFile`, o `/api/files/<b>/<path>` |
+| servidor `storage.from(b).upload/download/remove` | `uploadObject` / `downloadObject` / `removeObjects` de `@/lib/storage` |
+| servidor `getPublicUrl` / `createSignedUrl(s)` | `publicUrl(b, path)` / `signedUrl(b, path, ttl)` |
+| marcadores `/storage/v1/object/...` para sacar la ruta de una URL | `storagePathFromUrl(url, b)` de `@/lib/storage/paths` (entiende URLs viejas y nuevas) |
+
+Rutas: los archivos de `attachments` y `catalog` van bajo `<workspace_id>/…`; los avatares bajo `<user_id>/…`.
+Variables: `STORAGE_DRIVER=local|s3`, `STORAGE_DIR`, `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`,
+`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`, `STORAGE_SIGNING_SECRET` (opcional, por defecto `ENCRYPTION_KEY`).
