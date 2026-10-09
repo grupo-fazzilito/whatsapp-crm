@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import type { SupabaseClient, User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { tenantDb, type TenantDb } from '@/lib/db/tenant'
 import { WORKSPACE_COOKIE, hasRole, isUuid, type WorkspaceRole } from './constants'
 import type { Workspace } from './types'
 
@@ -11,7 +12,9 @@ export interface WorkspaceContext {
   user: User
   workspace: Workspace
   role: WorkspaceRole
-  /** Cookie client scoped (RLS) to `workspace`. */
+  /** Prisma client confined to `workspace` (use this). */
+  db: TenantDb
+  /** @deprecated Cookie client scoped (RLS) to `workspace`; removed with Supabase. */
   supabase: SupabaseClient
 }
 
@@ -58,6 +61,7 @@ export async function getWorkspaceContext(): Promise<WorkspaceContext | null> {
     user,
     workspace: active.workspace,
     role: active.role,
+    db: tenantDb(active.workspace.id),
     supabase: await createClient(active.workspace.id),
   }
 }

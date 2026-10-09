@@ -61,3 +61,49 @@ TEST_DATABASE_URL=postgresql://crm:crm@127.0.0.1:5434/crm npx vitest run src/lib
 - No tocar `tom@tom.com`, `admin@victoria.com` ni el workspace "Fazzil" (solo copiarlos).
 - Cada fase termina con commit en `feat/postgres`; nada se sube a `main` hasta P7.
 - Toda consulta de una tabla de negocio pasa por el cliente con guardia de workspace; el cliente sin guardia (`prisma`) solo para crons, webhooks y tareas de plataforma.
+
+## Guía de conversión (P1)
+
+Cliente según el caso:
+
+| Antes | Después |
+|---|---|
+| `guard.ctx.supabase` (ruta con sesión) | `guard.ctx.db` (= `tenantDb(workspace.id)`) |
+| `supabaseAdmin()` con `.eq('workspace_id', ws)` | `tenantDb(ws)` (el filtro lo pone la guardia; se puede quitar) |
+| `supabaseAdmin()` en tareas de plataforma (cron que recorre todos los negocios, webhooks de Meta/Payment Latam antes de saber el negocio, panel de superadmin, `platform_settings`, `profiles`) | `prisma` de `@/lib/db/prisma` |
+| `@/lib/automations/admin-client` | igual que `supabaseAdmin()` |
+
+Equivalencias:
+
+```ts
+// select con filtros, orden y límite
+db.from('contacts').select('id, name').eq('status', 'active').in('id', ids).order('created_at', { ascending: false }).limit(20)
+→ db.contacts.findMany({ select: { id: true, name: true }, where: { status: 'active', id: { in: ids } }, orderBy: { created_at: 'desc' }, take: 20 })
+
+.maybeSingle()            → findFirst(...)        (devuelve null)
+.single()                 → findFirstOrThrow(...) o findUniqueOrThrow
+.range(a, b)              → skip: a, take: b - a + 1
+.ilike('name', `%${q}%`)  → { name: { contains: q, mode: 'insensitive' } }
+.or('a.eq.1,b.is.null')   → { OR: [{ a: 1 }, { b: null }] }
+.gte/.lte/.gt/.lt/.neq    → { gte } / { lte } / { gt } / { lt } / { not: x }
+.is('x', null)            → { x: null }
+.contains('tags', ['a'])  → { tags: { hasEvery: ['a'] } }   (jsonb: { path: [...], equals } o $queryRaw)
+select('*, contact:contacts(name)') → include: { contacts: { select: { name: true } } }  y renombrar al leer (row.contacts → contact)
+select('id', { count: 'exact', head: true }) → db.x.count({ where })
+.insert(row).select().single()   → db.x.create({ data: { ...row, workspace_id: ws } })
+.insert(rows)                     → db.x.createMany({ data: rows.map(r => ({ ...r, workspace_id: ws })) })
+.update(p).eq('id', id)           → db.x.updateMany({ where: { id }, data: p })   (update() si debe existir: lanza P2025)
+.upsert(row, { onConflict: 'a,b' }) → db.x.upsert({ where: { a_b: { a, b } }, create, update })  (nombre de la clave única en schema.prisma)
+.delete().eq('id', id)            → db.x.deleteMany({ where: { id } })
+.rpc('fn', { a, b })              → normalizeRaw(await prisma.$queryRaw`SELECT * FROM public.fn(${a}::uuid, ${b})`)
+```
+
+Reglas:
+
+- `{ data, error }` desaparece: Prisma **lanza**. Donde el código tragaba el error, envolver en `try/catch` con el mismo comportamiento; donde respondía 500, dejar que lo maneje el `catch` de la ruta.
+- Errores conocidos: único `P2002` (antes `23505`), no encontrado `P2025`, FK `P2003` (antes `23503`). Usar `isPrismaError(err, 'P2002')` de `@/lib/db/errors`.
+- Los nombres de relación en `include` son los de `schema.prisma` (normalmente el nombre de la tabla). Si la respuesta de la API usaba alias (`contact:contacts(...)`), mapear para que la forma JSON **no cambie**.
+- Las filas mantienen la forma de PostgREST (fechas en texto, montos en número). No convertir a mano.
+- No cambiar comportamiento ni respuestas de API: es una migración, no un refactor.
+- Tests: los que usan `FakeDb` (`@/lib/test-utils/fake-supabase`) pasan a pruebas contra Postgres real con `@/lib/test-utils/pg` (se saltan sin `TEST_DATABASE_URL`).
+- No tocar todavía: login (`auth.*`), Storage, Realtime, `createClient` del navegador (son P2–P5).
