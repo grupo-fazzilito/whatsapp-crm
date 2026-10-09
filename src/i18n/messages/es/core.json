@@ -56,7 +56,7 @@
     "agent": "Agente"
   },
   "team": {
-    "tab": "Equipo",
+    "tab": "Miembros",
     "title": "Miembros del equipo",
     "description": "Invita a tu equipo para atender conversaciones juntos. Los agentes atienden chats; los administradores además configuran el negocio.",
     "invite": "Invitar",

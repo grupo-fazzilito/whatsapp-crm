@@ -22,6 +22,8 @@ export interface ChannelSkin {
   action: string;
   font: string;
   rounded: string;
+  /** Chat background pattern, if the channel has one. */
+  wallpaper?: string;
 }
 
 export const SKINS: Record<PreviewChannel, ChannelSkin> = {
@@ -35,6 +37,7 @@ export const SKINS: Record<PreviewChannel, ChannelSkin> = {
     action: 'bg-white text-[#027eb5] dark:bg-[#202c33] dark:text-[#53bdeb]',
     font: 'text-[14.2px] leading-[19px]',
     rounded: 'rounded-lg',
+    wallpaper: '/inbox-doodle.svg',
   },
   instagram: {
     label: 'Instagram',
