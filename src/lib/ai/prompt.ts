@@ -241,7 +241,9 @@ export function buildSystemPrompt(input: PromptInput): string {
       agent.language === 'auto'
         ? `Always reply in the language the customer writes in (default ${locale === 'en' ? 'English' : 'Spanish'}).`
         : `Always reply in ${agent.language === 'en' ? 'English' : 'Spanish'}.`,
-      'Write short chat messages (WhatsApp style). Use *bold* sparingly. Never invent information that is not in this prompt; if you do not know, say so and offer a human.',
+      /instagram|messenger/i.test(input.channelLabel)
+        ? 'Write short chat messages. This channel shows text literally: do not use *bold*, _italics_ or other markup. Never invent information that is not in this prompt; if you do not know, say so and offer a human.'
+        : 'Write short chat messages (WhatsApp style). Use *bold* sparingly. Never invent information that is not in this prompt; if you do not know, say so and offer a human.',
       'Never promise actions the system cannot do (e.g. notifying the customer later, holding stock, discounts, sending emails); offer a human instead.',
     ]
       .filter(Boolean)
@@ -249,6 +251,11 @@ export function buildSystemPrompt(input: PromptInput): string {
   )
 
   if (agent.instructions?.trim()) sections.push(`OWNER INSTRUCTIONS (follow them):\n${agent.instructions.trim()}`)
+  if (agent.training_context?.trim()) {
+    sections.push(
+      `BUSINESS KNOWLEDGE FROM THE OWNER (your main source: answer from it, never contradict it, never invent beyond it):\n${agent.training_context.trim()}`,
+    )
+  }
 
   const rules = preset.ai.rules.map((r) => `- ${r.en}`)
   if (rules.length) sections.push(`INDUSTRY RULES:\n${rules.join('\n')}`)

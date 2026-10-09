@@ -4,18 +4,28 @@ import { isUuid } from '@/lib/workspace/constants'
 import { previewAgentTurn } from '@/lib/ai/engine'
 import { LlmUnavailableError, type ChatTurn } from '@/lib/ai/llm'
 import type { AiAgentRow, BookingDraft } from '@/lib/ai/types'
+import { canSpend, creditBalance, spend } from '@/lib/billing/credits'
+import { actionCost } from '@/lib/billing/pricing'
+import { getBillingSettings } from '@/lib/billing/settings'
+import { previewOutbound } from '@/lib/agents/preview'
 
 /**
  * POST /api/agents/[id]/playground — admin.
- * Body: { turns: [{ role: 'user'|'assistant', content }], draft?: BookingDraft }
+ * Body: { turns: [{ role: 'user'|'assistant', content }], draft?: BookingDraft,
+ *         channel?: 'whatsapp'|'instagram'|'messenger'|'webchat' }
  * One model turn of the saved agent with the real prompt and business
  * data, without side effects (nothing is sent, booked or stored).
+ * Each answer spends the 'playground' credit cost (free or paid credits).
  * Returns { reply, intent, handover, transferTo, bookingAction, draft, draftLabels,
- *   catalogSearch, showProductIds, shownProducts: [{ id, name, image }] }.
- * 503 { code: 'llm_unavailable' } when no AI provider is configured.
+ *   catalogSearch, showProductIds, shownProducts: [{ id, name, image }],
+ *   messages: OutboundContent[] (what the channel would receive, in order),
+ *   credits: { cost, balance } }.
+ * 402 { code: 'no_credits' } without credits; 503 { code: 'llm_unavailable' } without an AI provider.
  */
 
 const MAX_TURNS = 40
+const CHANNELS = ['whatsapp', 'instagram', 'messenger', 'webchat'] as const
+type PreviewChannel = (typeof CHANNELS)[number]
 const MAX_CONTENT = 2000
 
 function bad(error: string, status = 400) {
@@ -74,13 +84,24 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   const turns = parseTurns(body.turns)
   if (!turns) return bad('turns must be a non-empty list of {role, content} ending with a user message')
   const draft = parseDraft(body.draft)
+  const channel: PreviewChannel = (CHANNELS as readonly unknown[]).includes(body.channel) ? (body.channel as PreviewChannel) : 'webchat'
 
   const db = guard.ctx.db
   const agent = await db.ai_agents.findFirst({ where: { id, workspace_id: wsId } })
   if (!agent) return bad('Not found', 404)
 
+  // Testing an agent uses the AI like a real answer: it spends credits.
+  if (!(await canSpend(wsId, 'playground'))) {
+    return NextResponse.json({ error: 'No credits left', code: 'no_credits' }, { status: 402 })
+  }
+
   try {
-    const result = await previewAgentTurn({ workspaceId: wsId, agent: agent as unknown as AiAgentRow, turns, draft, channelType: 'webchat' })
+    const result = await previewAgentTurn({ workspaceId: wsId, agent: agent as unknown as AiAgentRow, turns, draft, channelType: channel })
+    const [messages, settings] = await Promise.all([
+      previewOutbound({ workspace: guard.ctx.workspace, skills: agent.skills, reply: result.reply, showProductIds: result.showProductIds }),
+      getBillingSettings(),
+    ])
+    const balanceAfter = await spend(wsId, 'playground')
 
     // Human-readable names for the ids in the draft.
     const [service, staff, shown] = await Promise.all([
@@ -107,6 +128,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
         .map((pid) => byId.get(pid))
         .filter((p) => !!p)
         .map((p) => ({ id: p!.id, name: p!.name, image: p!.images?.[0] ?? null })),
+      channel,
+      messages,
+      credits: { cost: actionCost('playground', settings), balance: balanceAfter ?? (await creditBalance(wsId).catch(() => null)) },
     })
   } catch (err) {
     if (err instanceof LlmUnavailableError) {

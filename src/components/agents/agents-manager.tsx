@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { ArrowRightLeft, Bot, Eye, FlaskConical, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, BookOpenText, Bot, Eye, FlaskConical, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -14,8 +14,7 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { cn } from '@/lib/utils';
 import { CHANNEL_STYLE } from '@/components/channels/channel-types';
 import type { ChannelType } from '@/lib/channels/types';
-import { AgentEditor } from './agent-editor';
-import { AgentPlayground } from './agent-playground';
+import { CreateAgentDialog } from './create-agent-dialog';
 import { AGENT_TONES, transferTargetsOf, type AgentChannelRef, type AiAgent } from './types';
 
 /** PATCH/DELETE an agent; returns the error message, or null when it worked. */
@@ -37,10 +36,8 @@ export function AgentsManager() {
   const [agents, setAgents] = useState<AiAgent[]>([]);
   const [channels, setChannels] = useState<AgentChannelRef[]>([]);
   const [loading, setLoading] = useState(true);
-  // undefined = closed, null = new agent
-  const [editing, setEditing] = useState<AiAgent | null | undefined>(undefined);
+  const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<AiAgent | null>(null);
-  const [testing, setTesting] = useState<AiAgent | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -89,7 +86,7 @@ export function AgentsManager() {
           <p className="mt-1 text-sm text-muted-foreground">{t('agents.description')}</p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setEditing(null)}>
+          <Button onClick={() => setCreating(true)}>
             <Plus className="size-4" />
             {t('agents.new')}
           </Button>
@@ -110,7 +107,7 @@ export function AgentsManager() {
           <h2 className="text-base font-semibold text-foreground">{t('agents.empty.title')}</h2>
           <p className="max-w-md text-sm text-muted-foreground">{t('agents.empty.description')}</p>
           {isAdmin && (
-            <Button onClick={() => setEditing(null)}>
+            <Button onClick={() => setCreating(true)}>
               <Plus className="size-4" />
               {t('agents.new')}
             </Button>
@@ -130,7 +127,11 @@ export function AgentsManager() {
                       <Bot className="size-5" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-sm font-semibold text-foreground">{a.name}</h3>
+                      <h3 className="truncate text-sm font-semibold text-foreground">
+                        <Link href={`/agents/${a.id}`} className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
+                          {a.name}
+                        </Link>
+                      </h3>
                       <p className="text-xs text-muted-foreground">
                         {toneLabel(a.tone)} · {t(`agents.language.${a.language}`)}
                       </p>
@@ -212,24 +213,24 @@ export function AgentsManager() {
                   <div className="flex justify-end gap-1">
                     {isAdmin ? (
                       <>
-                        <Button variant="ghost" size="sm" onClick={() => setTesting(a)}>
+                        <Link href={`/agents/${a.id}?tab=training`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+                          <BookOpenText className="size-3.5" />
+                          {t('agents.page.tabs.training')}
+                        </Link>
+                        <Link href={`/agents/${a.id}?tab=test`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
                           <FlaskConical className="size-3.5" />
-                          {t('routing.playground.button')}
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setEditing(a)}>
-                          <Pencil className="size-3.5" />
-                          {t('agents.edit')}
-                        </Button>
+                          {t('agents.page.tabs.test')}
+                        </Link>
                         <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeleting(a)}>
                           <Trash2 className="size-3.5" />
                           {t('common.delete')}
                         </Button>
                       </>
                     ) : (
-                      <Button variant="ghost" size="sm" onClick={() => setEditing(a)}>
+                      <Link href={`/agents/${a.id}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
                         <Eye className="size-3.5" />
                         {t('agents.view')}
-                      </Button>
+                      </Link>
                     )}
                   </div>
                 </CardContent>
@@ -239,24 +240,7 @@ export function AgentsManager() {
         </div>
       )}
 
-      {editing !== undefined && (
-        <AgentEditor
-          agent={editing}
-          allAgents={agents}
-          readOnly={!isAdmin}
-          onClose={() => setEditing(undefined)}
-          onSaved={() => load()}
-        />
-      )}
-
-      {testing && (
-        <AgentPlayground
-          key={testing.id}
-          agent={testing}
-          onSwitchAgent={(id) => agents.find((x) => x.id === id) ?? null}
-          onClose={() => setTesting(null)}
-        />
-      )}
+      <CreateAgentDialog open={creating} onOpenChange={setCreating} />
 
       <ConfirmationDialog
         isOpen={!!deleting}

@@ -85,23 +85,26 @@ function primaryButton(action: ProductAction, productId: string, t: ReturnType<t
 // ------------------------------------------------------------
 // Product carousel
 // ------------------------------------------------------------
-export async function sendProductCarousel(ctx: CommerceCtx, productIds: string[], intro?: string): Promise<boolean> {
-  const lang = langFor(ctx.workspace)
+/**
+ * Carousel cards for products (only active ones with a photo), with the
+ * buttons that fit the business: add to cart, book a viewing, see more.
+ * Shared by the chat and the agent test chat.
+ */
+export async function buildProductCards(workspace: Workspace, productIds: string[]): Promise<{ cards: CarouselCard[]; productIds: string[] }> {
+  const lang = langFor(workspace)
   const t = texts(lang)
-  const data = await tenantDb(ctx.workspace.id).products.findMany({
+  const data = await tenantDb(workspace.id).products.findMany({
     select: { id: true, name: true, price: true, currency: true, images: true, track_stock: true, stock: true, description: true },
     where: { is_active: true, id: { in: productIds.filter((id) => UUID.test(id)).slice(0, 10) } },
   })
   const byId = new Map(data.map((p) => [p.id, p]))
   const products = productIds.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => !!p && !!p.images?.[0])
-  if (!products.length) return false
-
-  const action = productAction(ctx.workspace)
+  const action = productAction(workspace)
   const cards: CarouselCard[] = products.map((p) => {
     const main = primaryButton(action, p.id, t)
     const moreTitle = action === 'book' ? t.buttons.details : t.buttons.more
     const soldOut = p.track_stock && (p.stock ?? 0) <= 0
-    const price = p.price === null ? '' : formatProductPrice(Number(p.price), p, ctx.workspace)
+    const price = p.price === null ? '' : formatProductPrice(Number(p.price), p, workspace)
     return {
       id: p.id,
       imageUrl: p.images[0],
@@ -110,7 +113,18 @@ export async function sendProductCarousel(ctx: CommerceCtx, productIds: string[]
       buttons: main ? [main, { id: `cart:more:${p.id}`, title: moreTitle }] : [{ id: `cart:more:${p.id}`, title: moreTitle }],
     }
   })
-  await say(ctx, { type: 'carousel', text: intro || (lang === 'en' ? 'Here you go:' : 'Mira estas opciones:'), cards }, { product_ids: products.map((p) => p.id) })
+  return { cards, productIds: products.map((p) => p.id) }
+}
+
+/** Intro text of a product carousel. */
+export function carouselIntro(workspace: Workspace): string {
+  return langFor(workspace) === 'en' ? 'Here you go:' : 'Mira estas opciones:'
+}
+
+export async function sendProductCarousel(ctx: CommerceCtx, productIds: string[], intro?: string): Promise<boolean> {
+  const { cards, productIds: ids } = await buildProductCards(ctx.workspace, productIds)
+  if (!cards.length) return false
+  await say(ctx, { type: 'carousel', text: intro || carouselIntro(ctx.workspace), cards }, { product_ids: ids })
   return true
 }
 

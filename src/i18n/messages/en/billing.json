@@ -30,7 +30,8 @@
       "suggest": "Suggested reply",
       "transcription": "Audio transcription",
       "vision": "Image or PDF reading",
-      "unit": "{n} credit(s)"
+      "unit": "{n} credit(s)",
+      "playground": "Agent test message"
     },
     "account": {
       "title": "Billing details",

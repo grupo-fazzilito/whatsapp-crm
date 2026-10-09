@@ -2,7 +2,7 @@
 // (platform_settings 'billing'). Pure — safe in tests and on the client.
 
 /** Billable AI actions and what each one costs in credits. */
-export const BILLABLE_ACTIONS = ['reply', 'followup', 'summary', 'suggest', 'transcription', 'vision'] as const
+export const BILLABLE_ACTIONS = ['reply', 'followup', 'summary', 'suggest', 'transcription', 'vision', 'playground'] as const
 export type BillableAction = (typeof BILLABLE_ACTIONS)[number]
 
 export interface BillingSettings {
@@ -31,7 +31,7 @@ export const DEFAULT_BILLING: BillingSettings = {
   expiry_months: 6,
   welcome_credits: 100,
   low_credit_threshold: 50,
-  action_costs: { reply: 1, followup: 1, summary: 1, suggest: 1, transcription: 2, vision: 2 },
+  action_costs: { reply: 1, followup: 1, summary: 1, suggest: 1, transcription: 2, vision: 2, playground: 1 },
   enforce: true,
 }
 

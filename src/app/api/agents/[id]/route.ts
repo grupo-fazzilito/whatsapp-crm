@@ -5,9 +5,26 @@ import { parseAgentInput } from '@/lib/ai/agent-input'
 import { deleteAgent, updateAgent } from '@/lib/ai/agents-store'
 
 /**
+ * GET    /api/agents/[id] → { agent, channels } — agent (channels: those answered by this agent)
  * PATCH  /api/agents/[id] { …same fields as POST /api/agents, all optional } → { agent } — admin
  * DELETE /api/agents/[id] → { ok } — admin
  */
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await requireWorkspace('agent')
+  if (!guard.ok) return guard.response
+  const { id } = await params
+  if (!isUuid(id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  const [agent, channels] = await Promise.all([
+    guard.ctx.db.ai_agents.findFirst({ where: { id, workspace_id: guard.ctx.workspace.id } }),
+    guard.ctx.db.channels.findMany({
+      where: { workspace_id: guard.ctx.workspace.id, ai_agent_id: id },
+      select: { id: true, name: true, type: true, display_handle: true },
+    }),
+  ])
+  if (!agent) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  return NextResponse.json({ agent, channels })
+}
+
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response

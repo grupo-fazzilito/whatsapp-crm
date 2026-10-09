@@ -30,7 +30,8 @@
       "suggest": "Respuesta sugerida",
       "transcription": "Transcripción de audio",
       "vision": "Lectura de imagen o PDF",
-      "unit": "{n} crédito(s)"
+      "unit": "{n} crédito(s)",
+      "playground": "Mensaje de prueba de un agente"
     },
     "account": {
       "title": "Datos de facturación",

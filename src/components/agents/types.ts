@@ -26,11 +26,13 @@ export interface AiAgent {
   enabled: boolean;
   /** Agents it may hand the conversation to (routers: empty = all non-routers). */
   transfer_agent_ids: string[];
+  /** Business knowledge written by the owner (≤ 5,000 chars). */
+  training_context: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export type AgentDraft = Omit<AiAgent, 'id' | 'workspace_id' | 'avatar_url' | 'created_at' | 'updated_at'>;
+export type AgentDraft = Omit<AiAgent, 'id' | 'workspace_id' | 'avatar_url' | 'created_at' | 'updated_at' | 'training_context'>;
 
 /** Model override per agent (null = automatic provider order). The prefix picks the provider in src/lib/ai/llm.ts. */
 export const AGENT_MODELS = [

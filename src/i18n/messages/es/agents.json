@@ -44,7 +44,9 @@
       "afterHoursPlaceholder": "Ej. Ahora estamos cerrados; te respondemos mañana a partir de las 9:00.",
       "escalation": "Palabras para pasar con una persona",
       "escalationPlaceholder": "Escribe y presiona Enter o coma",
-      "escalationHelp": "Si el cliente escribe alguna, el agente deja de responder y avisa a tu equipo."
+      "escalationHelp": "Si el cliente escribe alguna, el agente deja de responder y avisa a tu equipo.",
+      "training_context": "Contexto de entrenamiento",
+      "description": "Qué atiende"
     },
     "tone": {
       "friendly": "Amigable",
@@ -74,6 +76,75 @@
       "orders": "Toma pedidos y consulta su estado.",
       "handover": "Transfiere la conversación a tu equipo cuando hace falta.",
       "router": "Detecta la intención y transfiere al agente indicado."
+    },
+    "create": {
+      "title": "Nuevo agente",
+      "description": "Elige un punto de partida. Después puedes cambiar todo.",
+      "creating": "Creando…",
+      "templates": {
+        "receptionist": "Recepcionista",
+        "sales": "Vendedor",
+        "real_estate": "Asesor inmobiliario",
+        "support": "Soporte",
+        "router": "Recepción (enrutador)",
+        "blank": "En blanco"
+      },
+      "blankDescription": "Empieza desde cero con tus propias instrucciones."
+    },
+    "page": {
+      "back": "Agentes",
+      "tabs": {
+        "training": "Entrenamiento",
+        "test": "Probar",
+        "settings": "Configuración"
+      },
+      "configure": "Editar configuración",
+      "notFound": "No encontramos este agente.",
+      "channels": "Responde en",
+      "noChannels": "Aún no atiende ningún canal.",
+      "assign": "Asignar en Canales",
+      "disabled": "Desactivado: no responde a clientes."
+    },
+    "training": {
+      "title": "Contexto de entrenamiento",
+      "description": "Escribe lo que el agente debe saber de tu negocio: productos o servicios, precios, políticas, zonas de envío, preguntas frecuentes y cómo quieres que hable. Es su fuente principal: responde con esto y no inventa más allá.",
+      "placeholder": "Ejemplo:\n• Somos una pastelería en Miraflores, abrimos de lunes a sábado de 9 a. m. a 8 p. m.\n• Tortas por encargo con 48 horas de anticipación; adelanto del 50%.\n• Delivery a Miraflores, San Isidro y Barranco por S/ 10.\n• Si preguntan por tortas sin azúcar: sí tenemos, a pedido.\n• Trata al cliente de tú y usa emojis con moderación.",
+      "counter": "{n} / {max} caracteres",
+      "tooLong": "Supera el límite de {max} caracteres.",
+      "save": "Guardar entrenamiento",
+      "saved": "Entrenamiento guardado",
+      "tips": "Consejos",
+      "tip1": "Usa frases cortas y concretas, una idea por línea.",
+      "tip2": "Incluye precios, horarios y condiciones exactas: el agente los repetirá tal cual.",
+      "tip3": "Después de guardar, pruébalo en la pestaña Probar con preguntas reales de tus clientes.",
+      "alsoUses": "Además de este texto, el agente ya conoce tus horarios, servicios, catálogo y preguntas frecuentes configurados en el sistema.",
+      "unsaved": "Cambios sin guardar"
+    },
+    "test": {
+      "title": "Probar agente",
+      "description": "Escribe como si fueras un cliente. Verás la respuesta tal como llegaría por el canal elegido.",
+      "channel": "Canal",
+      "placeholder": "Escribe un mensaje…",
+      "send": "Enviar",
+      "reset": "Nueva conversación",
+      "cost": "Cada mensaje de prueba usa {cost} crédito(s) · Saldo: {balance}",
+      "noCredits": "No tienes créditos para probar el agente.",
+      "topup": "Recargar",
+      "thinking": "Escribiendo…",
+      "empty": "Escribe una pregunta que te haría un cliente para ver cómo responde.",
+      "handover": "El agente pasaría la conversación a una persona del equipo.",
+      "transfer": "El agente pasaría la conversación a {name}.",
+      "booking": "Datos de reserva hasta ahora",
+      "searched": "Buscó en el catálogo: {q}",
+      "error": "El agente no pudo responder. Intenta de nuevo.",
+      "noProvider": "No hay un proveedor de IA configurado en la plataforma.",
+      "customer": "Cliente",
+      "noteWhatsapp": "Así lo verá el cliente en WhatsApp.",
+      "noteInstagram": "Instagram no muestra negritas y corta los mensajes en 1.000 caracteres.",
+      "noteMessenger": "Messenger no muestra negritas; las fotos llegan sin texto, así que el nombre y precio van en un mensaje aparte.",
+      "noteWebchat": "Así se verá en el chat de tu sitio web.",
+      "online": "en línea",
+      "viewOptions": "Ver opciones"
     }
   }
 }
