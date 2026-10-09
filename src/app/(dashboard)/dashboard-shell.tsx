@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { WorkspaceProvider, useWorkspace } from "@/hooks/use-workspace";
 import { useT } from "@/i18n/client";
+import { SectionTabs } from "@/components/layout/section-tabs";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { CreditsBanner } from "@/components/billing/credits-banner";
@@ -67,6 +68,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
         {/* Thinner horizontal padding on mobile so cards have room to breathe. */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="mx-auto w-full max-w-screen-xl">
+            <SectionTabs />
             {children}
           </div>
         </main>

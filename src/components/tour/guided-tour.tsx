@@ -27,7 +27,7 @@ const STEPS: { key: string; selector?: string; side?: 'left' | 'right' | 'top' |
   { key: 'pipelines', selector: '[data-tour="nav:/pipelines"]', side: 'right' },
   { key: 'channels', selector: '[data-tour="nav:/channels"]', side: 'right' },
   { key: 'agents', selector: '[data-tour="nav:/agents"]', side: 'right' },
-  { key: 'business', selector: '[data-tour="nav:/business/dashboard"]', side: 'right' },
+  { key: 'business', selector: '[data-tour="nav:business"]', side: 'right' },
   { key: 'reports', selector: '[data-tour="nav:/reports"]', side: 'right' },
   { key: 'settings', selector: '[data-tour="nav:/settings"]', side: 'right' },
   { key: 'tourIcon', selector: '[data-tour="tour-button"]', side: 'bottom' },

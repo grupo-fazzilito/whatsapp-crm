@@ -36,7 +36,11 @@
     "clientsOverview": "Clientes",
     "portfolio": "Portafolio",
     "profile": "Perfil",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "tools": "Herramientas",
+    "general": "General",
+    "agentsList": "Agentes",
+    "sections": "Secciones"
   },
   "workspace": {
     "switch": "Cambiar de negocio",

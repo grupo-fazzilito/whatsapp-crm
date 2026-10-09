@@ -96,11 +96,11 @@
     },
     "agents": {
       "title": "Agentes de IA",
-      "body": "Crea agentes que responden por ti, entrénalos con la información de tu negocio y pruébalos antes de activarlos."
+      "body": "Crea agentes que responden por ti, entrénalos (también con preguntas frecuentes) y revisa lo que respondieron en el registro de IA."
     },
     "business": {
       "title": "Tu negocio",
-      "body": "Horarios, servicios, catálogo y preguntas frecuentes: lo que tus agentes usan para responder."
+      "body": "Reservas, catálogo, pedidos y tu equipo, según el tipo de negocio."
     },
     "reports": {
       "title": "Reportes",
@@ -108,7 +108,7 @@
     },
     "settings": {
       "title": "Ajustes",
-      "body": "Tu equipo, plantillas, etiquetas, respuestas rápidas y la recarga de tokens."
+      "body": "Tu equipo, plantillas, etiquetas, respuestas rápidas, la recarga de tokens y la configuración del negocio (horarios, datos)."
     },
     "tourIcon": {
       "title": "Repite la visita",
