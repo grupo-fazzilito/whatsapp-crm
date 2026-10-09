@@ -353,6 +353,8 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       // Lazy: the AI layer is server-only and pulls the LLM providers.
       const { generateFollowup, loadFollowupInput } = await import('@/lib/ai/followup')
       const { LlmUnavailableError } = await import('@/lib/ai/llm')
+      const { canSpend, spend } = await import('@/lib/billing/credits')
+      if (!(await canSpend(args.automation.workspace_id, 'followup'))) throw new Error('Sin créditos de IA: recarga para enviar seguimientos con IA')
       let text: string
       try {
         text = await generateFollowup(
@@ -376,6 +378,7 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
         text,
         extra: { ...sendExtra(args), aiAgentId: agent.id },
       })
+      await spend(args.automation.workspace_id, 'followup', { conversationId })
       return `AI follow-up sent (${whatsapp_message_id || 'ok'}): ${text.slice(0, 120)}`
     }
 

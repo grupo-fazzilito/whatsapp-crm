@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
-import { AtSign, ArrowRightLeft, Bell, CheckCheck, UserCheck, Info } from "lucide-react";
+import { AtSign, ArrowRightLeft, Bell, CheckCheck, UserCheck, Info, Coins } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -19,6 +19,7 @@ const TYPE_ICON = {
   assigned: UserCheck,
   transferred: ArrowRightLeft,
   system: Info,
+  billing: Coins,
 } as const;
 
 /** Header bell: unread count, live updates, mark read, jump to the conversation. */

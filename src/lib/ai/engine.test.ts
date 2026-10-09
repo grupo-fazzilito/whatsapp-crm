@@ -7,12 +7,15 @@ const h = vi.hoisted(() => ({
   completeJson: vi.fn(),
   sendMessage: vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({ messageId: 'm', externalId: null, status: 'sent' })),
   createBookingFromDraft: vi.fn(),
+  canSpend: vi.fn(async () => true),
+  spend: vi.fn(async () => 100),
   ctx: null as unknown,
 }))
 
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase/admin', () => ({ supabaseAdmin: () => h.db }))
 vi.mock('@/lib/messaging/send', () => ({ sendMessage: h.sendMessage }))
+vi.mock('@/lib/billing/credits', () => ({ canSpend: h.canSpend, spend: h.spend }))
 vi.mock('./llm', async (orig) => ({
   ...(await orig<typeof import('./llm')>()),
   completeJson: h.completeJson,
@@ -104,6 +107,34 @@ describe('runAgent', () => {
     h.completeJson.mockReset()
     h.sendMessage.mockClear()
     h.createBookingFromDraft.mockReset()
+    h.canSpend.mockClear()
+    h.canSpend.mockResolvedValue(true)
+    h.spend.mockClear()
+  })
+
+  it('charges one credit per model turn, even when it transfers to another agent', async () => {
+    h.completeJson
+      .mockResolvedValueOnce(out({ intent: 'transfer', transfer_to_agent_id: 's1', reply: 'Te paso con Max' }))
+      .mockResolvedValueOnce(out({ reply: '¡Hola! Soy Max' }))
+    await runAgent(input(router))
+    expect(h.canSpend).toHaveBeenCalledTimes(1)
+    expect(h.canSpend).toHaveBeenCalledWith(WS, 'reply')
+    expect(h.spend).toHaveBeenCalledTimes(1)
+    expect(h.spend).toHaveBeenCalledWith(WS, 'reply', { conversationId: 'c1' })
+  })
+
+  it('out of credits: no model call, nothing sent, the message stays for the team', async () => {
+    h.canSpend.mockResolvedValueOnce(false)
+    expect(await runAgent(input(sales))).toBe(false)
+    expect(h.completeJson).not.toHaveBeenCalled()
+    expect(sentTexts()).toEqual([])
+    expect(h.spend).not.toHaveBeenCalled()
+  })
+
+  it('does not charge when the model fails', async () => {
+    h.completeJson.mockRejectedValueOnce(new Error('boom'))
+    await runAgent(input(sales))
+    expect(h.spend).not.toHaveBeenCalled()
   })
 
   it('transfer: pins the target, logs a system divider, and the target answers once (depth guard)', async () => {
