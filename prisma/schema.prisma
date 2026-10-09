@@ -1,0 +1,2037 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model ai_agents {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id        String          @default(dbgenerated("active_ws()")) @db.Uuid
+  name                String
+  avatar_url          String?
+  persona             String?
+  tone                String          @default("friendly")
+  instructions        String?
+  language            String          @default("auto")
+  skills              String[]        @default(["faq", "handover"])
+  greeting_message    String?
+  after_hours_message String?
+  escalation_keywords String[]        @default(["humano", "agente", "asesor", "human", "agent"])
+  business_hours_only Boolean         @default(false)
+  model               String?
+  enabled             Boolean         @default(true)
+  created_by          String?         @default(dbgenerated("app_user_id()")) @db.Uuid
+  created_at          DateTime?       @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?       @default(now()) @db.Timestamptz(6)
+  description         String?
+  transfer_agent_ids  String[]        @default([]) @db.Uuid
+  users               users?          @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  workspaces          workspaces      @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  ai_chat_logs        ai_chat_logs[]
+  ai_usage            ai_usage[]
+  bookings            bookings[]
+  channels            channels[]
+  conversations       conversations[]
+  messages            messages[]
+  orders              orders[]
+
+  @@index([workspace_id], map: "idx_ai_agents_workspace")
+}
+
+model ai_chat_logs {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contact_id       String         @db.Uuid
+  user_message     String
+  ai_response      String
+  detected_intent  String?
+  confidence_score Decimal?       @db.Decimal(3, 2)
+  created_at       DateTime?      @default(now()) @db.Timestamptz(6)
+  workspace_id     String         @default(dbgenerated("active_ws()")) @db.Uuid
+  ai_agent_id      String?        @db.Uuid
+  conversation_id  String?        @db.Uuid
+  channel_id       String?        @db.Uuid
+  ai_agents        ai_agents?     @relation(fields: [ai_agent_id], references: [id], onUpdate: NoAction)
+  channels         channels?      @relation(fields: [channel_id], references: [id], onUpdate: NoAction)
+  conversations    conversations? @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
+  contacts         contacts       @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "ai_chat_logs_patient_id_fkey")
+  workspaces       workspaces     @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id], map: "idx_ai_chat_logs_workspace")
+  @@index([workspace_id, created_at(sort: Desc)], map: "idx_ai_chat_logs_ws_created")
+  @@index([workspace_id, detected_intent, created_at], map: "idx_ai_chat_logs_ws_intent")
+}
+
+model ai_usage {
+  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id        String         @db.Uuid
+  ai_agent_id         String?        @db.Uuid
+  conversation_id     String?        @db.Uuid
+  channel_id          String?        @db.Uuid
+  purpose             String
+  provider            String
+  model               String
+  input_tokens        Int            @default(0)
+  cached_input_tokens Int            @default(0)
+  output_tokens       Int            @default(0)
+  cost_usd            Decimal        @default(0) @db.Decimal(14, 8)
+  latency_ms          Int?
+  created_at          DateTime       @default(now()) @db.Timestamptz(6)
+  audio_seconds       Decimal?       @db.Decimal(10, 2)
+  ai_agents           ai_agents?     @relation(fields: [ai_agent_id], references: [id], onUpdate: NoAction)
+  channels            channels?      @relation(fields: [channel_id], references: [id], onUpdate: NoAction)
+  conversations       conversations? @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
+  workspaces          workspaces     @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_ai_usage_created")
+  @@index([workspace_id, created_at(sort: Desc)], map: "idx_ai_usage_ws_created")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model api_keys {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @db.Uuid
+  name         String
+  prefix       String
+  key_hash     String     @unique
+  scopes       String[]   @default([])
+  created_by   String?    @db.Uuid
+  last_used_at DateTime?  @db.Timestamptz(6)
+  expires_at   DateTime?  @db.Timestamptz(6)
+  revoked_at   DateTime?  @db.Timestamptz(6)
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  users        users?     @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([prefix], map: "idx_api_keys_prefix")
+  @@index([workspace_id, created_at(sort: Desc)], map: "idx_api_keys_ws")
+}
+
+model auth_accounts {
+  id                       String    @id
+  user_id                  String    @db.Uuid
+  account_id               String
+  provider_id              String
+  access_token             String?
+  refresh_token            String?
+  id_token                 String?
+  access_token_expires_at  DateTime? @db.Timestamptz(6)
+  refresh_token_expires_at DateTime? @db.Timestamptz(6)
+  scope                    String?
+  password                 String?
+  created_at               DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime  @default(now()) @db.Timestamptz(6)
+  users                    users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_auth_accounts_user")
+}
+
+model auth_sessions {
+  id         String   @id
+  user_id    String   @db.Uuid
+  token      String   @unique
+  expires_at DateTime @db.Timestamptz(6)
+  ip_address String?
+  user_agent String?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_auth_sessions_user")
+}
+
+model auth_verifications {
+  id         String   @id
+  identifier String
+  value      String
+  expires_at DateTime @db.Timestamptz(6)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([identifier], map: "idx_auth_verifications_identifier")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model automation_logs {
+  id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  automation_id                 String                          @db.Uuid
+  user_id                       String?                         @default(dbgenerated("app_user_id()")) @db.Uuid
+  contact_id                    String?                         @db.Uuid
+  trigger_event                 String
+  steps_executed                Json                            @default("[]")
+  status                        String
+  error_message                 String?
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  workspace_id                  String                          @default(dbgenerated("active_ws()")) @db.Uuid
+  automations                   automations                     @relation(fields: [automation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  contacts                      contacts?                       @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  users                         users?                          @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces                    workspaces                      @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  automation_pending_executions automation_pending_executions[]
+
+  @@index([automation_id, created_at(sort: Desc)], map: "idx_automation_logs_automation")
+  @@index([user_id], map: "idx_automation_logs_user")
+  @@index([workspace_id], map: "idx_automation_logs_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model automation_pending_executions {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  automation_id      String            @db.Uuid
+  user_id            String?           @default(dbgenerated("app_user_id()")) @db.Uuid
+  contact_id         String?           @db.Uuid
+  log_id             String?           @db.Uuid
+  parent_step_id     String?           @db.Uuid
+  branch             String?
+  next_step_position Int
+  context            Json              @default("{}")
+  status             String            @default("pending")
+  run_at             DateTime          @db.Timestamptz(6)
+  created_at         DateTime          @default(now()) @db.Timestamptz(6)
+  workspace_id       String            @default(dbgenerated("active_ws()")) @db.Uuid
+  automations        automations       @relation(fields: [automation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  contacts           contacts?         @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  automation_logs    automation_logs?  @relation(fields: [log_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  automation_steps   automation_steps? @relation(fields: [parent_step_id], references: [id], onUpdate: NoAction)
+  users              users?            @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces         workspaces        @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([run_at], map: "idx_automation_pending_due", where: raw("(status = 'pending'::text)"))
+  @@index([workspace_id], map: "idx_automation_pending_executions_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model automation_steps {
+  id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  automation_id                 String                          @db.Uuid
+  parent_step_id                String?                         @db.Uuid
+  branch                        String?
+  step_type                     String
+  step_config                   Json                            @default("{}")
+  position                      Int
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  workspace_id                  String                          @db.Uuid
+  automation_pending_executions automation_pending_executions[]
+  automations                   automations                     @relation(fields: [automation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  automation_steps              automation_steps?               @relation("automation_stepsToautomation_steps", fields: [parent_step_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  other_automation_steps        automation_steps[]              @relation("automation_stepsToautomation_steps")
+  workspaces                    workspaces                      @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([automation_id, position], map: "idx_automation_steps_automation_id")
+  @@index([parent_step_id], map: "idx_automation_steps_parent", where: raw("(parent_step_id IS NOT NULL)"))
+  @@index([workspace_id], map: "idx_automation_steps_workspace")
+}
+
+model automations {
+  id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                       String?                         @default(dbgenerated("app_user_id()")) @db.Uuid
+  name                          String
+  description                   String?
+  trigger_type                  String
+  trigger_config                Json                            @default("{}")
+  is_active                     Boolean                         @default(false)
+  execution_count               Int                             @default(0)
+  last_executed_at              DateTime?                       @db.Timestamptz(6)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  workspace_id                  String                          @default(dbgenerated("active_ws()")) @db.Uuid
+  automation_logs               automation_logs[]
+  automation_pending_executions automation_pending_executions[]
+  automation_steps              automation_steps[]
+  users                         users?                          @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces                    workspaces                      @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  followup_schedules            followup_schedules[]
+
+  @@index([trigger_type], map: "idx_automations_active_trigger", where: raw("(is_active = true)"))
+  @@index([user_id], map: "idx_automations_user_id")
+  @@index([workspace_id], map: "idx_automations_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model billing_accounts {
+  workspace_id         String     @id @db.Uuid
+  doc_type             Int?       @db.SmallInt
+  doc_number           String?
+  legal_name           String?
+  email                String?
+  low_notified_at      DateTime?  @db.Timestamptz(6)
+  depleted_notified_at DateTime?  @db.Timestamptz(6)
+  created_at           DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime   @default(now()) @db.Timestamptz(6)
+  workspaces           workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model billing_payments {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id      String          @db.Uuid
+  provider          String          @default("payment_latam")
+  amount            Decimal         @db.Decimal(12, 2)
+  currency          String          @default("PEN")
+  credits           Int
+  unit_price        Decimal         @db.Decimal(10, 4)
+  status            String          @default("creating")
+  provider_order_id String?         @unique
+  reference         String?
+  checkout_url      String?
+  expires_on        DateTime?       @db.Date
+  paid_at           DateTime?       @db.Timestamptz(6)
+  error             String?
+  payer             Json            @default("{}")
+  raw               Json            @default("{}")
+  created_by        String?         @db.Uuid
+  created_at        DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime        @default(now()) @db.Timestamptz(6)
+  users             users?          @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  workspaces        workspaces      @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  credit_ledger     credit_ledger[]
+  credit_lots       credit_lots?
+
+  @@index([created_at], map: "idx_billing_payments_pending", where: raw("(status = 'pending'::text)"))
+  @@index([workspace_id, created_at(sort: Desc)], map: "idx_billing_payments_ws")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model bookings {
+  id                            String                @id(map: "appointments_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contact_id                    String                @db.Uuid
+  staff_id                      String?               @db.Uuid
+  booking_date                  DateTime              @db.Date
+  booking_time                  String
+  status                        String?               @default("confirmed")
+  created_at                    DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime?             @default(now()) @db.Timestamptz(6)
+  reminder_24h_sent             Boolean?              @default(false)
+  reminder_3h_sent              Boolean?              @default(false)
+  feedback_sent                 Boolean?              @default(false)
+  followup_sent                 Boolean?              @default(false)
+  customer_name                 String?
+  sheets_synced                 Boolean?              @default(false)
+  reminder_4h_sent              Boolean?              @default(false)
+  reminder_2h_sent              Boolean?              @default(false)
+  workspace_id                  String                @default(dbgenerated("active_ws()")) @db.Uuid
+  service_id                    String?               @db.Uuid
+  product_id                    String?               @db.Uuid
+  duration_minutes              Int                   @default(30)
+  party_size                    Int?
+  notes                         String?
+  custom_fields                 Json                  @default("{}")
+  conversation_id               String?               @db.Uuid
+  ai_agent_id                   String?               @db.Uuid
+  source                        String                @default("manual")
+  google_event_id               String?
+  google_calendar_connection_id String?               @db.Uuid
+  google_sync_state             String?
+  google_sync_error             String?
+  google_sync_attempts          Int                   @default(0)
+  google_sync_version           Int                   @default(0)
+  google_synced_at              DateTime?             @db.Timestamptz(6)
+  viewing_stage_synced_at       DateTime?             @db.Timestamptz(6)
+  viewing_location_sent_at      DateTime?             @db.Timestamptz(6)
+  viewing_feedback_sent_at      DateTime?             @db.Timestamptz(6)
+  viewing_feedback              String?
+  contacts                      contacts              @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "appointments_contact_id_fkey")
+  staff                         staff?                @relation(fields: [staff_id], references: [id], onUpdate: NoAction, map: "appointments_doctor_id_fkey")
+  workspaces                    workspaces            @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "appointments_workspace_id_fkey")
+  ai_agents                     ai_agents?            @relation(fields: [ai_agent_id], references: [id], onUpdate: NoAction)
+  conversations                 conversations?        @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
+  calendar_connections          calendar_connections? @relation(fields: [google_calendar_connection_id], references: [id], onUpdate: NoAction)
+  products                      products?             @relation(fields: [product_id], references: [id], onUpdate: NoAction)
+  services                      services?             @relation(fields: [service_id], references: [id], onUpdate: NoAction)
+  feedback                      feedback[]
+  patient_intake                patient_intake[]
+
+  @@index([status, feedback_sent], map: "idx_appointments_feedback_pending", where: raw("((status = 'completed'::text) AND ((feedback_sent IS NULL) OR (feedback_sent = false)))"))
+  @@index([status, followup_sent], map: "idx_appointments_followup_pending", where: raw("((status = 'completed'::text) AND ((followup_sent IS NULL) OR (followup_sent = false)))"))
+  @@index([workspace_id], map: "idx_appointments_workspace")
+  @@index([workspace_id, booking_date], map: "idx_bookings_day")
+  @@index([google_calendar_connection_id, google_event_id], map: "idx_bookings_google_event", where: raw("(google_event_id IS NOT NULL)"))
+  @@index([google_sync_state], map: "idx_bookings_google_sync", where: raw("(google_sync_state = ANY (ARRAY['pending'::text, 'error'::text]))"))
+  @@index([staff_id, booking_date], map: "idx_bookings_staff_day")
+  @@index([booking_date], map: "idx_bookings_viewing_pending", where: raw("((product_id IS NOT NULL) AND (viewing_feedback_sent_at IS NULL))"))
+  @@index([workspace_id, created_at], map: "idx_bookings_ws_created")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model broadcast_recipients {
+  id                  String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  broadcast_id        String     @db.Uuid
+  contact_id          String?    @db.Uuid
+  status              String     @default("pending")
+  sent_at             DateTime?  @db.Timestamptz(6)
+  delivered_at        DateTime?  @db.Timestamptz(6)
+  read_at             DateTime?  @db.Timestamptz(6)
+  replied_at          DateTime?  @db.Timestamptz(6)
+  error_message       String?
+  created_at          DateTime?  @default(now()) @db.Timestamptz(6)
+  whatsapp_message_id String?    @unique(map: "idx_broadcast_recipients_wamid", where: raw("(whatsapp_message_id IS NOT NULL)"))
+  workspace_id        String     @db.Uuid
+  broadcasts          broadcasts @relation(fields: [broadcast_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  contacts            contacts?  @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  workspaces          workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([broadcast_id], map: "idx_broadcast_recipients_broadcast")
+  @@index([broadcast_id, status], map: "idx_broadcast_recipients_broadcast_status")
+  @@index([workspace_id], map: "idx_broadcast_recipients_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model broadcasts {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id              String?                @default(dbgenerated("app_user_id()")) @db.Uuid
+  name                 String
+  template_name        String
+  template_language    String                 @default("en_US")
+  template_variables   Json?
+  audience_filter      Json?
+  scheduled_at         DateTime?              @db.Timestamptz(6)
+  status               String                 @default("draft")
+  total_recipients     Int?                   @default(0)
+  sent_count           Int?                   @default(0)
+  delivered_count      Int?                   @default(0)
+  read_count           Int?                   @default(0)
+  replied_count        Int?                   @default(0)
+  failed_count         Int?                   @default(0)
+  created_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  workspace_id         String                 @default(dbgenerated("active_ws()")) @db.Uuid
+  channel_id           String?                @db.Uuid
+  broadcast_recipients broadcast_recipients[]
+  channels             channels?              @relation(fields: [channel_id], references: [id], onUpdate: NoAction)
+  users                users?                 @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces           workspaces             @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id], map: "idx_broadcasts_workspace")
+}
+
+model business_hours {
+  id           String     @id(map: "clinic_timings_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  day_name     String
+  opening_time String?
+  closing_time String?
+  is_closed    Boolean?   @default(false)
+  break_start  String?
+  break_end    String?
+  created_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  workspace_id String     @default(dbgenerated("active_ws()")) @db.Uuid
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "clinic_timings_workspace_id_fkey")
+
+  @@unique([workspace_id, day_name], map: "uq_business_hours_day")
+  @@index([workspace_id], map: "idx_clinic_timings_workspace")
+}
+
+model calendar_connection_secrets {
+  connection_id        String               @id @db.Uuid
+  workspace_id         String               @db.Uuid
+  access_token         String
+  refresh_token        String
+  sync_token           String?
+  watch_token          String?
+  updated_at           DateTime             @default(now()) @db.Timestamptz(6)
+  calendar_connections calendar_connections @relation(fields: [connection_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces           workspaces           @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model calendar_connections {
+  id                          String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id                String                       @db.Uuid
+  staff_id                    String                       @unique @db.Uuid
+  connected_by                String?                      @db.Uuid
+  provider                    String                       @default("google")
+  google_email                String?
+  calendar_id                 String                       @default("primary")
+  token_expires_at            DateTime?                    @db.Timestamptz(6)
+  watch_channel_id            String?                      @unique(map: "idx_calendar_connections_channel", where: raw("(watch_channel_id IS NOT NULL)"))
+  watch_resource_id           String?
+  watch_expires_at            DateTime?                    @db.Timestamptz(6)
+  status                      String                       @default("active")
+  last_error                  String?
+  last_synced_at              DateTime?                    @db.Timestamptz(6)
+  created_at                  DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                     @default(now()) @db.Timestamptz(6)
+  bookings                    bookings[]
+  calendar_connection_secrets calendar_connection_secrets?
+  users                       users?                       @relation(fields: [connected_by], references: [id], onUpdate: NoAction)
+  staff                       staff                        @relation(fields: [staff_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces                  workspaces                   @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  calendar_event_deletions    calendar_event_deletions[]
+
+  @@index([workspace_id], map: "idx_calendar_connections_ws")
+}
+
+model calendar_event_deletions {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id         String               @db.Uuid
+  connection_id        String               @db.Uuid
+  google_event_id      String
+  attempts             Int                  @default(0)
+  last_error           String?
+  created_at           DateTime             @default(now()) @db.Timestamptz(6)
+  calendar_connections calendar_connections @relation(fields: [connection_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces           workspaces           @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model cart_items {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id     String            @db.Uuid
+  cart_id          String            @db.Uuid
+  product_id       String            @db.Uuid
+  variant_id       String?           @db.Uuid
+  quantity         Int               @default(1)
+  notes            String?
+  created_at       DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?         @default(now()) @db.Timestamptz(6)
+  carts            carts             @relation(fields: [cart_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products         products          @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product_variants product_variants? @relation(fields: [variant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces       workspaces        @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model carts {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id    String         @db.Uuid
+  conversation_id String?        @unique(map: "uq_carts_open_per_conversation", where: raw("(status = 'open'::text)")) @db.Uuid
+  contact_id      String?        @db.Uuid
+  status          String         @default("open")
+  checkout        Json           @default("{}")
+  created_at      DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?      @default(now()) @db.Timestamptz(6)
+  cart_items      cart_items[]
+  contacts        contacts?      @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  conversations   conversations? @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces      workspaces     @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  orders          orders[]
+
+  @@index([workspace_id, status, updated_at(sort: Desc)], map: "idx_carts_ws")
+}
+
+model channel_secrets {
+  channel_id String    @id @db.Uuid
+  secrets    Json      @default("{}")
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  channels   channels  @relation(fields: [channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model channels {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id      String              @default(dbgenerated("active_ws()")) @db.Uuid
+  type              String
+  name              String
+  purpose           String?
+  external_id       String
+  display_handle    String?
+  status            String              @default("connected")
+  status_detail     String?
+  settings          Json                @default("{}")
+  ai_agent_id       String?             @db.Uuid
+  created_by        String?             @default(dbgenerated("app_user_id()")) @db.Uuid
+  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  ai_chat_logs      ai_chat_logs[]
+  ai_usage          ai_usage[]
+  broadcasts        broadcasts[]
+  channel_secrets   channel_secrets?
+  ai_agents         ai_agents?          @relation(fields: [ai_agent_id], references: [id], onUpdate: NoAction)
+  users             users?              @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  workspaces        workspaces          @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  conversations     conversations[]
+  message_templates message_templates[]
+  orders            orders[]
+
+  @@unique([type, external_id])
+  @@index([workspace_id], map: "idx_channels_workspace")
+}
+
+model contact_custom_values {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contact_id      String        @db.Uuid
+  custom_field_id String        @db.Uuid
+  value           String?
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  workspace_id    String        @db.Uuid
+  contacts        contacts      @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  custom_fields   custom_fields @relation(fields: [custom_field_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces      workspaces    @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([contact_id, custom_field_id])
+  @@index([workspace_id], map: "idx_contact_custom_values_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model contact_identities {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @db.Uuid
+  contact_id   String     @db.Uuid
+  channel_type String
+  external_id  String
+  handle       String?
+  created_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  contacts     contacts   @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([workspace_id, channel_type, external_id])
+  @@index([contact_id], map: "idx_contact_identities_contact")
+}
+
+model contact_notes {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contact_id   String     @db.Uuid
+  user_id      String?    @default(dbgenerated("app_user_id()")) @db.Uuid
+  note_text    String
+  created_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  workspace_id String     @default(dbgenerated("active_ws()")) @db.Uuid
+  contacts     contacts   @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users        users?     @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id], map: "idx_contact_notes_workspace")
+}
+
+model contact_tags {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contact_id   String     @db.Uuid
+  tag_id       String     @db.Uuid
+  created_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  workspace_id String     @db.Uuid
+  contacts     contacts   @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tags         tags       @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([contact_id, tag_id])
+  @@index([contact_id], map: "idx_contact_tags_contact")
+  @@index([tag_id], map: "idx_contact_tags_tag")
+  @@index([workspace_id], map: "idx_contact_tags_workspace")
+}
+
+model contacts {
+  id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                       String?                         @default(dbgenerated("app_user_id()")) @db.Uuid
+  phone                         String?
+  name                          String?
+  email                         String?
+  company                       String?
+  avatar_url                    String?
+  created_at                    DateTime?                       @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime?                       @default(now()) @db.Timestamptz(6)
+  workspace_id                  String                          @default(dbgenerated("active_ws()")) @db.Uuid
+  ai_chat_logs                  ai_chat_logs[]
+  automation_logs               automation_logs[]
+  automation_pending_executions automation_pending_executions[]
+  bookings                      bookings[]
+  broadcast_recipients          broadcast_recipients[]
+  carts                         carts[]
+  contact_custom_values         contact_custom_values[]
+  contact_identities            contact_identities[]
+  contact_notes                 contact_notes[]
+  contact_tags                  contact_tags[]
+  users                         users?                          @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces                    workspaces                      @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  conversations                 conversations[]
+  deals                         deals[]
+  feedback                      feedback[]
+  flow_runs                     flow_runs[]
+  followup_schedules            followup_schedules[]
+  lead_profiles                 lead_profiles[]
+  orders                        orders[]
+  patient_intake                patient_intake[]
+  property_captures             property_captures[]
+  tasks                         tasks[]
+
+  @@index([phone], map: "idx_contacts_phone")
+  @@index([user_id], map: "idx_contacts_user_id")
+  @@index([workspace_id], map: "idx_contacts_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model conversation_events {
+  id                                         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id                               String        @db.Uuid
+  conversation_id                            String        @db.Uuid
+  type                                       String
+  from_user                                  String?       @db.Uuid
+  to_user                                    String?       @db.Uuid
+  team_id                                    String?       @db.Uuid
+  note                                       String?
+  data                                       Json          @default("{}")
+  created_at                                 DateTime?     @default(now()) @db.Timestamptz(6)
+  conversations                              conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_conversation_events_from_userTousers users?        @relation("conversation_events_from_userTousers", fields: [from_user], references: [id], onUpdate: NoAction)
+  teams                                      teams?        @relation(fields: [team_id], references: [id], onUpdate: NoAction)
+  users_conversation_events_to_userTousers   users?        @relation("conversation_events_to_userTousers", fields: [to_user], references: [id], onUpdate: NoAction)
+  workspaces                                 workspaces    @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([conversation_id, created_at], map: "idx_conversation_events_conv")
+  @@index([workspace_id], map: "idx_conversation_events_ws")
+}
+
+model conversation_tags {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id    String        @db.Uuid
+  conversation_id String        @db.Uuid
+  tag_id          String        @db.Uuid
+  created_by      String?       @default(dbgenerated("app_user_id()")) @db.Uuid
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  conversations   conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users?        @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  tags            tags          @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces      workspaces    @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([conversation_id, tag_id])
+  @@index([workspace_id, tag_id], map: "idx_conversation_tags_ws")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model conversations {
+  id                                       String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                                  String?               @default(dbgenerated("app_user_id()")) @db.Uuid
+  contact_id                               String                @db.Uuid
+  status                                   String                @default("open")
+  assigned_agent_id                        String?               @db.Uuid
+  last_message_text                        String?
+  last_message_at                          DateTime?             @db.Timestamptz(6)
+  unread_count                             Int?                  @default(0)
+  created_at                               DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at                               DateTime?             @default(now()) @db.Timestamptz(6)
+  workspace_id                             String                @default(dbgenerated("active_ws()")) @db.Uuid
+  channel_id                               String?               @db.Uuid
+  ai_state                                 Json                  @default("{}")
+  ai_paused_until                          DateTime?             @db.Timestamptz(6)
+  ai_agent_id                              String?               @db.Uuid
+  priority                                 String                @default("normal")
+  resolved_at                              DateTime?             @db.Timestamptz(6)
+  resolved_by                              String?               @db.Uuid
+  team_id                                  String?               @db.Uuid
+  last_customer_message_at                 DateTime?             @db.Timestamptz(6)
+  ai_summary                               String?
+  ai_summary_at                            DateTime?             @db.Timestamptz(6)
+  ai_summary_by                            String?               @db.Uuid
+  ai_chat_logs                             ai_chat_logs[]
+  ai_usage                                 ai_usage[]
+  bookings                                 bookings[]
+  carts                                    carts?
+  conversation_events                      conversation_events[]
+  conversation_tags                        conversation_tags[]
+  ai_agents                                ai_agents?            @relation(fields: [ai_agent_id], references: [id], onUpdate: NoAction)
+  users_conversations_ai_summary_byTousers users?                @relation("conversations_ai_summary_byTousers", fields: [ai_summary_by], references: [id], onUpdate: NoAction)
+  channels                                 channels?             @relation(fields: [channel_id], references: [id], onUpdate: NoAction)
+  contacts                                 contacts              @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_conversations_resolved_byTousers   users?                @relation("conversations_resolved_byTousers", fields: [resolved_by], references: [id], onUpdate: NoAction)
+  teams                                    teams?                @relation(fields: [team_id], references: [id], onUpdate: NoAction)
+  users_conversations_user_idTousers       users?                @relation("conversations_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces                               workspaces            @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  credit_ledger                            credit_ledger[]
+  deals                                    deals[]
+  flow_runs                                flow_runs[]
+  followup_schedules                       followup_schedules[]
+  lead_profiles                            lead_profiles[]
+  message_reactions                        message_reactions[]
+  messages                                 messages[]
+  notifications                            notifications[]
+  orders                                   orders[]
+  property_captures                        property_captures[]
+  tasks                                    tasks[]
+
+  @@index([workspace_id, assigned_agent_id], map: "idx_conversations_assigned")
+  @@index([channel_id], map: "idx_conversations_channel")
+  @@index([contact_id], map: "idx_conversations_contact_id")
+  @@index([user_id], map: "idx_conversations_user_id")
+  @@index([workspace_id], map: "idx_conversations_workspace")
+  @@index([workspace_id, created_at], map: "idx_conversations_ws_created")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model credit_ledger {
+  id               BigInt            @id @default(autoincrement())
+  workspace_id     String            @db.Uuid
+  kind             String
+  credits          Int
+  action           String?
+  conversation_id  String?           @db.Uuid
+  lot_id           String?           @db.Uuid
+  payment_id       String?           @db.Uuid
+  note             String?
+  created_by       String?           @db.Uuid
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  conversations    conversations?    @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
+  users            users?            @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  credit_lots      credit_lots?      @relation(fields: [lot_id], references: [id], onUpdate: NoAction)
+  billing_payments billing_payments? @relation(fields: [payment_id], references: [id], onUpdate: NoAction)
+  workspaces       workspaces        @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id, created_at(sort: Desc)], map: "idx_credit_ledger_ws")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model credit_lots {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id      String            @db.Uuid
+  source            String
+  credits_total     Int
+  credits_remaining Int
+  expires_at        DateTime          @db.Timestamptz(6)
+  payment_id        String?           @unique @db.Uuid
+  note              String?
+  created_by        String?           @db.Uuid
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+  credit_ledger     credit_ledger[]
+  users             users?            @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  billing_payments  billing_payments? @relation(fields: [payment_id], references: [id], onUpdate: NoAction)
+  workspaces        workspaces        @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id, expires_at], map: "idx_credit_lots_live", where: raw("(credits_remaining > 0)"))
+}
+
+model custom_fields {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id               String?                 @default(dbgenerated("app_user_id()")) @db.Uuid
+  field_name            String
+  field_type            String                  @default("text")
+  field_options         Json?
+  created_at            DateTime?               @default(now()) @db.Timestamptz(6)
+  workspace_id          String                  @default(dbgenerated("active_ws()")) @db.Uuid
+  contact_custom_values contact_custom_values[]
+  users                 users?                  @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces            workspaces              @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id], map: "idx_custom_fields_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model deals {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String?         @default(dbgenerated("app_user_id()")) @db.Uuid
+  pipeline_id         String          @db.Uuid
+  stage_id            String          @db.Uuid
+  contact_id          String?         @db.Uuid
+  conversation_id     String?         @db.Uuid
+  title               String
+  value               Decimal         @default(0) @db.Decimal(12, 2)
+  currency            String?         @default("USD")
+  notes               String?
+  expected_close_date DateTime?       @db.Date
+  status              String          @default("open")
+  created_at          DateTime?       @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?       @default(now()) @db.Timestamptz(6)
+  assigned_to         String?         @db.Uuid
+  workspace_id        String          @default(dbgenerated("active_ws()")) @db.Uuid
+  won_at              DateTime?       @db.Timestamptz(6)
+  lost_at             DateTime?       @db.Timestamptz(6)
+  lost_reason         String?
+  close_note          String?
+  profiles            profiles?       @relation(fields: [assigned_to], references: [id], onUpdate: NoAction)
+  contacts            contacts?       @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  conversations       conversations?  @relation(fields: [conversation_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  pipelines           pipelines       @relation(fields: [pipeline_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  pipeline_stages     pipeline_stages @relation(fields: [stage_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users               users?          @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces          workspaces      @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tasks               tasks[]
+
+  @@index([assigned_to], map: "idx_deals_assigned_to")
+  @@index([contact_id, status], map: "idx_deals_contact_status")
+  @@index([pipeline_id], map: "idx_deals_pipeline")
+  @@index([stage_id], map: "idx_deals_stage")
+  @@index([workspace_id], map: "idx_deals_workspace")
+  @@index([workspace_id, status], map: "idx_deals_ws_status")
+}
+
+model faqs {
+  id           String     @id(map: "clinic_faqs_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  question     String
+  answer       String
+  keywords     String?
+  created_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  workspace_id String     @default(dbgenerated("active_ws()")) @db.Uuid
+  ai_agent_ids String[]   @db.Uuid
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "clinic_faqs_workspace_id_fkey")
+
+  @@index([workspace_id], map: "idx_clinic_faqs_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model feedback {
+  id            String     @id(map: "patient_feedback_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contact_id    String     @db.Uuid
+  booking_id    String?    @db.Uuid
+  rating        Int?
+  feedback_text String?
+  created_at    DateTime?  @default(now()) @db.Timestamptz(6)
+  workspace_id  String     @default(dbgenerated("active_ws()")) @db.Uuid
+  bookings      bookings?  @relation(fields: [booking_id], references: [id], onUpdate: NoAction, map: "patient_feedback_appointment_id_fkey")
+  contacts      contacts   @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "patient_feedback_contact_id_fkey")
+  workspaces    workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "patient_feedback_workspace_id_fkey")
+
+  @@index([workspace_id], map: "idx_patient_feedback_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model flow_nodes {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  flow_id      String     @db.Uuid
+  node_key     String
+  node_type    String
+  config       Json       @default("{}")
+  position_x   Int        @default(0)
+  position_y   Int        @default(0)
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  workspace_id String     @db.Uuid
+  flows        flows      @relation(fields: [flow_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([flow_id, node_key])
+  @@index([flow_id], map: "idx_flow_nodes_flow")
+  @@index([workspace_id], map: "idx_flow_nodes_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model flow_run_events {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  flow_run_id  String     @db.Uuid
+  event_type   String
+  node_key     String?
+  payload      Json       @default("{}")
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  workspace_id String     @db.Uuid
+  flow_runs    flow_runs  @relation(fields: [flow_run_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([flow_run_id, created_at(sort: Desc)], map: "idx_flow_run_events_run_time")
+  @@index([flow_run_id, event_type], map: "idx_flow_run_events_run_type")
+  @@index([workspace_id], map: "idx_flow_run_events_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model flow_runs {
+  id                     String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  flow_id                String            @db.Uuid
+  user_id                String?           @default(dbgenerated("app_user_id()")) @db.Uuid
+  contact_id             String?           @db.Uuid
+  conversation_id        String?           @db.Uuid
+  status                 String            @default("active")
+  current_node_key       String?
+  last_prompt_message_id String?           @db.Uuid
+  vars                   Json              @default("{}")
+  reprompt_count         Int               @default(0)
+  started_at             DateTime          @default(now()) @db.Timestamptz(6)
+  last_advanced_at       DateTime          @default(now()) @db.Timestamptz(6)
+  ended_at               DateTime?         @db.Timestamptz(6)
+  end_reason             String?
+  workspace_id           String            @default(dbgenerated("active_ws()")) @db.Uuid
+  flow_run_events        flow_run_events[]
+  contacts               contacts?         @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  conversations          conversations?    @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
+  flows                  flows             @relation(fields: [flow_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages               messages?         @relation(fields: [last_prompt_message_id], references: [id], onUpdate: NoAction)
+  users                  users?            @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces             workspaces        @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([workspace_id, contact_id], map: "idx_one_active_run_per_contact", where: raw("(status = 'active'::text)"))
+  @@index([last_advanced_at], map: "idx_flow_runs_active_advanced", where: raw("(status = 'active'::text)"))
+  @@index([flow_id, started_at(sort: Desc)], map: "idx_flow_runs_flow_started")
+  @@index([workspace_id], map: "idx_flow_runs_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model flows {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String?      @default(dbgenerated("app_user_id()")) @db.Uuid
+  name             String
+  description      String?
+  status           String       @default("draft")
+  trigger_type     String
+  trigger_config   Json         @default("{}")
+  entry_node_id    String?
+  fallback_policy  Json         @default("{\"on_exhaust\": \"handoff\", \"max_reprompts\": 2, \"on_timeout_hours\": 24, \"on_unknown_reply\": \"reprompt\"}")
+  execution_count  Int          @default(0)
+  last_executed_at DateTime?    @db.Timestamptz(6)
+  created_at       DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime     @default(now()) @db.Timestamptz(6)
+  workspace_id     String       @default(dbgenerated("active_ws()")) @db.Uuid
+  flow_nodes       flow_nodes[]
+  flow_runs        flow_runs[]
+  users            users?       @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces       workspaces   @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, trigger_type], map: "idx_flows_active_trigger", where: raw("(status = 'active'::text)"))
+  @@index([workspace_id], map: "idx_flows_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model followup_schedules {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id      String        @db.Uuid
+  automation_id     String        @db.Uuid
+  conversation_id   String        @db.Uuid
+  contact_id        String?       @db.Uuid
+  anchor_message_id String?       @db.Uuid
+  anchored_at       DateTime      @default(now()) @db.Timestamptz(6)
+  due_at            DateTime      @db.Timestamptz(6)
+  status            String        @default("pending")
+  fired_at          DateTime?     @db.Timestamptz(6)
+  cancelled_at      DateTime?     @db.Timestamptz(6)
+  created_at        DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime      @default(now()) @db.Timestamptz(6)
+  messages          messages?     @relation(fields: [anchor_message_id], references: [id], onUpdate: NoAction)
+  automations       automations   @relation(fields: [automation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  contacts          contacts?     @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  conversations     conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces        workspaces    @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([automation_id, conversation_id], map: "followup_schedules_automation_conversation_key")
+  @@index([conversation_id], map: "idx_followup_schedules_conversation_pending", where: raw("(status = 'pending'::text)"))
+  @@index([due_at], map: "idx_followup_schedules_due", where: raw("(status = 'pending'::text)"))
+  @@index([workspace_id], map: "idx_followup_schedules_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model lead_profiles {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id         String                 @default(dbgenerated("active_ws()")) @db.Uuid
+  contact_id           String                 @db.Uuid
+  conversation_id      String?                @db.Uuid
+  operation            String?
+  property_types       String[]               @default([])
+  zones                String[]               @default([])
+  budget_min           Decimal?               @db.Decimal(14, 2)
+  budget_max           Decimal?               @db.Decimal(14, 2)
+  currency             String?
+  bedrooms_min         Int?
+  bathrooms_min        Int?
+  parking_min          Int?
+  financing            String                 @default("unknown")
+  mortgage_preapproved Boolean                @default(false)
+  move_in              String?
+  purpose              String                 @default("unknown")
+  notes                String?
+  score                Int                    @default(0)
+  temperature          String                 @default("cold")
+  qualified_at         DateTime?              @db.Timestamptz(6)
+  alerts_opt_in        Boolean                @default(false)
+  last_matched_at      DateTime?              @db.Timestamptz(6)
+  updated_by           String                 @default("ai")
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime               @default(now()) @db.Timestamptz(6)
+  contacts             contacts               @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  conversations        conversations?         @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
+  workspaces           workspaces             @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  lead_property_alerts lead_property_alerts[]
+
+  @@unique([workspace_id, contact_id])
+  @@index([workspace_id, qualified_at], map: "idx_lead_profiles_ws_qualified")
+  @@index([workspace_id, temperature, score(sort: Desc)], map: "idx_lead_profiles_ws_temp")
+  @@index([zones], map: "idx_lead_profiles_zones", type: Gin)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model lead_property_alerts {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id    String        @db.Uuid
+  lead_profile_id String        @db.Uuid
+  product_id      String        @db.Uuid
+  delivery        String
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  lead_profiles   lead_profiles @relation(fields: [lead_profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products        products      @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces      workspaces    @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([lead_profile_id, product_id])
+  @@index([workspace_id, created_at], map: "idx_lead_property_alerts_ws")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model message_reactions {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  message_id      String        @db.Uuid
+  conversation_id String        @db.Uuid
+  actor_type      String
+  actor_id        String?       @db.Uuid
+  emoji           String
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  workspace_id    String        @db.Uuid
+  conversations   conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages        messages      @relation(fields: [message_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces      workspaces    @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([message_id, actor_type, actor_id])
+  @@index([conversation_id], map: "idx_message_reactions_conversation")
+  @@index([message_id], map: "idx_message_reactions_message")
+  @@index([workspace_id], map: "idx_message_reactions_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model message_templates {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String?    @default(dbgenerated("app_user_id()")) @db.Uuid
+  name           String
+  category       String     @default("Marketing")
+  language       String?    @default("en_US")
+  header_type    String?
+  header_content String?
+  body_text      String
+  footer_text    String?
+  buttons        Json?
+  status         String?    @default("Draft")
+  created_at     DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?  @default(now()) @db.Timestamptz(6)
+  workspace_id   String     @default(dbgenerated("active_ws()")) @db.Uuid
+  channel_id     String?    @db.Uuid
+  channels       channels?  @relation(fields: [channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          users?     @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces     workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([workspace_id, name, language], map: "uq_message_templates_ws_name_lang")
+  @@index([workspace_id], map: "idx_message_templates_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model messages {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversation_id      String               @db.Uuid
+  sender_type          String
+  sender_id            String?              @db.Uuid
+  content_type         String               @default("text")
+  content_text         String?
+  media_url            String?
+  template_name        String?
+  message_id           String?
+  status               String               @default("sent")
+  created_at           DateTime?            @default(now()) @db.Timestamptz(6)
+  reply_to_message_id  String?              @db.Uuid
+  interactive_reply_id String?
+  workspace_id         String               @db.Uuid
+  ai_agent_id          String?              @db.Uuid
+  metadata             Json                 @default("{}")
+  is_internal          Boolean              @default(false)
+  transcript           String?
+  ai_media_text        String?
+  ai_processed_at      DateTime?            @db.Timestamptz(6)
+  flow_runs            flow_runs[]
+  followup_schedules   followup_schedules[]
+  message_reactions    message_reactions[]
+  ai_agents            ai_agents?           @relation(fields: [ai_agent_id], references: [id], onUpdate: NoAction)
+  conversations        conversations        @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages             messages?            @relation("messagesTomessages", fields: [reply_to_message_id], references: [id], onUpdate: NoAction)
+  other_messages       messages[]           @relation("messagesTomessages")
+  workspaces           workspaces           @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([conversation_id, created_at], map: "idx_messages_conv_created")
+  @@index([conversation_id], map: "idx_messages_conversation")
+  @@index([conversation_id, created_at(sort: Desc)], map: "idx_messages_conversation_media", where: raw("(media_url IS NOT NULL)"))
+  @@index([workspace_id, message_id], map: "idx_messages_external")
+  @@index([message_id], map: "idx_messages_message_id")
+  @@index([reply_to_message_id], map: "idx_messages_reply_to", where: raw("(reply_to_message_id IS NOT NULL)"))
+  @@index([workspace_id], map: "idx_messages_workspace")
+  @@index([workspace_id, created_at], map: "idx_messages_ws_created")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model notifications {
+  id                                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id                        String         @db.Uuid
+  user_id                             String         @db.Uuid
+  type                                String
+  title                               String
+  body                                String?
+  link                                String?
+  conversation_id                     String?        @db.Uuid
+  actor_id                            String?        @db.Uuid
+  read_at                             DateTime?      @db.Timestamptz(6)
+  created_at                          DateTime?      @default(now()) @db.Timestamptz(6)
+  users_notifications_actor_idTousers users?         @relation("notifications_actor_idTousers", fields: [actor_id], references: [id], onUpdate: NoAction)
+  conversations                       conversations? @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_notifications_user_idTousers  users          @relation("notifications_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces                          workspaces     @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, workspace_id], map: "idx_notifications_unread", where: raw("(read_at IS NULL)"))
+  @@index([user_id, workspace_id, created_at(sort: Desc)], map: "idx_notifications_user")
+}
+
+model order_events {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @db.Uuid
+  order_id     String     @db.Uuid
+  type         String
+  from_value   String?
+  to_value     String?
+  note         String?
+  user_id      String?    @db.Uuid
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  orders       orders     @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users        users?     @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([order_id, created_at], map: "idx_order_events_order")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model order_items {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id     String            @db.Uuid
+  order_id         String            @db.Uuid
+  product_id       String?           @db.Uuid
+  variant_id       String?           @db.Uuid
+  name             String
+  variant_name     String?
+  sku              String?
+  quantity         Int
+  unit_price       Decimal           @default(0) @db.Decimal(14, 2)
+  total            Decimal           @default(0) @db.Decimal(14, 2)
+  notes            String?
+  sort_order       Int               @default(0)
+  orders           orders            @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products         products?         @relation(fields: [product_id], references: [id], onUpdate: NoAction)
+  product_variants product_variants? @relation(fields: [variant_id], references: [id], onUpdate: NoAction)
+  workspaces       workspaces        @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([order_id], map: "idx_order_items_order")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model orders {
+  id                  String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id        String           @default(dbgenerated("active_ws()")) @db.Uuid
+  number              BigInt           @default(0)
+  contact_id          String?          @db.Uuid
+  conversation_id     String?          @db.Uuid
+  channel_id          String?          @db.Uuid
+  cart_id             String?          @db.Uuid
+  status              String           @default("pending")
+  fulfillment         String           @default("pickup")
+  customer_name       String?
+  customer_phone      String?
+  address             String?
+  address_reference   String?
+  notes               String?
+  currency            String           @default("USD")
+  subtotal            Decimal          @default(0) @db.Decimal(14, 2)
+  delivery_fee        Decimal          @default(0) @db.Decimal(14, 2)
+  discount            Decimal          @default(0) @db.Decimal(14, 2)
+  total               Decimal          @default(0) @db.Decimal(14, 2)
+  payment_status      String           @default("unpaid")
+  payment_method_id   String?          @db.Uuid
+  payment_method_name String?
+  payment_proof_url   String?
+  paid_at             DateTime?        @db.Timestamptz(6)
+  stock_reserved      Boolean          @default(false)
+  source              String           @default("manual")
+  ai_agent_id         String?          @db.Uuid
+  created_by          String?          @default(dbgenerated("app_user_id()")) @db.Uuid
+  created_at          DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?        @default(now()) @db.Timestamptz(6)
+  order_events        order_events[]
+  order_items         order_items[]
+  ai_agents           ai_agents?       @relation(fields: [ai_agent_id], references: [id], onUpdate: NoAction)
+  carts               carts?           @relation(fields: [cart_id], references: [id], onUpdate: NoAction)
+  channels            channels?        @relation(fields: [channel_id], references: [id], onUpdate: NoAction)
+  contacts            contacts?        @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  conversations       conversations?   @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
+  users               users?           @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  payment_methods     payment_methods? @relation(fields: [payment_method_id], references: [id], onUpdate: NoAction, map: "orders_payment_method_fkey")
+  workspaces          workspaces       @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([workspace_id, number])
+  @@index([conversation_id], map: "idx_orders_conversation")
+  @@index([workspace_id, status, created_at(sort: Desc)], map: "idx_orders_ws_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model patient_intake {
+  id                  String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contact_id          String     @db.Uuid
+  booking_id          String?    @db.Uuid
+  symptoms            String?
+  allergies           String?
+  current_medications String?
+  medical_history     String?
+  urgency_level       String?
+  triage_result       Json?      @default("{}")
+  collected_via       String?    @default("whatsapp")
+  created_at          DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?  @default(now()) @db.Timestamptz(6)
+  workspace_id        String     @default(dbgenerated("active_ws()")) @db.Uuid
+  bookings            bookings?  @relation(fields: [booking_id], references: [id], onUpdate: NoAction, map: "patient_intake_appointment_id_fkey")
+  contacts            contacts   @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces          workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id], map: "idx_patient_intake_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model payment_methods {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id   String     @default(dbgenerated("active_ws()")) @db.Uuid
+  name           String
+  type           String     @default("qr")
+  instructions   String?
+  qr_image_url   String?
+  requires_proof Boolean    @default(true)
+  is_active      Boolean    @default(true)
+  sort_order     Int        @default(0)
+  created_at     DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?  @default(now()) @db.Timestamptz(6)
+  orders         orders[]
+  workspaces     workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id, is_active, sort_order], map: "idx_payment_methods_ws")
+}
+
+model pipeline_stages {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pipeline_id  String     @db.Uuid
+  name         String
+  position     Int        @default(0)
+  color        String     @default("#3b82f6")
+  created_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  workspace_id String     @db.Uuid
+  key          String?
+  deals        deals[]
+  pipelines    pipelines  @relation(fields: [pipeline_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([pipeline_id, key], map: "uq_pipeline_stages_key", where: raw("(key IS NOT NULL)"))
+  @@index([pipeline_id], map: "idx_pipeline_stages_pipeline")
+  @@index([workspace_id], map: "idx_pipeline_stages_workspace")
+}
+
+model pipelines {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String?           @default(dbgenerated("app_user_id()")) @db.Uuid
+  name            String
+  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  workspace_id    String            @default(dbgenerated("active_ws()")) @db.Uuid
+  key             String?
+  deals           deals[]
+  pipeline_stages pipeline_stages[]
+  users           users?            @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces      workspaces        @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([workspace_id, key], map: "uq_pipelines_ws_key", where: raw("(key IS NOT NULL)"))
+  @@index([workspace_id], map: "idx_pipelines_workspace")
+}
+
+model platform_settings {
+  key        String   @id
+  value      Json     @default("{}")
+  updated_by String?  @db.Uuid
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  users      users?   @relation(fields: [updated_by], references: [id], onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model portal_connections {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id     String     @db.Uuid
+  provider         String
+  external_user_id String
+  nickname         String?
+  site_id          String?
+  access_token     String
+  refresh_token    String?
+  expires_at       DateTime?  @db.Timestamptz(6)
+  scope            String?
+  status           String     @default("active")
+  last_error       String?
+  auto_import      Boolean    @default(true)
+  last_import_at   DateTime?  @db.Timestamptz(6)
+  connected_by     String?    @db.Uuid
+  created_at       DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime   @default(now()) @db.Timestamptz(6)
+  users            users?     @relation(fields: [connected_by], references: [id], onUpdate: NoAction)
+  workspaces       workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([workspace_id, provider])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model portal_feeds {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id       String               @default(dbgenerated("active_ws()")) @db.Uuid
+  name               String
+  portal             String               @default("other")
+  url                String
+  format             String               @default("auto")
+  mapping            Json                 @default("{}")
+  item_path          String?
+  schedule           String               @default("daily")
+  deactivate_missing Boolean              @default(true)
+  last_run_at        DateTime?            @db.Timestamptz(6)
+  created_by         String?              @default(dbgenerated("app_user_id()")) @db.Uuid
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime             @default(now()) @db.Timestamptz(6)
+  users              users?               @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  workspaces         workspaces           @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  portal_import_runs portal_import_runs[]
+
+  @@index([schedule, last_run_at], map: "idx_portal_feeds_due")
+  @@index([workspace_id], map: "idx_portal_feeds_ws")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model portal_import_runs {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String        @db.Uuid
+  source       String
+  feed_id      String?       @db.Uuid
+  trigger      String        @default("manual")
+  status       String        @default("running")
+  total        Int           @default(0)
+  created      Int           @default(0)
+  updated      Int           @default(0)
+  deactivated  Int           @default(0)
+  failed       Int           @default(0)
+  errors       Json          @default("[]")
+  notes        Json          @default("{}")
+  error        String?
+  started_by   String?       @db.Uuid
+  started_at   DateTime      @default(now()) @db.Timestamptz(6)
+  finished_at  DateTime?     @db.Timestamptz(6)
+  portal_feeds portal_feeds? @relation(fields: [feed_id], references: [id], onUpdate: NoAction)
+  users        users?        @relation(fields: [started_by], references: [id], onUpdate: NoAction)
+  workspaces   workspaces    @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id, started_at(sort: Desc)], map: "idx_portal_import_runs_ws")
+}
+
+model portfolio_items {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String
+  description   String?
+  thumbnail_url String?
+  metadata_tags String[]  @default([])
+  project_links Json?     @default("{}")
+  preview_media String[]  @default([])
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model product_categories {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @default(dbgenerated("active_ws()")) @db.Uuid
+  name         String
+  description  String?
+  sort_order   Int        @default(0)
+  is_active    Boolean    @default(true)
+  created_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products     products[]
+
+  @@unique([workspace_id, name])
+}
+
+model product_variants {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String        @db.Uuid
+  product_id   String        @db.Uuid
+  name         String
+  options      Json          @default("{}")
+  sku          String?
+  price        Decimal?      @db.Decimal(14, 2)
+  stock        Int?
+  is_active    Boolean       @default(true)
+  sort_order   Int           @default(0)
+  created_at   DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?     @default(now()) @db.Timestamptz(6)
+  cart_items   cart_items[]
+  order_items  order_items[]
+  products     products      @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces   workspaces    @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([product_id], map: "idx_product_variants_product")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model products {
+  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id           String                   @default(dbgenerated("active_ws()")) @db.Uuid
+  category_id            String?                  @db.Uuid
+  name                   String
+  description            String?
+  price                  Decimal?                 @db.Decimal(14, 2)
+  compare_at_price       Decimal?                 @db.Decimal(14, 2)
+  sku                    String?
+  stock                  Int?
+  track_stock            Boolean                  @default(false)
+  images                 String[]                 @default([])
+  tags                   String[]                 @default([])
+  attributes             Json                     @default("{}")
+  is_active              Boolean                  @default(true)
+  is_featured            Boolean                  @default(false)
+  sort_order             Int                      @default(0)
+  search                 Unsupported("tsvector")?
+  created_by             String?                  @default(dbgenerated("app_user_id()")) @db.Uuid
+  created_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  external_source        String?
+  external_id            String?
+  external_url           String?
+  external_synced_at     DateTime?                @db.Timestamptz(6)
+  external_missing_since DateTime?                @db.Timestamptz(6)
+  currency               String?
+  bookings               bookings[]
+  cart_items             cart_items[]
+  lead_property_alerts   lead_property_alerts[]
+  order_items            order_items[]
+  product_variants       product_variants[]
+  product_categories     product_categories?      @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  users                  users?                   @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  workspaces             workspaces               @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  property_captures      property_captures[]
+  property_match_jobs    property_match_jobs?
+
+  @@unique([workspace_id, external_source, external_id], map: "uq_products_external")
+  @@unique([workspace_id, sku], map: "uq_products_sku", where: raw("((sku IS NOT NULL) AND (sku <> ''::text))"))
+  @@index([attributes(ops: JsonbPathOps)], map: "idx_products_attributes", type: Gin)
+  @@index([category_id], map: "idx_products_category")
+  @@index([search], map: "idx_products_search", type: Gin)
+  @@index([workspace_id, is_active], map: "idx_products_ws_active")
+}
+
+model profiles {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String    @unique @db.Uuid
+  full_name         String
+  email             String
+  avatar_url        String?
+  role              String?   @default("user")
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  beta_features     String[]  @default([])
+  business_name     String?
+  business_type     String?
+  is_platform_admin Boolean   @default(false)
+  locale            String    @default("es")
+  deals             deals[]
+  users             users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model property_captures {
+  id                                              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id                                    String         @default(dbgenerated("active_ws()")) @db.Uuid
+  contact_id                                      String?        @db.Uuid
+  conversation_id                                 String?        @db.Uuid
+  owner_name                                      String?
+  owner_phone                                     String?
+  operation                                       String?
+  property_type                                   String?
+  address                                         String?
+  district                                        String?
+  area_m2                                         Decimal?       @db.Decimal(12, 2)
+  bedrooms                                        Int?
+  bathrooms                                       Int?
+  parking                                         Int?
+  expected_price                                  Decimal?       @db.Decimal(14, 2)
+  currency                                        String?
+  description                                     String?
+  photos                                          String[]       @default([])
+  status                                          String         @default("new")
+  assigned_user_id                                String?        @db.Uuid
+  notes                                           String?
+  source                                          String         @default("manual")
+  product_id                                      String?        @db.Uuid
+  published_at                                    DateTime?      @db.Timestamptz(6)
+  created_by                                      String?        @default(dbgenerated("app_user_id()")) @db.Uuid
+  created_at                                      DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at                                      DateTime       @default(now()) @db.Timestamptz(6)
+  users_property_captures_assigned_user_idTousers users?         @relation("property_captures_assigned_user_idTousers", fields: [assigned_user_id], references: [id], onUpdate: NoAction)
+  contacts                                        contacts?      @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  conversations                                   conversations? @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
+  users_property_captures_created_byTousers       users?         @relation("property_captures_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction)
+  products                                        products?      @relation(fields: [product_id], references: [id], onUpdate: NoAction)
+  workspaces                                      workspaces     @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([contact_id], map: "idx_property_captures_contact")
+  @@index([conversation_id], map: "idx_property_captures_conversation")
+  @@index([workspace_id, status, created_at(sort: Desc)], map: "idx_property_captures_ws_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model property_match_jobs {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @db.Uuid
+  product_id   String     @unique(map: "uq_property_match_jobs_pending", where: raw("(status = 'pending'::text)")) @db.Uuid
+  reason       String
+  status       String     @default("pending")
+  result       Json       @default("{}")
+  run_after    DateTime   @default(now()) @db.Timestamptz(6)
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  processed_at DateTime?  @db.Timestamptz(6)
+  products     products   @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status, run_after], map: "idx_property_match_jobs_due")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model quick_replies {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @default(dbgenerated("active_ws()")) @db.Uuid
+  shortcut     String
+  title        String
+  body         String     @default("")
+  attachments  Json       @default("[]")
+  created_by   String?    @default(dbgenerated("app_user_id()")) @db.Uuid
+  is_shared    Boolean    @default(true)
+  created_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  users        users?     @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([workspace_id, shortcut])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model real_estate_routing_rules {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @default(dbgenerated("active_ws()")) @db.Uuid
+  name         String
+  priority     Int        @default(0)
+  conditions   Json       @default("{}")
+  team_id      String?    @db.Uuid
+  user_id      String?    @db.Uuid
+  active       Boolean    @default(true)
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime   @default(now()) @db.Timestamptz(6)
+  teams        teams?     @relation(fields: [team_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users        users?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id, active, priority], map: "idx_re_routing_rules_ws")
+}
+
+model services {
+  id               String           @id(map: "clinic_services_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String
+  description      String?
+  price            Decimal?         @default(0) @db.Decimal(12, 2)
+  duration_minutes Int?             @default(30)
+  is_active        Boolean?         @default(true)
+  created_at       DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?        @default(now()) @db.Timestamptz(6)
+  workspace_id     String           @default(dbgenerated("active_ws()")) @db.Uuid
+  category         String?
+  price_is_from    Boolean          @default(true)
+  bookings         bookings[]
+  workspaces       workspaces       @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "clinic_services_workspace_id_fkey")
+  staff_services   staff_services[]
+
+  @@index([workspace_id], map: "idx_clinic_services_workspace")
+}
+
+model staff {
+  id                   String                @id(map: "doctors_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String
+  title                String?
+  qualification        String?
+  experience           String?
+  available_days       String[]
+  available_start_time String?
+  available_end_time   String?
+  fee                  Decimal?              @default(0) @db.Decimal(12, 2)
+  languages            String?
+  photo_url            String?
+  weekly_slots         Json?                 @default("{}")
+  date_exceptions      Json?                 @default("[]")
+  created_at           DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?             @default(now()) @db.Timestamptz(6)
+  workspace_id         String                @default(dbgenerated("active_ws()")) @db.Uuid
+  bio                  String?
+  email                String?
+  phone                String?
+  is_active            Boolean               @default(true)
+  member_user_id       String?               @db.Uuid
+  bookings             bookings[]
+  calendar_connections calendar_connections?
+  workspaces           workspaces            @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "doctors_workspace_id_fkey")
+  users                users?                @relation(fields: [member_user_id], references: [id], onUpdate: NoAction)
+  staff_services       staff_services[]
+
+  @@index([workspace_id], map: "idx_doctors_workspace")
+}
+
+model staff_services {
+  staff_id     String     @db.Uuid
+  service_id   String     @db.Uuid
+  workspace_id String     @db.Uuid
+  services     services   @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  staff        staff      @relation(fields: [staff_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([staff_id, service_id])
+}
+
+model tags {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String?             @default(dbgenerated("app_user_id()")) @db.Uuid
+  name              String
+  color             String              @default("#3b82f6")
+  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  workspace_id      String              @default(dbgenerated("active_ws()")) @db.Uuid
+  contact_tags      contact_tags[]
+  conversation_tags conversation_tags[]
+  users             users?              @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces        workspaces          @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id], map: "idx_tags_workspace")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model tasks {
+  id                                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id                        String         @default(dbgenerated("active_ws()")) @db.Uuid
+  title                               String
+  description                         String?
+  due_at                              DateTime?      @db.Timestamptz(6)
+  priority                            String         @default("normal")
+  status                              String         @default("open")
+  result                              String?
+  assignee_user_id                    String?        @db.Uuid
+  contact_id                          String?        @db.Uuid
+  conversation_id                     String?        @db.Uuid
+  deal_id                             String?        @db.Uuid
+  created_by                          String?        @default(dbgenerated("app_user_id()")) @db.Uuid
+  completed_at                        DateTime?      @db.Timestamptz(6)
+  completed_by                        String?        @db.Uuid
+  reminded_at                         DateTime?      @db.Timestamptz(6)
+  created_at                          DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at                          DateTime       @default(now()) @db.Timestamptz(6)
+  users_tasks_assignee_user_idTousers users?         @relation("tasks_assignee_user_idTousers", fields: [assignee_user_id], references: [id], onUpdate: NoAction)
+  users_tasks_completed_byTousers     users?         @relation("tasks_completed_byTousers", fields: [completed_by], references: [id], onUpdate: NoAction)
+  contacts                            contacts?      @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  conversations                       conversations? @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
+  users_tasks_created_byTousers       users?         @relation("tasks_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction)
+  deals                               deals?         @relation(fields: [deal_id], references: [id], onUpdate: NoAction)
+  workspaces                          workspaces     @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([assignee_user_id, status, due_at], map: "idx_tasks_assignee")
+  @@index([contact_id], map: "idx_tasks_contact", where: raw("(contact_id IS NOT NULL)"))
+  @@index([conversation_id], map: "idx_tasks_conversation", where: raw("(conversation_id IS NOT NULL)"))
+  @@index([deal_id], map: "idx_tasks_deal", where: raw("(deal_id IS NOT NULL)"))
+  @@index([due_at], map: "idx_tasks_reminder", where: raw("((status = 'open'::text) AND (reminded_at IS NULL) AND (due_at IS NOT NULL))"))
+  @@index([workspace_id, status, due_at], map: "idx_tasks_ws_status_due")
+}
+
+model team_members {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @db.Uuid
+  team_id      String     @db.Uuid
+  user_id      String     @db.Uuid
+  created_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  teams        teams      @relation(fields: [team_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users        users      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([team_id, user_id])
+  @@index([workspace_id, user_id], map: "idx_team_members_ws")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model teams {
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id              String                      @default(dbgenerated("active_ws()")) @db.Uuid
+  name                      String
+  description               String?
+  created_at                DateTime?                   @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime?                   @default(now()) @db.Timestamptz(6)
+  conversation_events       conversation_events[]
+  conversations             conversations[]
+  real_estate_routing_rules real_estate_routing_rules[]
+  team_members              team_members[]
+  workspaces                workspaces                  @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model users {
+  id                                                          String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                                                       String                          @unique
+  name                                                        String                          @default("")
+  email_verified                                              Boolean                         @default(false)
+  image                                                       String?
+  meta                                                        Json                            @default("{}")
+  banned                                                      Boolean                         @default(false)
+  last_sign_in_at                                             DateTime?                       @db.Timestamptz(6)
+  created_at                                                  DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at                                                  DateTime                        @default(now()) @db.Timestamptz(6)
+  ai_agents                                                   ai_agents[]
+  api_keys                                                    api_keys[]
+  auth_accounts                                               auth_accounts[]
+  auth_sessions                                               auth_sessions[]
+  automation_logs                                             automation_logs[]
+  automation_pending_executions                               automation_pending_executions[]
+  automations                                                 automations[]
+  billing_payments                                            billing_payments[]
+  broadcasts                                                  broadcasts[]
+  calendar_connections                                        calendar_connections[]
+  channels                                                    channels[]
+  contact_notes                                               contact_notes[]
+  contacts                                                    contacts[]
+  conversation_events_conversation_events_from_userTousers    conversation_events[]           @relation("conversation_events_from_userTousers")
+  conversation_events_conversation_events_to_userTousers      conversation_events[]           @relation("conversation_events_to_userTousers")
+  conversation_tags                                           conversation_tags[]
+  conversations_conversations_ai_summary_byTousers            conversations[]                 @relation("conversations_ai_summary_byTousers")
+  conversations_conversations_resolved_byTousers              conversations[]                 @relation("conversations_resolved_byTousers")
+  conversations_conversations_user_idTousers                  conversations[]                 @relation("conversations_user_idTousers")
+  credit_ledger                                               credit_ledger[]
+  credit_lots                                                 credit_lots[]
+  custom_fields                                               custom_fields[]
+  deals                                                       deals[]
+  flow_runs                                                   flow_runs[]
+  flows                                                       flows[]
+  message_templates                                           message_templates[]
+  notifications_notifications_actor_idTousers                 notifications[]                 @relation("notifications_actor_idTousers")
+  notifications_notifications_user_idTousers                  notifications[]                 @relation("notifications_user_idTousers")
+  order_events                                                order_events[]
+  orders                                                      orders[]
+  pipelines                                                   pipelines[]
+  platform_settings                                           platform_settings[]
+  portal_connections                                          portal_connections[]
+  portal_feeds                                                portal_feeds[]
+  portal_import_runs                                          portal_import_runs[]
+  products                                                    products[]
+  profiles                                                    profiles?
+  property_captures_property_captures_assigned_user_idTousers property_captures[]             @relation("property_captures_assigned_user_idTousers")
+  property_captures_property_captures_created_byTousers       property_captures[]             @relation("property_captures_created_byTousers")
+  quick_replies                                               quick_replies[]
+  real_estate_routing_rules                                   real_estate_routing_rules[]
+  staff                                                       staff[]
+  tags                                                        tags[]
+  tasks_tasks_assignee_user_idTousers                         tasks[]                         @relation("tasks_assignee_user_idTousers")
+  tasks_tasks_completed_byTousers                             tasks[]                         @relation("tasks_completed_byTousers")
+  tasks_tasks_created_byTousers                               tasks[]                         @relation("tasks_created_byTousers")
+  team_members                                                team_members[]
+  webhook_endpoints                                           webhook_endpoints[]
+  whatsapp_config                                             whatsapp_config[]
+  workspace_invitations                                       workspace_invitations[]
+  workspace_members                                           workspace_members[]
+  workspaces                                                  workspaces[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model webhook_deliveries {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id      String            @db.Uuid
+  endpoint_id       String            @db.Uuid
+  event_id          String
+  event_type        String
+  payload           Json
+  status            String            @default("pending")
+  attempts          Int               @default(0)
+  next_attempt_at   DateTime?         @default(now()) @db.Timestamptz(6)
+  last_attempt_at   DateTime?         @db.Timestamptz(6)
+  response_status   Int?
+  response_body     String?
+  error             String?
+  duration_ms       Int?
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime          @default(now()) @db.Timestamptz(6)
+  webhook_endpoints webhook_endpoints @relation(fields: [endpoint_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces        workspaces        @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([next_attempt_at], map: "idx_webhook_deliveries_due", where: raw("(status = 'pending'::text)"))
+  @@index([endpoint_id, created_at(sort: Desc)], map: "idx_webhook_deliveries_endpoint")
+  @@index([workspace_id, created_at], map: "idx_webhook_deliveries_ws_created")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model webhook_endpoints {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id       String               @db.Uuid
+  url                String
+  description        String?
+  events             String[]             @default([])
+  secret_encrypted   String
+  active             Boolean              @default(true)
+  failure_count      Int                  @default(0)
+  disabled_at        DateTime?            @db.Timestamptz(6)
+  disabled_reason    String?
+  last_success_at    DateTime?            @db.Timestamptz(6)
+  last_failure_at    DateTime?            @db.Timestamptz(6)
+  created_by         String?              @db.Uuid
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime             @default(now()) @db.Timestamptz(6)
+  webhook_deliveries webhook_deliveries[]
+  users              users?               @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  workspaces         workspaces           @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id], map: "idx_webhook_endpoints_active", where: raw("active"))
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model whatsapp_config {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String?    @default(dbgenerated("app_user_id()")) @db.Uuid
+  phone_number_id String
+  waba_id         String?
+  access_token    String
+  verify_token    String?
+  status          String     @default("disconnected")
+  connected_at    DateTime?  @db.Timestamptz(6)
+  created_at      DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?  @default(now()) @db.Timestamptz(6)
+  workspace_id    String     @unique @default(dbgenerated("active_ws()")) @db.Uuid
+  users           users?     @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces      workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id], map: "idx_whatsapp_config_workspace")
+}
+
+model workspace_counters {
+  workspace_id String     @db.Uuid
+  name         String
+  value        BigInt     @default(0)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([workspace_id, name])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model workspace_invitations {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @db.Uuid
+  email        String
+  role         String     @default("agent")
+  token_hash   String     @unique
+  invited_by   String?    @db.Uuid
+  expires_at   DateTime   @default(dbgenerated("(now() + '7 days'::interval)")) @db.Timestamptz(6)
+  accepted_at  DateTime?  @db.Timestamptz(6)
+  created_at   DateTime?  @default(now()) @db.Timestamptz(6)
+  users        users?     @relation(fields: [invited_by], references: [id], onUpdate: NoAction)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id], map: "idx_workspace_invitations_ws")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model workspace_members {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id     String     @db.Uuid
+  user_id          String     @db.Uuid
+  role             String     @default("agent")
+  status           String     @default("active")
+  created_at       DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?  @default(now()) @db.Timestamptz(6)
+  available        Boolean    @default(true)
+  last_assigned_at DateTime?  @db.Timestamptz(6)
+  users            users      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces       workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([workspace_id, user_id])
+  @@index([user_id], map: "idx_workspace_members_user")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model workspaces {
+  id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                          String
+  slug                          String                          @unique
+  industry                      String                          @default("generic")
+  country                       String?
+  currency                      String                          @default("USD")
+  timezone                      String                          @default("UTC")
+  locale                        String                          @default("es")
+  description                   String?
+  phone                         String?
+  email                         String?
+  website                       String?
+  address                       String?
+  city                          String?
+  state                         String?
+  postal_code                   String?
+  google_map_link               String?
+  logo_url                      String?
+  settings                      Json                            @default("{}")
+  created_by                    String?                         @db.Uuid
+  created_at                    DateTime?                       @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime?                       @default(now()) @db.Timestamptz(6)
+  date_exceptions               Json                            @default("[]")
+  business_type_detail          String?
+  ai_agents                     ai_agents[]
+  ai_chat_logs                  ai_chat_logs[]
+  ai_usage                      ai_usage[]
+  api_keys                      api_keys[]
+  automation_logs               automation_logs[]
+  automation_pending_executions automation_pending_executions[]
+  automation_steps              automation_steps[]
+  automations                   automations[]
+  billing_accounts              billing_accounts?
+  billing_payments              billing_payments[]
+  bookings                      bookings[]
+  broadcast_recipients          broadcast_recipients[]
+  broadcasts                    broadcasts[]
+  business_hours                business_hours[]
+  calendar_connection_secrets   calendar_connection_secrets[]
+  calendar_connections          calendar_connections[]
+  calendar_event_deletions      calendar_event_deletions[]
+  cart_items                    cart_items[]
+  carts                         carts[]
+  channels                      channels[]
+  contact_custom_values         contact_custom_values[]
+  contact_identities            contact_identities[]
+  contact_notes                 contact_notes[]
+  contact_tags                  contact_tags[]
+  contacts                      contacts[]
+  conversation_events           conversation_events[]
+  conversation_tags             conversation_tags[]
+  conversations                 conversations[]
+  credit_ledger                 credit_ledger[]
+  credit_lots                   credit_lots[]
+  custom_fields                 custom_fields[]
+  deals                         deals[]
+  faqs                          faqs[]
+  feedback                      feedback[]
+  flow_nodes                    flow_nodes[]
+  flow_run_events               flow_run_events[]
+  flow_runs                     flow_runs[]
+  flows                         flows[]
+  followup_schedules            followup_schedules[]
+  lead_profiles                 lead_profiles[]
+  lead_property_alerts          lead_property_alerts[]
+  message_reactions             message_reactions[]
+  message_templates             message_templates[]
+  messages                      messages[]
+  notifications                 notifications[]
+  order_events                  order_events[]
+  order_items                   order_items[]
+  orders                        orders[]
+  patient_intake                patient_intake[]
+  payment_methods               payment_methods[]
+  pipeline_stages               pipeline_stages[]
+  pipelines                     pipelines[]
+  portal_connections            portal_connections[]
+  portal_feeds                  portal_feeds[]
+  portal_import_runs            portal_import_runs[]
+  product_categories            product_categories[]
+  product_variants              product_variants[]
+  products                      products[]
+  property_captures             property_captures[]
+  property_match_jobs           property_match_jobs[]
+  quick_replies                 quick_replies[]
+  real_estate_routing_rules     real_estate_routing_rules[]
+  services                      services[]
+  staff                         staff[]
+  staff_services                staff_services[]
+  tags                          tags[]
+  tasks                         tasks[]
+  team_members                  team_members[]
+  teams                         teams[]
+  webhook_deliveries            webhook_deliveries[]
+  webhook_endpoints             webhook_endpoints[]
+  whatsapp_config               whatsapp_config?
+  workspace_counters            workspace_counters[]
+  workspace_invitations         workspace_invitations[]
+  workspace_members             workspace_members[]
+  users                         users?                          @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+}

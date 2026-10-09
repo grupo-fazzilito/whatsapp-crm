@@ -1,0 +1,21 @@
+# Plain PostgreSQL for local development and validation (no Supabase).
+#   docker compose -f docker-compose.postgres.yml up -d
+#   DATABASE_URL=postgresql://crm:crm@127.0.0.1:5434/crm
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: crm-postgres
+    environment:
+      POSTGRES_USER: crm
+      POSTGRES_PASSWORD: crm
+      POSTGRES_DB: crm
+    ports:
+      - "5434:5432"
+    volumes:
+      - crm-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crm -d crm"]
+      interval: 5s
+      retries: 10
+volumes:
+  crm-postgres:
