@@ -1,0 +1,72 @@
+{
+  "aiassist": {
+    "media": {
+      "transcribe": "Transcribe",
+      "transcribing": "Transcribing…",
+      "transcript": "Transcript",
+      "showTranscript": "Show transcript",
+      "hideTranscript": "Hide transcript",
+      "emptyTranscript": "No speech was detected in the audio.",
+      "read": "Read with AI",
+      "reading": "Reading…",
+      "readResult": "Read with AI",
+      "showRead": "Show AI reading",
+      "hideRead": "Hide AI reading",
+      "retry": "Try again",
+      "redo": "Generate again"
+    },
+    "errors": {
+      "noAudioProvider": "Set up Gemini or OpenAI in the admin panel to transcribe audio",
+      "noVisionProvider": "Set up Gemini or OpenAI in the admin panel to read images and PDFs",
+      "noTextProvider": "No AI provider is configured in the admin panel",
+      "tooLarge": "The file is too large for the AI (max 20 MB)",
+      "unsupported": "The AI can't read this type of file",
+      "mediaUnavailable": "The file could not be downloaded",
+      "empty": "This conversation has no messages yet",
+      "rateLimited": "Too many requests. Please wait a moment.",
+      "failed": "The AI didn't answer. Please try again."
+    },
+    "summary": {
+      "button": "Summarize",
+      "title": "Conversation summary",
+      "description": "AI-generated from the messages (internal notes are not used).",
+      "generate": "Generate summary",
+      "regenerate": "Regenerate",
+      "generating": "Generating summary…",
+      "none": "There is no summary of this conversation yet.",
+      "keyPoints": "Key points",
+      "intent": "Customer intent",
+      "pending": "Pending items",
+      "noPending": "Nothing pending",
+      "nextStep": "Suggested next step",
+      "updated": "Updated {date}",
+      "updatedBy": "Updated {date} by {name}",
+      "copy": "Copy summary",
+      "copied": "Summary copied",
+      "close": "Close"
+    },
+    "suggest": {
+      "button": "Suggest reply",
+      "buttonWithDraft": "Improve my draft with AI",
+      "loading": "Generating suggestion…",
+      "ready": "Suggestion ready: review and edit it before sending"
+    },
+    "settings": {
+      "title": "Inbox AI assistant",
+      "open": "AI assistant settings",
+      "autoTranscribe": "Transcribe incoming voice notes automatically",
+      "autoTranscribeHint": "Voice notes become text for the team and so AI agents can answer them.",
+      "autoReadImages": "Read images for the AI agent",
+      "autoReadImagesHint": "When an AI agent handles the conversation, it gets a short description of the customer's images.",
+      "providers": "Available providers",
+      "audio": "Audio",
+      "vision": "Images and PDFs",
+      "text": "Text",
+      "available": "available",
+      "unavailable": "not configured",
+      "saved": "Settings saved",
+      "saveFailed": "Settings could not be saved",
+      "adminOnly": "Only admins can change these settings."
+    }
+  }
+}

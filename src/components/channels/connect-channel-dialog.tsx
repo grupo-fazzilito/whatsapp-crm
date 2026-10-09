@@ -21,6 +21,7 @@ import {
   type ChannelFeatures,
 } from './channel-types';
 import { CopyField } from './copy-field';
+import { WhatsAppSignup } from './whatsapp-signup';
 import {
   DEFAULT_WEBCHAT_FORM,
   WebchatSettingsFields,
@@ -55,6 +56,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
   const [wabaId, setWabaId] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [verifyToken, setVerifyToken] = useState('');
+  const [appSecret, setAppSecret] = useState('');
   const [pageId, setPageId] = useState('');
   const [instagramId, setInstagramId] = useState('');
   const [businessId, setBusinessId] = useState('');
@@ -73,6 +75,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
     setWabaId('');
     setAccessToken('');
     setVerifyToken('');
+    setAppSecret('');
     setPageId('');
     setInstagramId('');
     setBusinessId('');
@@ -87,7 +90,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
   const pick = (type: ChannelType) => {
     if (type === 'tiktok' && !features.tiktok) return;
     setName(type === 'webchat' ? t('channels.webchat.defaultName') : CHANNEL_STYLE[type].label);
-    setManualMeta(!features.metaOAuth);
+    setManualMeta(type === 'whatsapp' ? !features.whatsappSignup : !features.metaOAuth);
     setStep({ kind: 'form', type });
   };
 
@@ -96,9 +99,9 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
     if (step.kind !== 'form') return;
     const type = step.type;
     const body: Record<string, unknown> = { type, name, purpose: purpose || null, ai_agent_id: agentId || null };
-    if (type === 'whatsapp') Object.assign(body, { phone_number_id: phoneNumberId, waba_id: wabaId || null, access_token: accessToken, verify_token: verifyToken || null });
-    if (type === 'messenger') Object.assign(body, { page_id: pageId, access_token: accessToken });
-    if (type === 'instagram') Object.assign(body, { instagram_id: instagramId, page_id: pageId, access_token: accessToken });
+    if (type === 'whatsapp') Object.assign(body, { phone_number_id: phoneNumberId, waba_id: wabaId || null, access_token: accessToken, verify_token: verifyToken || null, app_secret: appSecret || null });
+    if (type === 'messenger') Object.assign(body, { page_id: pageId, access_token: accessToken, app_secret: appSecret || null });
+    if (type === 'instagram') Object.assign(body, { instagram_id: instagramId, page_id: pageId, access_token: accessToken, app_secret: appSecret || null });
     if (type === 'tiktok') Object.assign(body, { business_id: businessId, access_token: accessToken });
     if (type === 'webchat') body.settings = webchatSettingsPayload({ ...webchat, title: webchat.title || name });
 
@@ -177,7 +180,9 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
               <DialogDescription>{t(`channels.typeHint.${type}`)}</DialogDescription>
             </DialogHeader>
 
-            {isMeta && !manualMeta ? (
+            {type === 'whatsapp' && !manualMeta ? (
+              <WhatsAppSignup agents={agents} onCreated={onCreated} onManual={() => setManualMeta(true)} onDone={() => close(false)} />
+            ) : isMeta && !manualMeta ? (
               <div className="grid gap-3">
                 <p className="text-sm text-muted-foreground">{t('channels.meta.oauthIntro')}</p>
                 <button
@@ -231,10 +236,16 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
                     <Field id="ch-vt" label={t('channels.whatsapp.verifyToken')} hint={t('channels.whatsapp.verifyTokenHelp')}>
                       <Input id="ch-vt" autoComplete="off" value={verifyToken} onChange={(e) => setVerifyToken(e.target.value)} />
                     </Field>
+                    <AppSecretField value={appSecret} onChange={setAppSecret} />
                     <div className="grid gap-2 rounded-md border border-border bg-muted/30 p-3">
                       <p className="text-xs text-muted-foreground">{t('channels.whatsapp.webhookHelp')}</p>
                       <CopyField label={t('channels.webhookUrl')} value={webhookUrl} />
                     </div>
+                    {features.whatsappSignup && (
+                      <button type="button" className="justify-self-start text-xs text-muted-foreground underline underline-offset-2" onClick={() => setManualMeta(false)}>
+                        {t('metawa.signup.useSignup')}
+                      </button>
+                    )}
                   </>
                 )}
 
@@ -251,6 +262,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
                     <Field id="ch-ptoken" label={t('channels.meta.pageToken')}>
                       <Input id="ch-ptoken" required type="password" autoComplete="off" value={accessToken} onChange={(e) => setAccessToken(e.target.value)} />
                     </Field>
+                    <AppSecretField value={appSecret} onChange={setAppSecret} />
                     <div className="grid gap-2 rounded-md border border-border bg-muted/30 p-3">
                       <p className="text-xs text-muted-foreground">{t('channels.meta.manualHelp')}</p>
                       <CopyField label={t('channels.webhookUrl')} value={webhookUrl} />
@@ -328,6 +340,16 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Only for businesses using their own Meta app: verifies that app's webhook signatures. */
+function AppSecretField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const t = useT();
+  return (
+    <Field id="ch-appsecret" label={t('metawa.manual.appSecret')} hint={t('metawa.manual.appSecretHelp')}>
+      <Input id="ch-appsecret" type="password" autoComplete="off" spellCheck={false} value={value} onChange={(e) => onChange(e.target.value.trim())} />
+    </Field>
   );
 }
 

@@ -36,6 +36,7 @@ import {
 import { extractMentions, filterMentionCandidates, mentionQuery, type MentionCandidate } from "@/lib/inbox/mentions";
 import type { QuickReply, QuickReplyAttachment } from "@/lib/inbox/types";
 import { ReplyQuote } from "./reply-quote";
+import { SuggestReplyButton } from "./ai-assist/suggest-button";
 
 interface ReplyDraft {
   /** Internal UUID of the message being replied to — sent back through onSend. */
@@ -586,6 +587,15 @@ export function MessageComposer({
               <Paperclip className="h-4 w-4" />
             </Button>
           </>
+        )}
+
+        {!isNote && (
+          <SuggestReplyButton
+            conversationId={conversationId}
+            currentText={text}
+            disabled={inputDisabled || sending}
+            onDraft={(draft) => setTextAndCaret(draft, draft.length)}
+          />
         )}
 
         <textarea

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { verifyPhoneNumber } from '@/lib/whatsapp/meta-api'
 import { tiktokEnabled } from '@/lib/channels/adapters/tiktok'
+import { getMetaConfig, metaAppReady } from '@/lib/platform/meta'
 import { CHANNEL_TYPES, type ChannelType } from '@/lib/channels/types'
 import {
   CONFLICT_MESSAGE,
@@ -10,7 +11,6 @@ import {
   assertAgentInWorkspace,
   bad,
   graphGet,
-  metaOAuthAvailable,
   skipVerify,
   str,
   subscribePage,
@@ -23,9 +23,11 @@ import { newWidgetKey, parseWebchatSettings, webchatHandle } from './_lib/webcha
  * GET  /api/channels — channels of the active workspace (no secrets) plus
  *                      which connection methods this platform supports.
  * POST /api/channels — connect a channel (admin). Body depends on `type`:
- *   whatsapp  {name, purpose?, phone_number_id, waba_id?, access_token, verify_token?}
- *   messenger {name, purpose?, page_id, access_token}
- *   instagram {name, purpose?, instagram_id, page_id, access_token}
+ *   whatsapp  {name, purpose?, phone_number_id, waba_id?, access_token, verify_token?, app_secret?}
+ *   messenger {name, purpose?, page_id, access_token, app_secret?}
+ *   instagram {name, purpose?, instagram_id, page_id, access_token, app_secret?}
+ * app_secret: only for businesses using THEIR OWN Meta app (manual setup) —
+ * it verifies that app's webhook signatures. Stored encrypted, never returned.
  *   webchat   {name, purpose?, settings:{color,title,greeting,position,allowed_origins,prechat_fields}}
  *   tiktok    {name, purpose?, business_id, access_token}   (TIKTOK_MESSAGING_ENABLED=true only)
  * Optional on every type: ai_agent_id.
@@ -44,12 +46,15 @@ export async function GET() {
     .order('created_at', { ascending: true })
   if (error) return bad(error.message, 500)
 
+  const meta = await getMetaConfig()
   return NextResponse.json({
     channels: data ?? [],
     features: {
-      metaOAuth: metaOAuthAvailable(),
+      metaOAuth: metaAppReady(meta),
+      /** WhatsApp Embedded Signup (Facebook Login for Business configuration set). */
+      whatsappSignup: metaAppReady(meta) && !!meta.esConfigId,
       tiktok: tiktokEnabled(),
-      platformVerifyToken: !!process.env.META_VERIFY_TOKEN,
+      platformVerifyToken: !!meta.verifyToken,
     },
   })
 }
@@ -75,6 +80,8 @@ export async function POST(request: Request) {
   }
 
   const skip = skipVerify(request)
+  const appSecret = str(body.app_secret, 200)
+  if (appSecret && !/^[A-Za-z0-9]{16,128}$/.test(appSecret)) return bad('app_secret looks invalid (Meta → App settings → Basic → App secret)')
   const base = { workspaceId: workspace.id, userId: user.id, type, name, purpose, aiAgentId }
   let input: NewChannel
   /** Returned once so the admin can paste it into the Meta dashboard. */
@@ -113,7 +120,7 @@ export async function POST(request: Request) {
         displayHandle,
         statusDetail,
         settings: { waba_id: wabaId, verified_name: verifiedName },
-        secrets: { access_token: accessToken, verify_token: verifyToken },
+        secrets: { access_token: accessToken, verify_token: verifyToken, app_secret: appSecret },
       }
       break
     }
@@ -141,7 +148,7 @@ export async function POST(request: Request) {
         displayHandle: pageName,
         statusDetail,
         settings: { page_id: pageId, page_name: pageName },
-        secrets: { access_token: accessToken },
+        secrets: { access_token: accessToken, app_secret: appSecret },
       }
       break
     }
@@ -170,7 +177,7 @@ export async function POST(request: Request) {
         displayHandle: username ? `@${username}` : null,
         statusDetail,
         settings: { page_id: pageId, username },
-        secrets: { access_token: accessToken },
+        secrets: { access_token: accessToken, app_secret: appSecret },
       }
       break
     }

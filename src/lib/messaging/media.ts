@@ -3,6 +3,21 @@ import { NextResponse } from 'next/server'
 import { getMediaUrl, downloadMedia } from '@/lib/whatsapp/meta-api'
 import type { LoadedChannel } from '@/lib/channels'
 
+/** Raw bytes of a WhatsApp media id (server-side use, e.g. AI transcription). */
+export async function fetchChannelMediaBytes(
+  channel: LoadedChannel,
+  mediaId: string,
+  maxBytes: number,
+): Promise<{ bytes: Uint8Array; contentType: string }> {
+  if (channel.type !== 'whatsapp') throw new Error('Media download not supported for this channel')
+  const accessToken = channel.secrets.access_token
+  if (!accessToken) throw new Error('WhatsApp not configured')
+  const mediaInfo = await getMediaUrl({ mediaId, accessToken })
+  const { buffer, contentType } = await downloadMedia({ downloadUrl: mediaInfo.url, accessToken })
+  if (buffer.byteLength > maxBytes) throw new Error('Media too large')
+  return { bytes: new Uint8Array(buffer), contentType: mediaInfo.mimeType || contentType }
+}
+
 /**
  * Streams a provider media object (inbound attachment) to the browser
  * using the channel's credentials. Only WhatsApp media ids need this;

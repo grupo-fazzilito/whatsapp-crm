@@ -38,6 +38,12 @@ import esGcal from './messages/es/gcal.json'
 import enGcal from './messages/en/gcal.json'
 import esPortals from './messages/es/portals.json'
 import enPortals from './messages/en/portals.json'
+import esAiAssist from './messages/es/aiassist.json'
+import enAiAssist from './messages/en/aiassist.json'
+import esIntegrations from './messages/es/integrations.json'
+import enIntegrations from './messages/en/integrations.json'
+import esMetaWa from './messages/es/metawa.json'
+import enMetaWa from './messages/en/metawa.json'
 import type { AppLocale } from './config'
 
 // One file per area (core, channels, agents, webchat, inbox, business, routing) so features
@@ -46,8 +52,8 @@ import type { AppLocale } from './config'
 type Tree = { [key: string]: string | Tree }
 
 const DICTS: Record<AppLocale, Tree> = {
-  es: { ...esCore, ...esChannels, ...esAgents, ...esWebchat, ...esInbox, ...esBusiness, ...esRouting, ...esAdmin, ...esBookings, ...esCatalogImport, ...esCatalog, ...esFollowups, ...esOrders, ...esCrm, ...esReports, ...esInboxPro, ...esLeads, ...esRealEstate, ...esGcal, ...esPortals },
-  en: { ...enCore, ...enChannels, ...enAgents, ...enWebchat, ...enInbox, ...enBusiness, ...enRouting, ...enAdmin, ...enBookings, ...enCatalogImport, ...enCatalog, ...enFollowups, ...enOrders, ...enCrm, ...enReports, ...enInboxPro, ...enLeads, ...enRealEstate, ...enGcal, ...enPortals },
+  es: { ...esCore, ...esChannels, ...esAgents, ...esWebchat, ...esInbox, ...esBusiness, ...esRouting, ...esAdmin, ...esBookings, ...esCatalogImport, ...esCatalog, ...esFollowups, ...esOrders, ...esCrm, ...esReports, ...esInboxPro, ...esLeads, ...esRealEstate, ...esGcal, ...esPortals, ...esAiAssist, ...esMetaWa, ...esIntegrations },
+  en: { ...enCore, ...enChannels, ...enAgents, ...enWebchat, ...enInbox, ...enBusiness, ...enRouting, ...enAdmin, ...enBookings, ...enCatalogImport, ...enCatalog, ...enFollowups, ...enOrders, ...enCrm, ...enReports, ...enInboxPro, ...enLeads, ...enRealEstate, ...enGcal, ...enPortals, ...enAiAssist, ...enMetaWa, ...enIntegrations },
 }
 
 /** Dotted-path key into the message tree, e.g. "nav.inbox". */

@@ -1,4 +1,5 @@
 import 'server-only'
+import { messageTextForAi } from './assist/core'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendMessage } from '@/lib/messaging/send'
 import { getPreset, industryLabel } from '@/lib/industries'
@@ -156,10 +157,10 @@ function isClosedNow(ctx: BusinessContext): boolean {
   return !windows || !windows.some((w) => m >= w.start && m < w.end)
 }
 
-async function history(conversationId: string): Promise<ChatTurn[]> {
+async function history(conversationId: string, locale: 'es' | 'en' = 'es'): Promise<ChatTurn[]> {
   const { data } = await supabaseAdmin()
     .from('messages')
-    .select('sender_type, content_text, content_type, created_at')
+    .select('sender_type, content_text, content_type, transcript, ai_media_text, created_at')
     .eq('conversation_id', conversationId)
     .neq('content_type', 'system')
     // Team-only notes never reach the model.
@@ -168,7 +169,8 @@ async function history(conversationId: string): Promise<ChatTurn[]> {
     .limit(HISTORY_TURNS)
   const turns: ChatTurn[] = []
   for (const m of (data ?? []).reverse()) {
-    const content = (m.content_text ?? '').trim() || `[${m.content_type}]`
+    // Voice notes read as their transcript, images/PDFs as "[Imagen: …]" (AI assist).
+    const content = messageTextForAi(m, locale)
     const role: ChatTurn['role'] = m.sender_type === 'customer' ? 'user' : 'assistant'
     const last = turns[turns.length - 1]
     // Providers want alternating roles: merge consecutive same-role turns.
@@ -321,7 +323,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     channelLabel: CHANNEL_LABEL[input.channel.type] ?? input.channel.type,
   }
 
-  const turns = await history(input.conversationId)
+  const turns = await history(input.conversationId, ctx.workspace.locale === 'en' ? 'en' : 'es')
   if (!turns.length || turns[turns.length - 1].role !== 'user') turns.push({ role: 'user', content: text || '[attachment]' })
 
   const meter = { workspaceId: input.workspaceId, purpose: 'reply', aiAgentId: agent.id, conversationId: input.conversationId, channelId: input.channel.id }

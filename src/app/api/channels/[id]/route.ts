@@ -14,7 +14,8 @@ import type { WelcomeMenu } from '@/lib/ai/types'
  *   name, purpose, ai_agent_id (null = humans only), status ('connected'|'disconnected'),
  *   settings (shallow-merged; validated for webchat),
  *     settings.welcome_menu (any type; null removes it) — see _lib/welcome-menu.ts,
- *   access_token / verify_token (rotate credentials; never returned).
+ *   access_token / verify_token / app_secret (rotate credentials; never returned;
+ *   app_secret = own Meta app for manual setups, null removes it).
  * DELETE /api/channels/[id] — admin. Conversations keep their history
  *   (conversations.channel_id is set to NULL).
  */
@@ -101,6 +102,9 @@ export async function PATCH(request: Request, { params }: Params) {
   // Credential rotation.
   const accessToken = str(body.access_token, 2000)
   const verifyToken = str(body.verify_token, 200)
+  // Own Meta app (manual setup): its App Secret verifies that app's webhooks. null removes it.
+  const appSecret = body.app_secret === null ? null : str(body.app_secret, 200)
+  if ((appSecret || verifyToken) && (channel.type === 'webchat' || channel.type === 'tiktok')) return bad('This channel type has no Meta webhook credentials')
   if (accessToken && channel.type === 'webchat') return bad('webchat channels have no access token')
   if (accessToken && channel.type === 'whatsapp' && !skipVerify(request)) {
     try {
@@ -110,9 +114,13 @@ export async function PATCH(request: Request, { params }: Params) {
       return bad(`Could not verify the new token with Meta: ${err instanceof Error ? err.message : 'unknown error'}`)
     }
   }
-  if (accessToken || verifyToken) {
+  if (accessToken || verifyToken || 'app_secret' in body) {
     try {
-      await saveChannelSecrets(id, { access_token: accessToken ?? undefined, verify_token: verifyToken ?? undefined })
+      await saveChannelSecrets(id, {
+        access_token: accessToken ?? undefined,
+        verify_token: verifyToken ?? undefined,
+        ...('app_secret' in body ? { app_secret: appSecret } : {}),
+      })
     } catch (err) {
       return bad(err instanceof Error ? err.message : 'Could not save credentials', 500)
     }

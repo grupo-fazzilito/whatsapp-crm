@@ -3,6 +3,7 @@ import crypto from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import type { ChannelRow } from '@/lib/channels/types'
+import { getMetaConfig, metaAppReady } from '@/lib/platform/meta'
 
 // Helpers shared by the /api/channels routes (private folder: not a route).
 
@@ -22,8 +23,9 @@ export function isUniqueViolation(error: { code?: string } | null | undefined) {
   return error?.code === '23505'
 }
 
-export function metaOAuthAvailable() {
-  return !!process.env.META_APP_ID && !!process.env.META_APP_SECRET
+/** Platform Meta app configured (admin panel → env fallback). */
+export async function metaOAuthAvailable(): Promise<boolean> {
+  return metaAppReady(await getMetaConfig())
 }
 
 export function str(v: unknown, max = 500): string | null {

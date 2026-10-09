@@ -13,6 +13,7 @@ import { handleCheckoutText, handleCommerceAction, handlePaymentProof, isCommerc
 import type { Workspace } from '@/lib/workspace/types'
 import { autoAssignConversation, recordEvent } from '@/lib/inbox/server'
 import { handleVisitAction, isVisitAction } from '@/lib/real-estate/leads/visits'
+import { inboundMediaText } from '@/lib/ai/assist/service'
 
 type MessageEvent = Extract<InboundEvent, { kind: 'message' }>
 
@@ -84,7 +85,7 @@ async function applyStatus(channel: LoadedChannel, ev: Extract<InboundEvent, { k
 // ------------------------------------------------------------
 // Contacts & conversations
 // ------------------------------------------------------------
-async function findOrCreateContact(
+export async function findOrCreateContact(
   channel: LoadedChannel,
   from: MessageEvent['from'],
 ): Promise<{ id: string; wasCreated: boolean } | null> {
@@ -153,7 +154,7 @@ async function findOrCreateContact(
   return { id: contactId!, wasCreated }
 }
 
-async function findOrCreateConversation(channel: LoadedChannel, contactId: string) {
+export async function findOrCreateConversation(channel: LoadedChannel, contactId: string) {
   const db = supabaseAdmin()
   const { data: existing } = await db
     .from('conversations')
@@ -336,7 +337,8 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
   )
 
   const outcome: IngestOutcome = { contactId: contact.id, conversationId: conversation.id, messageId: inserted.id, duplicate: false }
-  const text = ev.text ?? ''
+  // Reassigned by the AI-assist media hook below (voice note → transcript).
+  let text = ev.text ?? ''
 
   // A conversation that was closed starts over: new topic, new routing.
   let aiState = (conversation.ai_state ?? {}) as ConversationAiState
@@ -370,6 +372,26 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
     return false
   })
   if (handledByCommerce) return outcome
+
+  // 0b) AI assist: a voice note becomes its transcript (and, when the
+  //     workspace enabled it, an image its "[Imagen: …]" description) so
+  //     flows and the AI agent can answer it. Never throws or blocks the
+  //     pipeline: without a multimodal provider `text` stays as it was.
+  if (inserted.id && (ev.contentType === 'audio' || ev.contentType === 'image')) {
+    const agentId = conversationAgentId ?? channel.ai_agent_id
+    const mediaText = await inboundMediaText({
+      workspaceId: ws,
+      channelId: channel.id,
+      conversationId: conversation.id,
+      messageId: inserted.id,
+      contentType: ev.contentType,
+      mediaUrl,
+      caption: ev.text ?? null,
+      aiWillAnswer: !!agentId && !(conversation.ai_paused_until && new Date(conversation.ai_paused_until) > new Date()),
+      aiAgentId: agentId,
+    })
+    if (mediaText) text = mediaText
+  }
 
   // 1) Flows first: an active bot-menu run, or a flow whose trigger matches,
   //    owns the message (flows can hand off to an AI agent themselves).
