@@ -148,8 +148,8 @@ export function AgentTestChat({ agent }: { agent: AiAgent }) {
           ))}
         </div>
 
-        {/* Phone-like frame */}
-        <div className="flex h-[620px] flex-col overflow-hidden rounded-[28px] border-[6px] border-neutral-900 bg-neutral-900 shadow-xl dark:border-neutral-700">
+        {/* Phone-like frame: fits the viewport so the input box stays visible. */}
+        <div className="flex h-[clamp(360px,calc(100dvh-23.5rem),640px)] flex-col overflow-hidden rounded-[28px] border-[6px] border-neutral-900 bg-neutral-900 shadow-xl dark:border-neutral-700">
           <div className={cn('flex items-center gap-3 px-4 py-3', skin.header)}>
             <span className="flex size-9 items-center justify-center rounded-full bg-white/20 text-current" aria-hidden>
               <Bot className={cn('size-5', skin.headerText)} />
@@ -160,7 +160,12 @@ export function AgentTestChat({ agent }: { agent: AiAgent }) {
             </div>
           </div>
 
-          <div ref={scroller} className={cn('flex flex-1 flex-col gap-2 overflow-y-auto px-3 py-4', skin.area)} aria-live="polite">
+          <div
+            ref={scroller}
+            className={cn('flex flex-1 flex-col gap-2 overflow-y-auto px-3 py-4', skin.area, skin.wallpaper && 'bg-repeat')}
+            style={skin.wallpaper ? { backgroundImage: `url('${skin.wallpaper}')` } : undefined}
+            aria-live="polite"
+          >
             {turns.length === 0 && <p className="mx-auto mt-6 max-w-[80%] rounded-lg bg-white/80 px-3 py-2 text-center text-xs text-neutral-600 dark:bg-black/40 dark:text-neutral-300">{t('agents.test.empty')}</p>}
             {turns.map((turn, i) =>
               turn.role === 'user' ? (
