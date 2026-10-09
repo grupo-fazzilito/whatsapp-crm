@@ -95,6 +95,14 @@
       "depleted": "Out of AI credits: your agents are paused.",
       "low": "{n} AI credits left.",
       "action": "Top up"
+    },
+    "dashboard": {
+      "title": "AI credits",
+      "replies": "≈ {n} AI replies",
+      "expires": "{credits} expire on {date}",
+      "topup": "Top up",
+      "depleted": "Out of credits: AI is paused",
+      "low": "Running low"
     }
   },
   "billingAdmin": {
@@ -145,5 +153,31 @@
     "latestPayments": "Latest payments",
     "noPayments": "No payments yet.",
     "exchange": "Exchange rate for the margin (S/ per US$)"
+  },
+  "metaUsage": {
+    "tab": "WhatsApp (Meta)",
+    "intro": "Since October 1, 2026 Meta charges every reply sent on WhatsApp. Each number gets 1,000 free replies per month; templates are always charged. Meta bills you directly.",
+    "month": "Month",
+    "noNumbers": "You have no WhatsApp numbers connected.",
+    "serviceSent": "Replies sent",
+    "freePerNumber": "{n} free per number per month",
+    "templatesSent": "Templates sent",
+    "templatesSub": "Always charged",
+    "costUsd": "Estimated Meta cost (US$)",
+    "costLocal": "Estimated cost ({currency})",
+    "estimate": "Estimate",
+    "rate": "1 US$ = {rate} {currency}",
+    "freeUsed": "{used} of {free} free replies used",
+    "freeLeft": "{n} free left",
+    "billable": "{n} charged",
+    "projection": "At this pace you will reach ~{n} replies this month and go over the free limit.",
+    "service": "Replies (service)",
+    "marketing": "Marketing templates",
+    "utility": "Utility templates",
+    "authentication": "Authentication templates",
+    "estimatedCost": "Estimated cost",
+    "nothingYet": "No messages sent this month.",
+    "otherMarket": "general rate",
+    "disclaimer": "Estimate with Meta rates for {market}: reply {service}, utility {utility}, marketing {marketing} per message. Meta bills by each customer's country, does not charge inside the free ad entry window, and the real invoice is in your WhatsApp Manager. Messages sent from the WhatsApp Business app are not counted."
   }
 }

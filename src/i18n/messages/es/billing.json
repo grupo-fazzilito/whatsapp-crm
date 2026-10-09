@@ -95,6 +95,14 @@
       "depleted": "Sin créditos de IA: tus agentes están en pausa.",
       "low": "Te quedan {n} créditos de IA.",
       "action": "Recargar"
+    },
+    "dashboard": {
+      "title": "Créditos de IA",
+      "replies": "≈ {n} respuestas de IA",
+      "expires": "{credits} vencen el {date}",
+      "topup": "Recargar",
+      "depleted": "Sin créditos: la IA está en pausa",
+      "low": "Quedan pocos créditos"
     }
   },
   "billingAdmin": {
@@ -145,5 +153,31 @@
     "latestPayments": "Últimos pagos",
     "noPayments": "Sin pagos todavía.",
     "exchange": "Tipo de cambio para el margen (S/ por US$)"
+  },
+  "metaUsage": {
+    "tab": "WhatsApp (Meta)",
+    "intro": "Desde el 1 de octubre de 2026 Meta cobra cada respuesta enviada por WhatsApp. Cada número tiene 1.000 respuestas gratis al mes; las plantillas se cobran siempre. Meta te cobra directamente a ti.",
+    "month": "Mes",
+    "noNumbers": "No tienes números de WhatsApp conectados.",
+    "serviceSent": "Respuestas enviadas",
+    "freePerNumber": "{n} gratis por número al mes",
+    "templatesSent": "Plantillas enviadas",
+    "templatesSub": "Se cobran siempre",
+    "costUsd": "Costo estimado de Meta (US$)",
+    "costLocal": "Costo estimado ({currency})",
+    "estimate": "Estimado",
+    "rate": "1 US$ = {rate} {currency}",
+    "freeUsed": "{used} de {free} respuestas gratis usadas",
+    "freeLeft": "Quedan {n} gratis",
+    "billable": "{n} cobradas",
+    "projection": "A este ritmo llegarás a ~{n} respuestas este mes y pasarás el límite gratis.",
+    "service": "Respuestas (servicio)",
+    "marketing": "Plantillas de marketing",
+    "utility": "Plantillas de utilidad",
+    "authentication": "Plantillas de autenticación",
+    "estimatedCost": "Costo estimado",
+    "nothingYet": "Sin mensajes enviados este mes.",
+    "otherMarket": "tarifa general",
+    "disclaimer": "Estimación con tarifas de Meta para {market}: respuesta {service}, utilidad {utility}, marketing {marketing} por mensaje. Meta cobra según el país de cada cliente, no cobra dentro de la ventana gratuita de anuncios y la factura real está en tu WhatsApp Manager. No cuenta mensajes enviados desde la app WhatsApp Business."
   }
 }
