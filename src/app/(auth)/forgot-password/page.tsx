@@ -16,6 +16,7 @@ import { MessageSquare, CheckCircle, ArrowLeft, KeyRound, Eye, EyeOff, Loader2, 
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { InteractiveGrid } from "@/components/marketing/interactive-grid";
+import { useI18n } from "@/i18n/client";
 
 type ResetStep = "email" | "otp" | "password" | "success";
 
@@ -46,13 +47,14 @@ const checkmarkPathVariants = {
 } as const;
 
 const stepsList = [
-  { step: "email", label: "Email" },
-  { step: "otp", label: "Verify" },
-  { step: "password", label: "Reset" },
-  { step: "success", label: "Done" },
+  { step: "email", labelKey: "authPages.forgot.stepEmail" },
+  { step: "otp", labelKey: "authPages.common.stepVerify" },
+  { step: "password", labelKey: "authPages.forgot.stepReset" },
+  { step: "success", labelKey: "authPages.common.stepDone" },
 ];
 
 export default function ForgotPasswordPage() {
+  const { t } = useI18n();
   const [step, setStep] = useState<ResetStep>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState<string[]>(Array(6).fill(""));
@@ -95,7 +97,7 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        setError(data.error || "Failed to send verification code.");
+        setError(data.error || t("authPages.common.failedSend"));
         setLoading(false);
         return;
       }
@@ -109,7 +111,7 @@ export default function ForgotPasswordPage() {
         inputRefs.current[0]?.focus();
       }, 100);
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+      setError(err.message || t("authPages.common.unexpectedError"));
       setLoading(false);
     }
   };
@@ -135,12 +137,12 @@ export default function ForgotPasswordPage() {
       });
       const data = await res.json();
       if (!res.ok || data.error) {
-        setError(data.error || "Failed to resend code.");
+        setError(data.error || t("authPages.common.failedResend"));
       } else {
         applyDevCode(data.devCode);
       }
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+      setError(err.message || t("authPages.common.unexpectedError"));
     }
   };
 
@@ -217,7 +219,7 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        setError(data.error || "Invalid verification code.");
+        setError(data.error || t("authPages.forgot.invalidCode"));
         setLoading(false);
         setIsShaking(true);
         // Reset shaking after animation runs
@@ -228,7 +230,7 @@ export default function ForgotPasswordPage() {
       setLoading(false);
       setStep("password");
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+      setError(err.message || t("authPages.common.unexpectedError"));
       setLoading(false);
     }
   };
@@ -250,7 +252,7 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        setError(data.error || "Failed to update password.");
+        setError(data.error || t("authPages.forgot.failedUpdate"));
         setLoading(false);
         return;
       }
@@ -258,7 +260,7 @@ export default function ForgotPasswordPage() {
       setLoading(false);
       setStep("success");
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+      setError(err.message || t("authPages.common.unexpectedError"));
       setLoading(false);
     }
   };
@@ -275,7 +277,7 @@ export default function ForgotPasswordPage() {
         href="/"
         className="absolute top-6 left-6 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--m-text-tertiary)] hover:text-[var(--m-text-primary)] transition-colors bg-[var(--m-bg-secondary)]/60 border border-[var(--m-border-glass)] px-3 py-1.5 rounded-lg backdrop-blur z-10"
       >
-        <ArrowLeft className="size-3.5" /> Back Home
+        <ArrowLeft className="size-3.5" /> {t("authPages.common.backHome")}
       </Link>
 
       <Card className="w-full max-w-md border-[var(--m-border-primary)] bg-[var(--m-bg-glass)] shadow-[var(--m-shadow-card)] backdrop-blur-xl relative z-10 p-2 overflow-hidden transition-all duration-300">
@@ -327,7 +329,7 @@ export default function ForgotPasswordPage() {
                     "text-[10px] font-semibold mt-1 transition-colors duration-300",
                     isCurrent ? "text-white" : isActive ? "text-slate-400" : "text-slate-600"
                   )}>
-                    {item.label}
+                    {t(item.labelKey)}
                   </span>
                 </div>
               );
@@ -349,9 +351,9 @@ export default function ForgotPasswordPage() {
                 <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                   <MessageSquare className="h-6 w-6" />
                 </div>
-                <CardTitle className="text-xl font-bold tracking-tight text-[var(--m-text-heading)]">Reset password</CardTitle>
+                <CardTitle className="text-xl font-bold tracking-tight text-[var(--m-text-heading)]">{t("authPages.forgot.title")}</CardTitle>
                 <CardDescription className="text-xs text-[var(--m-text-tertiary)] mt-1">
-                  Enter your email and we&apos;ll send you a 6-digit OTP code to verify your identity.
+                  {t("authPages.forgot.subtitle")}
                 </CardDescription>
               </div>
               <CardContent className="px-6 pb-6 pt-2">
@@ -364,7 +366,7 @@ export default function ForgotPasswordPage() {
 
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="email" className="text-xs font-bold text-[var(--m-text-secondary)]">
-                      Email Address
+                      {t("authPages.common.emailAddress")}
                     </Label>
                     <div className="relative">
                       <Input
@@ -387,10 +389,10 @@ export default function ForgotPasswordPage() {
                   >
                     {loading ? (
                       <span className="flex items-center gap-2 justify-center">
-                        <Loader2 className="h-4 w-4 animate-spin text-emerald-400" /> Sending...
+                        <Loader2 className="h-4 w-4 animate-spin text-emerald-400" /> {t("authPages.common.sending")}
                       </span>
                     ) : (
-                      "Send OTP code"
+                      t("authPages.forgot.sendOtp")
                     )}
                   </Button>
                 </form>
@@ -400,7 +402,7 @@ export default function ForgotPasswordPage() {
                   className="mt-5 flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-slate-300 transition-colors font-semibold"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
-                  Back to sign in
+                  {t("authPages.forgot.backToSignIn")}
                 </Link>
               </CardContent>
             </motion.div>
@@ -419,15 +421,15 @@ export default function ForgotPasswordPage() {
                 <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                   <KeyRound className="h-6 w-6" />
                 </div>
-                <CardTitle className="text-xl font-bold tracking-tight text-[var(--m-text-heading)]">Enter OTP Code</CardTitle>
+                <CardTitle className="text-xl font-bold tracking-tight text-[var(--m-text-heading)]">{t("authPages.common.enterOtp")}</CardTitle>
                 <CardDescription className="text-xs text-[var(--m-text-tertiary)] mt-1">
-                  We&apos;ve sent a 6-digit verification code to <span className="text-white font-medium">{email}</span>.
+                  {t("authPages.common.otpSentTo")} <span className="text-white font-medium">{email}</span>.
                 </CardDescription>
               </div>
               <CardContent className="flex flex-col items-center px-6 pb-6">
                 {devFilled && (
                   <p className="mb-4 rounded-md border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-300">
-                    DEV mode: code filled in automatically
+                    {t("authPages.common.devFilled")}
                   </p>
                 )}
                 {error && (
@@ -481,7 +483,7 @@ export default function ForgotPasswordPage() {
                 {loading && (
                   <div className="flex items-center gap-2 text-xs text-slate-400 my-2">
                     <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
-                    Verifying code...
+                    {t("authPages.forgot.verifying")}
                   </div>
                 )}
 
@@ -496,7 +498,7 @@ export default function ForgotPasswordPage() {
                         : "text-emerald-500 hover:text-emerald-400 cursor-pointer"
                     )}
                   >
-                    {resendTimer > 0 ? `Resend Code in ${resendTimer}s` : "Resend OTP Code"}
+                    {resendTimer > 0 ? t("authPages.common.resendIn", { s: resendTimer }) : t("authPages.common.resendOtp")}
                   </button>
 
                   <button
@@ -506,7 +508,7 @@ export default function ForgotPasswordPage() {
                     }}
                     className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-300 transition-colors mt-1 font-semibold"
                   >
-                    <ArrowLeft className="h-4 w-4" /> Change Email
+                    <ArrowLeft className="h-4 w-4" /> {t("authPages.forgot.changeEmail")}
                   </button>
                 </div>
               </CardContent>
@@ -526,9 +528,9 @@ export default function ForgotPasswordPage() {
                 <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                   <KeyRound className="h-6 w-6" />
                 </div>
-                <CardTitle className="text-xl font-bold tracking-tight text-[var(--m-text-heading)]">Create new password</CardTitle>
+                <CardTitle className="text-xl font-bold tracking-tight text-[var(--m-text-heading)]">{t("authPages.forgot.newPasswordTitle")}</CardTitle>
                 <CardDescription className="text-xs text-[var(--m-text-tertiary)] mt-1">
-                  Your identity has been verified. Enter your new password below.
+                  {t("authPages.forgot.newPasswordSubtitle")}
                 </CardDescription>
               </div>
               <CardContent className="px-6 pb-6 pt-2">
@@ -541,7 +543,7 @@ export default function ForgotPasswordPage() {
 
                   <div className="flex flex-col gap-1.5 relative">
                     <Label htmlFor="password" className="text-xs font-bold text-[var(--m-text-secondary)]">
-                      New Password
+                      {t("authPages.forgot.newPassword")}
                     </Label>
                     <div className="relative">
                       <Input
@@ -565,7 +567,7 @@ export default function ForgotPasswordPage() {
 
                   <div className="flex flex-col gap-1.5 relative">
                     <Label htmlFor="confirmPassword" className="text-xs font-bold text-[var(--m-text-secondary)]">
-                      Confirm New Password
+                      {t("authPages.forgot.confirmNewPassword")}
                     </Label>
                     <div className="relative">
                       <Input
@@ -599,7 +601,7 @@ export default function ForgotPasswordPage() {
                         ✓
                       </div>
                       <span className={cn("transition-colors", isLengthValid ? "text-slate-300 font-medium" : "text-slate-500")}>
-                        At least 6 characters
+                        {t("authPages.common.atLeast6")}
                       </span>
                     </div>
 
@@ -613,7 +615,7 @@ export default function ForgotPasswordPage() {
                         ✓
                       </div>
                       <span className={cn("transition-colors", isMatchValid ? "text-slate-300 font-medium" : "text-slate-500")}>
-                        Passwords match
+                        {t("authPages.common.passwordsMatch")}
                       </span>
                     </div>
                   </div>
@@ -625,10 +627,10 @@ export default function ForgotPasswordPage() {
                   >
                     {loading ? (
                       <span className="flex items-center gap-2 justify-center">
-                        <Loader2 className="h-4 w-4 animate-spin text-emerald-400" /> Updating...
+                        <Loader2 className="h-4 w-4 animate-spin text-emerald-400" /> {t("authPages.forgot.updating")}
                       </span>
                     ) : (
-                      "Reset Password"
+                      t("authPages.forgot.submit")
                     )}
                   </Button>
                 </form>
@@ -705,10 +707,10 @@ export default function ForgotPasswordPage() {
 
               {/* Title & Description */}
               <h2 className="text-2xl font-extrabold text-[var(--m-text-heading)] tracking-tight mb-2">
-                Password reset complete
+                {t("authPages.forgot.successTitle")}
               </h2>
               <p className="text-xs text-[var(--m-text-tertiary)] max-w-sm mb-6 leading-relaxed">
-                Your password has been successfully updated. You can now sign in with your new credentials.
+                {t("authPages.forgot.successBody")}
               </p>
 
               {/* Button */}
@@ -722,7 +724,7 @@ export default function ForgotPasswordPage() {
                     <Button
                       className="w-full h-10 bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-bold rounded-xl shadow-lg transition-all duration-300 border-none text-xs"
                     >
-                      Back to sign in
+                      {t("authPages.forgot.backToSignIn")}
                     </Button>
                   </Link>
                 </motion.div>

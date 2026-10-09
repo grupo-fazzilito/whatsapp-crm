@@ -1,0 +1,184 @@
+{
+  "mktHome": {
+    "hero": {
+      "badge": "🚀 CRM de WhatsApp con IA y automatización para tu negocio",
+      "title": "El CRM de WhatsApp con IA creado para conectar con tus clientes",
+      "subtitle": "Sincroniza las conversaciones de tu equipo, califica leads automáticamente, atiende chats de soporte con ayuda de IA y simplifica la agenda de citas en WhatsApp, cumpliendo al 100% con las políticas de Meta.",
+      "getStarted": "Comenzar",
+      "learnMore": "Más información"
+    },
+    "integrations": {
+      "title": "Integrado con tus herramientas favoritas"
+    },
+    "how": {
+      "title": "Cómo funciona",
+      "subtitle": "Conecta y opera tu automatización oficial de WhatsApp en minutos.",
+      "s1Title": "Conecta y verifica: API oficial de Meta",
+      "s1Desc": "Conecta el número de teléfono de tu negocio mediante los procesos oficiales de Meta. Nuestras guías de cumplimiento hacen que la configuración sea sencilla y te dejan listo para atender a tus clientes de inmediato.",
+      "s2Title": "Soporte al cliente con IA en piloto automático",
+      "s2Desc": "Las campañas de interacción llegan sin fricción a los contactos que dieron su consentimiento. Las respuestas automáticas funcionan en segundo plano según las políticas de Meta y resuelven consultas 24/7.",
+      "s3Title": "Da seguimiento a tus leads en un pipeline de CRM compartido",
+      "s3Desc": "Monitorea tasas de apertura, consultas resueltas y citas. Asigna leads a agentes humanos y revisa el historial de conversaciones en una interfaz visual y segura."
+    },
+    "ai": {
+      "eyebrow": "Soporte al cliente inteligente",
+      "title": "Un asistente de IA que resuelve consultas 24/7.",
+      "desc": "Nuestro asistente de soporte con IA lee los mensajes entrantes, reconoce la intención del usuario, responde con tu propia base de conocimiento y asigna etiquetas para enviar los leads de mayor valor a la cola correcta de tu equipo.",
+      "f1Title": "Control seguro de datos",
+      "f1Desc": "Almacenamiento totalmente cifrado que protege los datos de tus leads.",
+      "f2Title": "Agenda sincronizada al instante",
+      "f2Desc": "Permite a tus clientes consultar horarios disponibles y reservar reuniones en WhatsApp."
+    },
+    "proof": {
+      "badge": "✨ Casos reales",
+      "title": "La confianza de negocios en crecimiento",
+      "subtitle": "Escala la interacción con tus clientes y gestiona la operación de tu equipo con nuestro motor de CRM para WhatsApp que cumple las normas."
+    },
+    "testimonials": {
+      "eyebrow": "Historias de éxito",
+      "title": "Lo que dicen nuestros clientes",
+      "subtitle": "Lee los comentarios de gerentes de clínicas, marcas de e-commerce y líderes de ventas.",
+      "t1Role": "Directora de Operaciones Clínicas",
+      "t1Content": "Cambiarnos a Whasalia automatizó todo el flujo de citas de nuestros pacientes. Agendan sus revisiones directamente en WhatsApp y la IA responde al instante las preguntas frecuentes de la clínica. El traspaso a nuestra recepción es impecable.",
+      "t2Role": "Fundador y CEO",
+      "t2Content": "Nuestras tasas de interacción se dispararon con las alertas automáticas de estado de pedido y envío de Whasalia. Usar la API oficial de WhatsApp Business nos asegura una reputación sólida y un cumplimiento perfecto.",
+      "t3Role": "Líder de Producto",
+      "t3Content": "El editor visual de pipelines de Whasalia está hecho a la medida para conversaciones de chat. Clasificamos fácilmente los leads entrantes, asignamos tickets automáticamente a los agentes de soporte y detectamos abandonos con total claridad."
+    },
+    "crm": {
+      "eyebrow": "Pipelines de CRM",
+      "title": "Un pipeline de ventas diseñado para chats.",
+      "desc": "Da seguimiento a las etapas de cada negocio, asigna tickets de soporte, configura variables de seguimiento y monitorea los datos de tus clientes desde una interfaz kanban de alta fidelidad.",
+      "link": "Explora precios y funciones"
+    },
+    "pricing": {
+      "badge": "Opciones de precios",
+      "title": "Una plataforma. Tarifas fijas.",
+      "subtitle": "Las suscripciones activas tienen una tarifa fija de ₹2,999/mes por número WABA. Elige el nivel de configuración inicial que mejor se adapte a tu equipo.",
+      "recommended": "Recomendado",
+      "starter": {
+        "name": "Starter",
+        "tag": "Configuración por tu cuenta",
+        "period": "/mes por WABA",
+        "desc": "Acceso completo a la plataforma para automatizar por tu cuenta, con constructores visuales de flujos y bandeja de entrada compartida.",
+        "f1": "API oficial de WhatsApp Business",
+        "f2": "Constructor visual de flujos y chatbots",
+        "f3": "Bandeja de entrada colaborativa",
+        "f4": "Más de 27 integraciones nativas",
+        "f5": "0% de margen sobre las tarifas de la API de Meta",
+        "cta": "Prueba gratis"
+      },
+      "growth": {
+        "name": "Growth",
+        "tag": "Configuración acompañada",
+        "period": " primer mes",
+        "renewal": "Después, ₹2,999/mes",
+        "desc": "Ideal para equipos en crecimiento. Te guiamos en la configuración, verificamos tus cuentas y activamos los canales principales.",
+        "f1": "Todo lo del plan Starter",
+        "f2": "Asistencia con la verificación de Meta Business",
+        "f3": "Configuración de coexistencia de WhatsApp",
+        "f4": "Integraciones personalizadas conectadas",
+        "f5": "Sesión dedicada de configuración de cuenta",
+        "cta": "Agendar onboarding"
+      },
+      "managed": {
+        "name": "Managed",
+        "tag": "Estrategia hecha por nosotros",
+        "period": " mes piloto",
+        "renewal": "Después, ₹2,999/mes",
+        "desc": "Operación totalmente gestionada. Nuestros expertos en automatización redactan plantillas, diseñan bots y te reportan resultados.",
+        "f1": "Todo lo del plan Growth",
+        "f2": "2-3 automatizaciones personalizadas hechas para ti",
+        "f3": "Plantillas de mensajes redactadas y aprobadas",
+        "f4": "Gerente de cuenta dedicado",
+        "f5": "Llamadas mensuales de estrategia 1 a 1",
+        "cta": "Consultar operación"
+      }
+    },
+    "faq": {
+      "eyebrow": "Preguntas comunes",
+      "title": "Preguntas frecuentes",
+      "subtitle": "Encuentra detalles sobre las políticas de la API, los pasos de verificación y los flujos de trabajo que cumplen las normas.",
+      "q1": "¿Qué es Whasalia y cómo funciona?",
+      "a1": "Whasalia es una plataforma de CRM y soporte al cliente para WhatsApp impulsada por IA que se integra con la API oficial de WhatsApp Business. Le permite a tu equipo gestionar conversaciones en una bandeja de entrada compartida, automatizar respuestas con agentes de IA personalizados, dar seguimiento a leads en pipelines kanban y sincronizar agendas directamente por WhatsApp.",
+      "q2": "¿Whasalia cumple con las políticas de WhatsApp?",
+      "a2": "Sí. Whasalia cumple totalmente con las políticas de Meta y de WhatsApp Business Platform. Usamos exclusivamente los endpoints oficiales de la API de WhatsApp Business. No permitimos spam de mensajes masivos, extracción de contactos ni herramientas de envíos masivos, para que el número de tu negocio mantenga una alta confiabilidad.",
+      "q3": "¿Necesito una cuenta de WhatsApp Business (WABA)?",
+      "a3": "Sí. Para activar la automatización necesitas una cuenta de Meta Business verificada y un número de teléfono limpio. El equipo de soporte de Whasalia te acompaña en todo el proceso de verificación de Meta Business para establecer tu estatus oficial.",
+      "q4": "¿Cuáles son las tarifas de suscripción y los cargos de la API?",
+      "a4": "Nuestra suscripción fija a la plataforma comienza en ₹2,999/mes por número WABA. Las tarifas por conversación de WhatsApp las cobra Meta directamente; Whasalia traslada estos cargos oficiales de Meta con un margen de 0%.",
+      "q5": "¿Cómo resuelve consultas el asistente de IA?",
+      "a5": "Puedes subir tus lineamientos, preguntas frecuentes y archivos de servicios directamente a la plataforma. Nuestra IA interpreta la intención del usuario, responde las consultas de tus clientes con base en tu base de conocimiento y avisa a los agentes humanos cuando se necesita intervenir manualmente."
+    },
+    "cta": {
+      "title": "¿Listo para automatizar tu WhatsApp?",
+      "desc": "Empieza en minutos. Conecta tu cuenta de Meta Business, configura tu espacio de soporte al cliente con IA y mira cómo crece tu negocio.",
+      "start": "Prueba gratis",
+      "enterprise": "Contactar ventas Enterprise"
+    },
+    "chat": {
+      "status": "Agente de IA · en línea",
+      "today": "HOY",
+      "autoResponder": "Respuesta automática con IA",
+      "inputPlaceholder": "Mensaje",
+      "m1": "¡Hola! Me interesa su plan Enterprise. ¿Me pueden dar una demo?",
+      "m2": "¡Hola! 👋 Con gusto te ayudo. ¿Cuál es el nombre de tu empresa y tu volumen mensual de mensajes?",
+      "m3": "Acme Corp — enviamos unos 50,000 mensajes al mes.",
+      "m4": "¡Perfecto! Por tu volumen calificas para nuestro nivel Premium Enterprise 🎉\n\nTe etiqueté como *Lead Enterprise* y agendé una llamada con Sarah Adams para el 28 de mayo a las 2:00 PM.",
+      "m5": "⚙️ Lead etiquetado: Enterprise · Asignado → Sarah Adams · Demo agendada"
+    },
+    "board": {
+      "title": "Pipeline de ventas activo en WhatsApp",
+      "subtitle": "Estado en tiempo real de la conversión de leads",
+      "pipelineValue": "Valor del pipeline",
+      "aiQualified": "Calificados por IA",
+      "c0Title": "Leads entrantes",
+      "c0Sub": "Conversaciones nuevas de WhatsApp",
+      "c1Title": "Calificados por IA",
+      "c1Sub": "Intención verificada > 80%",
+      "c2Title": "Reunión agendada",
+      "c2Sub": "Demo sincronizada con Calendly",
+      "c3Title": "Ganados",
+      "c3Sub": "Pago completado"
+    },
+    "metrics": {
+      "businesses": "Negocios atendidos",
+      "messages": "Mensajes enviados",
+      "uptime": "Disponibilidad garantizada",
+      "rating": "Calificación de clientes"
+    },
+    "animated": {
+      "deliverability": "Entregabilidad",
+      "deliverabilityDesc": "Rendimiento garantizado a través de la nube de la API de WhatsApp Business de Meta.",
+      "broadcast": "Capacidad de envío",
+      "broadcastDesc": "Millones de seguimientos, confirmaciones de pago y plantillas activados cada mes.",
+      "automation": "Tasa de automatización con IA",
+      "automationDesc": "Conversaciones atendidas de forma totalmente autónoma, sin intervención humana."
+    },
+    "demo": {
+      "title": "Agenda una demo del producto",
+      "subtitle": "Recorrido en vivo de 30 min · Google Meet",
+      "successTitle": "¡Tu demo está agendada!",
+      "successBody": "Enviamos un correo de confirmación a {email}. Nos vemos el {date} a las {time} por Google Meet.",
+      "done": "Listo",
+      "errorBooking": "No pudimos agendar la demo. Inténtalo de nuevo.",
+      "errorNetwork": "Ocurrió un error de red inesperado.",
+      "contactDetails": "Datos de contacto",
+      "fullName": "Nombre completo *",
+      "namePlaceholder": "María López",
+      "workEmail": "Correo de trabajo *",
+      "emailPlaceholder": "maria@empresa.com",
+      "phone": "Teléfono *",
+      "selectDateTime": "Elige fecha y hora",
+      "chooseDate": "1. Elige la fecha *",
+      "chooseTime": "2. Elige la hora *",
+      "meetNote": "Espacio de 30 min en Google Meet. Te enviaremos la invitación de calendario.",
+      "selected": "Seleccionado: {date} a las {time}",
+      "selectPrompt": "Elige una fecha y un horario...",
+      "confirm": "Confirmar reserva",
+      "days": "Dom,Lun,Mar,Mié,Jue,Vie,Sáb",
+      "months": "Ene,Feb,Mar,Abr,May,Jun,Jul,Ago,Sep,Oct,Nov,Dic",
+      "dateLabel": "{day}, {date} {month}"
+    }
+  }
+}

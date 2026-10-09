@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 
 import { MarketingThemeProvider } from "@/components/marketing/marketing-theme-provider";
 import { I18nProvider } from "@/i18n/client";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { getLocale } from "@/i18n/server";
 
 export default async function AuthLayout({ children }: { children: ReactNode }) {
@@ -28,6 +29,9 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
   return (
     <I18nProvider locale={locale}>
       <MarketingThemeProvider>
+        <div className="fixed right-4 top-4 z-50">
+          <LanguageSwitcher variant="marketing" />
+        </div>
         {children}
       </MarketingThemeProvider>
     </I18nProvider>

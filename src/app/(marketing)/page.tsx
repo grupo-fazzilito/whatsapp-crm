@@ -13,6 +13,7 @@ import { ReferenceDashboard } from "@/components/marketing/reference-dashboard";
 import { SocialProofMetrics } from "@/components/marketing/social-proof-metrics";
 import { BookDemoTrigger } from "@/components/marketing/book-demo-trigger";
 import { InfiniteLogoMarquee } from "@/components/marketing/infinite-logo-marquee";
+import { useI18n } from "@/i18n/client";
 
 interface FAQItem {
   q: string;
@@ -20,105 +21,72 @@ interface FAQItem {
 }
 
 export default function HomePage() {
+  const { t } = useI18n();
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
   const testimonials = [
     {
       name: "Dr. Ananya Sharma",
-      role: "Clinic Operations Director",
+      role: t("mktHome.testimonials.t1Role"),
       company: "Aura Health Clinics",
-      content: "Switching to Whasalia automated our patient booking flow. Clients schedule check-ups directly on WhatsApp, and the AI resolves clinic FAQs instantly. Handovers to our front desk are perfectly seamless.",
+      content: t("mktHome.testimonials.t1Content"),
       stars: 5,
     },
     {
       name: "Rohan Mehta",
-      role: "Founder & CEO",
+      role: t("mktHome.testimonials.t2Role"),
       company: "CraftedThreads E-Commerce",
-      content: "Our customer engagement rates skyrocketed with Whasalia's automated order status and shipping alerts. Using the official WhatsApp Business API ensures we maintain a solid reputation and perfect compliance.",
+      content: t("mktHome.testimonials.t2Content"),
       stars: 5,
     },
     {
       name: "Sneha Nair",
-      role: "Lead Product Owner",
+      role: t("mktHome.testimonials.t3Role"),
       company: "VentureScale SaaS",
-      content: "Whasalia's visual pipeline editor is custom-built for chat threads. We easily classify inbound leads, auto-assign tickets to support agents, and monitor drop-offs with absolute visual clarity.",
+      content: t("mktHome.testimonials.t3Content"),
       stars: 5,
     },
   ];
 
-  const faqs: FAQItem[] = [
-    {
-      q: "What is Whasalia and how does it work?",
-      a: "Whasalia is an AI-powered WhatsApp CRM and customer support platform that integrates with the official WhatsApp Business API. It allows your team to manage conversations in a shared inbox, automate responses via custom AI agents, track leads through kanban pipelines, and sync schedules directly via WhatsApp.",
-    },
-    {
-      q: "Is Whasalia compliant with WhatsApp policies?",
-      a: "Yes. Whasalia is fully compliant with Meta and WhatsApp Business Platform policies. We exclusively utilize official WhatsApp Business API endpoints. We do not support bulk messaging spam, contact scraping, or blast tools, ensuring your business number maintains high reliability.",
-    },
-    {
-      q: "Do I need a WhatsApp Business Account (WABA)?",
-      a: "Yes. To run active automation, you need a verified Meta Business Account and a clean phone number. Whasalia's support team guides you through the entire Meta Business Verification process to establish your official partner status.",
-    },
-    {
-      q: "What are the subscription rates and API charges?",
-      a: "Our flat platform subscription starts at ₹2,999/month per WABA number. WhatsApp's conversation-based rates are charged directly by Meta; Whasalia passes through these official Meta charges with absolutely 0% markup.",
-    },
-    {
-      q: "How does the AI Assistant resolve queries?",
-      a: "You can upload your database guidelines, FAQs, and service files directly to the platform. Our AI parses user intent, answers client inquiries using your knowledge base guidelines, and flags human agents when a manual takeover is required.",
-    },
-  ];
+  const faqs: FAQItem[] = [1, 2, 3, 4, 5].map((n) => ({
+    q: t(`mktHome.faq.q${n}`),
+    a: t(`mktHome.faq.a${n}`),
+  }));
+
+  const planFeatures = (plan: string) => [1, 2, 3, 4, 5].map((n) => t(`mktHome.pricing.${plan}.f${n}`));
 
   const pricingCards = [
     {
-      name: "Starter",
-      tag: "Self-Managed Setup",
+      name: t("mktHome.pricing.starter.name"),
+      tag: t("mktHome.pricing.starter.tag"),
       price: "₹2,999",
-      period: "/month per WABA",
-      desc: "Full platform access for self-service automation, visual flow builders, and shared team inbox.",
-      features: [
-        "Official WhatsApp Business API",
-        "Visual Flow & Chatbot Builder",
-        "Shared Collaborative Inbox",
-        "27+ Native Integrations",
-        "0% Markup on Meta API fees",
-      ],
-      cta: "Start Free Trial",
+      period: t("mktHome.pricing.starter.period"),
+      desc: t("mktHome.pricing.starter.desc"),
+      features: planFeatures("starter"),
+      cta: t("mktHome.pricing.starter.cta"),
       link: "/login",
       primary: false,
     },
     {
-      name: "Growth",
-      tag: "Done-With-You Setup",
+      name: t("mktHome.pricing.growth.name"),
+      tag: t("mktHome.pricing.growth.tag"),
       price: "₹9,999",
-      period: " first month",
-      renewal: "₹2,999/month after",
-      desc: "Perfect for growing teams. We guide your configuration, verify accounts, and deploy core channels.",
-      features: [
-        "Everything in Starter plan",
-        "Meta Business Verification Assistance",
-        "WhatsApp Co-existence Configuration",
-        "Custom Integrations Wired In",
-        "Dedicated Account Setup Session",
-      ],
-      cta: "Book Onboarding",
+      period: t("mktHome.pricing.growth.period"),
+      renewal: t("mktHome.pricing.growth.renewal"),
+      desc: t("mktHome.pricing.growth.desc"),
+      features: planFeatures("growth"),
+      cta: t("mktHome.pricing.growth.cta"),
       primary: true,
     },
     {
-      name: "Managed",
-      tag: "Done-For-You Strategy",
+      name: t("mktHome.pricing.managed.name"),
+      tag: t("mktHome.pricing.managed.tag"),
       price: "₹29,999",
-      period: " pilot month",
-      renewal: "₹2,999/month after",
-      desc: "Fully managed operations. Our automation experts write templates, design bots, and report results.",
-      features: [
-        "Everything in Growth plan",
-        "2-3 Custom Automations built for you",
-        "Message Templates written & approved",
-        "Dedicated Account Manager",
-        "Monthly 1-on-1 Strategy Calls",
-      ],
-      cta: "Consult Operations",
+      period: t("mktHome.pricing.managed.period"),
+      renewal: t("mktHome.pricing.managed.renewal"),
+      desc: t("mktHome.pricing.managed.desc"),
+      features: planFeatures("managed"),
+      cta: t("mktHome.pricing.managed.cta"),
       primary: false,
     },
   ];
@@ -161,7 +129,7 @@ export default function HomePage() {
             transition={{ duration: 0.5 }}
             className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[var(--m-border-primary)] bg-[var(--m-bg-secondary)]/50 text-[var(--m-text-secondary)] text-[11px] font-semibold mb-8 shadow-lg transition-all duration-300"
           >
-            🚀 AI-Powered WhatsApp CRM & Business Automation
+            {t("mktHome.hero.badge")}
           </motion.div>
           
           {/* Headline */}
@@ -171,7 +139,7 @@ export default function HomePage() {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-3xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-[1.1] max-w-3xl text-[var(--m-text-heading)] transition-colors duration-300"
           >
-            The AI WhatsApp CRM built for customer engagement
+            {t("mktHome.hero.title")}
           </motion.h1>
           
           {/* Descriptive Paragraph */}
@@ -181,7 +149,7 @@ export default function HomePage() {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-xs sm:text-sm md:text-sm max-w-xl mt-5 leading-relaxed text-[var(--m-text-tertiary)] transition-colors duration-300"
           >
-            Sync team conversations, qualify leads automatically, handle support chats with AI assistance, and streamline appointment scheduling on WhatsApp—fully compliant with Meta guidelines.
+            {t("mktHome.hero.subtitle")}
           </motion.p>
           
           {/* CTA Buttons */}
@@ -196,11 +164,11 @@ export default function HomePage() {
                 href="/login"
                 className="bg-[#00DF82] hover:bg-[#00c673] text-slate-950 px-8 py-3 rounded-full text-xs font-semibold transition-all shadow-[0_4px_20px_rgba(0,223,130,0.15)] flex items-center justify-center"
               >
-                Get Started
+                {t("mktHome.hero.getStarted")}
               </Link>
             </MagneticButton>
             <BookDemoTrigger className="bg-[var(--m-bg-secondary)]/85 border border-[var(--m-border-primary)] hover:bg-[var(--m-bg-tertiary)]/85 text-[var(--m-text-secondary)] px-8 py-3 rounded-full text-xs font-semibold transition-all flex items-center justify-center">
-              Learn More
+              {t("mktHome.hero.learnMore")}
             </BookDemoTrigger>
           </motion.div>
         </div>
@@ -220,7 +188,7 @@ export default function HomePage() {
       <section className="py-10 border-b border-[var(--m-border-primary)] bg-[var(--m-bg-secondary)]/5 relative">
         <div className="max-w-6xl mx-auto text-center space-y-4">
           <span className="text-[10px] uppercase font-bold text-[var(--m-text-muted)] tracking-widest">
-            Integrated With Your Favorite Tools
+            {t("mktHome.integrations.title")}
           </span>
           <InfiniteLogoMarquee />
         </div>
@@ -236,10 +204,10 @@ export default function HomePage() {
           className="text-center max-w-3xl mx-auto space-y-4"
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-[var(--m-text-heading)] transition-colors duration-300">
-            How it works
+            {t("mktHome.how.title")}
           </h2>
           <p className="text-sm text-[var(--m-text-tertiary)] transition-colors duration-300">
-            Link and operate your official WhatsApp automation setup in minutes.
+            {t("mktHome.how.subtitle")}
           </p>
         </motion.div>
 
@@ -266,10 +234,10 @@ export default function HomePage() {
             </div>
             <div className="max-w-xs space-y-3">
               <h3 className="text-base md:text-lg font-semibold text-[var(--m-text-heading)] leading-snug transition-colors duration-300">
-                Connect and Verify — Official Meta API
+                {t("mktHome.how.s1Title")}
               </h3>
               <p className="text-xs md:text-sm text-[var(--m-text-tertiary)] leading-relaxed transition-colors duration-300">
-                Connect your business phone number via official Meta processes. Our compliance guidelines make setup straightforward, preparing you for immediate customer support.
+                {t("mktHome.how.s1Desc")}
               </p>
             </div>
           </motion.div>
@@ -287,10 +255,10 @@ export default function HomePage() {
             </div>
             <div className="max-w-xs space-y-3">
               <h3 className="text-base md:text-lg font-semibold text-[var(--m-text-heading)] leading-snug transition-colors duration-300">
-                AI Customer Support on Autopilot
+                {t("mktHome.how.s2Title")}
               </h3>
               <p className="text-xs md:text-sm text-[var(--m-text-tertiary)] leading-relaxed transition-colors duration-300">
-                Customer engagement campaigns reach opted-in contacts seamlessly. Automated replies run in the background according to Meta guidelines, resolving inquiries 24/7.
+                {t("mktHome.how.s2Desc")}
               </p>
             </div>
           </motion.div>
@@ -308,10 +276,10 @@ export default function HomePage() {
             </div>
             <div className="max-w-xs space-y-3">
               <h3 className="text-base md:text-lg font-semibold text-[var(--m-text-heading)] leading-snug transition-colors duration-300">
-                Track Leads in Shared CRM Pipeline
+                {t("mktHome.how.s3Title")}
               </h3>
               <p className="text-xs md:text-sm text-[var(--m-text-tertiary)] leading-relaxed transition-colors duration-300">
-                Monitor open rates, query resolutions, and appointments. Assign leads to human agents and check conversation histories on a secure, visual interface.
+                {t("mktHome.how.s3Desc")}
               </p>
             </div>
           </motion.div>
@@ -322,13 +290,13 @@ export default function HomePage() {
       <section className="py-24 px-4 md:px-6 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative">
         <div className="space-y-6">
           <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 uppercase tracking-wide">
-            <Bot className="size-4" /> Smart Customer Support
+            <Bot className="size-4" /> {t("mktHome.ai.eyebrow")}
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight leading-tight text-[var(--m-text-heading)] transition-colors duration-300">
-            An AI Assistant that Resolves Queries 24/7.
+            {t("mktHome.ai.title")}
           </h2>
           <p className="text-sm leading-relaxed text-[var(--m-text-tertiary)] transition-colors duration-300">
-            Our AI customer support assistant reads inbound messages, recognizes user intent, responds using your custom knowledge base, and assigns tags to route high-value leads to proper team queues.
+            {t("mktHome.ai.desc")}
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -336,10 +304,10 @@ export default function HomePage() {
               <span className="text-emerald-400 font-bold font-mono">✓</span>
               <div>
                 <h4 className="text-xs font-semibold text-[var(--m-text-secondary)] transition-colors duration-300">
-                  Secure Data Controls
+                  {t("mktHome.ai.f1Title")}
                 </h4>
                 <p className="text-[11px] mt-0.5 text-[var(--m-text-tertiary)] transition-colors duration-300">
-                  Fully encrypted storage systems protecting lead data.
+                  {t("mktHome.ai.f1Desc")}
                 </p>
               </div>
             </div>
@@ -347,10 +315,10 @@ export default function HomePage() {
               <span className="text-emerald-400 font-semibold font-mono">✓</span>
               <div>
                 <h4 className="text-xs font-semibold text-[var(--m-text-secondary)] transition-colors duration-300">
-                  Instant Booking Sync
+                  {t("mktHome.ai.f2Title")}
                 </h4>
                 <p className="text-[11px] mt-0.5 text-[var(--m-text-tertiary)] transition-colors duration-300">
-                  Allows clients to check slots and reserve meetings on WhatsApp.
+                  {t("mktHome.ai.f2Desc")}
                 </p>
               </div>
             </div>
@@ -375,13 +343,13 @@ export default function HomePage() {
             className="text-center max-w-3xl mx-auto space-y-4"
           >
             <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-emerald-500/25 bg-emerald-950/20 text-emerald-400 text-[11px] font-semibold tracking-wide uppercase">
-              ✨ Social Proof
+              {t("mktHome.proof.badge")}
             </div>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-[var(--m-text-heading)] transition-colors duration-300">
-              Trusted by growing businesses
+              {t("mktHome.proof.title")}
             </h2>
             <p className="text-sm text-[var(--m-text-tertiary)] max-w-xl mx-auto transition-colors duration-300">
-              Scale customer engagement and run team operations using our compliant WhatsApp CRM engine.
+              {t("mktHome.proof.subtitle")}
             </p>
           </motion.div>
 
@@ -392,32 +360,32 @@ export default function HomePage() {
       {/* 6. TESTIMONIALS SECTION */}
       <section className="py-24 px-4 md:px-6 max-w-6xl mx-auto space-y-12">
         <div className="text-center space-y-4 max-w-3xl mx-auto">
-          <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">Success Stories</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">{t("mktHome.testimonials.eyebrow")}</span>
           <h2 className="text-3xl sm:text-4xl font-semibold text-[var(--m-text-heading)] tracking-tight">
-            What our clients are saying
+            {t("mktHome.testimonials.title")}
           </h2>
           <p className="text-sm text-[var(--m-text-tertiary)]">
-            Read comments from clinic managers, e-commerce brands, and sales leaders.
+            {t("mktHome.testimonials.subtitle")}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {testimonials.map((t, idx) => (
+          {testimonials.map((item, idx) => (
             <SpotlightCard key={idx} interactive={true} glowColor="rgba(20, 184, 166, 0.08)">
               <div className="space-y-4 flex flex-col justify-between h-full">
                 <div className="space-y-2">
                   <div className="flex items-center gap-0.5 text-amber-400">
-                    {[...Array(t.stars)].map((_, i) => (
+                    {[...Array(item.stars)].map((_, i) => (
                       <Star key={i} className="size-3.5 fill-current" />
                     ))}
                   </div>
                   <p className="text-xs text-[var(--m-text-tertiary)] italic leading-relaxed pt-1">
-                    "{t.content}"
+                    "{item.content}"
                   </p>
                 </div>
                 <div className="border-t border-[var(--m-border-primary)]/50 pt-3 mt-4">
-                  <h4 className="text-xs font-bold text-[var(--m-text-primary)]">{t.name}</h4>
-                  <p className="text-[10px] text-[var(--m-text-muted)]">{t.role} • {t.company}</p>
+                  <h4 className="text-xs font-bold text-[var(--m-text-primary)]">{item.name}</h4>
+                  <p className="text-[10px] text-[var(--m-text-muted)]">{item.role} • {item.company}</p>
                 </div>
               </div>
             </SpotlightCard>
@@ -434,20 +402,20 @@ export default function HomePage() {
 
         <div className="space-y-6">
           <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-400 uppercase tracking-wide">
-            <Users className="size-4" /> CRM Pipelines
+            <Users className="size-4" /> {t("mktHome.crm.eyebrow")}
           </div>
           <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight leading-tight text-[var(--m-text-heading)] transition-colors duration-300">
-            A Sales Pipeline Designed for Chats.
+            {t("mktHome.crm.title")}
           </h2>
           <p className="text-sm leading-relaxed text-[var(--m-text-tertiary)] transition-colors duration-300">
-            Track deal stages, assign support tickets, configure follow-up variables, and monitor customer parameters directly from a high-fidelity kanban interface.
+            {t("mktHome.crm.desc")}
           </p>
           <div className="pt-2">
             <Link
               href="/pricing"
               className="text-xs font-semibold transition-colors flex items-center gap-1 text-emerald-500 hover:text-emerald-400"
             >
-              Explore Pricing and Features <ArrowRight className="size-3.5" />
+              {t("mktHome.crm.link")} <ArrowRight className="size-3.5" />
             </Link>
           </div>
         </div>
@@ -457,13 +425,13 @@ export default function HomePage() {
       <section className="py-24 px-4 md:px-6 border-t border-[var(--m-border-primary)] max-w-6xl mx-auto space-y-16">
         <div className="text-center space-y-4 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-500/25 bg-[var(--m-badge-bg)] text-emerald-500 text-[10px] font-bold uppercase tracking-wider">
-            <Landmark className="size-3.5" /> Pricing Options
+            <Landmark className="size-3.5" /> {t("mktHome.pricing.badge")}
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[var(--m-text-heading)]">
-            One platform. Flat rates.
+            {t("mktHome.pricing.title")}
           </h2>
           <p className="text-sm text-[var(--m-text-tertiary)]">
-            Active subscriptions are flat ₹2,999/month per WABA number. Select the initial setup tier that fits your team.
+            {t("mktHome.pricing.subtitle")}
           </p>
         </div>
 
@@ -481,7 +449,7 @@ export default function HomePage() {
                     <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--m-text-muted)]">{plan.name}</span>
                     {plan.primary && (
                       <span className="bg-emerald-500 text-slate-950 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full tracking-wider">
-                        Recommended
+                        {t("mktHome.pricing.recommended")}
                       </span>
                     )}
                   </div>
@@ -528,12 +496,12 @@ export default function HomePage() {
       {/* 9. FAQ SECTION */}
       <section className="py-24 px-4 md:px-6 border-t border-[var(--m-border-primary)] max-w-4xl mx-auto space-y-16">
         <div className="text-center space-y-4">
-          <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">Common Questions</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">{t("mktHome.faq.eyebrow")}</span>
           <h2 className="text-3xl sm:text-4xl font-semibold text-[var(--m-text-heading)] tracking-tight">
-            Frequently Asked Questions
+            {t("mktHome.faq.title")}
           </h2>
           <p className="text-sm text-[var(--m-text-tertiary)]">
-            Find details regarding API guidelines, verification steps, and compliant workflows.
+            {t("mktHome.faq.subtitle")}
           </p>
         </div>
 
@@ -571,10 +539,10 @@ export default function HomePage() {
 
         <div className="space-y-6 relative z-10">
           <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight text-[var(--m-text-heading)] transition-colors duration-300">
-            Ready to Automate your WhatsApp?
+            {t("mktHome.cta.title")}
           </h2>
           <p className="text-sm max-w-xl mx-auto text-[var(--m-text-tertiary)] transition-colors duration-300">
-            Get started in minutes. Connect your Meta Business account, setup your AI customer support workspace, and watch your business scale.
+            {t("mktHome.cta.desc")}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <MagneticButton>
@@ -582,11 +550,11 @@ export default function HomePage() {
                 href="/login"
                 className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-6 py-3 rounded-xl text-xs font-semibold transition-all shadow-[0_0_16px_rgba(16,185,129,0.2)] hover:shadow-[0_0_24px_rgba(16,185,129,0.4)] flex items-center gap-1.5"
               >
-                Start Free Trial <ArrowRight className="size-3.5" />
+                {t("mktHome.cta.start")} <ArrowRight className="size-3.5" />
               </Link>
             </MagneticButton>
             <BookDemoTrigger className="px-6 py-3 rounded-xl text-xs font-semibold transition-all border bg-[var(--m-bg-secondary)] border-[var(--m-border-primary)] text-[var(--m-text-secondary)] hover:bg-[var(--m-bg-tertiary)]">
-              Contact Enterprise
+              {t("mktHome.cta.enterprise")}
             </BookDemoTrigger>
           </div>
         </div>

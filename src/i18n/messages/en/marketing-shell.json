@@ -1,0 +1,43 @@
+{
+  "mktShell": {
+    "nav": {
+      "home": "Home",
+      "features": "Features",
+      "aiAutomation": "AI Automation",
+      "pricing": "Pricing",
+      "sharedInbox": "Shared Inbox",
+      "crm": "CRM Engine",
+      "analytics": "Analytics Dashboard",
+      "enterprise": "Enterprise SaaS",
+      "security": "Security & GDPR",
+      "stories": "Customer Stories",
+      "about": "About Us",
+      "careers": "Careers",
+      "blog": "Blog Hacks"
+    },
+    "bookDemo": "Book Demo",
+    "dashboard": "Dashboard",
+    "signIn": "Sign In",
+    "navigation": "Navigation",
+    "solutions": "Solutions",
+    "menu": "Menu",
+    "footer": {
+      "useCases": "Use Cases",
+      "contact": "Contact Us",
+      "privacy": "Privacy Policy",
+      "terms": "Terms & Conditions",
+      "refund": "Refund Policy",
+      "about": "Whasalia is a premium AI-powered WhatsApp CRM and customer support automation platform. Automate business communication, configure smart chatbots, organize leads, and sync calendar reminders using the official WhatsApp Business API.",
+      "partner": "Official Meta Business Partner",
+      "quickLinks": "Quick Links",
+      "trust": "Trust Signals",
+      "t1": "Secure Platform",
+      "t2": "Data Encryption",
+      "t3": "Meta-Compliant",
+      "t4": "Role-Based Access",
+      "t5": "Business Support",
+      "disclaimer": "\"Whasalia uses WhatsApp Business API solutions in accordance with Meta and WhatsApp Business policies. Businesses are responsible for obtaining user consent before initiating communication.\"",
+      "rights": "© 2026 Whasalia. All rights reserved."
+    }
+  }
+}

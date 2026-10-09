@@ -46,9 +46,9 @@ const checkmarkPathVariants = {
 } as const;
 
 const stepsList = [
-  { step: "details", label: "Details" },
-  { step: "otp", label: "Verify" },
-  { step: "success", label: "Done" },
+  { step: "details", labelKey: "authPages.signup.stepDetails" },
+  { step: "otp", labelKey: "authPages.common.stepVerify" },
+  { step: "success", labelKey: "authPages.common.stepDone" },
 ];
 
 // Industry presets drive the workspace's modules, labels and AI persona.
@@ -65,7 +65,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [businessType, setBusinessType] = useState("");
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const businessTypes = businessTypeOptions(locale);
   const [country, setCountry] = useState("MX");
   // Set when arriving from a team invitation (/signup?invite=...&email=...):
@@ -127,15 +127,15 @@ export default function SignupPage() {
 
     if (!isPasswordFormValid) {
       if (password !== confirmPassword) {
-        setError("Passwords do not match");
+        setError(t("authPages.signup.passwordsMismatch"));
       } else {
-        setError("Password must be at least 6 characters");
+        setError(t("authPages.signup.passwordTooShort"));
       }
       return;
     }
 
     if (!inviteToken && !businessType) {
-      setError("Please select your business type");
+      setError(t("authPages.signup.selectBusinessType"));
       return;
     }
 
@@ -150,7 +150,7 @@ export default function SignupPage() {
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        setError(data.error || "Failed to send verification code.");
+        setError(data.error || t("authPages.common.failedSend"));
         setLoading(false);
         return;
       }
@@ -163,7 +163,7 @@ export default function SignupPage() {
         inputRefs.current[0]?.focus();
       }, 100);
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+      setError(err.message || t("authPages.common.unexpectedError"));
       setLoading(false);
     }
   };
@@ -189,12 +189,12 @@ export default function SignupPage() {
       });
       const data = await res.json();
       if (!res.ok || data.error) {
-        setError(data.error || "Failed to resend code.");
+        setError(data.error || t("authPages.common.failedResend"));
       } else {
         applyDevCode(data.devCode);
       }
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+      setError(err.message || t("authPages.common.unexpectedError"));
     }
   };
 
@@ -278,7 +278,7 @@ export default function SignupPage() {
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        setError(data.error || "Registration failed.");
+        setError(data.error || t("authPages.signup.registrationFailed"));
         setLoading(false);
         setIsShaking(true);
         setTimeout(() => setIsShaking(false), 500);
@@ -290,7 +290,7 @@ export default function SignupPage() {
 
       if (loginErr) {
         console.error("Auto-login failed:", loginErr);
-        setError("Account created, but automatic sign-in failed. Please login manually.");
+        setError(t("authPages.signup.autoLoginFailed"));
         setLoading(false);
         setStep("success");
         return;
@@ -299,7 +299,7 @@ export default function SignupPage() {
       setLoading(false);
       setStep("success");
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+      setError(err.message || t("authPages.common.unexpectedError"));
       setLoading(false);
     }
   };
@@ -314,7 +314,7 @@ export default function SignupPage() {
         href="/"
         className="absolute top-6 left-6 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--m-text-tertiary)] hover:text-[var(--m-text-primary)] transition-colors bg-[var(--m-bg-secondary)]/60 border border-[var(--m-border-glass)] px-3 py-1.5 rounded-lg backdrop-blur"
       >
-        <ArrowLeft className="size-3.5" /> Back Home
+        <ArrowLeft className="size-3.5" /> {t("authPages.common.backHome")}
       </Link>
 
       <Card className="w-full max-w-lg border-[var(--m-border-primary)] bg-[var(--m-bg-glass)] shadow-[var(--m-shadow-card)] backdrop-blur-xl relative z-10 p-2 overflow-hidden transition-all duration-300">
@@ -360,7 +360,7 @@ export default function SignupPage() {
                       isCurrent ? "text-white" : isActive ? "text-slate-400" : "text-slate-600"
                     )}
                   >
-                    {item.label}
+                    {t(item.labelKey)}
                   </span>
                 </div>
               );
@@ -380,10 +380,10 @@ export default function SignupPage() {
             >
               <div className="flex flex-col items-center text-center pb-3 pt-5 px-6">
                 <CardTitle className="text-xl font-bold tracking-tight text-[var(--m-text-heading)] flex items-center gap-1.5 justify-center">
-                  Create Account <Sparkles className="size-4 text-emerald-400" />
+                  {t("authPages.signup.title")} <Sparkles className="size-4 text-emerald-400" />
                 </CardTitle>
                 <CardDescription className="text-xs text-[var(--m-text-tertiary)] mt-1">
-                  Get started with CRM Template for WhatsApp
+                  {t("authPages.signup.subtitle")}
                 </CardDescription>
               </div>
               <CardContent className="px-6 pb-6 pt-2">
@@ -397,12 +397,12 @@ export default function SignupPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="fullName" className="text-xs font-bold text-[var(--m-text-secondary)]">
-                        Full Name
+                        {t("authPages.signup.fullName")}
                       </Label>
                       <Input
                         id="fullName"
                         type="text"
-                        placeholder="John Doe"
+                        placeholder={t("authPages.signup.fullNamePlaceholder")}
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         required
@@ -412,7 +412,7 @@ export default function SignupPage() {
 
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="email" className="text-xs font-bold text-[var(--m-text-secondary)]">
-                        Email Address
+                        {t("authPages.common.emailAddress")}
                       </Label>
                       <Input
                         id="email"
@@ -432,12 +432,12 @@ export default function SignupPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="businessName" className="text-xs font-bold text-[var(--m-text-secondary)]">
-                        Business Name
+                        {t("authPages.signup.businessName")}
                       </Label>
                       <Input
                         id="businessName"
                         type="text"
-                        placeholder="My Company"
+                        placeholder={t("authPages.signup.businessNamePlaceholder")}
                         value={businessName}
                         onChange={(e) => setBusinessName(e.target.value)}
                         required={!inviteToken}
@@ -447,7 +447,7 @@ export default function SignupPage() {
 
                     <div className="flex flex-col gap-1.5">
                       <Label className="text-xs font-bold text-[var(--m-text-secondary)]">
-                        Select Business Type
+                        {t("authPages.signup.businessType")}
                       </Label>
                       <div className="relative w-full" ref={dropdownRef}>
                         <button
@@ -460,8 +460,8 @@ export default function SignupPage() {
                         >
                           <span className={businessType ? "text-[var(--m-text-primary)]" : "text-[var(--m-text-muted)]"}>
                             {businessType
-                              ? businessTypes.find((t) => t.value === businessType)?.label
-                              : "Select type..."}
+                              ? businessTypes.find((bt) => bt.value === businessType)?.label
+                              : t("authPages.signup.businessTypePlaceholder")}
                           </span>
                           <ChevronDown className={cn("size-4 text-slate-500 transition-transform duration-200", dropdownOpen && "rotate-180")} />
                         </button>
@@ -505,7 +505,7 @@ export default function SignupPage() {
 
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="country" className="text-xs font-bold text-[var(--m-text-secondary)]">
-                      Country
+                      {t("authPages.signup.country")}
                     </Label>
                     <select
                       id="country"
@@ -527,7 +527,7 @@ export default function SignupPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="password" className="text-xs font-bold text-[var(--m-text-secondary)]">
-                        Password
+                        {t("authPages.common.password")}
                       </Label>
                       <div className="relative">
                         <Input
@@ -551,7 +551,7 @@ export default function SignupPage() {
 
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="confirmPassword" className="text-xs font-bold text-[var(--m-text-secondary)]">
-                        Confirm Password
+                        {t("authPages.common.confirmPassword")}
                       </Label>
                       <div className="relative">
                         <Input
@@ -583,18 +583,18 @@ export default function SignupPage() {
                   >
                     {loading ? (
                       <span className="flex items-center gap-2 justify-center">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Sending...
+                        <Loader2 className="h-4 w-4 animate-spin" /> {t("authPages.common.sending")}
                       </span>
                     ) : (
-                      "Send OTP Code"
+                      t("authPages.signup.sendOtp")
                     )}
                   </Button>
                 </form>
 
                 <p className="mt-5 text-center text-xs text-[var(--m-text-muted)]">
-                  Already have an account?{" "}
+                  {t("authPages.signup.haveAccount")}{" "}
                   <Link href="/login" className="text-emerald-500 hover:text-emerald-400 font-bold">
-                    Sign In
+                    {t("authPages.signup.signIn")}
                   </Link>
                 </p>
               </CardContent>
@@ -615,16 +615,16 @@ export default function SignupPage() {
                   <KeyRound className="h-6 w-6" />
                 </div>
                 <CardTitle className="text-xl font-bold tracking-tight text-[var(--m-text-heading)]">
-                  Enter OTP Code
+                  {t("authPages.common.enterOtp")}
                 </CardTitle>
                 <CardDescription className="text-xs text-[var(--m-text-tertiary)] mt-1">
-                  We&apos;ve sent a 6-digit verification code to <span className="text-white font-medium">{email}</span>.
+                  {t("authPages.common.otpSentTo")} <span className="text-white font-medium">{email}</span>.
                 </CardDescription>
               </div>
               <CardContent className="flex flex-col items-center px-6 pb-6">
                 {devFilled && (
                   <p className="mb-4 rounded-md border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-300">
-                    DEV mode: code filled in automatically
+                    {t("authPages.common.devFilled")}
                   </p>
                 )}
                 {error && (
@@ -678,7 +678,7 @@ export default function SignupPage() {
                 {loading && (
                   <div className="flex items-center gap-2 text-xs text-slate-400 my-2">
                     <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
-                    Registering account...
+                    {t("authPages.signup.registering")}
                   </div>
                 )}
 
@@ -693,7 +693,7 @@ export default function SignupPage() {
                         : "text-emerald-500 hover:text-emerald-400 cursor-pointer"
                     )}
                   >
-                    {resendTimer > 0 ? `Resend Code in ${resendTimer}s` : "Resend OTP Code"}
+                    {resendTimer > 0 ? t("authPages.common.resendIn", { s: resendTimer }) : t("authPages.common.resendOtp")}
                   </button>
 
                   <button
@@ -703,7 +703,7 @@ export default function SignupPage() {
                     }}
                     className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-300 transition-colors mt-1"
                   >
-                    <ArrowLeft className="h-4 w-4" /> Change Details
+                    <ArrowLeft className="h-4 w-4" /> {t("authPages.signup.changeDetails")}
                   </button>
                 </div>
               </CardContent>
@@ -775,10 +775,10 @@ export default function SignupPage() {
               </div>
 
               <h2 className="text-2xl font-extrabold text-[var(--m-text-heading)] tracking-tight mb-2">
-                Registration Successful
+                {t("authPages.signup.successTitle")}
               </h2>
               <p className="text-xs text-[var(--m-text-tertiary)] max-w-sm mb-6 leading-relaxed">
-                Your email has been verified and your account has been successfully created. Welcome aboard!
+                {t("authPages.signup.successBody")}
               </p>
 
               <div className="w-full px-2">
@@ -787,7 +787,7 @@ export default function SignupPage() {
                     onClick={() => router.push("/dashboard")}
                     className="w-full h-10 bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-bold rounded-xl shadow-lg transition-all duration-300 border-none text-xs"
                   >
-                    Go to Dashboard
+                    {t("authPages.signup.goDashboard")}
                   </Button>
                 </motion.div>
               </div>

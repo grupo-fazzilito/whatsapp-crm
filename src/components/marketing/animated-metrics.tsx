@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { CheckCheck, Zap, Sparkles } from "lucide-react";
+import { useI18n } from "@/i18n/client";
 
 interface MetricProps {
   value: number;
@@ -52,6 +53,7 @@ function Counter({ value, suffix = "", decimals = 0, duration = 2 }: MetricProps
 }
 
 export function AnimatedMetrics() {
+  const { t } = useI18n();
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl mx-auto py-10">
       {/* Metric 1 */}
@@ -63,7 +65,7 @@ export function AnimatedMetrics() {
         className="rounded-2xl border border-[var(--m-border-primary)] bg-[var(--m-bg-glass)] p-6 backdrop-blur-md relative overflow-hidden flex flex-col justify-between"
       >
         <div className="flex items-center justify-between mb-4">
-          <span className="text-xs uppercase font-bold text-[var(--m-text-tertiary)]">Deliverability</span>
+          <span className="text-xs uppercase font-bold text-[var(--m-text-tertiary)]">{t("mktHome.animated.deliverability")}</span>
           <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
             <CheckCheck className="size-4" />
           </div>
@@ -72,7 +74,7 @@ export function AnimatedMetrics() {
           <h3 className="text-3xl sm:text-4xl font-extrabold text-[var(--m-text-primary)] flex items-baseline gap-0.5">
             <Counter value={99.8} suffix="%" decimals={1} />
           </h3>
-          <p className="text-xs text-[var(--m-text-tertiary)] mt-2">Guaranteed throughput via WhatsApp Meta Business API Cloud hosts.</p>
+          <p className="text-xs text-[var(--m-text-tertiary)] mt-2">{t("mktHome.animated.deliverabilityDesc")}</p>
         </div>
         <div className="absolute -bottom-8 -right-8 w-24 h-24 rounded-full bg-emerald-500/5 blur-2xl" />
       </motion.div>
@@ -86,7 +88,7 @@ export function AnimatedMetrics() {
         className="rounded-2xl border border-[var(--m-border-primary)] bg-[var(--m-bg-glass)] p-6 backdrop-blur-md relative overflow-hidden flex flex-col justify-between"
       >
         <div className="flex items-center justify-between mb-4">
-          <span className="text-xs uppercase font-bold text-[var(--m-text-tertiary)]">Broadcast Capacity</span>
+          <span className="text-xs uppercase font-bold text-[var(--m-text-tertiary)]">{t("mktHome.animated.broadcast")}</span>
           <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-400">
             <Zap className="size-4" />
           </div>
@@ -95,7 +97,7 @@ export function AnimatedMetrics() {
           <h3 className="text-3xl sm:text-4xl font-extrabold text-[var(--m-text-primary)] flex items-baseline gap-0.5">
             <Counter value={24.2} suffix="M+" decimals={1} />
           </h3>
-          <p className="text-xs text-[var(--m-text-tertiary)] mt-2">Millions of monthly triggered follow-ups, payment confirmations, & templates.</p>
+          <p className="text-xs text-[var(--m-text-tertiary)] mt-2">{t("mktHome.animated.broadcastDesc")}</p>
         </div>
         <div className="absolute -bottom-8 -right-8 w-24 h-24 rounded-full bg-teal-500/5 blur-2xl" />
       </motion.div>
@@ -109,7 +111,7 @@ export function AnimatedMetrics() {
         className="rounded-2xl border border-[var(--m-border-primary)] bg-[var(--m-bg-glass)] p-6 backdrop-blur-md relative overflow-hidden flex flex-col justify-between"
       >
         <div className="flex items-center justify-between mb-4">
-          <span className="text-xs uppercase font-bold text-[var(--m-text-tertiary)]">AI Automation Rate</span>
+          <span className="text-xs uppercase font-bold text-[var(--m-text-tertiary)]">{t("mktHome.animated.automation")}</span>
           <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
             <Sparkles className="size-4" />
           </div>
@@ -118,7 +120,7 @@ export function AnimatedMetrics() {
           <h3 className="text-3xl sm:text-4xl font-extrabold text-[var(--m-text-primary)] flex items-baseline gap-0.5">
             <Counter value={86.4} suffix="%" decimals={1} />
           </h3>
-          <p className="text-xs text-[var(--m-text-tertiary)] mt-2">Chat conversations handled completely autonomously without human intervention.</p>
+          <p className="text-xs text-[var(--m-text-tertiary)] mt-2">{t("mktHome.animated.automationDesc")}</p>
         </div>
         <div className="absolute -bottom-8 -right-8 w-24 h-24 rounded-full bg-emerald-500/5 blur-2xl" />
       </motion.div>

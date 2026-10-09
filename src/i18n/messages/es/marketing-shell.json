@@ -1,0 +1,43 @@
+{
+  "mktShell": {
+    "nav": {
+      "home": "Inicio",
+      "features": "Funciones",
+      "aiAutomation": "Automatización con IA",
+      "pricing": "Precios",
+      "sharedInbox": "Bandeja compartida",
+      "crm": "Motor CRM",
+      "analytics": "Panel de analítica",
+      "enterprise": "SaaS empresarial",
+      "security": "Seguridad y RGPD",
+      "stories": "Casos de clientes",
+      "about": "Nosotros",
+      "careers": "Empleo",
+      "blog": "Blog"
+    },
+    "bookDemo": "Agendar demo",
+    "dashboard": "Panel",
+    "signIn": "Iniciar sesión",
+    "navigation": "Navegación",
+    "solutions": "Soluciones",
+    "menu": "Menú",
+    "footer": {
+      "useCases": "Casos de uso",
+      "contact": "Contacto",
+      "privacy": "Política de privacidad",
+      "terms": "Términos y condiciones",
+      "refund": "Política de reembolso",
+      "about": "Whasalia es una plataforma premium de CRM para WhatsApp y automatización de atención al cliente con IA. Automatiza la comunicación de tu negocio, configura chatbots inteligentes, organiza tus leads y sincroniza recordatorios de calendario con la API oficial de WhatsApp Business.",
+      "partner": "Socio oficial de Meta Business",
+      "quickLinks": "Enlaces rápidos",
+      "trust": "Confianza",
+      "t1": "Plataforma segura",
+      "t2": "Datos cifrados",
+      "t3": "Cumple con Meta",
+      "t4": "Acceso por roles",
+      "t5": "Soporte para empresas",
+      "disclaimer": "\"Whasalia usa soluciones de la API de WhatsApp Business conforme a las políticas de Meta y WhatsApp Business. Los negocios son responsables de obtener el consentimiento de los usuarios antes de iniciar una comunicación.\"",
+      "rights": "© 2026 Whasalia. Todos los derechos reservados."
+    }
+  }
+}

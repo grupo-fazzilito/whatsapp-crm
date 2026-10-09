@@ -4,6 +4,15 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, Calendar, Clock, Video, CheckCircle, User, Mail, Phone, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/client";
+
+/** Fills `{key}` placeholders in a translated template with React nodes. */
+function fillNodes(template: string, nodes: Record<string, React.ReactNode>): React.ReactNode[] {
+  return template.split(/(\{\w+\})/).map((part, i) => {
+    const m = part.match(/^\{(\w+)\}$/);
+    return m && m[1] in nodes ? <React.Fragment key={i}>{nodes[m[1]]}</React.Fragment> : part;
+  });
+}
 
 interface BookDemoModalProps {
   open: boolean;
@@ -13,6 +22,7 @@ interface BookDemoModalProps {
 const slots = ["10:00 AM", "11:30 AM", "2:00 PM", "3:30 PM", "5:00 PM"];
 
 export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
+  const { t } = useI18n();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -25,8 +35,8 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
   // Generate 6 upcoming business days dynamically
   const dates = useMemo(() => {
     const list = [];
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const stdMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const days = t("mktHome.demo.days").split(",");
+    const stdMonths = t("mktHome.demo.months").split(",");
     
     const current = new Date();
     // If it's past 5 PM, start from tomorrow
@@ -42,14 +52,14 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
         const dateNum = current.getDate();
         const year = current.getFullYear();
         
-        const label = `${dayName}, ${monthName} ${dateNum}`;
+        const label = t("mktHome.demo.dateLabel", { day: dayName, month: monthName, date: dateNum });
         const val = `${year}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(dateNum).padStart(2, '0')}`;
         list.push({ label, val });
       }
       current.setDate(current.getDate() + 1);
     }
     return list;
-  }, []);
+  }, [t]);
 
   const handleClose = () => {
     onClose();
@@ -87,14 +97,14 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        setError(data.error || "Failed to book walkthrough. Please try again.");
+        setError(data.error || t("mktHome.demo.errorBooking"));
         setLoading(false);
         return;
       }
 
       setSuccess(true);
     } catch (err: any) {
-      setError(err.message || "An unexpected network error occurred.");
+      setError(err.message || t("mktHome.demo.errorNetwork"));
     } finally {
       setLoading(false);
     }
@@ -143,10 +153,10 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
                   </div>
                   <div>
                     <h2 className="text-sm font-bold text-m-text-heading">
-                      Book a Product Demo
+                      {t("mktHome.demo.title")}
                     </h2>
                     <p className="text-[11px] text-m-text-muted">
-                      30-min live walkthrough · Google Meet
+                      {t("mktHome.demo.subtitle")}
                     </p>
                   </div>
                 </div>
@@ -165,16 +175,20 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
                     <CheckCircle className="size-7 text-emerald-500" />
                   </div>
                   <h3 className="text-lg font-bold text-m-text-heading">
-                    You're booked!
+                    {t("mktHome.demo.successTitle")}
                   </h3>
                   <p className="text-xs leading-relaxed max-w-sm text-m-text-secondary">
-                    A confirmation email has been sent to <span className="font-semibold text-m-text-primary">{email}</span>. We'll meet on <span className="text-emerald-500 font-semibold">{selectedDate}</span> at <span className="text-emerald-500 font-semibold">{selectedTime}</span> via Google Meet.
+                    {fillNodes(t("mktHome.demo.successBody"), {
+                      email: <span className="font-semibold text-m-text-primary">{email}</span>,
+                      date: <span className="text-emerald-500 font-semibold">{selectedDate}</span>,
+                      time: <span className="text-emerald-500 font-semibold">{selectedTime}</span>,
+                    })}
                   </p>
                   <button
                     onClick={handleClose}
                     className="mt-2 px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition-colors cursor-pointer shadow-[0_2px_12px_rgba(0,223,130,0.2)]"
                   >
-                    Done
+                    {t("mktHome.demo.done")}
                   </button>
                 </div>
               ) : (
@@ -189,18 +203,18 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
                     {/* 1. Contact Information */}
                     <div className="space-y-4">
                       <h3 className="text-[11px] uppercase font-bold tracking-widest text-m-text-muted border-b border-m-border-primary pb-1.5">
-                        Contact Details
+                        {t("mktHome.demo.contactDetails")}
                       </h3>
 
                       <div className="space-y-1.5">
                         <label className="text-[11px] font-bold uppercase tracking-wide text-m-text-muted flex items-center gap-1.5">
-                          <User className="size-3.5" /> Full Name *
+                          <User className="size-3.5" /> {t("mktHome.demo.fullName")}
                         </label>
                         <input
                           required
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          placeholder="Jane Smith"
+                          placeholder={t("mktHome.demo.namePlaceholder")}
                           className={inputCls}
                           disabled={loading}
                         />
@@ -209,14 +223,14 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-[11px] font-bold uppercase tracking-wide text-m-text-muted flex items-center gap-1.5">
-                            <Mail className="size-3.5" /> Work Email *
+                            <Mail className="size-3.5" /> {t("mktHome.demo.workEmail")}
                           </label>
                           <input
                             required
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="jane@company.com"
+                            placeholder={t("mktHome.demo.emailPlaceholder")}
                             className={inputCls}
                             disabled={loading}
                           />
@@ -224,7 +238,7 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
 
                         <div className="space-y-1.5">
                           <label className="text-[11px] font-bold uppercase tracking-wide text-m-text-muted flex items-center gap-1.5">
-                            <Phone className="size-3.5" /> Phone Number *
+                            <Phone className="size-3.5" /> {t("mktHome.demo.phone")}
                           </label>
                           <input
                             required
@@ -242,13 +256,13 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
                     {/* 2. Schedule Appointment */}
                     <div className="space-y-4 pt-1">
                       <h3 className="text-[11px] uppercase font-bold tracking-widest text-m-text-muted border-b border-m-border-primary pb-1.5">
-                        Select Date & Time
+                        {t("mktHome.demo.selectDateTime")}
                       </h3>
 
                       {/* Date Selection */}
                       <div className="space-y-2">
                         <label className="text-[11px] font-bold uppercase tracking-wide text-m-text-muted flex items-center gap-1.5">
-                          <Calendar className="size-3.5" /> 1. Choose Date *
+                          <Calendar className="size-3.5" /> {t("mktHome.demo.chooseDate")}
                         </label>
                         <div className="grid grid-cols-3 gap-2">
                           {dates.map((d) => {
@@ -276,7 +290,7 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
                       {/* Time Selection */}
                       <div className="space-y-2 pt-1">
                         <label className="text-[11px] font-bold uppercase tracking-wide text-m-text-muted flex items-center gap-1.5">
-                          <Clock className="size-3.5" /> 2. Choose Time *
+                          <Clock className="size-3.5" /> {t("mktHome.demo.chooseTime")}
                         </label>
                         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                           {slots.map((s) => {
@@ -304,7 +318,7 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
                       {/* Location Note */}
                       <div className="flex items-center gap-2 pt-1 text-[10px] text-m-text-tertiary">
                         <Video className="size-3.5 text-teal-500 shrink-0" />
-                        <span>30-min Google Meet slot. Calendar invite will be sent.</span>
+                        <span>{t("mktHome.demo.meetNote")}</span>
                       </div>
                     </div>
                   </div>
@@ -316,10 +330,10 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
                       {selectedDate && selectedTime ? (
                         <div className="flex items-center gap-1.5 text-emerald-500">
                           <Calendar className="size-3.5 shrink-0" />
-                          <span>Selected: {selectedDate.split(", ")[1]} at {selectedTime}</span>
+                          <span>{t("mktHome.demo.selected", { date: selectedDate.split(", ")[1], time: selectedTime })}</span>
                         </div>
                       ) : (
-                        <span className="text-m-text-muted text-[11px]">Select a date and time slot...</span>
+                        <span className="text-m-text-muted text-[11px]">{t("mktHome.demo.selectPrompt")}</span>
                       )}
                     </div>
 
@@ -329,7 +343,7 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
                       className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 text-xs font-bold transition-all shadow-[0_2px_12px_rgba(0,223,130,0.2)] flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       {loading && <Loader2 className="size-3.5 animate-spin" />}
-                      Confirm Booking
+                      {t("mktHome.demo.confirm")}
                     </button>
                   </div>
                 </form>
