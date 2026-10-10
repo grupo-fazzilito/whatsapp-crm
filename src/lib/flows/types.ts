@@ -36,6 +36,12 @@ export interface SendMessageNodeConfig {
 
 export interface SendButtonsNodeConfig {
   text: string;
+  /**
+   * 'native' (default): WhatsApp reply buttons (quick replies elsewhere).
+   * 'numbered': a plain text menu "1. … 2. …" — up to 10 options. Either
+   * way the customer can tap or type the number / the option's title.
+   */
+  display?: "native" | "numbered";
   /** Optional header / footer lines around the buttons. */
   header_text?: string;
   footer_text?: string;
@@ -52,6 +58,8 @@ export interface SendButtonsNodeConfig {
 
 export interface SendListNodeConfig {
   text: string;
+  /** See SendButtonsNodeConfig.display. */
+  display?: "native" | "numbered";
   /** Label of the tap-to-expand button on the message bubble. */
   button_label: string;
   header_text?: string;
