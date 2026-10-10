@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-10',
+    title: { es: 'Entra con Google o Facebook', en: 'Sign in with Google or Facebook' },
+    changes: [
+      { kind: 'new', es: 'Crea tu cuenta o inicia sesión con Google o Facebook, sin contraseña.', en: 'Create your account or sign in with Google or Facebook, no password needed.' },
+      { kind: 'new', es: 'Si ya tenías cuenta con ese email, se vincula automáticamente.', en: 'If you already had an account with that email, it is linked automatically.' },
+    ],
+  },
+  {
+    date: '2026-10-10',
     title: { es: 'Plantillas de WhatsApp con vista previa y aprobación de Meta', en: 'WhatsApp templates with preview and Meta approval' },
     changes: [
       { kind: 'new', es: 'Editor de plantillas con vista previa de cómo las verá tu cliente en WhatsApp, sugerencias listas para usar y variables con nombre (Nombre del cliente, Número de pedido…).', en: 'Template editor with a preview of how your customer will see it in WhatsApp, ready-made suggestions and named variables (Customer name, Order number…).' },
