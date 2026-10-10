@@ -1,20 +1,19 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
-import { isPrismaError } from '@/lib/db/errors'
-
-const str = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null)
+import { parseDraft, saveTemplate, templateView } from '@/lib/templates/server'
 
 /**
- * GET  /api/whatsapp/templates → { templates } every local template, newest first (any member)
- * POST /api/whatsapp/templates { name, body_text, category?, language?, header_type?, footer_text? }
- *   Creates a local Draft template (admins). → { template } | 409 duplicate name+language
+ * GET  /api/whatsapp/templates → { templates } newest first (any member)
+ * POST /api/whatsapp/templates { draft, channel_id?, submit? } (admins)
+ *   Saves the template (Draft) and, with submit, sends it to Meta for review.
+ *   → 201 { template, submitted, error? } | 422 { error: 'invalid', issues } | 409 { error: 'name_taken' }
  */
 export async function GET() {
   const guard = await requireWorkspace('agent')
   if (!guard.ok) return guard.response
   try {
     const templates = await guard.ctx.db.message_templates.findMany({ orderBy: { created_at: 'desc' } })
-    return NextResponse.json({ templates })
+    return NextResponse.json({ templates: templates.map((t) => templateView(t)) })
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
@@ -24,29 +23,14 @@ export async function POST(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
   const { db, user, workspace } = guard.ctx
-
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
-  const name = str(body?.name, 512)
-  const bodyText = str(body?.body_text, 4096)
-  if (!name || !bodyText) return NextResponse.json({ error: 'name and body_text are required' }, { status: 400 })
-
+  const draft = parseDraft(body?.draft)
+  if (!draft) return NextResponse.json({ error: 'draft_required' }, { status: 400 })
   try {
-    const template = await db.message_templates.create({
-      data: {
-        workspace_id: workspace.id,
-        user_id: user.id,
-        name,
-        body_text: bodyText,
-        category: str(body?.category, 50) ?? 'Marketing',
-        language: str(body?.language, 20) ?? 'en_US',
-        header_type: str(body?.header_type, 50),
-        footer_text: str(body?.footer_text, 1024),
-        status: 'Draft',
-      },
-    })
-    return NextResponse.json({ template })
+    const out = await saveTemplate({ db, workspaceId: workspace.id, userId: user.id, draft, channelId: typeof body?.channel_id === 'string' ? body.channel_id : null, submit: body?.submit === true })
+    if (!out.ok) return NextResponse.json(out.body, { status: out.status })
+    return NextResponse.json({ template: out.template, submitted: out.submitted, ...(out.error ? { error: out.error } : {}) }, { status: 201 })
   } catch (err) {
-    if (isPrismaError(err, 'P2002')) return NextResponse.json({ error: 'duplicate_template' }, { status: 409 })
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }

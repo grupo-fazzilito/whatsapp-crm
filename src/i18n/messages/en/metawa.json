@@ -61,7 +61,7 @@
       "metaError": "Meta reported an error: {message}",
       "noSession": "We didn't receive the WhatsApp account from Facebook. Please try again.",
       "sdkError": "The Facebook SDK couldn't load (content blocker?). Disable it or use the manual setup.",
-      "notAvailable": "Connecting with Facebook isn't enabled on this platform yet. You can connect your number manually.",
+      "notAvailable": "Direct WhatsApp connection isn't enabled on this platform yet. The Whasalia administrator needs to set up the Meta app (App ID and Embedded Signup configuration).",
       "manual": "Manual setup (advanced)",
       "useSignup": "Connect with Facebook instead",
       "doneTitle": "{number} connected!",

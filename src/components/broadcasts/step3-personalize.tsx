@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useWorkspace } from '@/hooks/use-workspace';
+import type { TemplateVariable, VariableSource } from '@/lib/templates/model';
 import { Contact, CustomField, MessageTemplate } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +37,16 @@ const contactFields = [
   { value: 'company', label: 'Company' },
 ];
 
+/** Contact field a template variable source maps to. */
+const SOURCE_FIELD: Partial<Record<VariableSource, string>> = {
+  'contact.name': 'name',
+  'contact.phone': 'phone',
+  'contact.email': 'email',
+  'contact.company': 'company',
+};
+
+type TemplateWithVariables = MessageTemplate & { variables?: TemplateVariable[] | null };
+
 const SAMPLE_CONTACT: Contact = {
   id: 'sample',
   workspace_id: '',
@@ -61,6 +73,43 @@ export function Step3Personalize({
     Map<string, string>
   >(new Map());
   const [loadingPreview, setLoadingPreview] = useState(true);
+  const { workspace } = useWorkspace();
+  const ownVariables = (template as TemplateWithVariables).variables;
+  const [fetchedVariables, setFetchedVariables] = useState<TemplateVariable[] | null>(null);
+  const templateVariables = useMemo<TemplateVariable[]>(
+    () => (Array.isArray(ownVariables) ? ownVariables : fetchedVariables ?? []),
+    [ownVariables, fetchedVariables],
+  );
+
+  // Older template objects may come without `variables`: read them from the
+  // templates API (labels and data sources defined in the editor).
+  useEffect(() => {
+    if (Array.isArray(ownVariables)) return;
+    let cancelled = false;
+    fetch('/api/whatsapp/templates', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { templates?: { id: string; variables?: TemplateVariable[] }[] } | null) => {
+        if (cancelled || !d) return;
+        const found = d.templates?.find((x) => x.id === template.id);
+        if (found && Array.isArray(found.variables)) setFetchedVariables(found.variables);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [ownVariables, template.id]);
+
+  /** Variable defined in the editor for a body position ({{n}}). */
+  const bodyVariable = (num: string) => templateVariables.find((v) => v.index === Number(num));
+  /** Header variables are numbered on their own on Meta's side ({{1}}); they have no body index. */
+  const headerVariable = (num: string) => {
+    const headerOnly = templateVariables.filter((v) => v.index === undefined || v.index === null);
+    return headerOnly[Number(num) - 1];
+  };
+
+  // Pre-fill the mapping of variables whose source is a contact field or the
+  // business name, once per template; never overwrites what the user set.
+  const prefilled = useRef<string | null>(null);
 
   // Load user's custom fields + a representative contact for the
   // live preview. Fall back to sample data if no contacts exist yet.
@@ -118,8 +167,9 @@ export function Step3Personalize({
     if (!template.buttons || !Array.isArray(template.buttons)) return [];
     const list: { buttonIndex: number; buttonText: string; placeholder: string }[] = [];
     (template.buttons as any[]).forEach((btn: any, buttonIndex: number) => {
-      if (btn.type === 'URL' && btn.url) {
-        const matches = btn.url.match(/\{\{(\d+)\}\}/g);
+      const url = (btn.url ?? btn.value) as string | undefined;
+      if ((btn.type === 'URL' || btn.type === 'url') && url) {
+        const matches = url.match(/\{\{(\d+)\}\}/g);
         if (matches) {
           const uniqueMatches = Array.from(new Set(matches)) as string[];
           uniqueMatches.forEach((m) => {
@@ -134,6 +184,31 @@ export function Step3Personalize({
     });
     return list;
   }, [template.buttons]);
+
+  useEffect(() => {
+    if (!templateVariables.length || prefilled.current === template.id) return;
+    prefilled.current = template.id;
+    const next = { ...variables };
+    let changed = false;
+    const fill = (key: string, v: TemplateVariable | undefined) => {
+      if (!v || v.source === 'manual' || next[key]?.value?.trim()) return;
+      const field = SOURCE_FIELD[v.source];
+      if (field) next[key] = { type: 'field', value: field };
+      else if (v.source === 'workspace.name' && workspace?.name) next[key] = { type: 'static', value: workspace.name };
+      else return;
+      changed = true;
+    };
+    for (const p of bodyPlaceholders) {
+      const num = p.replace(/^\{\{|\}\}$/g, '');
+      fill(`body_${num}`, bodyVariable(num));
+    }
+    for (const p of headerPlaceholders) {
+      const num = p.replace(/^\{\{|\}\}$/g, '');
+      fill(`header_${num}`, headerVariable(num));
+    }
+    if (changed) onUpdate(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateVariables, template.id, bodyPlaceholders, headerPlaceholders, workspace?.name]);
 
   const hasAnyPlaceholders =
     headerPlaceholders.length > 0 ||
@@ -369,8 +444,9 @@ export function Step3Personalize({
                 <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Header Personalization
               </h3>
               {headerPlaceholders.map((placeholder: string) => {
-                const key = `header_${placeholder.replace(/^\{\{|\}\}$/g, '')}`;
-                return renderPlaceholderRow(placeholder, key);
+                const num = placeholder.replace(/^\{\{|\}\}$/g, '');
+                const key = `header_${num}`;
+                return renderPlaceholderRow(placeholder, key, headerVariable(num)?.label);
               })}
             </div>
           )}
@@ -383,7 +459,7 @@ export function Step3Personalize({
               {bodyPlaceholders.map((placeholder: string) => {
                 const num = placeholder.replace(/^\{\{|\}\}$/g, '');
                 const key = `body_${num}`;
-                return renderPlaceholderRow(placeholder, key);
+                return renderPlaceholderRow(placeholder, key, bodyVariable(num)?.label);
               })}
             </div>
           )}
@@ -438,15 +514,16 @@ export function Step3Personalize({
             <div className="ml-auto max-w-[85%] mt-1 space-y-1">
               {template.buttons.map((btn: any, idx: number) => {
                 let dynamicUrlSuffix = '';
-                if (btn.type === 'URL' && btn.url) {
-                  const matches = btn.url.match(/\{\{(\d+)\}\}/g);
+                const btnUrl = (btn.url ?? btn.value) as string | undefined;
+                if ((btn.type === 'URL' || btn.type === 'url') && btnUrl) {
+                  const matches = btnUrl.match(/\{\{(\d+)\}\}/g);
                   if (matches) {
                     const contact = firstContact ?? SAMPLE_CONTACT;
                     const customValues = firstContact
                       ? firstContactCustomValues
                       : new Map<string, string>();
                     
-                    dynamicUrlSuffix = ' 🔗 ' + btn.url;
+                    dynamicUrlSuffix = ' 🔗 ' + btnUrl;
                     matches.forEach((m: string) => {
                       const num = m.replace(/^\{\{|\}\}$/g, '');
                       const key = `button_${idx}_${num}`;

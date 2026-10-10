@@ -217,10 +217,13 @@ export interface MessageTemplate {
   language?: string;
   header_type?: 'text' | 'image' | 'video' | 'document';
   header_content?: string;
+  /** Sample file of an image/video/document header (also sent in broadcasts). */
+  header_media_url?: string | null;
   body_text: string;
   footer_text?: string;
   buttons?: Record<string, unknown>[];
   status?: 'Draft' | 'Pending' | 'Approved' | 'Rejected';
+  rejection_reason?: string | null;
   created_at: string;
 }
 

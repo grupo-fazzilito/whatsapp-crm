@@ -328,3 +328,32 @@ export function parseWhatsAppCoexistence(body: WaWebhookBody): CoexBatch[] {
     (b) => b.echoes.length || b.history.length || b.historyMedia.length || b.contacts.length || b.historyProgress || b.historyError,
   )
 }
+
+export interface TemplateStatusUpdate {
+  metaId: string
+  event: string
+  name: string | null
+  language: string | null
+  reason: string | null
+}
+
+/** message_template_status_update webhook field → review results (pure). */
+export function parseTemplateStatusUpdates(body: WaWebhookBody): TemplateStatusUpdate[] {
+  const out: TemplateStatusUpdate[] = []
+  for (const entry of body.entry ?? []) {
+    for (const change of entry.changes ?? []) {
+      if (change.field !== 'message_template_status_update') continue
+      const v = change.value as unknown as Record<string, unknown> | undefined
+      const id = v?.message_template_id
+      if (!v || (typeof id !== 'string' && typeof id !== 'number') || typeof v.event !== 'string') continue
+      out.push({
+        metaId: String(id),
+        event: v.event,
+        name: typeof v.message_template_name === 'string' ? v.message_template_name : null,
+        language: typeof v.message_template_language === 'string' ? v.message_template_language : null,
+        reason: typeof v.reason === 'string' ? v.reason : null,
+      })
+    }
+  }
+  return out
+}

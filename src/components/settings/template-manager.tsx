@@ -1,34 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Plus, Trash2, Loader2, RefreshCw } from 'lucide-react';
+import { Eye, Loader2, Pencil, Plus, RefreshCw, Send, Sparkles, Trash2 } from 'lucide-react';
 import { useWorkspace } from '@/hooks/use-workspace';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { useI18n } from '@/i18n/client';
+import { cn } from '@/lib/utils';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import type { MessageTemplate } from '@/types';
+import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { TemplatePreview } from '@/components/templates/template-preview';
+import { LANGUAGES, TEMPLATE_SUGGESTIONS, draftFromRow, submitErrorKey, type TemplateRow, type TemplateStatus } from '@/lib/templates/model';
 
-const CATEGORIES = ['Marketing', 'Utility', 'Authentication'] as const;
-const HEADER_TYPES = ['text', 'image', 'video', 'document'] as const;
+type Filter = 'all' | TemplateStatus;
+const FILTERS: Filter[] = ['all', 'Draft', 'Pending', 'Approved', 'Rejected'];
+const STATUS_KEY: Record<TemplateStatus, string> = { Draft: 'draft', Pending: 'pending', Approved: 'approved', Rejected: 'rejected' };
+const CATEGORY_KEY: Record<string, string> = { Marketing: 'marketing', Utility: 'utility', Authentication: 'authentication' };
 
 const categoryColors: Record<string, string> = {
   Marketing: 'bg-emerald-600/20 text-emerald-400 border-emerald-600/30',
@@ -36,68 +27,43 @@ const categoryColors: Record<string, string> = {
   Authentication: 'bg-amber-600/20 text-amber-400 border-amber-600/30',
 };
 
-const statusColors: Record<string, string> = {
+const statusColors: Record<TemplateStatus, string> = {
   Draft: 'bg-slate-600/20 text-slate-400 border-slate-600/30',
   Pending: 'bg-yellow-600/20 text-yellow-400 border-yellow-600/30',
   Approved: 'bg-primary/20 text-primary border-primary/30',
   Rejected: 'bg-red-600/20 text-red-400 border-red-600/30',
 };
 
-interface TemplateFormData {
-  name: string;
-  category: MessageTemplate['category'];
-  language: string;
-  body_text: string;
-  header_type: string;
-  footer_text: string;
-}
-
-// Meta's language codes are exact — "en" and "en_US" are distinct and a
-// template approved under one will be rejected if you send with the other
-// (Graph API error #132001 "Template name does not exist in the
-// translation"). Default to en_US to match the DB default on
-// message_templates.language and the broadcasts sender's fallback.
-const emptyForm: TemplateFormData = {
-  name: '',
-  category: 'Marketing',
-  language: 'en_US',
-  body_text: '',
-  header_type: '',
-  footer_text: '',
-};
-
-// Common Meta template language codes. The field still accepts any
-// string — this just offers autocomplete for the usual suspects. Full
-// list: https://developers.facebook.com/docs/whatsapp/api/messages/message-templates#supported-languages
-const COMMON_LANGUAGE_CODES = [
-  'en_US',
-  'en_GB',
-  'en',
-  'es',
-  'es_ES',
-  'es_MX',
-  'fr',
-  'fr_FR',
-  'de',
-  'it',
-  'pt_BR',
-  'pt_PT',
-  'nl',
-  'pl',
-  'ru',
-  'tr',
-  'lt',
-];
+const outlineBtn = 'border-slate-200 dark:border-slate-700 bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60';
 
 export function TemplateManager() {
-  const { workspace, loading: workspaceLoading } = useWorkspace();
+  const { workspace, loading: workspaceLoading, can } = useWorkspace();
+  const { t, locale } = useI18n();
+  const router = useRouter();
+  const isAdmin = can('admin');
+  const lang: 'es' | 'en' = locale === 'en' ? 'en' : 'es';
 
   const [loading, setLoading] = useState(true);
-  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [templates, setTemplates] = useState<TemplateRow[]>([]);
+  const [filter, setFilter] = useState<Filter>('all');
   const [syncing, setSyncing] = useState(false);
-  const [form, setForm] = useState<TemplateFormData>(emptyForm);
+  const [submitting, setSubmitting] = useState<string | null>(null);
+  const [preview, setPreview] = useState<TemplateRow | null>(null);
+  const [toDelete, setToDelete] = useState<TemplateRow | null>(null);
+
+  const fetchTemplates = useCallback(async () => {
+    try {
+      const res = await fetch('/api/whatsapp/templates', { cache: 'no-store' });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`);
+      setTemplates((body.templates ?? []) as TemplateRow[]);
+    } catch (err) {
+      console.error('Failed to fetch templates:', err);
+      toast.error(t('templates.list.loadError'));
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
 
   useEffect(() => {
     if (workspaceLoading) return;
@@ -105,364 +71,269 @@ export function TemplateManager() {
       setLoading(false);
       return;
     }
-    fetchTemplates();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspaceLoading, workspace?.id]);
+    void fetchTemplates();
+  }, [workspaceLoading, workspace, fetchTemplates]);
 
-  async function fetchTemplates() {
-    try {
-      setLoading(true);
+  const counts = useMemo(() => {
+    const c: Record<Filter, number> = { all: templates.length, Draft: 0, Pending: 0, Approved: 0, Rejected: 0 };
+    for (const tpl of templates) c[tpl.status ?? 'Draft'] += 1;
+    return c;
+  }, [templates]);
+  const shown = filter === 'all' ? templates : templates.filter((x) => (x.status ?? 'Draft') === filter);
 
-      const res = await fetch('/api/whatsapp/templates', { cache: 'no-store' });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`);
-      setTemplates(body.templates || []);
-    } catch (err) {
-      console.error('Failed to fetch templates:', err);
-      toast.error('Failed to load templates');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const languageLabel = (code: string) => LANGUAGES.find((l) => l.code === code)?.label ?? code;
 
-  async function handleSave() {
-    if (!form.name.trim()) {
-      toast.error('Template name is required');
-      return;
-    }
-    if (!form.body_text.trim()) {
-      toast.error('Body text is required');
-      return;
-    }
-
-    try {
-      setSaving(true);
-      if (!workspace) {
-        toast.error('Not authenticated');
-        return;
-      }
-
-      const payload = {
-        name: form.name.trim(),
-        category: form.category,
-        language: form.language.trim() || 'en_US',
-        body_text: form.body_text.trim(),
-        header_type: form.header_type || null,
-        footer_text: form.footer_text.trim() || null,
-        status: 'Draft' as const,
-      };
-
-      const res = await fetch('/api/whatsapp/templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
-      }
-
-      toast.success('Template created successfully');
-      setDialogOpen(false);
-      setForm(emptyForm);
-      await fetchTemplates();
-    } catch (err) {
-      console.error('Save error:', err);
-      toast.error('Failed to create template');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  /**
-   * Pull approved templates from Meta and upsert them into the local
-   * catalog. After this runs, every local row is guaranteed to match
-   * something Meta will actually accept on send — stops users getting
-   * stuck on error #132001 "Template name does not exist".
-   */
-  async function handleSyncFromMeta() {
-    if (!workspace) return;
+  async function handleSync() {
     setSyncing(true);
     try {
-      const res = await fetch('/api/whatsapp/templates/sync', {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error || `Sync failed (HTTP ${res.status})`);
-      }
-      toast.success(
-        `Synced ${data.total} template${data.total === 1 ? '' : 's'} from Meta` +
-          (data.inserted || data.updated
-            ? ` (${data.inserted} new, ${data.updated} updated)`
-            : ''),
-      );
+      const res = await fetch('/api/whatsapp/templates/sync', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      toast.success(t('templates.list.synced', { total: data.total ?? 0, inserted: data.inserted ?? 0, updated: data.updated ?? 0 }));
       if (Array.isArray(data.errors) && data.errors.length > 0) {
-        // Surface per-template failures so users don't trust a green
-        // toast that hides silent drift.
-        const preview = data.errors.slice(0, 3).map(
-          (e: { name: string; language: string; message: string }) =>
-            `${e.name} (${e.language})`,
-        );
-        const suffix =
-          data.errors.length > 3 ? `, +${data.errors.length - 3} more` : '';
-        toast.error(`Failed to sync: ${preview.join(', ')}${suffix}`);
+        const names = data.errors
+          .slice(0, 3)
+          .map((e: { name: string; language: string }) => `${e.name} (${e.language})`)
+          .join(', ');
+        const more = data.errors.length > 3 ? ` +${data.errors.length - 3}` : '';
+        toast.error(t('templates.list.syncPartial', { names: `${names}${more}` }));
       }
-      if (data.truncated) {
-        toast.warning(
-          'Hit Meta pagination cap — more templates may exist. Contact support if this persists.',
-        );
-      }
+      if (data.truncated) toast.warning(t('templates.list.syncTruncated'));
       await fetchTemplates();
     } catch (err) {
-      console.error('Template sync error:', err);
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to sync templates',
-      );
+      toast.error(t('templates.list.syncError'), { description: err instanceof Error ? err.message : undefined });
     } finally {
       setSyncing(false);
     }
   }
 
-  async function handleDelete(id: string) {
+  async function handleSubmit(tpl: TemplateRow) {
+    setSubmitting(tpl.id);
     try {
-      const res = await fetch(`/api/whatsapp/templates/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      const res = await fetch(`/api/whatsapp/templates/${tpl.id}/submit`, { method: 'POST' });
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 422) {
+        toast.error(t('templates.list.submitInvalid'));
+        router.push(`/settings/templates/${tpl.id}`);
+        return;
       }
-      toast.success('Template deleted');
-      setTemplates((prev) => prev.filter((t) => t.id !== id));
+      if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`);
+      if (body.template) setTemplates((prev) => prev.map((x) => (x.id === tpl.id ? (body.template as TemplateRow) : x)));
+      if (body.submitted) toast.success(t('templates.list.submitted'));
+      else toast.error(t('templates.list.submitError'), { description: submitErrorKey(body.error) ? t(submitErrorKey(body.error)!) : body.error });
     } catch (err) {
-      console.error('Delete error:', err);
-      toast.error('Failed to delete template');
+      toast.error(t('templates.list.submitError'), { description: err instanceof Error ? err.message : undefined });
+    } finally {
+      setSubmitting(null);
     }
+  }
+
+  async function handleDelete(tpl: TemplateRow) {
+    const res = await fetch(`/api/whatsapp/templates/${tpl.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      toast.error(t('templates.list.deleteError'), { description: body?.error ?? `HTTP ${res.status}` });
+      throw new Error('delete failed');
+    }
+    toast.success(t('templates.list.deleted'));
+    setTemplates((prev) => prev.filter((x) => x.id !== tpl.id));
+    if (preview?.id === tpl.id) setPreview(null);
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="size-6 animate-spin text-primary" />
+      <div className="flex items-center justify-center py-12" role="status" aria-label={t('templates.loading')}>
+        <Loader2 className="size-6 animate-spin text-primary" aria-hidden />
       </div>
     );
   }
 
+  const editable = (s: TemplateStatus) => s === 'Draft' || s === 'Rejected';
+
+  const actions = (tpl: TemplateRow, inDialog = false) => {
+    const status = tpl.status ?? 'Draft';
+    if (!isAdmin) return null;
+    return (
+      <>
+        {editable(status) && (
+          <Link href={`/settings/templates/${tpl.id}`} className={cn(buttonVariants({ variant: 'outline', size: inDialog ? 'default' : 'sm' }), outlineBtn)}>
+            <Pencil className="size-3.5" aria-hidden />
+            {t('templates.list.edit')}
+          </Link>
+        )}
+        {status === 'Draft' && (
+          <Button size={inDialog ? 'default' : 'sm'} onClick={() => void handleSubmit(tpl)} disabled={submitting === tpl.id} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            {submitting === tpl.id ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Send className="size-3.5" aria-hidden />}
+            {t('templates.list.submit')}
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size={inDialog ? 'default' : 'icon-sm'}
+          onClick={() => setToDelete(tpl)}
+          aria-label={t('templates.list.deleteNamed', { name: tpl.name })}
+          title={t('templates.list.delete')}
+          className="text-slate-400 hover:bg-red-950/30 hover:text-red-400"
+        >
+          <Trash2 className="size-4" aria-hidden />
+          {inDialog && t('templates.list.delete')}
+        </Button>
+      </>
+    );
+  };
+
   return (
-    <div className="space-y-4 mt-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Message Templates</h2>
-          <p className="text-sm text-slate-400">
-            Create and manage your WhatsApp message templates. Meta requires
-            every template to be approved in the WhatsApp Manager before it can
-            be sent — use &quot;Sync from Meta&quot; to pull your approved list.
-          </p>
+    <div className="mt-4 space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 max-w-2xl">
+          <h2 className="text-lg font-semibold text-white">{t('templates.list.title')}</h2>
+          <p className="text-sm text-slate-400">{t('templates.list.description')}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handleSyncFromMeta}
-            disabled={syncing}
-            className="border-slate-200 dark:border-slate-700 bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60"
-            title="Pull approved templates from your Meta WhatsApp Business Account"
-          >
-            <RefreshCw
-              className={`size-4 ${syncing ? 'animate-spin' : ''}`}
-            />
-            {syncing ? 'Syncing…' : 'Sync from Meta'}
-          </Button>
-          <Button
-            onClick={() => {
-              setForm(emptyForm);
-              setDialogOpen(true);
-            }}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            <Plus className="size-4" />
-            New Template
-          </Button>
-        </div>
+        {isAdmin && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={() => void handleSync()} disabled={syncing} className={outlineBtn} title={t('templates.list.syncHint')}>
+              <RefreshCw className={cn('size-4', syncing && 'animate-spin')} aria-hidden />
+              {syncing ? t('templates.list.syncing') : t('templates.list.sync')}
+            </Button>
+            <Link href="/settings/templates/new" className={cn(buttonVariants(), 'bg-primary text-primary-foreground hover:bg-primary/90')}>
+              <Plus className="size-4" aria-hidden />
+              {t('templates.list.new')}
+            </Link>
+          </div>
+        )}
       </div>
 
-      {templates.length === 0 ? (
-        <Card className="bg-slate-900/40 border-slate-800">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-slate-400 text-sm">No templates yet.</p>
-            <p className="text-slate-400 text-xs mt-1">Create your first message template to get started.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-3">
-          {templates.map((template) => (
-            <Card key={template.id} className="bg-slate-900/40 border-slate-800">
-              <CardContent className="flex items-start justify-between pt-4">
-                <div className="space-y-2 min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-medium text-slate-200">{template.name}</h3>
-                    <Badge
-                      className={`text-xs border ${categoryColors[template.category] || ''}`}
-                    >
-                      {template.category}
-                    </Badge>
-                    <Badge
-                      className={`text-xs border ${statusColors[template.status || 'Draft'] || ''}`}
-                    >
-                      {template.status || 'Draft'}
-                    </Badge>
-                    {template.language && (
-                      <span className="text-xs text-slate-400 uppercase">{template.language}</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-400 line-clamp-2">{template.body_text}</p>
-                  {template.footer_text && (
-                    <p className="text-xs text-slate-400 italic">{template.footer_text}</p>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(template.id)}
-                  className="text-slate-400 hover:text-red-400 hover:bg-red-950/30 shrink-0 ml-2"
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </CardContent>
-            </Card>
+      {templates.length > 0 && (
+        <div role="group" aria-label={t('templates.list.filterLabel')} className="flex flex-wrap gap-1.5">
+          {FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={filter === f}
+              onClick={() => setFilter(f)}
+              className={cn(
+                'rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                filter === f ? 'border-primary bg-primary/10 text-primary' : 'border-slate-800 text-slate-400 hover:bg-slate-800/40',
+              )}
+            >
+              {f === 'all' ? t('templates.list.filterAll') : t(`templates.status.${STATUS_KEY[f]}`)} <span className="tabular-nums opacity-70">{counts[f]}</span>
+            </button>
           ))}
         </div>
       )}
 
-      {/* New Template Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-slate-200">New Message Template</DialogTitle>
-            <DialogDescription>
-              Create a new WhatsApp message template.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label className="text-slate-200">Template Name</Label>
-              <Input
-                placeholder="e.g. order_confirmation"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
+      {templates.length === 0 ? (
+        <Card className="border-slate-800 bg-slate-900/40">
+          <CardContent className="space-y-5 py-8">
+            <div className="mx-auto max-w-xl text-center">
+              <p className="font-medium text-slate-200">{t('templates.list.emptyTitle')}</p>
+              <p className="mt-1 text-sm text-slate-400">{t('templates.list.emptyBody')}</p>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-slate-200">Category</Label>
-                <Select
-                  value={form.category}
-                  onValueChange={(val) =>
-                    setForm({ ...form, category: val as MessageTemplate['category'] })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-slate-200">Language</Label>
-                <Input
-                  list="template-language-codes"
-                  placeholder="en_US"
-                  value={form.language}
-                  onChange={(e) => setForm({ ...form, language: e.target.value })}
-                />
-                <datalist id="template-language-codes">
-                  {COMMON_LANGUAGE_CODES.map((code) => (
-                    <option key={code} value={code} />
-                  ))}
-                </datalist>
-                <p className="text-[11px] text-slate-400">
-                  Must match the exact language code the template is approved
-                  under on Meta — e.g. <code>en_US</code> and <code>en</code>{' '}
-                  are distinct.
+            {isAdmin && (
+              <div>
+                <p className="mb-2 flex items-center justify-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <Sparkles className="size-3.5 text-primary" aria-hidden /> {t('templates.list.suggestions')}
                 </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-slate-200">Header Type</Label>
-              <Select
-                value={form.header_type}
-                onValueChange={(val) => setForm({ ...form, header_type: val || '' })}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">
-                    None
-                  </SelectItem>
-                  {HEADER_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </SelectItem>
+                <ul className="grid gap-2 sm:grid-cols-2">
+                  {TEMPLATE_SUGGESTIONS.map((s) => (
+                    <li key={s.id}>
+                      <Link
+                        href={`/settings/templates/new?suggestion=${s.id}`}
+                        className="block h-full rounded-lg border border-slate-800 p-3 transition-colors hover:border-primary/50 hover:bg-slate-800/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-slate-200">{s.title[lang]}</span>
+                          <Badge className={cn('border text-[10px]', categoryColors[s.category])}>{t(`templates.category.${CATEGORY_KEY[s.category]}`)}</Badge>
+                        </span>
+                        {s.body[lang] && <span className="mt-1 line-clamp-2 block text-xs text-slate-400">{s.body[lang]}</span>}
+                      </Link>
+                    </li>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
+                </ul>
+                <div className="mt-4 flex justify-center">
+                  <Link href="/settings/templates/new" className={cn(buttonVariants({ variant: 'outline' }), outlineBtn)}>
+                    <Plus className="size-4" aria-hidden />
+                    {t('templates.list.startBlank')}
+                  </Link>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : shown.length === 0 ? (
+        <p className="rounded-lg border border-slate-800 bg-slate-900/40 p-6 text-center text-sm text-slate-400">{t('templates.list.noneInFilter')}</p>
+      ) : (
+        <ul className="grid gap-3">
+          {shown.map((tpl) => {
+            const status = tpl.status ?? 'Draft';
+            const d = draftFromRow(tpl);
+            return (
+              <li key={tpl.id}>
+                <Card className="border-slate-800 bg-slate-900/40">
+                  <CardContent className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-start sm:justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setPreview(tpl)}
+                      className="min-w-0 flex-1 space-y-2 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={t('templates.list.previewNamed', { name: tpl.name })}
+                    >
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="break-all font-medium text-slate-200">{tpl.name}</span>
+                        <Badge className={cn('border text-xs', categoryColors[tpl.category] ?? '')}>{t(`templates.category.${CATEGORY_KEY[tpl.category] ?? 'marketing'}`)}</Badge>
+                        <Badge className={cn('border text-xs', statusColors[status])}>{t(`templates.status.${STATUS_KEY[status]}`)}</Badge>
+                        <span className="text-xs text-slate-400">{languageLabel(tpl.language)}</span>
+                      </span>
+                      <span className="line-clamp-2 block text-sm text-slate-400">{d.category === 'Authentication' ? t('templates.list.authBody') : d.body}</span>
+                      {status === 'Rejected' && tpl.rejection_reason && (
+                        <span className="block rounded-md border border-red-600/30 bg-red-600/10 px-2 py-1 text-xs text-red-500 dark:text-red-400">
+                          {t('templates.list.rejectedReason', { reason: tpl.rejection_reason })}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1 text-xs text-primary">
+                        <Eye className="size-3.5" aria-hidden /> {t('templates.list.preview')}
+                      </span>
+                    </button>
+                    {isAdmin && <div className="flex shrink-0 flex-wrap items-center gap-1.5">{actions(tpl)}</div>}
+                  </CardContent>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
-            <div className="space-y-2">
-              <Label className="text-slate-200">Body Text</Label>
-              <Textarea
-                placeholder="Enter your template message body. Use {{1}}, {{2}} for variables."
-                value={form.body_text}
-                onChange={(e) => setForm({ ...form, body_text: e.target.value })}
-                rows={4}
-                className="resize-none"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-slate-200">Footer Text</Label>
-              <Input
-                placeholder="Optional footer text"
-                value={form.footer_text}
-                onChange={(e) => setForm({ ...form, footer_text: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                'Create Template'
+      <Dialog open={!!preview} onOpenChange={(open) => !open && setPreview(null)}>
+        <DialogContent className="sm:max-w-md">
+          {preview && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="break-all">{preview.name}</DialogTitle>
+                <DialogDescription>
+                  {t(`templates.category.${CATEGORY_KEY[preview.category] ?? 'marketing'}`)} · {languageLabel(preview.language)} · {t(`templates.status.${STATUS_KEY[preview.status ?? 'Draft']}`)}
+                </DialogDescription>
+              </DialogHeader>
+              {preview.status === 'Rejected' && preview.rejection_reason && (
+                <p role="status" className="rounded-md border border-red-600/30 bg-red-600/10 px-3 py-2 text-sm text-red-500 dark:text-red-400">
+                  {t('templates.list.rejectedReason', { reason: preview.rejection_reason })}
+                </p>
               )}
-            </Button>
-          </DialogFooter>
+              <TemplatePreview draft={draftFromRow(preview)} />
+              {isAdmin && <DialogFooter>{actions(preview, true)}</DialogFooter>}
+            </>
+          )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmationDialog
+        isOpen={!!toDelete}
+        onOpenChange={(open) => !open && setToDelete(null)}
+        title={t('templates.list.deleteTitle')}
+        description={toDelete?.meta_template_id ? t('templates.list.deleteBodyMeta', { name: toDelete?.name ?? '' }) : t('templates.list.deleteBody', { name: toDelete?.name ?? '' })}
+        confirmText={t('templates.list.delete')}
+        cancelText={t('templates.cancel')}
+        variant="destructive"
+        onConfirm={() => (toDelete ? handleDelete(toDelete) : undefined)}
+      />
     </div>
   );
 }

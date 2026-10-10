@@ -103,7 +103,8 @@
         "exchange": "We couldn't get access to your pages. Please try again.",
         "no_pages": "Your Facebook account doesn't manage any page (or you didn't select one).",
         "too_many": "You selected too many pages. Try again with fewer."
-      }
+      },
+      "notEnabled": "Direct Facebook and Instagram connection isn't enabled on this platform yet. The Whasalia administrator needs to set up the Meta app (App ID and login configuration)."
     },
     "tiktok": {
       "soon": "Coming soon / requires TikTok approval",

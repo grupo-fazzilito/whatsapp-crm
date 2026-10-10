@@ -1,0 +1,244 @@
+{
+  "templates": {
+    "loading": "Loading templates…",
+    "cancel": "Cancel",
+    "adminOnly": "Only admins can create and edit templates.",
+    "category": {
+      "marketing": "Marketing",
+      "utility": "Utility",
+      "authentication": "Authentication"
+    },
+    "status": {
+      "draft": "Draft",
+      "pending": "In review",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "sources": {
+      "contactName": "Contact name",
+      "contactPhone": "Phone",
+      "contactEmail": "Email",
+      "contactCompany": "Company",
+      "workspaceName": "Business name",
+      "manual": "You choose when sending"
+    },
+    "list": {
+      "title": "Message templates",
+      "description": "Create your WhatsApp templates, check how your customers will see them and submit them to Meta for approval. Only approved templates can be sent.",
+      "new": "New template",
+      "sync": "Sync with Meta",
+      "syncing": "Syncing…",
+      "syncHint": "Pull templates and their status from your WhatsApp Business account on Meta",
+      "synced": "{total} templates synced ({inserted} new, {updated} updated)",
+      "syncPartial": "Could not sync: {names}",
+      "syncTruncated": "Meta has more templates than we could fetch. Contact support if any are missing.",
+      "syncError": "Could not sync with Meta",
+      "loadError": "Could not load templates",
+      "filterLabel": "Filter by status",
+      "filterAll": "All",
+      "noneInFilter": "No templates with this status.",
+      "emptyTitle": "You have no templates yet",
+      "emptyBody": "WhatsApp only lets you message a customer freely within 24 hours of their last message. Outside that window, and for campaigns and reminders, you need templates approved by Meta.",
+      "suggestions": "Start with a suggestion",
+      "startBlank": "Start from scratch",
+      "preview": "View preview",
+      "previewNamed": "View preview of {name}",
+      "authBody": "Verification code (text written by Meta)",
+      "rejectedReason": "Rejection reason: {reason}",
+      "edit": "Edit",
+      "submit": "Submit for review",
+      "submitted": "Template submitted for review",
+      "submitError": "Meta did not accept the template",
+      "submitInvalid": "The template has fields to fix before submitting it",
+      "delete": "Delete",
+      "deleteNamed": "Delete {name}",
+      "deleteTitle": "Delete template?",
+      "deleteBody": "“{name}” will be deleted. This cannot be undone.",
+      "deleteBodyMeta": "“{name}” will be deleted here and in your WhatsApp account on Meta. This cannot be undone.",
+      "deleted": "Template deleted",
+      "deleteError": "Could not delete the template"
+    },
+    "editor": {
+      "back": "Back to templates",
+      "newTitle": "New template",
+      "editTitle": "Edit template",
+      "subtitle": "Write your message, see how your customer will see it on WhatsApp and submit it to Meta for approval.",
+      "loadError": "Could not load the template",
+      "readOnly": "This template was already submitted to Meta. You can only edit drafts and rejected templates.",
+      "rejectedTitle": "Meta rejected this template. Fix it and submit it again.",
+      "fixIssues": "Check the highlighted fields before continuing",
+      "saved": "Draft saved",
+      "saveError": "Could not save the template",
+      "saveDraft": "Save draft",
+      "submit": "Submit to WhatsApp for approval",
+      "suggestion": {
+        "title": "Start from a suggestion",
+        "description": "Pick a model and adapt it to your business. It replaces what you have written.",
+        "placeholder": "Choose a suggested template"
+      },
+      "basics": {
+        "title": "Basics",
+        "titleLabel": "Title",
+        "titlePlaceholder": "e.g. Order confirmation",
+        "metaName": "Name on Meta:",
+        "advanced": "Advanced",
+        "nameLabel": "Name on Meta",
+        "nameHelp": "Lowercase letters, numbers and underscores (_) only. It cannot be changed after submitting.",
+        "nameLocked": "(cannot be changed because it is already on Meta)",
+        "channel": "WhatsApp number",
+        "channelPlaceholder": "Choose a number",
+        "channelHelp": "The template is registered in this number's WhatsApp Business account.",
+        "channelOff": "disconnected",
+        "category": "Category",
+        "categoryHelp": {
+          "marketing": "Promotions and news.",
+          "utility": "Confirmations, reminders and orders.",
+          "authentication": "Verification codes."
+        },
+        "reclassify": "Meta may change the category if it decides the content belongs to another one.",
+        "language": "Language",
+        "languageHelp": "Must be the language the message is written in. This exact code is used when sending."
+      },
+      "auth": {
+        "title": "Verification code",
+        "description": "For authentication templates Meta writes the text: “{{1}} is your verification code…”, with a button to copy the code. You only choose how long the code lasts.",
+        "expiration": "Code expires in (minutes)",
+        "expirationHelp": "Between 1 and 90 minutes. Shown in the message footer."
+      },
+      "header": {
+        "title": "Header",
+        "description": "Optional. A short title or a file above the message.",
+        "types": {
+          "none": "None",
+          "text": "Text",
+          "image": "Image",
+          "video": "Video",
+          "document": "Document"
+        },
+        "textLabel": "Header text",
+        "textPlaceholder": "e.g. Your order is confirmed",
+        "textHelp": "Up to 60 characters and a single variable.",
+        "upload": {
+          "image": "Upload image",
+          "video": "Upload video",
+          "document": "Upload PDF"
+        },
+        "replace": "Change file",
+        "limits": {
+          "image": "JPG or PNG, up to 5 MB.",
+          "video": "MP4, up to 16 MB.",
+          "document": "PDF, up to 100 MB."
+        },
+        "sampleHelp": "This is the sample Meta reviews; you can use a different file on each send.",
+        "sampleAlt": "Header sample file",
+        "badType": {
+          "image": "The image must be JPG or PNG",
+          "video": "The video must be MP4",
+          "document": "The document must be a PDF"
+        },
+        "tooBig": "The file exceeds the {max} MB limit",
+        "uploadError": "Could not upload the file"
+      },
+      "body": {
+        "title": "Message",
+        "description": "The main text. Use variables to personalize it with each customer's data.",
+        "toolbar": "Message formatting",
+        "insertVariable": "Insert variable",
+        "customVariable": "Custom variable…",
+        "customLabel": "Variable name",
+        "customPlaceholder": "e.g. Discount code",
+        "customAdd": "Add",
+        "bold": "Bold",
+        "italic": "Italic",
+        "strike": "Strikethrough",
+        "placeholder": "Hi {{nombre_cliente}}, …",
+        "help": "WhatsApp formatting: *bold*, _italic_, ~strikethrough~. The message cannot start or end with a variable."
+      },
+      "variables": {
+        "title": "Variables",
+        "description": "Meta needs a sample of each variable to review the template. Also choose where the value comes from when sending.",
+        "label": "Name",
+        "example": "Sample",
+        "source": "Filled with"
+      },
+      "footer": {
+        "title": "Footer",
+        "description": "Optional. Small gray text at the end, no variables.",
+        "label": "Footer text",
+        "placeholder": "e.g. Reply STOP to unsubscribe"
+      },
+      "buttons": {
+        "title": "Buttons",
+        "description": "Optional. Up to 10 buttons below the message.",
+        "add": "Add button",
+        "types": {
+          "quick_reply": "Quick reply",
+          "url": "Open link",
+          "phone": "Call"
+        },
+        "text": "Button text",
+        "url": "Link (URL)",
+        "phone": "Phone number",
+        "dynamic": "Ends with a variable value",
+        "dynamicExample": "Sample of the variable value",
+        "dynamicHelp": "Sample of the final link: {url}",
+        "remove": "Remove button {n}",
+        "limits": "Up to 2 link buttons and 1 call button."
+      },
+      "result": {
+        "successTitle": "In review",
+        "successBody": "Meta usually replies within minutes, up to 24 h. You will see the result in the templates list.",
+        "errorTitle": "Meta did not accept the template",
+        "errorBody": "We saved it as a draft. This is Meta's message:",
+        "keepEditing": "Keep editing",
+        "back": "Back to templates"
+      }
+    },
+    "preview": {
+      "title": "Preview",
+      "label": "WhatsApp preview",
+      "note": "This is how your customer will see the message. The exact look may vary slightly by phone.",
+      "modeLabel": "Preview mode",
+      "withExamples": "Show samples",
+      "withVariables": "Show variables",
+      "business": "Your business",
+      "businessAccount": "Business account",
+      "today": "Today",
+      "emptyBody": "Write the message…",
+      "documentName": "document.pdf",
+      "buttonPlaceholder": "Button",
+      "allOptions": "See all options"
+    },
+    "issues": {
+      "name_format": "The name on Meta can only contain lowercase letters, numbers and underscores.",
+      "name_taken": "A template with this name and language already exists. Use another name.",
+      "language_required": "Choose the template language.",
+      "body_required": "Write the message.",
+      "body_too_long": "The message is longer than 1024 characters.",
+      "variable_at_edge": "The message cannot start or end with a variable. Add text before or after it.",
+      "too_many_variables": "Too many variables for the length of the text. Add more words or remove variables.",
+      "variable_undefined": "The variable “{detail}” is not defined.",
+      "example_required": "Write a sample for “{detail}”.",
+      "header_required": "Write the header text or choose “None”.",
+      "header_too_long": "The header is longer than 60 characters.",
+      "header_one_variable": "The header can only have one variable.",
+      "media_required": "Upload the header sample file.",
+      "footer_too_long": "The footer is longer than 60 characters.",
+      "footer_no_variables": "The footer cannot contain variables.",
+      "too_many_buttons": "Up to 10 buttons.",
+      "too_many_url_buttons": "Up to 2 link buttons.",
+      "too_many_phone_buttons": "Up to 1 call button.",
+      "button_text": "Each button needs a text of up to 25 characters.",
+      "button_url": "The link must start with https:// (or http://) and have no spaces.",
+      "button_url_example": "Write a sample of the link's variable value.",
+      "button_phone": "Enter a valid phone number with country code (e.g. +1 555 123 4567)."
+    },
+    "errors": {
+      "whatsapp_not_connected": "Your WhatsApp number isn't connected. Connect it in Channels and try again.",
+      "waba_missing": "The channel is missing the WhatsApp Business Account (WABA) ID. Reconnect the number from Channels.",
+      "app_id_missing": "Templates with an image, video or document need the platform's Meta App ID. Tell your administrator.",
+      "media_not_found": "We couldn't find the header file. Upload it again.",
+      "media_upload_failed": "Meta couldn't receive the header file. Try another file."
+    }
+  }
+}

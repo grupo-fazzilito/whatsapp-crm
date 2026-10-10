@@ -90,7 +90,8 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
   const pick = (type: ChannelType) => {
     if (type === 'tiktok' && !features.tiktok) return;
     setName(type === 'webchat' ? t('channels.webchat.defaultName') : CHANNEL_STYLE[type].label);
-    setManualMeta(type === 'whatsapp' ? !features.whatsappSignup : !features.metaOAuth);
+    // The direct "connect" button always comes first; manual setup is an advanced link.
+    setManualMeta(false);
     setStep({ kind: 'form', type });
   };
 
@@ -187,12 +188,18 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
                 <p className="text-sm text-muted-foreground">{t('channels.meta.oauthIntro')}</p>
                 <button
                   type="button"
+                  disabled={!features.metaOAuth}
                   onClick={() => window.location.assign('/api/channels/meta/oauth/start')}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#1877F2] px-4 text-sm font-medium text-white hover:bg-[#166fe0]"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#1877F2] px-4 text-sm font-medium text-white hover:bg-[#166fe0] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <ExternalLink className="size-4" />
                   {t('channels.meta.continueWithFacebook')}
                 </button>
+                {!features.metaOAuth && (
+                  <p role="note" className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                    {t('channels.meta.notEnabled')}
+                  </p>
+                )}
                 <button type="button" className="text-xs text-muted-foreground underline underline-offset-2" onClick={() => setManualMeta(true)}>
                   {t('channels.meta.manualInstead')}
                 </button>

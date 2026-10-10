@@ -152,6 +152,15 @@ export function resolveTemplateComponents(
     }
   }
 
+  // Media header: the sample uploaded with the template is sent as the media.
+  if (
+    (template.header_type === 'image' || template.header_type === 'video' || template.header_type === 'document') &&
+    template.header_media_url
+  ) {
+    const kind = template.header_type;
+    components.push({ type: 'header', parameters: [{ type: kind, [kind]: { link: template.header_media_url } }] });
+  }
+
   // 2. Body component
   const bodyMatches = template.body_text.match(/\{\{(\d+)\}\}/g);
   if (bodyMatches && bodyMatches.length > 0) {
@@ -174,8 +183,11 @@ export function resolveTemplateComponents(
   // 3. Button components
   if (template.buttons && Array.isArray(template.buttons)) {
     template.buttons.forEach((btn: any, btnIndex: number) => {
-      if (btn.type === 'URL' && btn.url) {
-        const btnMatches = btn.url.match(/\{\{(\d+)\}\}/g);
+      // Synced templates store Meta's shape (type 'URL', url); the editor
+      // stores type 'url' with the address in `value`.
+      const url: string | undefined = btn.url ?? btn.value;
+      if ((btn.type === 'URL' || btn.type === 'url') && url) {
+        const btnMatches = url.match(/\{\{(\d+)\}\}/g);
         if (btnMatches && btnMatches.length > 0) {
           const btnParams = btnMatches.map((m: string) => {
             const key = `button_${btnIndex}_${m.replace(/^\{\{|\}\}$/g, '')}`;

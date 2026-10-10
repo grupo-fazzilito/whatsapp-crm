@@ -4,7 +4,8 @@ import { prisma } from '@/lib/db/prisma'
 import { verifyMetaWebhookRequest } from '@/lib/whatsapp/webhook-signature'
 import { getMetaConfig } from '@/lib/platform/meta'
 import { decrypt } from '@/lib/whatsapp/encryption'
-import { parseWhatsAppCoexistence, parseWhatsAppWebhook, type CoexBatch, type WaWebhookBody } from '@/lib/channels/parsers/whatsapp'
+import { parseTemplateStatusUpdates, parseWhatsAppCoexistence, parseWhatsAppWebhook, type CoexBatch, type WaWebhookBody } from '@/lib/channels/parsers/whatsapp'
+import { applyTemplateStatusUpdate } from '@/lib/templates/meta'
 import { parseMetaMessagingWebhook, type MetaMessagingBody } from '@/lib/channels/parsers/meta-messaging'
 import { findChannelByExternalId } from '@/lib/channels/store'
 import { ingestEvents } from '@/lib/messaging/ingest'
@@ -125,6 +126,14 @@ export async function POST(request: Request) {
   }
   if (coex.length > 0) {
     after(() => dispatchCoexistence(coex).catch((err) => console.error('[webhook] coexistence failed:', err)))
+  }
+  // Template review results (approved / rejected / paused). Only from the
+  // platform app: a channel's own app could otherwise name any template id.
+  const templateUpdates = body.object === 'whatsapp_business_account' && !allowed ? parseTemplateStatusUpdates(body as WaWebhookBody) : []
+  if (templateUpdates.length > 0) {
+    after(async () => {
+      for (const u of templateUpdates) await applyTemplateStatusUpdate(u).catch((err) => console.error('[webhook] template status failed:', err))
+    })
   }
   return NextResponse.json({ status: 'received' }, { status: 200 })
 }

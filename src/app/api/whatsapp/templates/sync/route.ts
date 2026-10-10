@@ -51,6 +51,7 @@ interface MetaTemplate {
   name: string
   language: string
   status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'PAUSED'
+  rejected_reason?: string
   category: string
   components?: MetaTemplateComponent[]
 }
@@ -88,6 +89,23 @@ function normalizeStatus(
     default:
       return 'Draft'
   }
+}
+
+/** Meta buttons → the editor's button shape (OTP and other special buttons are skipped). */
+function editorButtons(buttons: any[] | undefined): Prisma.InputJsonValue | typeof Prisma.DbNull {
+  const out = (buttons ?? []).flatMap((b) => {
+    if (b?.type === 'QUICK_REPLY') return [{ type: 'quick_reply', text: String(b.text ?? '') }]
+    if (b?.type === 'URL') return [{ type: 'url', text: String(b.text ?? ''), value: String(b.url ?? ''), ...(Array.isArray(b.example) && b.example[0] ? { example: String(b.example[0]).split('/').pop() } : {}) }]
+    if (b?.type === 'PHONE_NUMBER') return [{ type: 'phone', text: String(b.text ?? ''), value: String(b.phone_number ?? '') }]
+    return []
+  })
+  return out.length ? out : Prisma.DbNull
+}
+
+/** Placeholder variables for a template created outside Whasalia ({{1}} → "Variable 1"). */
+function positionalVariables(body: string) {
+  const seen = [...new Set([...body.matchAll(/\{\{\s*(\d+)\s*\}\}/g)].map((m) => Number(m[1])))].sort((a, b) => a - b)
+  return seen.map((n) => ({ key: `variable_${n}`, label: `Variable ${n}`, example: '', source: 'manual', index: n }))
 }
 
 export async function POST(request: Request) {
@@ -133,7 +151,7 @@ export async function POST(request: Request) {
     const metaTemplates: MetaTemplate[] = []
     let nextUrl:
       | string
-      | null = `${META_API_BASE}/${wabaId}/message_templates?limit=100&fields=id,name,language,status,category,components`
+      | null = `${META_API_BASE}/${wabaId}/message_templates?limit=100&fields=id,name,language,status,category,components,rejected_reason`
     const PAGE_CAP = 20
     let pageCount = 0
 
@@ -174,6 +192,7 @@ export async function POST(request: Request) {
       const footer = (t.components ?? []).find((c) => c.type === 'FOOTER')
       const buttonsComp = (t.components ?? []).find((c) => c.type === 'BUTTONS')
 
+      const status = normalizeStatus(t.status)
       const row = {
         workspace_id: workspace.id,
         channel_id: channel.id,
@@ -184,11 +203,12 @@ export async function POST(request: Request) {
         header_content: header?.text ?? null,
         body_text: body?.text ?? '',
         footer_text: footer?.text ?? null,
-        buttons: buttonsComp?.buttons ?? Prisma.DbNull,
-        status: normalizeStatus(t.status),
+        buttons: editorButtons(buttonsComp?.buttons),
+        status,
+        meta_template_id: t.id,
+        rejection_reason: status === 'Rejected' ? (t.rejected_reason && t.rejected_reason !== 'NONE' ? t.rejected_reason : t.status) : null,
         updated_at: new Date().toISOString(),
       }
-
       const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
       let existing: { id: string } | null
@@ -219,7 +239,7 @@ export async function POST(request: Request) {
         }
       } else {
         try {
-          await db.message_templates.create({ data: row })
+          await db.message_templates.create({ data: { ...row, variables: positionalVariables(row.body_text) as unknown as Prisma.InputJsonValue } })
           inserted++
         } catch (err) {
           errors.push({
