@@ -37,7 +37,8 @@
       "t4": "Acceso por roles",
       "t5": "Soporte para empresas",
       "disclaimer": "\"Whasalia usa soluciones de la API de WhatsApp Business conforme a las políticas de Meta y WhatsApp Business. Los negocios son responsables de obtener el consentimiento de los usuarios antes de iniciar una comunicación.\"",
-      "rights": "© 2026 Whasalia. Todos los derechos reservados."
+      "rights": "© 2026 Whasalia. Todos los derechos reservados.",
+      "changelog": "Novedades"
     },
     "meta": {
       "home": {
@@ -139,7 +140,21 @@
       "dataDeletion": {
         "title": "Eliminación de datos",
         "description": "Cómo solicitar la eliminación de tus datos de Whasalia."
+      },
+      "changelog": {
+        "title": "Novedades",
+        "description": "Mejoras y correcciones de Whasalia, de la más reciente a la más antigua."
       }
+    }
+  },
+  "mktChangelog": {
+    "badge": "Novedades",
+    "title": "Novedades de Whasalia",
+    "subtitle": "Todas las mejoras y correcciones que vamos publicando, de la más reciente a la más antigua.",
+    "kind": {
+      "new": "Nuevo",
+      "improved": "Mejora",
+      "fixed": "Corrección"
     }
   }
 }
