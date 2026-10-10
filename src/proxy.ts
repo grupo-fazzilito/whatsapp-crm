@@ -38,7 +38,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Protected pages - redirect to login if not authenticated
-  const protectedPaths = ['/dashboard', '/inbox', '/contacts', '/pipelines', '/broadcasts', '/automations', '/flows', '/settings', '/healthcare', '/business', '/catalog', '/orders', '/agents', '/channels', '/tasks', '/reports', '/captures', '/real-estate', '/support']
+  const protectedPaths = ['/dashboard', '/inbox', '/contacts', '/pipelines', '/broadcasts', '/automations', '/flows', '/settings', '/healthcare', '/business', '/catalog', '/orders', '/agents', '/channels', '/tasks', '/reports', '/captures', '/real-estate', '/support', '/welcome']
   if (!signedIn && protectedPaths.some((p) => path.startsWith(p))) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { DashboardShell } from "./dashboard-shell";
 import { I18nProvider } from "@/i18n/client";
 import { getLocale } from "@/i18n/server";
+import { redirect } from "next/navigation";
+import { getSessionUser } from "@/lib/auth/session";
+import { getWorkspaceContext } from "@/lib/workspace/context";
 
 // Server layout whose only job is to declare "do not index" metadata
 // for the authed app. robots.ts already disallows these paths at the
@@ -26,6 +29,8 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Signed in without a business yet (Google / Facebook sign-up): set it up first.
+  if (!(await getWorkspaceContext()) && (await getSessionUser())) redirect("/welcome");
   const locale = await getLocale();
   return (
     <I18nProvider locale={locale}>
