@@ -43,6 +43,7 @@ import {
   engineSendText,
 } from "./meta-send";
 import { decideFallback, resolveFallbackPolicy } from "./fallback";
+import { matchMenuReply, menuDisplay, menuOptions, numberedMenuText } from "./options";
 import type { AiAgentRow } from "@/lib/ai/types";
 import {
   type CollectInputNodeConfig,
@@ -381,7 +382,9 @@ async function sendButtonsAndSuspend(
   node: FlowNodeRow,
 ): Promise<{ outcome: "advanced"; node_key: string }> {
   const cfg = node.config as unknown as SendButtonsNodeConfig;
-  const { whatsapp_message_id } = await engineSendInteractiveButtons({
+  const { whatsapp_message_id } = menuDisplay(node.config) === "numbered"
+    ? await sendNumberedMenu(run, node)
+    : await engineSendInteractiveButtons({
     workspaceId: run.workspace_id,
     conversationId: run.conversation_id!,
     contactId: run.contact_id!,
@@ -406,7 +409,9 @@ async function sendListAndSuspend(
   node: FlowNodeRow,
 ): Promise<{ outcome: "advanced"; node_key: string }> {
   const cfg = node.config as unknown as SendListNodeConfig;
-  const { whatsapp_message_id } = await engineSendInteractiveList({
+  const { whatsapp_message_id } = menuDisplay(node.config) === "numbered"
+    ? await sendNumberedMenu(run, node)
+    : await engineSendInteractiveList({
     workspaceId: run.workspace_id,
     conversationId: run.conversation_id!,
     contactId: run.contact_id!,
@@ -429,6 +434,22 @@ async function sendListAndSuspend(
   });
   await storePromptMessage(db, run, whatsapp_message_id);
   return { outcome: "advanced", node_key: node.node_key };
+}
+
+/** A menu node sent as plain text: "1. … 2. …" (the customer types the number). */
+function sendNumberedMenu(run: FlowRunRow, node: FlowNodeRow) {
+  const cfg = node.config as unknown as { text: string; header_text?: string; footer_text?: string };
+  return engineSendText({
+    workspaceId: run.workspace_id,
+    conversationId: run.conversation_id!,
+    contactId: run.contact_id!,
+    text: numberedMenuText({
+      text: interpolateVars(cfg.text, run.vars),
+      header: cfg.header_text,
+      footer: cfg.footer_text,
+      options: menuOptions(node),
+    }),
+  });
 }
 
 /**
@@ -990,17 +1011,17 @@ async function handleReplyForActiveRun(
   }
 
   // Two ways a reply can advance:
-  //   1. Interactive button/list tap on a send_buttons/send_list node.
+  //   1. A menu answer on a send_buttons/send_list node: the tapped
+  //      option, or one typed as its number or title ("1", "dos", "Ventas").
   //   2. Text reply on a collect_input node — capture into vars.
   //
   // Everything else falls through to the fallback policy below.
   let matched: string | null = null;
   if (
-    message.kind === "interactive_reply" &&
-    (currentNode.node_type === "send_buttons" ||
-      currentNode.node_type === "send_list")
+    currentNode.node_type === "send_buttons" ||
+    currentNode.node_type === "send_list"
   ) {
-    matched = matchReplyId(currentNode, message.reply_id);
+    matched = matchMenuReply(currentNode, message);
   } else if (
     message.kind === "text" &&
     currentNode.node_type === "collect_input"

@@ -1,5 +1,6 @@
-import { BusinessDashboard } from '@/components/business/dashboard/business-dashboard';
+import { redirect } from 'next/navigation';
 
+// The business numbers now live as widgets on the main dashboard.
 export default function BusinessDashboardPage() {
-  return <BusinessDashboard />;
+  redirect('/dashboard');
 }

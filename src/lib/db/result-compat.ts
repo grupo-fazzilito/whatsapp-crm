@@ -406,5 +406,18 @@ export const resultCompat = Prisma.defineExtension({
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
     },
+    platform_webhook_endpoints: {
+      disabled_at: { needs: { disabled_at: true }, compute: (r) => r.disabled_at === null ? null : r.disabled_at.toISOString() },
+      last_success_at: { needs: { last_success_at: true }, compute: (r) => r.last_success_at === null ? null : r.last_success_at.toISOString() },
+      last_failure_at: { needs: { last_failure_at: true }, compute: (r) => r.last_failure_at === null ? null : r.last_failure_at.toISOString() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
+    platform_webhook_deliveries: {
+      next_attempt_at: { needs: { next_attempt_at: true }, compute: (r) => r.next_attempt_at === null ? null : r.next_attempt_at.toISOString() },
+      last_attempt_at: { needs: { last_attempt_at: true }, compute: (r) => r.last_attempt_at === null ? null : r.last_attempt_at.toISOString() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
   },
 })

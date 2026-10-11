@@ -112,6 +112,16 @@
       "cleared": "The conversation follows the channel's setup again",
       "transferred": "Transferred",
       "noAiConfigured": "No AI agent"
+    },
+    "flowMenu": {
+      "display": "How it's shown",
+      "native": "WhatsApp buttons",
+      "nativeList": "Drop-down list",
+      "numbered": "Numbered text",
+      "nativeHelp": "The customer taps an option. They can also type its number (1, 2, 3…) or its name.",
+      "numberedHelp": "Sent as text with numbered options. The customer replies with the number (1, 2, \"two\", \"option 2\") or the option's name. Up to 10 options.",
+      "preview": "What the customer sees",
+      "defaultFooter": "Reply with the number of your choice."
     }
   }
 }

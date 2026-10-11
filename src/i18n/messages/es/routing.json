@@ -112,6 +112,16 @@
       "cleared": "La conversación vuelve a la configuración del canal",
       "transferred": "Transferida",
       "noAiConfigured": "Sin agente de IA"
+    },
+    "flowMenu": {
+      "display": "Cómo se muestra",
+      "native": "Botones de WhatsApp",
+      "nativeList": "Lista desplegable",
+      "numbered": "Texto numerado",
+      "nativeHelp": "El cliente toca una opción. También puede escribir su número (1, 2, 3…) o su nombre.",
+      "numberedHelp": "Se envía como texto con las opciones numeradas. El cliente responde con el número (1, 2, \"dos\", \"opción 2\") o el nombre de la opción. Hasta 10 opciones.",
+      "preview": "Así lo verá el cliente",
+      "defaultFooter": "Responde con el número de la opción."
     }
   }
 }

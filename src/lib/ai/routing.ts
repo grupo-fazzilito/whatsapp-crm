@@ -4,6 +4,7 @@ import type { Prisma } from '@/generated/prisma/client'
 import { sendMessage } from '@/lib/messaging/send'
 import type { LoadedChannel, OutboundContent } from '@/lib/channels'
 import { handOverToHuman, runAgent } from './engine'
+import { matchTypedOption } from '@/lib/flows/options'
 import type { AiAgentRow, ConversationAiState, WelcomeMenu, WelcomeMenuOption } from './types'
 
 const MENU_PREFIX = 'menu:'
@@ -21,11 +22,8 @@ export function matchMenuOption(menu: WelcomeMenu, text: string, interactiveRepl
     const id = interactiveReplyId.slice(MENU_PREFIX.length)
     return menu.options.find((o) => o.id === id) ?? null
   }
-  const t = text.trim().toLowerCase().replace(/[.!¡¿?]/g, '')
-  if (!t) return null
-  const n = Number(t)
-  if (Number.isInteger(n) && n >= 1 && n <= menu.options.length) return menu.options[n - 1]
-  return menu.options.find((o) => o.label.trim().toLowerCase() === t) ?? null
+  // "2", "opción 2", "dos", "la segunda", the label, or the label in a sentence.
+  return matchTypedOption(menu.options.map((option) => ({ option, title: option.label })), text)?.option ?? null
 }
 
 async function sendMenu(workspaceId: string, conversationId: string, menu: WelcomeMenu) {
