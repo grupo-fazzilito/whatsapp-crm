@@ -16,6 +16,7 @@ export function Footer() {
     { name: t("mktShell.nav.pricing"), href: lp("/pricing") },
     { name: t("mktShell.nav.aiAutomation"), href: lp("/ai-automation") },
     { name: t("mktShell.footer.useCases"), href: lp("/") },
+    { name: t("mktShell.footer.changelog"), href: lp("/changelog") },
   ];
 
   const quickLinks = [

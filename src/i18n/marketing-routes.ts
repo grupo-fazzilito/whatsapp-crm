@@ -28,6 +28,7 @@ export const MARKETING_PATHS = [
   '/terms-and-conditions',
   '/terms-of-service',
   '/data-deletion',
+  '/changelog',
 ] as const
 
 const SET = new Set<string>(MARKETING_PATHS)
