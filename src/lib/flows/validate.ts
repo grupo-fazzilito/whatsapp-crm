@@ -24,6 +24,7 @@
  */
 
 import { INTERACTIVE_LIMITS } from "@/lib/whatsapp/meta-api";
+import { NUMBERED_LIMITS } from "./options";
 
 export interface ValidationIssue {
   severity: "error" | "warning";
@@ -257,6 +258,7 @@ function validateNode(
     case "send_buttons": {
       const cfg = node.config as {
         text?: string;
+        display?: string;
         buttons?: Array<{
           reply_id?: string;
           title?: string;
@@ -282,13 +284,19 @@ function validateNode(
           message: "Send-buttons needs at least one button.",
         });
       }
-      if (btns.length > INTERACTIVE_LIMITS.maxButtons) {
+      // A numbered text menu isn't bound by Meta's button caps.
+      const numbered = cfg.display === "numbered";
+      const maxButtons = numbered ? NUMBERED_LIMITS.maxOptions : INTERACTIVE_LIMITS.maxButtons;
+      const maxTitle = numbered ? NUMBERED_LIMITS.optionTitleMaxLength : INTERACTIVE_LIMITS.buttonTitleMaxLength;
+      if (btns.length > maxButtons) {
         issues.push({
           severity: "error",
           scope: "node",
           node_key: node.node_key,
           field: "buttons",
-          message: `WhatsApp allows at most ${INTERACTIVE_LIMITS.maxButtons} buttons per message.`,
+          message: numbered
+            ? `A numbered menu allows at most ${maxButtons} options.`
+            : `WhatsApp allows at most ${maxButtons} buttons per message. Switch to a numbered menu for more.`,
         });
       }
       const seenIds = new Set<string>();
@@ -321,13 +329,15 @@ function validateNode(
             field: `${field}.title`,
             message: `Button ${i + 1} needs a title.`,
           });
-        } else if (b.title.length > INTERACTIVE_LIMITS.buttonTitleMaxLength) {
+        } else if (b.title.length > maxTitle) {
           issues.push({
             severity: "error",
             scope: "node",
             node_key: node.node_key,
             field: `${field}.title`,
-            message: `Button ${i + 1} title is over ${INTERACTIVE_LIMITS.buttonTitleMaxLength} chars (WhatsApp limit).`,
+            message: numbered
+              ? `Option ${i + 1} title is over ${maxTitle} chars.`
+              : `Button ${i + 1} title is over ${maxTitle} chars (WhatsApp limit).`,
           });
         }
 
@@ -355,6 +365,7 @@ function validateNode(
     case "send_list": {
       const cfg = node.config as {
         text?: string;
+        display?: string;
         button_label?: string;
         sections?: Array<{
           title?: string;
@@ -375,7 +386,10 @@ function validateNode(
           message: "Send-list node needs a text body.",
         });
       }
-      if (!cfg.button_label?.trim()) {
+      const numberedList = cfg.display === "numbered";
+      const maxRowTitle = numberedList ? NUMBERED_LIMITS.optionTitleMaxLength : INTERACTIVE_LIMITS.listRowTitleMaxLength;
+      // A numbered text menu has no tap-to-expand button.
+      if (!numberedList && !cfg.button_label?.trim()) {
         issues.push({
           severity: "error",
           scope: "node",
@@ -439,15 +453,13 @@ function validateNode(
               field: `${field}.title`,
               message: `Row ${ri + 1} needs a title.`,
             });
-          } else if (
-            row.title.length > INTERACTIVE_LIMITS.listRowTitleMaxLength
-          ) {
+          } else if (row.title.length > maxRowTitle) {
             issues.push({
               severity: "error",
               scope: "node",
               node_key: node.node_key,
               field: `${field}.title`,
-              message: `Row ${ri + 1} title exceeds ${INTERACTIVE_LIMITS.listRowTitleMaxLength} chars.`,
+              message: `Row ${ri + 1} title exceeds ${maxRowTitle} chars.`,
             });
           }
           if (

@@ -77,6 +77,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n/client";
+import { NUMBERED_LIMITS, numberedMenuText } from "@/lib/flows/options";
 import {
   validateFlowForActivation,
   type ValidationIssue,
@@ -1633,6 +1634,7 @@ function NodeConfigForm({
 
 interface SendButtonsCfg {
   text?: string;
+  display?: "native" | "numbered";
   footer_text?: string;
   buttons?: Array<{ reply_id: string; title: string; next_node_key: string }>;
 }
@@ -1672,9 +1674,17 @@ function SendButtonsForm({
     });
   const removeButton = (idx: number) =>
     onUpdateConfig({ buttons: buttons.filter((_, i) => i !== idx) });
+  const numbered = cfg.display === "numbered";
+  const maxButtons = numbered ? NUMBERED_LIMITS.maxOptions : 3;
 
   return (
     <>
+      <MenuDisplayPicker
+        value={cfg.display}
+        nativeLabel="native"
+        footer={cfg.footer_text}
+        onUpdateConfig={onUpdateConfig}
+      />
       <TextRow
         label="Body text"
         value={cfg.text ?? ""}
@@ -1689,7 +1699,9 @@ function SendButtonsForm({
       <div>
         <div className="mb-2 flex items-center justify-between">
           <label className="text-xs text-slate-400">
-            Buttons (1–3) — each one routes to a different next node
+            {numbered
+              ? `Options (1–${maxButtons}) — each one routes to a different next node`
+              : "Buttons (1–3) — each one routes to a different next node"}
           </label>
         </div>
         <div className="flex flex-col gap-3">
@@ -1718,9 +1730,9 @@ function SendButtonsForm({
               <Input
                 value={b.title}
                 onChange={(e) => updateButton(i, { title: e.target.value })}
-                placeholder="Visible title (≤20 chars)"
+                placeholder={numbered ? `Option ${i + 1}` : "Visible title (≤20 chars)"}
                 className="bg-slate-800"
-                maxLength={20}
+                maxLength={numbered ? NUMBERED_LIMITS.optionTitleMaxLength : 20}
               />
               <NodeKeySelect
                 value={b.next_node_key || null}
@@ -1740,7 +1752,7 @@ function SendButtonsForm({
             </div>
           ))}
         </div>
-        {buttons.length < 3 && (
+        {buttons.length < maxButtons && (
           <Button
             variant="ghost"
             size="sm"
@@ -1748,11 +1760,93 @@ function SendButtonsForm({
             className="mt-2"
           >
             <Plus className="h-3.5 w-3.5" />
-            Add button
+            {numbered ? "Add option" : "Add button"}
           </Button>
         )}
       </div>
+      {numbered && (
+        <NumberedMenuPreview
+          text={cfg.text ?? ""}
+          footer={cfg.footer_text}
+          options={buttons}
+        />
+      )}
     </>
+  );
+}
+
+// ---- menu display (native buttons/list vs numbered text) ----
+
+function MenuDisplayPicker({
+  value,
+  nativeLabel,
+  footer,
+  onUpdateConfig,
+}: {
+  value?: "native" | "numbered";
+  nativeLabel: "native" | "nativeList";
+  footer?: string;
+  onUpdateConfig: (patch: Record<string, unknown>) => void;
+}) {
+  const t = useT();
+  const numbered = value === "numbered";
+  const pick = (display: "native" | "numbered") => {
+    if (display === (value ?? "native")) return;
+    // A numbered menu reads better with the instruction under it.
+    onUpdateConfig(
+      display === "numbered" && !footer?.trim()
+        ? { display, footer_text: t("routing.flowMenu.defaultFooter") }
+        : { display },
+    );
+  };
+  return (
+    <div>
+      <label className="mb-1 block text-xs text-slate-400">
+        {t("routing.flowMenu.display")}
+      </label>
+      <div className="inline-flex rounded-md border border-slate-700 bg-slate-800/60 p-0.5">
+        {(["native", "numbered"] as const).map((d) => (
+          <button
+            key={d}
+            type="button"
+            onClick={() => pick(d)}
+            className={cn(
+              "rounded px-3 py-1 text-xs transition-colors",
+              (d === "numbered") === numbered
+                ? "bg-slate-600 text-white"
+                : "text-slate-400 hover:text-slate-200",
+            )}
+          >
+            {t(d === "numbered" ? "routing.flowMenu.numbered" : `routing.flowMenu.${nativeLabel}`)}
+          </button>
+        ))}
+      </div>
+      <p className="mt-1 text-[11px] text-slate-500">
+        {t(numbered ? "routing.flowMenu.numberedHelp" : "routing.flowMenu.nativeHelp")}
+      </p>
+    </div>
+  );
+}
+
+function NumberedMenuPreview({
+  text,
+  footer,
+  options,
+}: {
+  text: string;
+  footer?: string;
+  options: { title: string; description?: string }[];
+}) {
+  const t = useT();
+  return (
+    <div>
+      <label className="mb-1 block text-xs text-slate-400">
+        {t("routing.flowMenu.preview")}
+      </label>
+      <div className="max-w-sm whitespace-pre-wrap rounded-lg rounded-tl-none bg-emerald-900/40 px-3 py-2 text-sm text-slate-100">
+        {numberedMenuText({ text, footer, options })}
+      </div>
+    </div>
   );
 }
 
@@ -1760,6 +1854,7 @@ function SendButtonsForm({
 
 interface SendListCfg {
   text?: string;
+  display?: "native" | "numbered";
   button_label?: string;
   footer_text?: string;
   sections?: Array<{
@@ -1860,8 +1955,16 @@ function SendListForm({
       ),
     });
 
+  const numbered = cfg.display === "numbered";
+
   return (
     <>
+      <MenuDisplayPicker
+        value={cfg.display}
+        nativeLabel="nativeList"
+        footer={cfg.footer_text}
+        onUpdateConfig={onUpdateConfig}
+      />
       <TextRow
         label="Body text"
         value={cfg.text ?? ""}
@@ -1869,11 +1972,13 @@ function SendListForm({
         rows={3}
       />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <TextRow
-          label="Tap-to-expand button label (≤20 chars)"
-          value={cfg.button_label ?? ""}
-          onChange={(v) => onUpdateConfig({ button_label: v })}
-        />
+        {!numbered && (
+          <TextRow
+            label="Tap-to-expand button label (≤20 chars)"
+            value={cfg.button_label ?? ""}
+            onChange={(v) => onUpdateConfig({ button_label: v })}
+          />
+        )}
         <TextRow
           label="Footer (optional, 60 chars)"
           value={cfg.footer_text ?? ""}
@@ -1941,9 +2046,9 @@ function SendListForm({
                   onChange={(e) =>
                     updateRow(sIdx, rIdx, { title: e.target.value })
                   }
-                  placeholder="Row title (≤24)"
+                  placeholder={numbered ? "Option title" : "Row title (≤24)"}
                   className="bg-slate-800"
-                  maxLength={24}
+                  maxLength={numbered ? NUMBERED_LIMITS.optionTitleMaxLength : 24}
                 />
                 <NodeKeySelect
                   value={row.next_node_key || null}
@@ -1991,6 +2096,13 @@ function SendListForm({
           </Button>
         )}
       </div>
+      {numbered && (
+        <NumberedMenuPreview
+          text={cfg.text ?? ""}
+          footer={cfg.footer_text}
+          options={sections.flatMap((sec) => sec.rows)}
+        />
+      )}
     </>
   );
 }
