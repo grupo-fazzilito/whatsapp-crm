@@ -96,11 +96,11 @@
     },
     "agents": {
       "title": "AI agents",
-      "body": "Create agents that reply for you, train them with your business info and test them before going live."
+      "body": "Create agents that reply for you, train them (FAQs too) and review what they answered in the AI log."
     },
     "business": {
       "title": "Your business",
-      "body": "Hours, services, catalog and FAQs: what your agents use to answer."
+      "body": "Bookings, catalog, orders and your team, depending on your type of business."
     },
     "reports": {
       "title": "Reports",
@@ -108,7 +108,7 @@
     },
     "settings": {
       "title": "Settings",
-      "body": "Your team, templates, tags, quick replies and token top-ups."
+      "body": "Your team, templates, tags, quick replies, token top-ups and business setup (hours, details)."
     },
     "tourIcon": {
       "title": "Replay the tour",

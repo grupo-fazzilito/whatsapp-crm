@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
@@ -10,6 +10,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useT } from "@/i18n/client";
 import { WorkspaceSwitcher } from "./workspace-switcher";
+import { isActiveEntry, sectionGroups } from "./nav-groups";
 import { usePendingOrders } from "@/components/orders/use-pending-orders";
 import {
   LayoutDashboard,
@@ -17,17 +18,12 @@ import {
   Users,
   GitBranch,
   Zap,
-  Workflow,
   Settings,
   LogOut,
   User,
   X,
-  Activity,
-  Store,
   UserRound,
   BriefcaseBusiness,
-  FileQuestion,
-  History,
   Calendar,
   Shield,
   Briefcase,
@@ -38,7 +34,7 @@ import {
   ListTodo,
   BarChart3,
   HousePlus,
-  CloudDownload,
+  ChevronDown,
 } from "lucide-react";
 import {
   Avatar,
@@ -67,18 +63,25 @@ interface NavItem {
   badge?: number;
 }
 
+// Main entries: the day-to-day CRM.
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "nav.dashboard", icon: LayoutDashboard },
   { href: "/inbox", label: "nav.inbox", icon: MessageSquare },
   { href: "/contacts", label: "nav.contacts", icon: Users },
   { href: "/pipelines", label: "nav.pipelines", icon: GitBranch },
   { href: "/tasks", label: "crm.tasks.navTitle", icon: ListTodo },
-  { href: "/automations", label: "nav.automations", icon: Zap },
-  { href: "/flows", label: "nav.flows", icon: Workflow },
-  { href: "/reports", label: "reports.navTitle", icon: BarChart3 },
-  { href: "/channels", label: "channels.navTitle", icon: Radio },
-  { href: "/agents", label: "agents.navTitle", icon: Bot },
 ];
+
+// Tools: set up once, visited less often (collapsible section). Related
+// pages (Flows, FAQs, AI logs) are tabs inside these entries.
+const toolNavItems: NavItem[] = [
+  { href: "/agents", label: "agents.navTitle", icon: Bot },
+  { href: "/automations", label: "nav.automations", icon: Zap },
+  { href: "/channels", label: "channels.navTitle", icon: Radio },
+  { href: "/reports", label: "reports.navTitle", icon: BarChart3 },
+];
+
+const TOOLS_OPEN_KEY = "nav:tools-open";
 
 const bottomNavItems = [
   { href: "/settings", label: "nav.settings", icon: Settings },
@@ -99,19 +102,35 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
   // Business section: only the modules this workspace's industry uses,
   // named with the industry's own nouns (Doctors, Barbers, Teachers...).
+  // Services sit inside the catalog when the industry has both.
   const businessNavItems: NavItem[] = [
-    { href: "/business/dashboard", label: t("nav.dashboard"), icon: Activity },
     ...(modules.bookings ? [{ href: "/business/bookings", label: label("bookingPlural"), icon: Calendar }] : []),
-    ...(can("admin") ? [{ href: "/business/setup", label: t("nav.setup"), icon: Store }] : []),
-    ...(modules.staff ? [{ href: "/business/staff", label: label("staffPlural"), icon: UserRound }] : []),
-    ...(modules.services ? [{ href: "/business/services", label: label("servicePlural"), icon: BriefcaseBusiness }] : []),
-    ...(modules.products ? [{ href: "/catalog", label: label("productPlural"), icon: Package }] : []),
+    ...(modules.products
+      ? [{ href: "/catalog", label: label("productPlural"), icon: Package }]
+      : modules.services
+        ? [{ href: "/business/services", label: label("servicePlural"), icon: BriefcaseBusiness }]
+        : []),
     ...(modules.orders ? [{ href: "/orders", label: t("orders.navTitle"), icon: ShoppingBag, badge: pendingOrders }] : []),
+    ...(modules.staff ? [{ href: "/business/staff", label: label("staffPlural"), icon: UserRound }] : []),
     ...(workspace?.industry === "real_estate" ? [{ href: "/captures", label: t("realestate.captures.navTitle"), icon: HousePlus }] : []),
-    ...(workspace?.industry === "real_estate" && modules.products && can("admin") ? [{ href: "/real-estate/portals", label: t("portals.navTitle"), icon: CloudDownload }] : []),
-    { href: "/business/faqs", label: t("nav.faqs"), icon: FileQuestion },
-    { href: "/business/logs", label: t("nav.aiLogs"), icon: History },
   ];
+  const groups = sectionGroups({ t, label, modules, isAdmin: can("admin"), industry: workspace?.industry });
+  const isActive = (href: string) => isActiveEntry(groups, href, pathname);
+  const toolActive = toolNavItems.some((i) => isActive(i.href));
+  const [toolsOpen, setToolsOpen] = useState(true);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(TOOLS_OPEN_KEY);
+      if (saved !== null) setToolsOpen(saved === "1");
+    } catch {}
+  }, []);
+  const toggleTools = () => {
+    const next = !toolsOpen;
+    setToolsOpen(next);
+    try {
+      localStorage.setItem(TOOLS_OPEN_KEY, next ? "1" : "0");
+    } catch {}
+  };
   const totalUnread = useTotalUnread();
   const { mode } = useTheme();
   const isLight = mode === "light";
@@ -195,12 +214,9 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           </div>
           <ul className="flex flex-col gap-1">
             {navItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/dashboard" && pathname.startsWith(item.href));
-
+              const active = isActive(item.href);
               const showUnreadDot =
-                item.href === "/inbox" && totalUnread > 0 && !isActive;
+                item.href === "/inbox" && totalUnread > 0 && !active;
 
               return (
                 <li key={item.href}>
@@ -210,13 +226,13 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     className={cn(
                       // Taller on mobile so fingers can hit the row reliably (≥44px).
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
-                      isActive
+                      active
                         ? "bg-primary/10 text-primary"
                         : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     )}
                   >
                     <item.icon className="h-4 w-4" />
-                    <span className="flex-1">{t(item.href === "/reports" && !can("admin") ? "reports.navPersonal" : item.label)}</span>
+                    <span className="flex-1">{t(item.label)}</span>
                     {item.beta && (
                       <span
                         aria-label="Beta feature"
@@ -240,43 +256,74 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             })}
           </ul>
 
+          {businessNavItems.length > 0 && (
+            <>
+              <div className="my-4 border-t border-sidebar-border" />
+              <div className="px-3 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider" data-tour="nav:business">
+                {t("nav.business")}
+              </div>
+              <ul className="flex flex-col gap-1">
+                {businessNavItems.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      data-tour={`nav:${item.href}`}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                        isActive(item.href)
+                          ? "bg-primary/10 text-primary"
+                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span className="flex-1">{item.label}</span>
+                      {!!item.badge && (
+                        <span
+                          aria-label={t("orders.navBadge", { count: item.badge })}
+                          className="min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[10px] font-semibold leading-none text-primary-foreground"
+                        >
+                          {item.badge > 99 ? "99+" : item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
           <div className="my-4 border-t border-sidebar-border" />
-
-          <div className="px-3 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
-            {t("nav.business")}
-          </div>
-
-          <ul className="flex flex-col gap-1 mb-4">
-            {businessNavItems.map((item) => {
-              const isActive = pathname.startsWith(item.href);
-
-              return (
+          <button
+            type="button"
+            onClick={toggleTools}
+            aria-expanded={toolsOpen || toolActive}
+            aria-controls="nav-tools"
+            className="mb-2 flex w-full items-center justify-between rounded px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {t("nav.tools")}
+            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", !(toolsOpen || toolActive) && "-rotate-90")} aria-hidden />
+          </button>
+          {(toolsOpen || toolActive) && (
+            <ul id="nav-tools" className="flex flex-col gap-1">
+              {toolNavItems.map((item) => (
                 <li key={item.href}>
                   <Link
                     data-tour={`nav:${item.href}`}
                     href={item.href}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
-                      isActive
+                      isActive(item.href)
                         ? "bg-primary/10 text-primary"
                         : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     )}
                   >
                     <item.icon className="h-4 w-4" />
-                    <span className="flex-1">{item.label}</span>
-                    {!!item.badge && (
-                      <span
-                        aria-label={t("orders.navBadge", { count: item.badge })}
-                        className="min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[10px] font-semibold leading-none text-primary-foreground"
-                      >
-                        {item.badge > 99 ? "99+" : item.badge}
-                      </span>
-                    )}
+                    <span className="flex-1">{t(item.href === "/reports" && !can("admin") ? "reports.navPersonal" : item.label)}</span>
                   </Link>
                 </li>
-              );
-            })}
-          </ul>
+              ))}
+            </ul>
+          )}
 
           {profile?.is_platform_admin && (
             <>
@@ -321,7 +368,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
           <ul className="flex flex-col gap-1">
             {bottomNavItems.map((item) => {
-              const isActive = pathname.startsWith(item.href);
+              const active = isActive(item.href);
               return (
                 <li key={item.href}>
                   <Link
@@ -329,7 +376,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     href={item.href}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
-                      isActive
+                      active
                         ? "bg-primary/10 text-primary"
                         : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     )}
