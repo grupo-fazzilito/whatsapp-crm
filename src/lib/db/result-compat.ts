@@ -224,6 +224,7 @@ export const resultCompat = Prisma.defineExtension({
     message_templates: {
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
+      submitted_at: { needs: { submitted_at: true }, compute: (r) => r.submitted_at === null ? null : r.submitted_at.toISOString() },
     },
     messages: {
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },

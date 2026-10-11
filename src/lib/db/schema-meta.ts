@@ -879,6 +879,7 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
   "message_templates": {
     "created_at": "timestamp",
     "updated_at": "timestamp",
+    "submitted_at": "timestamp",
     "channels": {
       "rel": "channels"
     },

@@ -1085,27 +1085,33 @@ model message_reactions {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model message_templates {
-  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id        String?    @default(dbgenerated("app_user_id()")) @db.Uuid
-  name           String
-  category       String     @default("Marketing")
-  language       String?    @default("en_US")
-  header_type    String?
-  header_content String?
-  body_text      String
-  footer_text    String?
-  buttons        Json?
-  status         String?    @default("Draft")
-  created_at     DateTime?  @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime?  @default(now()) @db.Timestamptz(6)
-  workspace_id   String     @default(dbgenerated("active_ws()")) @db.Uuid
-  channel_id     String?    @db.Uuid
-  channels       channels?  @relation(fields: [channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users          users?     @relation(fields: [user_id], references: [id], onUpdate: NoAction)
-  workspaces     workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String?    @default(dbgenerated("app_user_id()")) @db.Uuid
+  name             String
+  category         String     @default("Marketing")
+  language         String?    @default("en_US")
+  header_type      String?
+  header_content   String?
+  body_text        String
+  footer_text      String?
+  buttons          Json?
+  status           String?    @default("Draft")
+  created_at       DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?  @default(now()) @db.Timestamptz(6)
+  workspace_id     String     @default(dbgenerated("active_ws()")) @db.Uuid
+  channel_id       String?    @db.Uuid
+  variables        Json       @default("[]")
+  header_media_url String?
+  meta_template_id String?
+  rejection_reason String?
+  submitted_at     DateTime?  @db.Timestamptz(6)
+  channels         channels?  @relation(fields: [channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users            users?     @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  workspaces       workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([workspace_id, name, language], map: "uq_message_templates_ws_name_lang")
   @@index([workspace_id], map: "idx_message_templates_workspace")
+  @@index([meta_template_id], map: "idx_message_templates_meta_id", where: raw("(meta_template_id IS NOT NULL)"))
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

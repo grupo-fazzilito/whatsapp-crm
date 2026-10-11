@@ -1,0 +1,244 @@
+{
+  "templates": {
+    "loading": "Cargando plantillas…",
+    "cancel": "Cancelar",
+    "adminOnly": "Solo los administradores pueden crear y editar plantillas.",
+    "category": {
+      "marketing": "Marketing",
+      "utility": "Utilidad",
+      "authentication": "Autenticación"
+    },
+    "status": {
+      "draft": "Borrador",
+      "pending": "En revisión",
+      "approved": "Aprobada",
+      "rejected": "Rechazada"
+    },
+    "sources": {
+      "contactName": "Nombre del contacto",
+      "contactPhone": "Teléfono",
+      "contactEmail": "Email",
+      "contactCompany": "Empresa",
+      "workspaceName": "Nombre del negocio",
+      "manual": "Lo eliges al enviar"
+    },
+    "list": {
+      "title": "Plantillas de mensaje",
+      "description": "Crea tus plantillas de WhatsApp, revisa cómo las verá tu cliente y envíalas a Meta para su aprobación. Solo las plantillas aprobadas se pueden enviar.",
+      "new": "Nueva plantilla",
+      "sync": "Sincronizar con Meta",
+      "syncing": "Sincronizando…",
+      "syncHint": "Trae las plantillas y su estado desde tu cuenta de WhatsApp Business en Meta",
+      "synced": "{total} plantillas sincronizadas ({inserted} nuevas, {updated} actualizadas)",
+      "syncPartial": "No se pudieron sincronizar: {names}",
+      "syncTruncated": "Meta tiene más plantillas de las que pudimos traer. Escríbenos a soporte si falta alguna.",
+      "syncError": "No se pudo sincronizar con Meta",
+      "loadError": "No se pudieron cargar las plantillas",
+      "filterLabel": "Filtrar por estado",
+      "filterAll": "Todas",
+      "noneInFilter": "No hay plantillas con este estado.",
+      "emptyTitle": "Aún no tienes plantillas",
+      "emptyBody": "WhatsApp solo te deja escribir libremente a un cliente durante las 24 horas siguientes a su último mensaje. Fuera de esa ventana, y para campañas y recordatorios, necesitas plantillas aprobadas por Meta.",
+      "suggestions": "Empieza con una sugerida",
+      "startBlank": "Empezar desde cero",
+      "preview": "Ver vista previa",
+      "previewNamed": "Ver vista previa de {name}",
+      "authBody": "Código de verificación (texto escrito por Meta)",
+      "rejectedReason": "Motivo del rechazo: {reason}",
+      "edit": "Editar",
+      "submit": "Enviar a revisión",
+      "submitted": "Plantilla enviada a revisión",
+      "submitError": "Meta no aceptó la plantilla",
+      "submitInvalid": "La plantilla tiene datos por corregir antes de enviarla",
+      "delete": "Eliminar",
+      "deleteNamed": "Eliminar {name}",
+      "deleteTitle": "¿Eliminar la plantilla?",
+      "deleteBody": "Se eliminará «{name}». Esta acción no se puede deshacer.",
+      "deleteBodyMeta": "Se eliminará «{name}» aquí y también en tu cuenta de WhatsApp en Meta. Esta acción no se puede deshacer.",
+      "deleted": "Plantilla eliminada",
+      "deleteError": "No se pudo eliminar la plantilla"
+    },
+    "editor": {
+      "back": "Volver a plantillas",
+      "newTitle": "Nueva plantilla",
+      "editTitle": "Editar plantilla",
+      "subtitle": "Escribe tu mensaje, mira cómo lo verá tu cliente en WhatsApp y envíalo a Meta para aprobación.",
+      "loadError": "No se pudo cargar la plantilla",
+      "readOnly": "Esta plantilla ya fue enviada a Meta. Solo puedes editar borradores y plantillas rechazadas.",
+      "rejectedTitle": "Meta rechazó esta plantilla. Corrígela y vuelve a enviarla.",
+      "fixIssues": "Revisa los campos marcados antes de continuar",
+      "saved": "Borrador guardado",
+      "saveError": "No se pudo guardar la plantilla",
+      "saveDraft": "Guardar borrador",
+      "submit": "Enviar a WhatsApp para aprobación",
+      "suggestion": {
+        "title": "Empezar desde una sugerida",
+        "description": "Elige un modelo y adáptalo a tu negocio. Reemplaza lo que hayas escrito.",
+        "placeholder": "Elige una plantilla sugerida"
+      },
+      "basics": {
+        "title": "Datos básicos",
+        "titleLabel": "Título",
+        "titlePlaceholder": "Ej.: Confirmación de pedido",
+        "metaName": "Nombre en Meta:",
+        "advanced": "Avanzado",
+        "nameLabel": "Nombre en Meta",
+        "nameHelp": "Solo minúsculas, números y guion bajo (_). No se puede cambiar después de enviarla.",
+        "nameLocked": "(no se puede cambiar porque ya está en Meta)",
+        "channel": "Número de WhatsApp",
+        "channelPlaceholder": "Elige un número",
+        "channelHelp": "La plantilla se registra en la cuenta de WhatsApp Business de este número.",
+        "channelOff": "desconectado",
+        "category": "Categoría",
+        "categoryHelp": {
+          "marketing": "Promociones y novedades.",
+          "utility": "Confirmaciones, recordatorios y pedidos.",
+          "authentication": "Códigos de verificación."
+        },
+        "reclassify": "Meta puede cambiar la categoría si considera que el contenido corresponde a otra.",
+        "language": "Idioma",
+        "languageHelp": "Debe ser el idioma en que está escrito el mensaje. Al enviar se usa exactamente este código."
+      },
+      "auth": {
+        "title": "Código de verificación",
+        "description": "En las plantillas de autenticación Meta escribe el texto: «{{1}} es tu código de verificación…», con un botón para copiar el código. Tú solo eliges cuánto dura el código.",
+        "expiration": "El código vence en (minutos)",
+        "expirationHelp": "Entre 1 y 90 minutos. Se muestra al pie del mensaje."
+      },
+      "header": {
+        "title": "Encabezado",
+        "description": "Opcional. Un título corto o un archivo arriba del mensaje.",
+        "types": {
+          "none": "Ninguno",
+          "text": "Texto",
+          "image": "Imagen",
+          "video": "Video",
+          "document": "Documento"
+        },
+        "textLabel": "Texto del encabezado",
+        "textPlaceholder": "Ej.: Tu pedido está confirmado",
+        "textHelp": "Máximo 60 caracteres y una sola variable.",
+        "upload": {
+          "image": "Subir imagen",
+          "video": "Subir video",
+          "document": "Subir PDF"
+        },
+        "replace": "Cambiar archivo",
+        "limits": {
+          "image": "JPG o PNG, hasta 5 MB.",
+          "video": "MP4, hasta 16 MB.",
+          "document": "PDF, hasta 100 MB."
+        },
+        "sampleHelp": "Es el ejemplo que Meta revisa; en cada envío puedes usar un archivo distinto.",
+        "sampleAlt": "Archivo de ejemplo del encabezado",
+        "badType": {
+          "image": "La imagen debe ser JPG o PNG",
+          "video": "El video debe ser MP4",
+          "document": "El documento debe ser PDF"
+        },
+        "tooBig": "El archivo supera el máximo de {max} MB",
+        "uploadError": "No se pudo subir el archivo"
+      },
+      "body": {
+        "title": "Mensaje",
+        "description": "El texto principal. Usa variables para personalizarlo con datos de cada cliente.",
+        "toolbar": "Formato del mensaje",
+        "insertVariable": "Insertar variable",
+        "customVariable": "Variable personalizada…",
+        "customLabel": "Nombre de la variable",
+        "customPlaceholder": "Ej.: Código de descuento",
+        "customAdd": "Agregar",
+        "bold": "Negrita",
+        "italic": "Cursiva",
+        "strike": "Tachado",
+        "placeholder": "Hola {{nombre_cliente}}, …",
+        "help": "Formato de WhatsApp: *negrita*, _cursiva_, ~tachado~. El mensaje no puede empezar ni terminar con una variable."
+      },
+      "variables": {
+        "title": "Variables",
+        "description": "Meta necesita un ejemplo de cada variable para revisar la plantilla. Elige también de dónde sale el dato al enviar.",
+        "label": "Nombre",
+        "example": "Ejemplo",
+        "source": "Se llena con"
+      },
+      "footer": {
+        "title": "Pie de mensaje",
+        "description": "Opcional. Texto pequeño en gris al final, sin variables.",
+        "label": "Texto del pie",
+        "placeholder": "Ej.: Responde STOP para no recibir más mensajes"
+      },
+      "buttons": {
+        "title": "Botones",
+        "description": "Opcional. Hasta 10 botones debajo del mensaje.",
+        "add": "Agregar botón",
+        "types": {
+          "quick_reply": "Respuesta rápida",
+          "url": "Abrir enlace",
+          "phone": "Llamar"
+        },
+        "text": "Texto del botón",
+        "url": "Enlace (URL)",
+        "phone": "Número de teléfono",
+        "dynamic": "Termina con un dato variable",
+        "dynamicExample": "Ejemplo del dato variable",
+        "dynamicHelp": "Ejemplo del enlace final: {url}",
+        "remove": "Quitar botón {n}",
+        "limits": "Máximo 2 botones de enlace y 1 de llamada."
+      },
+      "result": {
+        "successTitle": "En revisión",
+        "successBody": "Meta suele responder en minutos, hasta 24 h. Te mostraremos el resultado en la lista de plantillas.",
+        "errorTitle": "Meta no aceptó la plantilla",
+        "errorBody": "La guardamos como borrador. Este es el mensaje de Meta:",
+        "keepEditing": "Seguir editando",
+        "back": "Volver a plantillas"
+      }
+    },
+    "preview": {
+      "title": "Vista previa",
+      "label": "Vista previa en WhatsApp",
+      "note": "Así verá tu cliente el mensaje. El diseño exacto puede variar un poco según su teléfono.",
+      "modeLabel": "Modo de la vista previa",
+      "withExamples": "Ver con ejemplos",
+      "withVariables": "Ver variables",
+      "business": "Tu negocio",
+      "businessAccount": "Cuenta de empresa",
+      "today": "Hoy",
+      "emptyBody": "Escribe el mensaje…",
+      "documentName": "documento.pdf",
+      "buttonPlaceholder": "Botón",
+      "allOptions": "Ver todas las opciones"
+    },
+    "issues": {
+      "name_format": "El nombre en Meta solo puede tener minúsculas, números y guion bajo.",
+      "name_taken": "Ya existe una plantilla con ese nombre e idioma. Usa otro nombre.",
+      "language_required": "Elige el idioma de la plantilla.",
+      "body_required": "Escribe el mensaje.",
+      "body_too_long": "El mensaje supera los 1024 caracteres.",
+      "variable_at_edge": "El mensaje no puede empezar ni terminar con una variable. Agrega texto antes o después.",
+      "too_many_variables": "Hay demasiadas variables para el largo del texto. Agrega más palabras o quita variables.",
+      "variable_undefined": "Falta definir la variable «{detail}».",
+      "example_required": "Escribe un ejemplo para «{detail}».",
+      "header_required": "Escribe el texto del encabezado o elige «Ninguno».",
+      "header_too_long": "El encabezado supera los 60 caracteres.",
+      "header_one_variable": "El encabezado solo puede tener una variable.",
+      "media_required": "Sube el archivo de ejemplo del encabezado.",
+      "footer_too_long": "El pie supera los 60 caracteres.",
+      "footer_no_variables": "El pie no puede tener variables.",
+      "too_many_buttons": "Máximo 10 botones.",
+      "too_many_url_buttons": "Máximo 2 botones de enlace.",
+      "too_many_phone_buttons": "Máximo 1 botón de llamada.",
+      "button_text": "Cada botón necesita un texto de hasta 25 caracteres.",
+      "button_url": "El enlace debe empezar con https:// (o http://) y no tener espacios.",
+      "button_url_example": "Escribe un ejemplo del dato variable del enlace.",
+      "button_phone": "Escribe un número de teléfono válido con código de país (ej.: +51 999 999 999)."
+    },
+    "errors": {
+      "whatsapp_not_connected": "Tu número de WhatsApp no está conectado. Conéctalo en Canales y vuelve a intentarlo.",
+      "waba_missing": "Falta el ID de la cuenta de WhatsApp Business (WABA) en el canal. Vuelve a conectar el número desde Canales.",
+      "app_id_missing": "Para plantillas con imagen, video o documento la plataforma necesita el App ID de Meta. Avisa al administrador.",
+      "media_not_found": "No encontramos el archivo del encabezado. Súbelo de nuevo.",
+      "media_upload_failed": "Meta no pudo recibir el archivo del encabezado. Prueba con otro archivo."
+    }
+  }
+}

@@ -284,12 +284,18 @@ export function WhatsAppSignup({ agents, onCreated, onManual, onDone }: Props) {
   }
 
   if (!cfg.available) {
+    // Same button as when it works, disabled, so it's clear where connecting happens.
     return (
       <div className="grid gap-3">
-        <p className="text-sm text-muted-foreground">{t('metawa.signup.notAvailable')}</p>
-        <Button type="button" variant="outline" onClick={onManual}>
-          {t('metawa.signup.manual')}
+        <Button type="button" disabled className="h-10 bg-[#25D366] text-white hover:bg-[#1ebe5b]">
+          {t('metawa.signup.connect')}
         </Button>
+        <p role="note" className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+          {t('metawa.signup.notAvailable')}
+        </p>
+        <button type="button" className="justify-self-start text-xs text-muted-foreground underline underline-offset-2" onClick={onManual}>
+          {t('metawa.signup.manual')}
+        </button>
       </div>
     );
   }

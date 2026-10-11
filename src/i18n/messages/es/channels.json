@@ -103,7 +103,8 @@
         "exchange": "No pudimos obtener acceso a tus páginas. Vuelve a intentarlo.",
         "no_pages": "Tu cuenta de Facebook no administra ninguna página (o no la seleccionaste).",
         "too_many": "Seleccionaste demasiadas páginas. Vuelve a intentarlo eligiendo menos."
-      }
+      },
+      "notEnabled": "La conexión directa con Facebook e Instagram aún no está activada en la plataforma. El administrador de Whasalia debe configurar la app de Meta (App ID y configuración de inicio de sesión)."
     },
     "tiktok": {
       "soon": "Próximamente / requiere aprobación de TikTok",
