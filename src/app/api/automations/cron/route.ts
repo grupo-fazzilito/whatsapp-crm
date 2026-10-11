@@ -10,6 +10,7 @@ import { processViewings } from '@/lib/real-estate/leads/visits'
 import { runGoogleCalendarCron } from '@/lib/integrations/google/sync'
 import { runScheduledPortalImports } from '@/lib/real-estate/portals/schedule'
 import { processWebhookDeliveries } from '@/lib/webhooks/deliver'
+import { processPlatformWebhookDeliveries } from '@/lib/webhooks/platform'
 import { runBillingCron } from '@/lib/billing/payments'
 
 /**
@@ -119,6 +120,14 @@ export async function GET(request: Request) {
     webhooks = { error: err instanceof Error ? err.message : String(err) }
   }
 
+  // Platform webhooks (set in the admin panel): every workspace + platform event.
+  let platformWebhooks: Awaited<ReturnType<typeof processPlatformWebhookDeliveries>> | { error: string }
+  try {
+    platformWebhooks = await processPlatformWebhookDeliveries()
+  } catch (err) {
+    platformWebhooks = { error: err instanceof Error ? err.message : String(err) }
+  }
+
   // Billing: missed Payment Latam webhooks + expired credits.
   let billing: Awaited<ReturnType<typeof runBillingCron>> | { error: string }
   try {
@@ -127,5 +136,5 @@ export async function GET(request: Request) {
     billing = { error: err instanceof Error ? err.message : String(err) }
   }
 
-  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, realEstate, portalImports, webhooks, billing })
+  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, realEstate, portalImports, webhooks, platformWebhooks, billing })
 }

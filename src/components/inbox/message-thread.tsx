@@ -1335,7 +1335,7 @@ export function MessageThread({
           links={conversation.conversation_tags ?? EMPTY_LINKS}
           tags={tags}
           tagsById={tagsById}
-          canCreate={can("admin")}
+          canCreate
           onLinksChange={handleTagLinksChange}
           onTagCreated={(tag) => onTagCreated?.(tag)}
         />

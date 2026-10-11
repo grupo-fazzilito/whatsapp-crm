@@ -5,7 +5,7 @@ const COLOR_RE = /^#[0-9a-f]{3,8}$/i
 
 /**
  * GET  /api/tags → { tags } oldest first (any member)
- * POST /api/tags { name, color? } → { tag } (admins)
+ * POST /api/tags { name, color? } → { tag } (any member, so agents can tag on the fly)
  */
 export async function GET() {
   const guard = await requireWorkspace('agent')
@@ -19,7 +19,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireWorkspace('admin')
+  const guard = await requireWorkspace('agent')
   if (!guard.ok) return guard.response
   const { db, user, workspace } = guard.ctx
 
