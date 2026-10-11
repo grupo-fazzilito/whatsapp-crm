@@ -337,7 +337,7 @@ export function ContactDetailView({
 
             {/* Tabs */}
             <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-              <TabsList className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/60 p-1 h-9 mx-4 mt-3 gap-1 w-fit">
+              <TabsList className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/60 p-1 h-9 mx-4 mt-3 gap-1 w-fit max-w-[calc(100%-2rem)]">
                 <TabsTrigger
                   value="details"
                   className="data-active:bg-white dark:data-active:bg-slate-800 data-active:text-primary text-slate-600 dark:text-slate-400 data-active:shadow-sm px-3 transition-all duration-200"
