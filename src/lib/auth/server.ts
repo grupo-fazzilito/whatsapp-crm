@@ -7,8 +7,9 @@ import { baseClient } from '@/lib/db/prisma'
 import { hashPassword, verifyPassword } from './password'
 
 // Better Auth on our own tables (public.users / auth_sessions / auth_accounts /
-// auth_verifications, snake_case columns mapped below). Email + password only;
-// signup OTP and password-reset OTP stay in /api/auth/*-otp.
+// auth_verifications, snake_case columns mapped below). Email + password, plus
+// Google / Facebook sign-in when their keys are set. Signup OTP and
+// password-reset OTP stay in /api/auth/*-otp.
 
 function secret(): string {
   const s = process.env.BETTER_AUTH_SECRET
@@ -19,6 +20,28 @@ function secret(): string {
 
 type AuthInstance = ReturnType<typeof createAuth>
 
+export type SocialProvider = 'google' | 'facebook'
+
+function socialCredentials() {
+  const env = process.env
+  // Facebook sign-in can reuse the platform's Meta app.
+  const fbId = env.FACEBOOK_CLIENT_ID || env.META_APP_ID
+  const fbSecret = env.FACEBOOK_CLIENT_SECRET || env.META_APP_SECRET
+  return {
+    ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET ? { google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET } } : {}),
+    ...(fbId && fbSecret ? { facebook: { clientId: fbId, clientSecret: fbSecret } } : {}),
+  }
+}
+
+/** Social sign-in buttons to show (providers with keys configured). */
+export function socialProviders(): SocialProvider[] {
+  return Object.keys(socialCredentials()) as SocialProvider[]
+}
+
+function localeFromCookie(cookie: string | null | undefined): 'es' | 'en' {
+  return /(?:^|;\s*)locale=en(?:;|$)/.test(cookie ?? '') ? 'en' : 'es'
+}
+
 function createAuth() {
   return betterAuth({
     appName: 'Whasalia',
@@ -26,6 +49,7 @@ function createAuth() {
     secret: secret(),
     database: prismaAdapter(baseClient(), { provider: 'postgresql' }),
     telemetry: { enabled: false },
+    socialProviders: socialCredentials(),
     emailAndPassword: {
       enabled: true,
       // Accounts are created by /api/auth/register-otp after the email code is verified.
@@ -44,9 +68,16 @@ function createAuth() {
     user: {
       modelName: 'users',
       fields: { emailVerified: 'email_verified', createdAt: 'created_at', updatedAt: 'updated_at' },
+      // Signup data read by the users trigger (handle_new_user).
+      additionalFields: { meta: { type: 'json', required: false, input: false } },
     },
     account: {
       modelName: 'auth_accounts',
+      // Google and Facebook only share verified emails: signing in with one
+      // links to the existing account with that email.
+      accountLinking: { enabled: true, trustedProviders: ['google', 'facebook'] },
+      // We never call Google/Facebook with these tokens; keep them encrypted at rest.
+      encryptOAuthTokens: true,
       fields: {
         userId: 'user_id',
         accountId: 'account_id',
@@ -69,6 +100,16 @@ function createAuth() {
       cookiePrefix: 'cnx',
     },
     databaseHooks: {
+      user: {
+        create: {
+          // Only social sign-in creates users through Better Auth (email
+          // signup goes through /api/auth/register-otp). No workspace yet:
+          // /welcome asks for the business details and creates it.
+          before: async (user, ctx) => ({
+            data: { ...user, meta: { full_name: user.name ?? '', invite: true, social: true, locale: localeFromCookie(ctx?.headers?.get('cookie')) } },
+          }),
+        },
+      },
       session: {
         create: {
           // Banned users cannot start a session.
