@@ -3,6 +3,7 @@
 import React from "react";
 import { Shield } from "lucide-react";
 import { useI18n, useLocalePath } from "@/i18n/client";
+import { CompanyDetails } from "@/components/marketing/company-details";
 
 export default function PrivacyPolicyPage() {
   const { t } = useI18n();
@@ -97,14 +98,7 @@ export default function PrivacyPolicyPage() {
           <p>
             {t("mktPrivacy.s10.body")}
           </p>
-          <div className="text-xs text-[var(--m-text-tertiary)] mt-3 space-y-1">
-            <p className="font-bold text-[var(--m-text-primary)]">Whasalia</p>
-            <p>{t("mktPrivacy.s10.department")}</p>
-            <p>{t("mktPrivacy.s10.location")}</p>
-            <p>
-              {t("mktPrivacy.s10.emailLabel")} <a href="mailto:chatnexgen@gmail.com" className="text-emerald-400 hover:underline">chatnexgen@gmail.com</a>
-            </p>
-          </div>
+          <CompanyDetails emailLabel={t("mktPrivacy.s10.emailLabel")} />
         </section>
       </div>
     </div>

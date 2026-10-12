@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { findUserByEmail, setPassword } from "@/lib/auth/users";
 import { emailConfigured, sendEmail } from "@/lib/email/send";
 import crypto from "crypto";
+import { COMPANY } from "@/lib/company";
 
 
 interface OtpEntry {
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
         return val.replace(/^["']|["']$/g, "");
       };
       const smtpUser = cleanEnv(process.env.SMTP_USER || process.env.EMAIL_USERNAME);
-      const smtpFrom = cleanEnv(process.env.SMTP_FROM) || smtpUser || "chatnexgenai@gmail.com";
+      const smtpFrom = cleanEnv(process.env.SMTP_FROM) || smtpUser || COMPANY.email;
 
       // Developer Fallback: Log the verification code to the console
       if (isDevMode()) console.log(`\n--- [AUTH OTP] Verification code for ${email} is: ${code} ---\n`);

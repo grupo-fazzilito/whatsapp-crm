@@ -12,6 +12,7 @@ import {
 import {
   DEFAULT_THEME,
   STORAGE_KEY,
+  MODE_STORAGE_KEY,
   isThemeId,
   type ThemeId,
 } from "@/lib/themes";
@@ -32,7 +33,6 @@ if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
 
 export type ThemeMode = "light" | "dark";
 
-const MODE_STORAGE_KEY = "chatnexgenai.mtheme";
 
 interface ThemeContextValue {
   theme: ThemeId;

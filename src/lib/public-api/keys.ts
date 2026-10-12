@@ -1,11 +1,13 @@
 import { createHash, randomBytes, timingSafeEqual } from 'crypto'
 
 // API keys for the public REST API (/api/v1). Format:
-//   cnx_live_<43 chars base64url>   (32 random bytes)
+//   wsl_live_<43 chars base64url>   (32 random bytes)
+// Keys made before the rename start with cnx_live_ and keep working.
 // Only sha256(full key) is stored; `prefix` (first 8 chars of the random
 // part) is stored in clear to find the row and to show the key in the UI.
 
-export const API_KEY_PREFIX = 'cnx_live_'
+export const API_KEY_PREFIX = 'wsl_live_'
+const LEGACY_KEY_PREFIXES = ['cnx_live_']
 const RANDOM_BYTES = 32
 
 export interface GeneratedApiKey {
@@ -26,8 +28,9 @@ export function generateApiKey(): GeneratedApiKey {
 
 /** Shape check + prefix extraction. Null when the string can't be one of our keys. */
 export function parseApiKey(secret: string | null | undefined): { prefix: string } | null {
-  if (!secret || !secret.startsWith(API_KEY_PREFIX)) return null
-  const random = secret.slice(API_KEY_PREFIX.length)
+  const used = secret && [API_KEY_PREFIX, ...LEGACY_KEY_PREFIXES].find((p) => secret.startsWith(p))
+  if (!secret || !used) return null
+  const random = secret.slice(used.length)
   if (!/^[A-Za-z0-9_-]{40,100}$/.test(random)) return null
   return { prefix: random.slice(0, 8) }
 }

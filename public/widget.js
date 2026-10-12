@@ -707,8 +707,6 @@
       state.cfg = cfg;
       build(cfg);
       window.WhasaliaChat = { open: function () { open(); }, close: function () { close(false); }, toggle: toggle };
-      // Old name, kept for pages that already call it.
-      window.ChatNexGenChat = window.WhasaliaChat;
       // Returning visitor with a conversation: reconnect so replies show as unread.
       if (state.stored.t && state.stored.c) startConversation();
       // Known visitor: send who they are once, so the team sees name and email.

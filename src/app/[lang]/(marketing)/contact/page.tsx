@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/i18n/client";
+import { COMPANY, companyAddress } from "@/lib/company";
 
 export default function ContactPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [msg, setMsg] = useState("");
@@ -44,11 +45,11 @@ export default function ContactPage() {
         <div className="space-y-3.5 border-t border-[var(--m-border-primary)] pt-6 mt-6">
           <div className="flex items-center gap-3.5 text-xs text-[var(--m-text-tertiary)]">
             <Mail className="size-4 text-emerald-400" />
-            <span>chatnexgenai@gmail.com</span>
+            <a href={`mailto:${COMPANY.email}`} className="hover:text-emerald-400 transition-colors">{COMPANY.email}</a>
           </div>
           <div className="flex items-center gap-3.5 text-xs text-[var(--m-text-tertiary)]">
             <Building className="size-4 text-teal-400" />
-            <span>{t("mktContact.hq")}</span>
+            <span>{COMPANY.legalName} · {companyAddress(locale)}</span>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { emailConfigured, sendEmail } from "@/lib/email/send";
+import { COMPANY } from "@/lib/company";
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,11 +10,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const superAdmin = process.env.SUPER_ADMIN_USERNAME || "chatnexgen@gmail.com";
+    const superAdmin = process.env.SUPER_ADMIN_USERNAME || COMPANY.email;
 
     // Setup SMTP Transporter
     const smtpUser = process.env.SMTP_USER;
-    const smtpFrom = process.env.SMTP_FROM || smtpUser || "chatnexgen@gmail.com";
+    const smtpFrom = process.env.SMTP_FROM || smtpUser || COMPANY.email;
 
     // Developer Fallback: Log demo booking details to terminal console
     console.log(`

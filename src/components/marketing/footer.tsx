@@ -4,10 +4,11 @@ import React from "react";
 import Link from "next/link";
 import { useMarketingTheme } from "@/components/marketing/marketing-theme-provider";
 import { useI18n, useLocalePath } from "@/i18n/client";
+import { COMPANY, companyAddress } from "@/lib/company";
 
 export function Footer() {
   const { resolvedTheme } = useMarketingTheme();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const lp = useLocalePath();
   const isLight = resolvedTheme === "light";
 
@@ -84,11 +85,12 @@ export function Footer() {
         <div className="col-span-1 space-y-4">
           <h6 className="text-[10px] uppercase font-bold tracking-wider text-[var(--m-text-tertiary)]">{t("mktShell.footer.contact")}</h6>
           <ul className="space-y-2.5 text-xs text-[var(--m-text-muted)]">
-            <li>Whasalia</li>
-            <li>Pune, Maharashtra, India</li>
+            <li>{COMPANY.legalName}</li>
+            <li>{COMPANY.taxIdLabel} {COMPANY.taxId}</li>
+            <li>{companyAddress(locale)}</li>
             <li className="pt-1">
-              <a href="mailto:chatnexgen@gmail.com" className="text-emerald-400 hover:underline">
-                chatnexgen@gmail.com
+              <a href={`mailto:${COMPANY.email}`} className="text-emerald-400 hover:underline">
+                {COMPANY.email}
               </a>
             </li>
           </ul>
@@ -113,7 +115,7 @@ export function Footer() {
           {t("mktShell.footer.disclaimer")}
         </p>
         <div className="text-[10px] text-[var(--m-text-muted)] pt-2">
-          {t("mktShell.footer.rights")}
+          {t("mktShell.footer.rights", { company: COMPANY.legalName, taxId: `${COMPANY.taxIdLabel} ${COMPANY.taxId}` })}
         </div>
       </div>
     </footer>

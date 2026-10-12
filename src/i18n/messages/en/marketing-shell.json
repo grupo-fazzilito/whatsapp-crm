@@ -37,7 +37,7 @@
       "t4": "Role-Based Access",
       "t5": "Business Support",
       "disclaimer": "\"Whasalia uses WhatsApp Business API solutions in accordance with Meta and WhatsApp Business policies. Businesses are responsible for obtaining user consent before initiating communication.\"",
-      "rights": "© 2026 Whasalia. All rights reserved.",
+      "rights": "© 2026 Whasalia, a product of {company} ({taxId}). All rights reserved.",
       "changelog": "Changelog"
     },
     "meta": {

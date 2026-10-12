@@ -3,6 +3,7 @@
 import React from "react";
 import { Scale } from "lucide-react";
 import { useI18n } from "@/i18n/client";
+import { CompanyDetails } from "@/components/marketing/company-details";
 
 export default function TermsAndConditionsPage() {
   const { t } = useI18n();
@@ -102,13 +103,7 @@ export default function TermsAndConditionsPage() {
           <p>
             {t("mktTermsConditions.s8.body")}
           </p>
-          <div className="text-xs text-[var(--m-text-tertiary)] mt-3 space-y-1">
-            <p className="font-bold text-[var(--m-text-primary)]">Whasalia</p>
-            <p>{t("mktTermsConditions.s8.location")}</p>
-            <p>
-              {t("mktTermsConditions.s8.emailLabel")} <a href="mailto:chatnexgen@gmail.com" className="text-emerald-400 hover:underline">chatnexgen@gmail.com</a>
-            </p>
-          </div>
+          <CompanyDetails emailLabel={t("mktTermsConditions.s8.emailLabel")} />
         </section>
       </div>
     </div>

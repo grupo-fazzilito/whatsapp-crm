@@ -3,6 +3,7 @@
 import React from "react";
 import { Landmark } from "lucide-react";
 import { useI18n } from "@/i18n/client";
+import { CompanyDetails } from "@/components/marketing/company-details";
 
 export default function RefundPolicyPage() {
   const { t } = useI18n();
@@ -78,12 +79,7 @@ export default function RefundPolicyPage() {
           <p>
             {t("mktRefund.s6.body")}
           </p>
-          <div className="text-xs text-[var(--m-text-tertiary)] mt-3">
-            <p className="font-bold text-[var(--m-text-primary)]">Whasalia</p>
-            <p>
-              {t("mktRefund.s6.emailLabel")} <a href="mailto:chatnexgen@gmail.com" className="text-emerald-400 hover:underline">chatnexgen@gmail.com</a>
-            </p>
-          </div>
+          <CompanyDetails emailLabel={t("mktRefund.s6.emailLabel")} />
         </section>
       </div>
     </div>

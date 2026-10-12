@@ -17,14 +17,14 @@ export type AuthResult = { ok: true; ctx: ApiContext } | { ok: false; code: 'una
 const LAST_USED_THROTTLE_MS = 60_000
 
 /**
- * `Authorization: Bearer cnx_live_…` → workspace context. The row is found
+ * `Authorization: Bearer wsl_live_…` → workspace context. The row is found
  * by prefix, then the full key is compared in constant time against the
  * stored SHA-256. Every later query must filter by ctx.workspace.id.
  */
 export async function authenticateApiKey(request: Request): Promise<AuthResult> {
   const token = bearerToken(request.headers.get('authorization'))
   const parsed = parseApiKey(token)
-  if (!token || !parsed) return { ok: false, code: 'unauthorized', message: 'Missing or malformed API key. Send "Authorization: Bearer cnx_live_…".' }
+  if (!token || !parsed) return { ok: false, code: 'unauthorized', message: 'Missing or malformed API key. Send "Authorization: Bearer wsl_live_…".' }
 
   // Platform lookup: the workspace is not known until the key matches.
   const rows = await prisma.api_keys

@@ -12,6 +12,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-12',
+    title: { es: 'Datos de la empresa en el sitio', en: 'Company details on the site' },
+    changes: [
+      { kind: 'improved', es: 'El pie de página, la página de contacto y las políticas muestran a Grupo Fazzilito E.I.R.L., su RUC y su dirección en Huancayo, Perú.', en: 'The footer, the contact page and the policies show Grupo Fazzilito E.I.R.L., its RUC and its address in Huancayo, Peru.' },
+      { kind: 'improved', es: 'Los términos y la política de privacidad se rigen por la ley peruana (incluida la Ley N.° 29733 de Protección de Datos Personales).', en: 'The terms and privacy policy are governed by Peruvian law (including Personal Data Protection Law No. 29733).' },
+      { kind: 'improved', es: 'Las nuevas claves de la API empiezan por wsl_live_; las que ya tenías siguen funcionando.', en: 'New API keys start with wsl_live_; the ones you already have keep working.' },
+    ],
+  },
+  {
     date: '2026-10-10',
     title: { es: 'Entra con Google o Facebook', en: 'Sign in with Google or Facebook' },
     changes: [
