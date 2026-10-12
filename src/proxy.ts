@@ -8,6 +8,13 @@ import { isMarketingPath, localizedPath, splitLocale } from '@/i18n/marketing-ro
 // validates the session itself (requireWorkspace / isPlatformAdmin).
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
+
+  // Pages opened on www.<domain> or the *.up.railway.app address move to the
+  // main domain. API routes are left alone: webhooks, cron jobs and stored
+  // file links may still use the old address, and a redirect would drop POSTs.
+  const canonical = canonicalRedirect(request)
+  if (canonical) return NextResponse.redirect(canonical, 308)
+
   const signedIn = !!getSessionCookie(request, { cookiePrefix: 'cnx' })
 
   // Public pages have one URL per language (/es/..., /en/...) for SEO.
@@ -62,6 +69,20 @@ export async function proxy(request: NextRequest) {
   }
 
   return NextResponse.next()
+}
+
+/** URL on the main domain (NEXT_PUBLIC_SITE_URL) for a page opened on an alternate host, else null. */
+export function canonicalRedirect(request: NextRequest): URL | null {
+  const site = process.env.NEXT_PUBLIC_SITE_URL
+  if (!site || request.nextUrl.pathname.startsWith('/api/')) return null
+  if (request.method !== 'GET' && request.method !== 'HEAD') return null
+  let main: URL
+  try { main = new URL(site) } catch { return null }
+  const host = (request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '').split(':')[0].toLowerCase()
+  if (!host || host === main.hostname) return null
+  const alternate = host === `www.${main.hostname}` || host.endsWith('.up.railway.app')
+  if (!alternate) return null
+  return new URL(request.nextUrl.pathname + request.nextUrl.search, main)
 }
 
 export const config = {

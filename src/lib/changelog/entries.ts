@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-12',
+    title: { es: 'Nueva dirección: whasalia.com', en: 'New address: whasalia.com' },
+    changes: [
+      { kind: 'new', es: 'Whasalia ahora vive en whasalia.com. Las direcciones anteriores te llevan ahí automáticamente.', en: 'Whasalia now lives at whasalia.com. The previous addresses take you there automatically.' },
+    ],
+  },
+  {
+    date: '2026-10-12',
     title: { es: 'Datos de la empresa en el sitio', en: 'Company details on the site' },
     changes: [
       { kind: 'improved', es: 'El pie de página, la página de contacto y las políticas muestran a Grupo Fazzilito E.I.R.L., su RUC y su dirección en Huancayo, Perú.', en: 'The footer, the contact page and the policies show Grupo Fazzilito E.I.R.L., its RUC and its address in Huancayo, Peru.' },
