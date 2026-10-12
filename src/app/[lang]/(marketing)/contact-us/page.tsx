@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sparkles, Mail, Building, Phone, Clock } from "lucide-react";
+import { Sparkles, Mail, Building, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/i18n/client";
+import { COMPANY, companyAddress } from "@/lib/company";
 
 export default function ContactUsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -48,23 +49,17 @@ export default function ContactUsPage() {
             <Building className="size-4 text-emerald-400 shrink-0" />
             <div>
               <span className="block font-bold text-[var(--m-text-primary)]">{t("mktContactUs.companyLabel")}</span>
-              <span>Whasalia</span>
+              <span className="block">{COMPANY.legalName}</span>
+              <span>{COMPANY.taxIdLabel} {COMPANY.taxId}</span>
             </div>
           </div>
           <div className="flex items-center gap-3.5 text-xs text-[var(--m-text-tertiary)]">
             <Mail className="size-4 text-emerald-400 shrink-0" />
             <div>
               <span className="block font-bold text-[var(--m-text-primary)]">{t("mktContactUs.emailSupportLabel")}</span>
-              <a href="mailto:chatnexgen@gmail.com" className="hover:text-emerald-400 transition-colors">
-                chatnexgen@gmail.com
+              <a href={`mailto:${COMPANY.email}`} className="hover:text-emerald-400 transition-colors">
+                {COMPANY.email}
               </a>
-            </div>
-          </div>
-          <div className="flex items-center gap-3.5 text-xs text-[var(--m-text-tertiary)]">
-            <Phone className="size-4 text-teal-400 shrink-0" />
-            <div>
-              <span className="block font-bold text-[var(--m-text-primary)]">{t("mktContactUs.phoneLabel")}</span>
-              <span>+91 77458 68073 / +91 88305 53868</span>
             </div>
           </div>
           <div className="flex items-center gap-3.5 text-xs text-[var(--m-text-tertiary)]">
@@ -78,7 +73,7 @@ export default function ContactUsPage() {
             <Building className="size-4 text-teal-400 shrink-0" />
             <div>
               <span className="block font-bold text-[var(--m-text-primary)]">{t("mktContactUs.addressLabel")}</span>
-              <span>Pune, Maharashtra, India</span>
+              <span>{companyAddress(locale)}</span>
             </div>
           </div>
         </div>
@@ -135,7 +130,7 @@ export default function ContactUsPage() {
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="+91 99999 99999"
+                    placeholder="+51 999 999 999"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required

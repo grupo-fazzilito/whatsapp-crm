@@ -25,7 +25,13 @@ export type ThemeId = (typeof THEME_IDS)[number];
 
 export const DEFAULT_THEME: ThemeId = "emerald";
 
-export const STORAGE_KEY = "chatnexgenai.theme";
+export const STORAGE_KEY = "whasalia.theme";
+export const MODE_STORAGE_KEY = "whasalia.mtheme";
+/** Keys used before the rename; the boot script moves them to the new ones. */
+export const LEGACY_STORAGE_KEYS: Record<string, string> = {
+  "chatnexgenai.theme": STORAGE_KEY,
+  "chatnexgenai.mtheme": MODE_STORAGE_KEY,
+};
 
 export interface ThemeMeta {
   id: ThemeId;

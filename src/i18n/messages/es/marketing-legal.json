@@ -33,7 +33,7 @@
     },
     "s7": {
       "title": "7. Derechos del usuario y portabilidad de datos",
-      "body": "Conforme a la normativa de protección de datos aplicable (incluidos el RGPD y las políticas de TI de la India), conservas el derecho a solicitar el acceso, la rectificación o la exportación portable de la información personal almacenada en tu cuenta. Para obtener tus archivos de datos, ponte en contacto con nuestro responsable de cumplimiento."
+      "body": "Conforme a la normativa de protección de datos aplicable (incluida la Ley N.° 29733, Ley de Protección de Datos Personales del Perú, y su reglamento), conservas el derecho a solicitar el acceso, la rectificación, la cancelación o la oposición al tratamiento de la información personal almacenada en tu cuenta, así como su exportación. Para ejercer estos derechos, escríbenos al correo indicado al final de esta política."
     },
     "s8": {
       "title": "8. Solicitudes de eliminación de datos",
@@ -48,8 +48,6 @@
     "s10": {
       "title": "10. Contacto e información regulatoria",
       "body": "Si tienes preguntas o solicitudes sobre tus datos, ponte en contacto con Whasalia:",
-      "department": "Departamento de Cumplimiento",
-      "location": "Pune, Maharashtra, India",
       "emailLabel": "Correo electrónico:"
     }
   },
@@ -137,12 +135,11 @@
     },
     "s7": {
       "title": "7. Ley aplicable y jurisdicción",
-      "body": "Estos Términos y cualquier controversia derivada del uso de esta Plataforma se regirán, interpretarán y harán cumplir de conformidad con las leyes de India. Toda controversia quedará sometida a la jurisdicción exclusiva de los tribunales ubicados en Pune, Maharashtra, India."
+      "body": "Estos Términos y cualquier controversia derivada del uso de esta Plataforma se regirán, interpretarán y harán cumplir de conformidad con las leyes de la República del Perú. Toda controversia quedará sometida a la jurisdicción de los jueces y tribunales de Huancayo, Junín, Perú."
     },
     "s8": {
       "title": "8. Contacto",
       "body": "Si tienes preguntas sobre estos Términos y condiciones, ponte en contacto con Whasalia:",
-      "location": "Pune, Maharashtra, India",
       "emailLabel": "Correo electrónico:"
     }
   },
@@ -194,7 +191,7 @@
     },
     "s10": {
       "title": "10. Ley aplicable",
-      "body": "Estos Términos se rigen por las leyes de la India. Toda controversia quedará sometida a la jurisdicción exclusiva de los tribunales de la India."
+      "body": "Estos Términos se rigen por las leyes de la República del Perú. Toda controversia quedará sometida a la jurisdicción de los jueces y tribunales de Huancayo, Junín, Perú."
     },
     "s11": {
       "title": "11. Contacto",
@@ -214,7 +211,6 @@
     "step4": "También puedes contactar a nuestro equipo de soporte para solicitar la eliminación de tus datos.",
     "contactTitle": "Contactar con soporte",
     "emailLabel": "Correo de soporte",
-    "whatsappLabel": "Soporte por WhatsApp",
     "footer": "Una vez que recibamos tu solicitud, tus datos se eliminarán de forma permanente de nuestro sistema en un plazo de 7 días hábiles."
   }
 }

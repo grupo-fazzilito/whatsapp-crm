@@ -3,8 +3,9 @@ import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { ThemeProvider } from "@/hooks/use-theme";
-import { DEFAULT_THEME, STORAGE_KEY, THEME_IDS } from "@/lib/themes";
+import { DEFAULT_THEME, LEGACY_STORAGE_KEYS, MODE_STORAGE_KEY, STORAGE_KEY, THEME_IDS } from "@/lib/themes";
 import { getLocale } from "@/i18n/server";
+import { COMPANY } from "@/lib/company";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001").replace(/\/+$/, "");
 
@@ -73,6 +74,16 @@ export const viewport: Viewport = {
 const THEME_BOOT_SCRIPT = `
 (function(){
   try {
+    var LEGACY = ${JSON.stringify(LEGACY_STORAGE_KEYS)};
+    for (var oldKey in LEGACY) {
+      var v = localStorage.getItem(oldKey);
+      if (v !== null) {
+        if (localStorage.getItem(LEGACY[oldKey]) === null) localStorage.setItem(LEGACY[oldKey], v);
+        localStorage.removeItem(oldKey);
+      }
+    }
+  } catch (_e) {}
+  try {
     var STORAGE_KEY = ${JSON.stringify(STORAGE_KEY)};
     var DEFAULT = ${JSON.stringify(DEFAULT_THEME)};
     var ALLOWED = ${JSON.stringify(THEME_IDS)};
@@ -84,7 +95,7 @@ const THEME_BOOT_SCRIPT = `
   }
   
   try {
-    var savedMtheme = localStorage.getItem("chatnexgenai.mtheme");
+    var savedMtheme = localStorage.getItem(${JSON.stringify(MODE_STORAGE_KEY)});
     var mtheme = "dark";
     if (savedMtheme === "light" || savedMtheme === "dark") {
       mtheme = savedMtheme;
@@ -138,18 +149,22 @@ export default async function RootLayout({
               "alternateName": "Whasalia",
               "url": SITE_URL,
               "logo": `${SITE_URL}/images/logo/whasalia-logo.png`,
+              "legalName": COMPANY.legalName,
+              "taxID": COMPANY.taxId,
+              "email": COMPANY.email,
               "contactPoint": {
                 "@type": "ContactPoint",
-                "telephone": "+91-7745868073",
+                "email": COMPANY.email,
                 "contactType": "customer service",
-                "areaServed": "IN",
-                "availableLanguage": ["en", "hi"]
+                "availableLanguage": ["es", "en"]
               },
               "address": {
                 "@type": "PostalAddress",
-                "addressLocality": "Pune",
-                "addressRegion": "Maharashtra",
-                "addressCountry": "India"
+                "streetAddress": COMPANY.street,
+                "addressLocality": COMPANY.city,
+                "addressRegion": COMPANY.region,
+                "postalCode": COMPANY.postalCode,
+                "addressCountry": "PE"
               },
               "description": "AI-Powered WhatsApp CRM & Business Automation Platform helping businesses manage leads and automate customer support."
             })

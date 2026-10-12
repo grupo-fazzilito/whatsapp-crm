@@ -33,7 +33,7 @@
     },
     "s7": {
       "title": "7. User Rights & Data Portability",
-      "body": "Under relevant data protection regulations (including GDPR and Indian IT policies), you retain the right to request access to, correction of, or portable exportation of the personal information stored in your account. To retrieve your data files, contact our compliance officer."
+      "body": "Under applicable data protection regulations (including Peru's Personal Data Protection Law No. 29733 and its regulations), you retain the right to request access to, correction or deletion of, or to object to the processing of the personal information stored in your account, as well as its export. To exercise these rights, write to the email address at the end of this policy."
     },
     "s8": {
       "title": "8. Data Deletion Requests",
@@ -48,8 +48,6 @@
     "s10": {
       "title": "10. Contact & Regulatory Information",
       "body": "For questions or requests regarding your data, contact Whasalia:",
-      "department": "Compliance Department",
-      "location": "Pune, Maharashtra, India",
       "emailLabel": "Email:"
     }
   },
@@ -137,12 +135,11 @@
     },
     "s7": {
       "title": "7. Governing Law & Jurisdiction",
-      "body": "These Terms and any dispute arising from the use of this Platform shall be governed by, interpreted, and enforced in accordance with the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts located in Pune, Maharashtra, India."
+      "body": "These Terms and any dispute arising from the use of this Platform shall be governed by, interpreted, and enforced in accordance with the laws of the Republic of Peru. Any disputes shall be subject to the jurisdiction of the judges and courts of Huancayo, Junín, Peru."
     },
     "s8": {
       "title": "8. Contact Us",
       "body": "If you have questions regarding these Terms & Conditions, contact Whasalia:",
-      "location": "Pune, Maharashtra, India",
       "emailLabel": "Email:"
     }
   },
@@ -194,7 +191,7 @@
     },
     "s10": {
       "title": "10. Governing Law",
-      "body": "These Terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts in India."
+      "body": "These Terms are governed by the laws of the Republic of Peru. Any disputes shall be subject to the jurisdiction of the judges and courts of Huancayo, Junín, Peru."
     },
     "s11": {
       "title": "11. Contact",
@@ -214,7 +211,6 @@
     "step4": "You can also contact our support team to request deletion of your data.",
     "contactTitle": "Contact Support",
     "emailLabel": "Support Email",
-    "whatsappLabel": "WhatsApp Support",
     "footer": "Once we receive your request, your data will be permanently deleted from our system within 7 working days."
   }
 }

@@ -4,6 +4,7 @@ import { emailConfigured, sendEmail } from "@/lib/email/send";
 import crypto from "crypto";
 import { acceptInvitation, findPendingInvitation } from "@/lib/workspace/invitations";
 import { createUserWithPassword, findUserByEmail } from "@/lib/auth/users";
+import { COMPANY } from "@/lib/company";
 
 interface OtpEntry {
   code: string;
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
         return val.replace(/^["']|["']$/g, "");
       };
       const smtpUser = cleanEnv(process.env.SMTP_USER || process.env.EMAIL_USERNAME);
-      const smtpFrom = cleanEnv(process.env.SMTP_FROM) || smtpUser || "chatnexgenai@gmail.com";
+      const smtpFrom = cleanEnv(process.env.SMTP_FROM) || smtpUser || COMPANY.email;
 
       // Developer Fallback: Log the verification code to the console
       if (isDevMode()) console.log(`\n--- [SIGNUP OTP] Verification code for ${email} is: ${code} ---\n`);

@@ -5,7 +5,7 @@ import { ApiError } from './errors'
 import { oneOf, str, num, uuid } from './validate'
 
 describe('API keys', () => {
-  it('generates cnx_live_ keys with a stored hash and 8-char prefix', () => {
+  it('generates wsl_live_ keys with a stored hash and 8-char prefix', () => {
     const k = generateApiKey()
     expect(k.secret.startsWith(API_KEY_PREFIX)).toBe(true)
     expect(k.secret.length).toBeGreaterThanOrEqual(API_KEY_PREFIX.length + 40)
@@ -30,7 +30,9 @@ describe('API keys', () => {
     expect(bearerToken('Basic abc')).toBeNull()
     expect(bearerToken(null)).toBeNull()
     expect(parseApiKey(k.secret)).toEqual({ prefix: k.prefix })
-    expect(parseApiKey('cnx_live_short')).toBeNull()
+    expect(parseApiKey('wsl_live_short')).toBeNull()
+    // Keys issued before the rename still parse.
+    expect(parseApiKey('cnx_live_' + 'b'.repeat(43))).toEqual({ prefix: 'bbbbbbbb' })
     expect(parseApiKey('sk_live_' + 'a'.repeat(43))).toBeNull()
   })
 })

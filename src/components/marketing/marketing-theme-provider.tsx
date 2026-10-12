@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { MODE_STORAGE_KEY } from "@/lib/themes";
 
 type ThemeMode = "dark" | "light" | "system";
 
@@ -22,7 +23,7 @@ export function MarketingThemeProvider({ children }: { children: React.ReactNode
 
   // Read from localStorage once on mount — default is always dark
   useEffect(() => {
-    const saved = localStorage.getItem("chatnexgenai.mtheme");
+    const saved = localStorage.getItem(MODE_STORAGE_KEY);
     const initialMode: ThemeMode = saved === "light" || saved === "dark" ? saved : "dark";
     setModeState(initialMode);
     setResolvedTheme(initialMode === "light" ? "light" : "dark");
@@ -38,7 +39,7 @@ export function MarketingThemeProvider({ children }: { children: React.ReactNode
 
   const setMode = (newMode: ThemeMode) => {
     setModeState(newMode);
-    localStorage.setItem("chatnexgenai.mtheme", newMode);
+    localStorage.setItem(MODE_STORAGE_KEY, newMode);
   };
 
   return (

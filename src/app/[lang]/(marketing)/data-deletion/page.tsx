@@ -3,6 +3,8 @@
 import React from "react";
 import { Trash2 } from "lucide-react";
 import { useI18n } from "@/i18n/client";
+import { CompanyDetails } from "@/components/marketing/company-details";
+import { COMPANY } from "@/lib/company";
 
 export default function DataDeletionPage() {
   const { t } = useI18n();
@@ -35,22 +37,17 @@ export default function DataDeletionPage() {
 
         <section className="space-y-4 pt-8 border-t border-[var(--m-border-primary)]/50">
           <h3 className="text-lg font-bold text-[var(--m-text-heading)] text-center">{t("mktDataDeletion.contactTitle")}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-xl mx-auto pt-2">
+          <div className="grid grid-cols-1 gap-6 max-w-sm mx-auto pt-2">
             <div className="bg-[var(--m-bg-secondary)] border border-[var(--m-border-primary)] rounded-xl p-4 text-center space-y-2">
               <span className="text-[10px] uppercase font-bold text-[var(--m-text-muted)]">{t("mktDataDeletion.emailLabel")}</span>
               <p className="font-semibold text-[var(--m-text-primary)]">
-                <a href="mailto:chatnexgen@gmail.com" className="text-emerald-400 hover:underline">
-                  chatnexgen@gmail.com
+                <a href={`mailto:${COMPANY.email}`} className="text-emerald-400 hover:underline">
+                  {COMPANY.email}
                 </a>
               </p>
             </div>
-            <div className="bg-[var(--m-bg-secondary)] border border-[var(--m-border-primary)] rounded-xl p-4 text-center space-y-2">
-              <span className="text-[10px] uppercase font-bold text-[var(--m-text-muted)]">{t("mktDataDeletion.whatsappLabel")}</span>
-              <p className="font-semibold text-emerald-400">
-                +91 77458 68073 / +91 88305 53868
-              </p>
-            </div>
           </div>
+          <div className="text-center [&>div]:mx-auto"><CompanyDetails /></div>
           <p className="text-xs text-[var(--m-text-muted)] text-center pt-4">
             {t("mktDataDeletion.footer")}
           </p>

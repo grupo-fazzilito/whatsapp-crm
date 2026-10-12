@@ -3,6 +3,8 @@
 import React from "react";
 import { Scale } from "lucide-react";
 import { useI18n } from "@/i18n/client";
+import { CompanyDetails } from "@/components/marketing/company-details";
+import { COMPANY } from "@/lib/company";
 
 export default function TermsOfServicePage() {
   const { t } = useI18n();
@@ -103,8 +105,9 @@ export default function TermsOfServicePage() {
         <section className="space-y-3 text-center pt-8 border-t border-[var(--m-border-primary)]/50">
           <h3 className="text-lg font-bold text-[var(--m-text-heading)]">{t("mktTermsService.s11.title")}</h3>
           <p>
-            {t("mktTermsService.s11.before")}<a href="mailto:chatnexgenai@gmail.com" className="text-emerald-400 hover:underline">chatnexgenai@gmail.com</a>{t("mktTermsService.s11.after")}
+            {t("mktTermsService.s11.before")}<a href={`mailto:${COMPANY.email}`} className="text-emerald-400 hover:underline">{COMPANY.email}</a>{t("mktTermsService.s11.after")}
           </p>
+          <CompanyDetails />
         </section>
       </div>
     </div>
