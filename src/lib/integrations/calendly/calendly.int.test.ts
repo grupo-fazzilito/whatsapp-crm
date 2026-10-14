@@ -2,6 +2,7 @@
 // on fetch. TEST_DATABASE_URL=postgresql://crm:crm@127.0.0.1:5434/crm npx vitest run src/lib/integrations/calendly
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { pgTest } from '@/lib/test-utils/pg'
+import type { BookingDraft } from '@/lib/ai/types'
 
 vi.mock('server-only', () => ({}))
 const pg = await pgTest()
@@ -97,7 +98,7 @@ describe.skipIf(!pg)('Calendly integration', async () => {
     invalidateBusinessContext(ws.workspaceId)
   })
 
-  const draft = (time: string, email?: string) => ({ service_id: serviceId, date: day, time, customer_name: 'Ana Pérez', fields: email ? { email } : {} })
+  const draft = (time: string, email?: string): BookingDraft => ({ service_id: serviceId, date: day, time, customer_name: 'Ana Pérez', fields: email ? { email } : {} })
   const book = (d: ReturnType<typeof draft>) => createBookingFromDraft({ workspaceId: ws.workspaceId, contactId, conversationId: null, aiAgentId: null, draft: d, source: 'ai' })
 
   it('asks for the email, then offers the free times when the slot is taken', async () => {

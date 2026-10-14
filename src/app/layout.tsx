@@ -14,20 +14,24 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+// Default title and description (app pages; public pages set their own per language).
+const SITE_TITLE = "Whasalia — CRM gratis para WhatsApp, Instagram y Messenger con IA";
+const SITE_DESCRIPTION = "CRM gratuito para siempre: bandeja compartida, agentes de IA, flujos, ventas y reservas para WhatsApp, Instagram y Messenger. Solo pagas los tokens de IA que usas.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Whasalia - AI Powered WhatsApp CRM & Automation Platform",
+    default: SITE_TITLE,
     template: "%s — Whasalia",
   },
-  description: "Manage leads, automate customer communication, and grow your business with Whasalia's AI-powered WhatsApp CRM platform.",
+  description: SITE_DESCRIPTION,
   robots: {
     index: true,
     follow: true,
   },
   openGraph: {
-    title: "Whasalia - AI Powered WhatsApp CRM & Automation Platform",
-    description: "Manage leads, automate customer communication, and grow your business with Whasalia's AI-powered WhatsApp CRM platform.",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     url: SITE_URL,
     siteName: "Whasalia",
     images: [
@@ -38,13 +42,13 @@ export const metadata: Metadata = {
         alt: "Whasalia CRM Logo",
       },
     ],
-    locale: "en_US",
+    locale: "es_PE",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Whasalia - AI Powered WhatsApp CRM & Automation Platform",
-    description: "Manage leads, automate customer communication, and grow your business with Whasalia's AI-powered WhatsApp CRM platform.",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     images: [`${SITE_URL}/images/logo/whasalia-logo.png`],
   },
   icons: {
@@ -166,7 +170,7 @@ export default async function RootLayout({
                 "postalCode": COMPANY.postalCode,
                 "addressCountry": "PE"
               },
-              "description": "AI-Powered WhatsApp CRM & Business Automation Platform helping businesses manage leads and automate customer support."
+              "description": SITE_DESCRIPTION
             })
           }}
         />
