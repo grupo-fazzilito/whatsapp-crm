@@ -3,7 +3,7 @@
     "badge": "funcionalidades",
     "titleLine1": "Todas tus conversaciones,",
     "titleHighlight": "en un solo lugar",
-    "subtitle": "WhatsApp, Instagram, Messenger y el chat de tu web en una bandeja compartida, con agentes de IA, flujos, difusiones, ventas y reservas. Sin escribir código.",
+    "subtitle": "WhatsApp, Instagram, Messenger y el chat de tu web en una bandeja compartida, con agentes de IA, flujos, difusiones, respuestas automáticas a comentarios, ventas y reservas. Sin escribir código.",
     "caps": {
       "inbox": {
         "name": "Bandeja compartida multicanal",
@@ -25,13 +25,17 @@
         "name": "Automatizaciones y seguimientos",
         "desc": "Secuencias con esperas, condiciones y etiquetas: recuerda una cita, reactiva a un cliente inactivo o haz seguimiento a un presupuesto sin mover un dedo."
       },
+      "comments": {
+        "name": "Respuestas a comentarios",
+        "desc": "Cuando alguien comenta «precio» o «info» en tu publicación de Instagram o Facebook, Whasalia responde el comentario y le escribe por privado. La conversación sigue en tu bandeja. Sin tokens."
+      },
       "broadcasts": {
         "name": "Difusiones con plantillas",
         "desc": "Crea plantillas de WhatsApp con vista previa, envíalas a Meta para aprobación desde Whasalia y mándalas a tus contactos filtrando por etiquetas."
       },
       "crm": {
-        "name": "Contactos y embudos de venta",
-        "desc": "Etiqueta y filtra a tus contactos, y mueve cada oportunidad por las etapas de tu embudo en un tablero."
+        "name": "Contactos, embudos y tareas",
+        "desc": "Etiqueta y filtra a tus contactos, mueve cada oportunidad por las etapas de tu embudo en un tablero y asigna tareas para que nada se te escape."
       },
       "commerce": {
         "name": "Catálogo, pedidos y reservas",
@@ -40,10 +44,6 @@
       "integrations": {
         "name": "Integraciones y API",
         "desc": "Google Calendar y Calendly para tus citas, MercadoLibre y portales inmobiliarios, y una API REST con webhooks para conectar n8n, Make, Zapier o tu propio sistema."
-      },
-      "tasks": {
-        "name": "Tareas",
-        "desc": "Crea y asigna tareas ligadas a tus contactos y conversaciones para que nada se te escape."
       },
       "reports": {
         "name": "Reportes",
@@ -170,7 +170,10 @@
       "channels": "Bandeja compartida para WhatsApp, Instagram, Messenger y chat web",
       "crm": "Contactos, embudos de venta, etiquetas y tareas",
       "automations": "Flujos, automatizaciones y difusiones con plantillas aprobadas por Meta",
+      "comments": "Respuestas automáticas a comentarios de Instagram y Facebook",
+      "faqBot": "Bot de preguntas frecuentes con menús numerados, sin gastar tokens",
       "commerce": "Catálogo, pedidos y reservas",
+      "calendars": "Google Calendar y Calendly para tus citas",
       "agents": "Agentes de IA entrenados con tu negocio (usan tokens de IA)",
       "team": "Tu equipo con roles y permisos",
       "api": "API y webhooks para conectar tus sistemas"

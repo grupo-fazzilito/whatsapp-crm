@@ -3,7 +3,7 @@
     "badge": "features",
     "titleLine1": "All your conversations,",
     "titleHighlight": "in one place",
-    "subtitle": "WhatsApp, Instagram, Messenger and your website chat in one shared inbox, with AI agents, flows, broadcasts, sales and bookings. No code.",
+    "subtitle": "WhatsApp, Instagram, Messenger and your website chat in one shared inbox, with AI agents, flows, broadcasts, automatic comment replies, sales and bookings. No code.",
     "caps": {
       "inbox": {
         "name": "Multichannel shared inbox",
@@ -25,13 +25,17 @@
         "name": "Automations and follow-ups",
         "desc": "Sequences with waits, conditions and tags: remind an appointment, win back an inactive customer or follow up on a quote without lifting a finger."
       },
+      "comments": {
+        "name": "Comment replies",
+        "desc": "When someone comments “price” or “info” on your Instagram or Facebook post, Whasalia replies to the comment and messages them privately. The conversation continues in your inbox. No tokens used."
+      },
       "broadcasts": {
         "name": "Template broadcasts",
         "desc": "Create WhatsApp templates with a preview, submit them to Meta for approval from Whasalia, and send them to contacts filtered by tags."
       },
       "crm": {
-        "name": "Contacts and sales pipelines",
-        "desc": "Tag and filter your contacts, and move each opportunity through the stages of your pipeline on a board."
+        "name": "Contacts, pipelines and tasks",
+        "desc": "Tag and filter your contacts, move each opportunity through your pipeline stages on a board, and assign tasks so nothing slips."
       },
       "commerce": {
         "name": "Catalog, orders and bookings",
@@ -40,10 +44,6 @@
       "integrations": {
         "name": "Integrations and API",
         "desc": "Google Calendar and Calendly for appointments, MercadoLibre and real-estate portals, and a REST API with webhooks to connect n8n, Make, Zapier or your own system."
-      },
-      "tasks": {
-        "name": "Tasks",
-        "desc": "Create and assign tasks linked to your contacts and conversations so nothing slips."
       },
       "reports": {
         "name": "Reports",
@@ -170,7 +170,10 @@
       "channels": "Shared inbox for WhatsApp, Instagram, Messenger and web chat",
       "crm": "Contacts, sales pipelines, tags and tasks",
       "automations": "Flows, automations and broadcasts with Meta-approved templates",
+      "comments": "Automatic replies to Instagram and Facebook comments",
+      "faqBot": "FAQ bot with numbered menus, no tokens used",
       "commerce": "Catalog, orders and bookings",
+      "calendars": "Google Calendar and Calendly for your appointments",
       "agents": "AI agents trained on your business (they use AI tokens)",
       "team": "Your team with roles and permissions",
       "api": "API and webhooks to connect your systems"
