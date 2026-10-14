@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-14',
+    title: { es: 'Regístrate gratis y configuración asistida', en: 'Free sign-up and assisted setup' },
+    changes: [
+      { kind: 'improved', es: 'El sitio te lleva directo a crear tu cuenta gratis; ya no hay que agendar una demo.', en: 'The site takes you straight to creating your free account; no demo booking needed.' },
+      { kind: 'new', es: '¿Necesitas ayuda para empezar? Configuramos tu cuenta contigo por Google Meet por S/ 250. Escríbenos por WhatsApp desde el menú de ayuda (?).', en: 'Need help getting started? We set up your account with you over Google Meet for S/ 250. Message us on WhatsApp from the help menu (?).' },
+    ],
+  },
+  {
+    date: '2026-10-14',
     title: { es: 'Libro de Reclamaciones virtual', en: 'Virtual Complaints Book' },
     changes: [
       { kind: 'new', es: 'Puedes registrar un reclamo o una queja desde el enlace «Libro de Reclamaciones» al pie de cada página. Recibes una constancia por correo con el número de tu hoja y la fecha límite de respuesta.', en: 'You can file a claim or complaint from the «Complaints Book» link at the bottom of every page. You get an emailed receipt with your form number and the answer deadline.' },

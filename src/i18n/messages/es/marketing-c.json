@@ -95,25 +95,6 @@
     "messagePlaceholder": "¿Cómo podemos ayudar a tu equipo a crecer?",
     "submit": "Enviar consulta"
   },
-  "mktBookDemo": {
-    "badge": "sesión por video",
-    "titleLine1": "Agenda una demo 1 a 1",
-    "titleHighlight": "del producto.",
-    "subtitle": "Agenda una sesión en vivo con pantalla compartida junto a un arquitecto de soluciones de ventas. Aprende a conectar tus plantillas de Meta, configurar prompts de respuesta automática y dar seguimiento a las analíticas de tu pipeline.",
-    "duration": "Sesión personalizada de 30 minutos",
-    "medium": "Pantalla compartida en vivo por Zoom / Google Meet",
-    "successTitle": "¡Consulta agendada!",
-    "successDesc": "Te enviamos la invitación de calendario a tu correo. Nos vemos el {date} a las {time} por Google Meet.",
-    "selectTitle": "Elige fecha y hora",
-    "availableDates": "Fechas disponibles",
-    "availableSlots": "Horarios disponibles",
-    "confirm": "Confirmar cita",
-    "dates": {
-      "d1": "Mié, 27 may",
-      "d2": "Jue, 28 may",
-      "d3": "Vie, 29 may"
-    }
-  },
   "mktApiDocs": {
     "badge": "API para desarrolladores",
     "titleLine1": "Envía mensajes",

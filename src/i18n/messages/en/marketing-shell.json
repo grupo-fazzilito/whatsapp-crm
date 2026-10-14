@@ -15,7 +15,6 @@
       "careers": "Careers",
       "blog": "Blog Hacks"
     },
-    "bookDemo": "Book Demo",
     "dashboard": "Dashboard",
     "signIn": "Sign In",
     "navigation": "Navigation",
@@ -114,10 +113,6 @@
         "title": "Contact Us",
         "description": "Get in touch with the Whasalia team."
       },
-      "bookDemo": {
-        "title": "Book a Demo",
-        "description": "Book a free walkthrough of Whasalia with our team."
-      },
       "apiDocs": {
         "title": "API Docs",
         "description": "Whasalia public API: send messages, manage contacts and receive webhooks."
@@ -150,7 +145,8 @@
         "title": "Complaints Book",
         "description": "File a claim or complaint about Whasalia in our virtual Complaints Book (Libro de Reclamaciones)."
       }
-    }
+    },
+    "signUp": "Sign up free"
   },
   "mktChangelog": {
     "badge": "Changelog",

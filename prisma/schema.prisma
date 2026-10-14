@@ -1519,22 +1519,23 @@ model products {
 }
 
 model profiles {
-  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id           String    @unique @db.Uuid
-  full_name         String
-  email             String
-  avatar_url        String?
-  role              String?   @default("user")
-  created_at        DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
-  beta_features     String[]  @default([])
-  business_name     String?
-  business_type     String?
-  is_platform_admin Boolean   @default(false)
-  locale            String    @default("es")
-  tour_completed_at DateTime? @db.Timestamptz(6)
-  deals             deals[]
-  users             users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String    @unique @db.Uuid
+  full_name           String
+  email               String
+  avatar_url          String?
+  role                String?   @default("user")
+  created_at          DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime? @default(now()) @db.Timestamptz(6)
+  beta_features       String[]  @default([])
+  business_name       String?
+  business_type       String?
+  is_platform_admin   Boolean   @default(false)
+  locale              String    @default("es")
+  tour_completed_at   DateTime? @db.Timestamptz(6)
+  setup_offer_seen_at DateTime? @db.Timestamptz(6)
+  deals               deals[]
+  users               users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

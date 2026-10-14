@@ -4,8 +4,8 @@
       "badge": "🚀 CRM de WhatsApp con IA y automatización para tu negocio",
       "title": "El CRM de WhatsApp con IA creado para conectar con tus clientes",
       "subtitle": "Sincroniza las conversaciones de tu equipo, califica leads automáticamente, atiende chats de soporte con ayuda de IA y simplifica la agenda de citas en WhatsApp, cumpliendo al 100% con las políticas de Meta.",
-      "getStarted": "Comenzar",
-      "learnMore": "Más información"
+      "getStarted": "Regístrate gratis",
+      "learnMore": "Ver funciones"
     },
     "integrations": {
       "title": "Integrado con tus herramientas favoritas"
@@ -75,8 +75,7 @@
     "cta": {
       "title": "¿Listo para automatizar tu WhatsApp?",
       "desc": "Empieza en minutos. Conecta tu cuenta de Meta Business, configura tu espacio de soporte al cliente con IA y mira cómo crece tu negocio.",
-      "start": "Prueba gratis",
-      "enterprise": "Contactar ventas Enterprise"
+      "start": "Regístrate gratis"
     },
     "chat": {
       "status": "Agente de IA · en línea",
@@ -116,31 +115,6 @@
       "broadcastDesc": "Millones de seguimientos, confirmaciones de pago y plantillas activados cada mes.",
       "automation": "Tasa de automatización con IA",
       "automationDesc": "Conversaciones atendidas de forma totalmente autónoma, sin intervención humana."
-    },
-    "demo": {
-      "title": "Agenda una demo del producto",
-      "subtitle": "Recorrido en vivo de 30 min · Google Meet",
-      "successTitle": "¡Tu demo está agendada!",
-      "successBody": "Enviamos un correo de confirmación a {email}. Nos vemos el {date} a las {time} por Google Meet.",
-      "done": "Listo",
-      "errorBooking": "No pudimos agendar la demo. Inténtalo de nuevo.",
-      "errorNetwork": "Ocurrió un error de red inesperado.",
-      "contactDetails": "Datos de contacto",
-      "fullName": "Nombre completo *",
-      "namePlaceholder": "María López",
-      "workEmail": "Correo de trabajo *",
-      "emailPlaceholder": "maria@empresa.com",
-      "phone": "Teléfono *",
-      "selectDateTime": "Elige fecha y hora",
-      "chooseDate": "1. Elige la fecha *",
-      "chooseTime": "2. Elige la hora *",
-      "meetNote": "Espacio de 30 min en Google Meet. Te enviaremos la invitación de calendario.",
-      "selected": "Seleccionado: {date} a las {time}",
-      "selectPrompt": "Elige una fecha y un horario...",
-      "confirm": "Confirmar reserva",
-      "days": "Dom,Lun,Mar,Mié,Jue,Vie,Sáb",
-      "months": "Ene,Feb,Mar,Abr,May,Jun,Jul,Ago,Sep,Oct,Nov,Dic",
-      "dateLabel": "{day}, {date} {month}"
     }
   }
 }

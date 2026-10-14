@@ -85,8 +85,7 @@
     "badge": "Pricing",
     "titleLine1": "Whasalia is free.",
     "titleHighlight": "You only pay for AI.",
-    "subtitle": "Use the whole platform with no monthly fee. If you turn on AI agents, top up tokens when you need them.",
-    "notSure": "Questions? Talk to us →"
+    "subtitle": "Use the whole platform with no monthly fee. If you turn on AI agents, top up tokens when you need them."
   },
   "mktIntegrations": {
     "badge": "native sync",

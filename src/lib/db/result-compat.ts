@@ -308,6 +308,7 @@ export const resultCompat = Prisma.defineExtension({
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
       tour_completed_at: { needs: { tour_completed_at: true }, compute: (r) => r.tour_completed_at === null ? null : r.tour_completed_at.toISOString() },
+      setup_offer_seen_at: { needs: { setup_offer_seen_at: true }, compute: (r) => r.setup_offer_seen_at === null ? null : r.setup_offer_seen_at.toISOString() },
     },
     property_captures: {
       area_m2: { needs: { area_m2: true }, compute: (r) => r.area_m2 === null ? null : r.area_m2.toNumber() },

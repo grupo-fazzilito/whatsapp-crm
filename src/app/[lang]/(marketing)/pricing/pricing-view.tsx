@@ -1,7 +1,6 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { BookDemoTrigger } from "@/components/marketing/book-demo-trigger";
 import { PricingCards, TokenCosts } from "@/components/marketing/pricing-cards";
 import { useI18n } from "@/i18n/client";
 import type { PublicPricing } from "@/lib/billing/plans";
@@ -27,11 +26,6 @@ export function PricingView({ pricing }: { pricing: PublicPricing }) {
 
       <TokenCosts pricing={pricing} />
 
-      <div className="text-center space-y-4">
-        <BookDemoTrigger className="inline-flex items-center gap-1 text-sm font-semibold transition-colors text-emerald-500 hover:text-emerald-400">
-          {t("mktPricing.notSure")}
-        </BookDemoTrigger>
-      </div>
     </div>
   );
 }

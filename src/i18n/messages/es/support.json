@@ -153,5 +153,17 @@
       "save": "Guardar",
       "saved": "Guardado"
     }
+  },
+  "setupHelp": {
+    "title": "¿Necesitas ayuda configurando tu cuenta?",
+    "body": "Lo configuramos contigo en una videollamada por Google Meet y dejas Whasalia listo para atender a tus clientes.",
+    "i1": "Conectamos tu WhatsApp, Instagram y Messenger",
+    "i2": "Cargamos tus horarios, servicios y preguntas frecuentes",
+    "i3": "Dejamos tu agente de IA y tus primeros flujos funcionando",
+    "once": "pago único",
+    "cta": "Escríbenos por WhatsApp",
+    "dismiss": "No, gracias",
+    "menu": "Configuración asistida (S/ {price})",
+    "message": "Hola, quiero la configuración asistida de S/ {price} para mi negocio {business} en Whasalia."
   }
 }

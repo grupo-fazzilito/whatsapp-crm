@@ -1170,6 +1170,7 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "created_at": "timestamp",
     "updated_at": "timestamp",
     "tour_completed_at": "timestamp",
+    "setup_offer_seen_at": "timestamp",
     "deals": {
       "rel": "deals"
     },

@@ -3,13 +3,15 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { CircleHelp, Compass, LifeBuoy, MessageCircle, Ticket } from 'lucide-react';
+import { CalendarCheck, CircleHelp, Compass, LifeBuoy, MessageCircle, Ticket } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useAuth } from '@/hooks/use-auth';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useTour } from '@/components/tour/guided-tour';
 import { CreateTicketDialog } from './create-ticket-dialog';
 import { openSupportChat } from './support-chat';
+import { useSetupHelpUrl } from './setup-help-dialog';
+import { SETUP_HELP_PRICE } from '@/lib/support/setup-offer';
 
 const iconBtn =
   'flex h-9 w-9 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
@@ -30,6 +32,7 @@ export function HelpMenu() {
   const { t } = useI18n();
   const { profile } = useAuth();
   const [ticketOpen, setTicketOpen] = useState(false);
+  const setupUrl = useSetupHelpUrl();
 
   const chat = async () => {
     const res = await fetch('/api/support/config', { cache: 'no-store' }).catch(() => null);
@@ -71,6 +74,12 @@ export function HelpMenu() {
               {t('support.chatOnline')}
             </DropdownMenuItem>
           </DropdownMenuGroup>
+          {setupUrl && (
+            <DropdownMenuItem render={<a href={setupUrl} target="_blank" rel="noopener noreferrer" />}>
+              <CalendarCheck className="size-4" aria-hidden />
+              {t('setupHelp.menu', { price: SETUP_HELP_PRICE })}
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator className="bg-border" />
           <DropdownMenuItem render={<Link href="/support" />}>
             <LifeBuoy className="size-4" aria-hidden />

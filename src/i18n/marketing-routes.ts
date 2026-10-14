@@ -21,7 +21,6 @@ export const MARKETING_PATHS = [
   '/careers',
   '/contact',
   '/contact-us',
-  '/book-demo',
   '/api-docs',
   '/privacy-policy',
   '/refund-policy',

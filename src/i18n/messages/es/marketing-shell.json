@@ -15,7 +15,6 @@
       "careers": "Empleo",
       "blog": "Blog"
     },
-    "bookDemo": "Agendar demo",
     "dashboard": "Panel",
     "signIn": "Iniciar sesión",
     "navigation": "Navegación",
@@ -114,10 +113,6 @@
         "title": "Contacto",
         "description": "Ponte en contacto con el equipo de Whasalia."
       },
-      "bookDemo": {
-        "title": "Agenda una demo",
-        "description": "Agenda una demostración gratuita de Whasalia con nuestro equipo."
-      },
       "apiDocs": {
         "title": "Documentación de la API",
         "description": "API pública de Whasalia: envía mensajes, gestiona contactos y recibe webhooks."
@@ -150,7 +145,8 @@
         "title": "Libro de Reclamaciones",
         "description": "Registra un reclamo o una queja sobre Whasalia en nuestro Libro de Reclamaciones virtual."
       }
-    }
+    },
+    "signUp": "Regístrate gratis"
   },
   "mktChangelog": {
     "badge": "Novedades",

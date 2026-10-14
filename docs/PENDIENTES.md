@@ -56,7 +56,12 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [x] **Libro de Reclamaciones virtual**: formulario en `/es/libro-de-reclamaciones`, enlace en el pie de cada página, constancia por correo, respuestas desde Superadmin → Complaints con plazo de 15 días hábiles — 🤖 (2026-10-14, rama `feat/complaints-book`, falta fusionar)
 - [ ] Responder cada reclamación en Superadmin → Complaints dentro de 15 días hábiles (llega aviso a `grupofazzilito@gmail.com`; requiere el correo del punto 2) — 🧑
 
-## 7. Mantenimiento
+## 7. Registro y configuración asistida
+
+- [x] Todos los botones del sitio dicen "Regístrate gratis" (fuera "Agendar demo" y "Contactar ventas"); dentro de la app, modal y opción en el menú "?" con la configuración asistida de S/ 250 por Google Meet que abre WhatsApp — 🤖 (2026-10-14, rama `feat/signup-and-setup-help`)
+- [ ] Poner tu número de WhatsApp en Superadmin → Settings → Soporte (sin él no aparecen el modal ni la opción del menú) — 🧑
+
+## 8. Mantenimiento
 
 - [ ] Revisar las 5 actualizaciones de dependabot pendientes — 🤖
 
