@@ -1554,6 +1554,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "platform_webhook_endpoints": {
       "rel": "platform_webhook_endpoints"
+    },
+    "complaints": {
+      "rel": "complaints"
     }
   },
   "webhook_deliveries": {
@@ -1621,6 +1624,14 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "workspaces": {
       "rel": "workspaces"
+    }
+  },
+  "complaints": {
+    "amount": "decimal",
+    "responded_at": "timestamp",
+    "created_at": "timestamp",
+    "users": {
+      "rel": "users"
     }
   },
   "plans": {

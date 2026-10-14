@@ -51,7 +51,8 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Revisar contenido heredado de la plantilla: "Nosotros", empleos en San Francisco, testimonios, integraciones indias (IndiaMart, JustDial, Razorpay), página `/admin` con datos de ejemplo — 🤖 propone / 🧑 aprueba
 - [ ] Portfolio de Meta: verificación en dos pasos y un segundo administrador — 🧑
 - [ ] Teléfono o WhatsApp de soporte, si se quiere mostrar — 🧑
-- [ ] **Libro de Reclamaciones virtual** (obligatorio en Perú para quien vende a consumidores, INDECOPI): enlace visible en el sitio. Al cobrar tokens aplica — 🤖 lo implementa / 🧑 confirma
+- [x] **Libro de Reclamaciones virtual**: formulario en `/es/libro-de-reclamaciones`, enlace en el pie de cada página, constancia por correo, respuestas desde Superadmin → Complaints con plazo de 15 días hábiles — 🤖 (2026-10-14, rama `feat/complaints-book`, falta fusionar)
+- [ ] Responder cada reclamación en Superadmin → Complaints dentro de 15 días hábiles (llega aviso a `grupofazzilito@gmail.com`; requiere el correo del punto 2) — 🧑
 
 ## 7. Mantenimiento
 

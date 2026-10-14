@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { BookOpen } from "lucide-react";
 import { useMarketingTheme } from "@/components/marketing/marketing-theme-provider";
 import { useI18n, useLocalePath } from "@/i18n/client";
 import { COMPANY, companyAddress } from "@/lib/company";
@@ -26,6 +27,7 @@ export function Footer() {
     { name: t("mktShell.footer.privacy"), href: lp("/privacy-policy") },
     { name: t("mktShell.footer.terms"), href: lp("/terms-and-conditions") },
     { name: t("mktShell.footer.refund"), href: lp("/refund-policy") },
+    { name: t("mktShell.footer.complaints"), href: lp("/libro-de-reclamaciones") },
   ];
 
   return (
@@ -114,6 +116,12 @@ export function Footer() {
         <p className="text-[10px] leading-relaxed text-[var(--m-text-muted)] max-w-3xl mx-auto">
           {t("mktShell.footer.disclaimer")}
         </p>
+        <Link
+          href={lp("/libro-de-reclamaciones")}
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--m-border-primary)] px-3 py-2 text-xs font-semibold text-[var(--m-text-secondary)] hover:border-emerald-500/50 hover:text-[var(--m-text-heading)] transition-colors"
+        >
+          <BookOpen className="size-4 text-emerald-400" aria-hidden /> {t("mktShell.footer.complaints")}
+        </Link>
         <div className="text-[10px] text-[var(--m-text-muted)] pt-2">
           {t("mktShell.footer.rights", { company: COMPANY.legalName, taxId: `${COMPANY.taxIdLabel} ${COMPANY.taxId}` })}
         </div>

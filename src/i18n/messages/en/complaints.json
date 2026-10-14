@@ -1,0 +1,121 @@
+{
+  "complaints": {
+    "title": "Complaints Book",
+    "subtitle": "Virtual complaint form (Libro de Reclamaciones)",
+    "notice": "As required by Peru's Consumer Protection and Defense Code, we have a Complaints Book available to you.",
+    "sheet": {
+      "number": "Complaint form No.",
+      "date": "Date",
+      "provider": "Provider details",
+      "consumer": "1. Consumer details",
+      "item": "2. Product or service",
+      "detail": "3. Complaint details and consumer request",
+      "response": "4. Provider response",
+      "amount": "Amount claimed"
+    },
+    "fields": {
+      "consumer_name": "Full name",
+      "doc_type": "ID type",
+      "doc_number": "ID number",
+      "address": "Address",
+      "phone": "Phone (optional)",
+      "email": "Email",
+      "is_minor": "I am under 18",
+      "guardian_name": "Parent or guardian name",
+      "item_type": "Type",
+      "item_description": "Product or service description",
+      "amount": "Amount claimed in soles (optional)",
+      "kind": "Type of complaint",
+      "detail": "Details",
+      "request": "Request",
+      "accepted": "I declare this information is true and authorize Grupo Fazzilito E.I.R.L. to use it to handle this complaint, under Peru's Personal Data Protection Law No. 29733."
+    },
+    "placeholders": {
+      "item_description": "e.g. AI token top-up on 10/10/2026",
+      "detail": "Tell us what happened",
+      "request": "What solution do you expect?"
+    },
+    "docTypes": {
+      "dni": "DNI",
+      "ce": "Foreigner ID (CE)",
+      "pasaporte": "Passport",
+      "ruc": "RUC"
+    },
+    "itemTypes": {
+      "servicio": "Service",
+      "producto": "Product"
+    },
+    "kinds": {
+      "reclamo": "Claim (reclamo)",
+      "queja": "Complaint (queja)"
+    },
+    "kindHelp": {
+      "reclamo": "Disagreement about the products or services.",
+      "queja": "Disagreement not about the products or services, or dissatisfaction with how you were attended."
+    },
+    "legal": {
+      "deadline": "The provider must answer the claim or complaint within fifteen (15) non-extendable business days.",
+      "otherWays": "Filing a claim does not prevent you from using other dispute resolution channels, nor is it a prerequisite for filing a complaint with INDECOPI."
+    },
+    "submit": "Submit complaint form",
+    "sending": "Sending…",
+    "success": {
+      "title": "Your complaint was registered",
+      "body": "Your complaint form No. {code} was registered. We sent a copy to {email}.",
+      "due": "We will answer by {date} at the latest.",
+      "print": "Print or save as PDF",
+      "another": "File another complaint"
+    },
+    "errors": {
+      "required": "Choose an option.",
+      "name": "Write your full name.",
+      "doc_dni": "A DNI has 8 digits.",
+      "doc_ce": "A foreigner ID has 8 to 12 characters.",
+      "doc_pasaporte": "A passport has 6 to 12 characters.",
+      "doc_ruc": "A RUC has 11 digits.",
+      "address": "Write your address.",
+      "phone": "Check the phone number.",
+      "email": "Write a valid email.",
+      "guardian": "Write your parent or guardian's name.",
+      "item": "Describe the product or service.",
+      "amount": "Write a valid amount.",
+      "detail": "Tell us the details (at least 10 characters).",
+      "request": "Write your request.",
+      "accepted": "You must accept to submit.",
+      "generic": "We couldn't register your complaint. Try again or write to {email}.",
+      "rate": "You sent several complaints in a row. Wait a moment and try again."
+    },
+    "email": {
+      "receiptSubject": "Receipt for your complaint form No. {code} – Whasalia",
+      "receiptIntro": "Hello {name},\n\nWe registered your complaint form No. {code} in Whasalia's Complaints Book. This is your receipt.",
+      "noticeSubject": "New complaint form No. {code}",
+      "noticeIntro": "Complaint form No. {code} was registered. It must be answered by {date} from Superadmin → Complaints.",
+      "answerSubject": "Answer to your complaint form No. {code} – Whasalia",
+      "answerIntro": "Hello {name},\n\nThis is our answer to your complaint form No. {code}:"
+    }
+  },
+  "complaintsAdmin": {
+    "title": "Complaints Book",
+    "subtitle": "Complaint forms from the website. Each must be answered within 15 business days; the answer is emailed to the consumer.",
+    "filters": {
+      "pending": "Pending",
+      "answered": "Answered",
+      "all": "All"
+    },
+    "empty": "No complaints here.",
+    "select": "Choose a complaint to see it.",
+    "due": "Answer by {date}",
+    "overdue": "Overdue ({date})",
+    "answeredOn": "Answered on {date}",
+    "status": {
+      "pending": "Pending",
+      "answered": "Answered"
+    },
+    "response": "Answer to the consumer",
+    "responsePlaceholder": "Explain what you did or what solution you offer (emailed to the consumer).",
+    "send": "Send answer",
+    "minor": "Under 18",
+    "publicLink": "See public form",
+    "sendFailed": "We couldn't send the answer. Try again."
+  }
+}
