@@ -681,7 +681,7 @@ export async function describeMedia(input: DescribeInput, cfg?: AiConfig): Promi
   let declared = input.mimeType
   if (!bytes) {
     if (!input.url) throw new MediaAiUnavailableError('unsupported_type', 'bytes or url required')
-    const { safeFetch } = await import('@/lib/real-estate/portals/net')
+    const { safeFetch } = await import('@/lib/net/safe-fetch')
     const got = await safeFetch(input.url, { maxBytes: MAX_MEDIA_BYTES, timeoutMs: 15_000 }).catch((e) => {
       throw new MediaAiUnavailableError(e?.code === 'too_large' ? 'too_large' : 'failed', `Download failed: ${e instanceof Error ? e.message : e}`)
     })

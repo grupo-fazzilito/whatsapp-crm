@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-14',
+    title: { es: 'Importa tu catálogo desde CSV o Excel', en: 'Import your catalog from CSV or Excel' },
+    changes: [
+      { kind: 'improved', es: 'Para cargar productos o propiedades en bloque, usa Catálogo → Importar con un archivo CSV o Excel. Quitamos la importación desde Mercado Libre y portales inmobiliarios.', en: 'To load products or properties in bulk, use Catalog → Import with a CSV or Excel file. Importing from Mercado Libre and real-estate portals has been removed.' },
+    ],
+  },
+  {
+    date: '2026-10-14',
     title: { es: 'Respuestas automáticas a comentarios', en: 'Automatic comment replies' },
     changes: [
       { kind: 'new', es: 'En Automatizaciones → Comentarios crea reglas por palabra clave: cuando alguien comenta «precio» en tu Instagram o Facebook, Whasalia responde el comentario y le escribe por privado.', en: 'In Automations → Comments, create keyword rules: when someone comments “price” on your Instagram or Facebook, Whasalia replies to the comment and messages them privately.' },

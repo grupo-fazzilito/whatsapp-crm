@@ -2,8 +2,8 @@ import 'server-only'
 import { lookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
 
-// Outbound fetch for user-supplied URLs (feed URLs, photo URLs inside a
-// feed): http(s) only, public addresses only (no loopback / private /
+// Outbound fetch for user-supplied URLs (media the AI reads):
+// http(s) only, public addresses only (no loopback / private /
 // link-local / metadata ranges), manual redirects re-checked, timeout
 // and size cap. `allowPrivate` exists for local development only.
 
