@@ -8,6 +8,7 @@ import { remindDueTasks } from '@/lib/crm/reminders'
 import { processPropertyMatchJobs } from '@/lib/real-estate/leads/alerts'
 import { processViewings } from '@/lib/real-estate/leads/visits'
 import { runGoogleCalendarCron } from '@/lib/integrations/google/sync'
+import { runCalendlyCron } from '@/lib/integrations/calendly/sync'
 import { runScheduledPortalImports } from '@/lib/real-estate/portals/schedule'
 import { processWebhookDeliveries } from '@/lib/webhooks/deliver'
 import { processPlatformWebhookDeliveries } from '@/lib/webhooks/platform'
@@ -96,6 +97,13 @@ export async function GET(request: Request) {
     googleCalendar = { error: err instanceof Error ? err.message : String(err) }
   }
 
+  let calendly: Awaited<ReturnType<typeof runCalendlyCron>> | { error: string }
+  try {
+    calendly = await runCalendlyCron()
+  } catch (err) {
+    calendly = { error: err instanceof Error ? err.message : String(err) }
+  }
+
   // Real estate: listing ↔ lead alerts, viewing stage sync + post-visit question.
   let realEstate: { matches: Awaited<ReturnType<typeof processPropertyMatchJobs>>; viewings: Awaited<ReturnType<typeof processViewings>> } | { error: string }
   try {
@@ -136,5 +144,5 @@ export async function GET(request: Request) {
     billing = { error: err instanceof Error ? err.message : String(err) }
   }
 
-  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, realEstate, portalImports, webhooks, platformWebhooks, billing })
+  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, calendly, realEstate, portalImports, webhooks, platformWebhooks, billing })
 }

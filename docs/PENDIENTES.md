@@ -49,7 +49,9 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [x] Datos de Grupo Fazzilito E.I.R.L. (RUC, dirección) en pie de página, contacto y políticas; ley peruana; fuera "chatnexgen" — 🤖 (2026-10-12)
 - [x] Fuera "Socio oficial de Meta" de todo el sitio (ahora "API oficial de WhatsApp Business"); página de Funciones reescrita solo con lo que existe — 🤖 (2026-10-14, rama `feat/honest-features`)
 - [ ] Revisar contenido heredado de la plantilla en las demás páginas: Integraciones, Automatización con IA, Seguridad, Casos de éxito, "Nosotros", empleos en San Francisco, testimonios, página `/admin` con datos de ejemplo — 🤖 propone / 🧑 aprueba
-- [ ] Integración con **Calendly** (como Google Calendar) — 🤖, diseño pendiente de OK de Toño
+- [x] Integración con **Calendly** (una cuenta por negocio; la IA reserva directo o envía enlace; citas y cancelaciones en ambos sentidos) — 🤖 (2026-10-14, rama `feat/calendly`)
+- [ ] Crear la app OAuth en developer.calendly.com y pegar Client ID, Client secret y Webhook signing key en Superadmin → Settings → Calendly — 🧑
+- [ ] Pantalla para que cada negocio cree sus **claves de API y webhooks** (la API y los textos existen, falta la pantalla; la página de Funciones ya lo menciona) — 🤖
 - [ ] Botón "Crear bot de preguntas frecuentes" que arme un menú numerado gratis desde la lista de FAQs — 🤖, opcional
 - [ ] Portfolio de Meta: verificación en dos pasos y un segundo administrador — 🧑
 - [ ] Teléfono o WhatsApp de soporte, si se quiere mostrar — 🧑

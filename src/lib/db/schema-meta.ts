@@ -249,7 +249,8 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "patient_intake": {
       "rel": "patient_intake"
-    }
+    },
+    "calendly_cancel_synced_at": "timestamp"
   },
   "broadcast_recipients": {
     "sent_at": "timestamp",
@@ -298,6 +299,45 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "workspaces": {
       "rel": "workspaces"
+    }
+  },
+  "calendly_connections": {
+    "last_synced_at": "timestamp",
+    "created_at": "timestamp",
+    "updated_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    },
+    "users": {
+      "rel": "users"
+    },
+    "calendly_connection_secrets": {
+      "rel": "calendly_connection_secrets"
+    },
+    "calendly_event_types": {
+      "rel": "calendly_event_types"
+    }
+  },
+  "calendly_connection_secrets": {
+    "token_expires_at": "timestamp",
+    "updated_at": "timestamp",
+    "calendly_connections": {
+      "rel": "calendly_connections"
+    }
+  },
+  "calendly_event_types": {
+    "updated_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    },
+    "calendly_connections": {
+      "rel": "calendly_connections"
+    },
+    "services": {
+      "rel": "services"
+    },
+    "staff": {
+      "rel": "staff"
     }
   },
   "calendar_connections": {
@@ -1249,6 +1289,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "staff_services": {
       "rel": "staff_services"
+    },
+    "calendly_event_types": {
+      "rel": "calendly_event_types"
     }
   },
   "staff": {
@@ -1269,6 +1312,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "staff_services": {
       "rel": "staff_services"
+    },
+    "calendly_event_types": {
+      "rel": "calendly_event_types"
     }
   },
   "staff_services": {
@@ -1558,6 +1604,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "complaints": {
       "rel": "complaints"
+    },
+    "calendly_connections": {
+      "rel": "calendly_connections"
     }
   },
   "webhook_deliveries": {
@@ -1886,6 +1935,12 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "users": {
       "rel": "users"
+    },
+    "calendly_connections": {
+      "rel": "calendly_connections"
+    },
+    "calendly_event_types": {
+      "rel": "calendly_event_types"
     }
   },
   "platform_webhook_endpoints": {

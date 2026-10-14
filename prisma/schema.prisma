@@ -346,6 +346,11 @@ model bookings {
   services                      services?             @relation(fields: [service_id], references: [id], onUpdate: NoAction)
   feedback                      feedback[]
   patient_intake                patient_intake[]
+  calendly_event_uri            String?
+  calendly_invitee_uri          String?
+  calendly_cancel_url           String?
+  calendly_reschedule_url       String?
+  calendly_cancel_synced_at     DateTime?             @db.Timestamptz(6)
 
   @@index([status, feedback_sent], map: "idx_appointments_feedback_pending", where: raw("((status = 'completed'::text) AND ((feedback_sent IS NULL) OR (feedback_sent = false)))"))
   @@index([status, followup_sent], map: "idx_appointments_followup_pending", where: raw("((status = 'completed'::text) AND ((followup_sent IS NULL) OR (followup_sent = false)))"))
@@ -440,6 +445,59 @@ model calendar_connection_secrets {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model calendly_connections {
+  id                          String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id                String                       @unique @db.Uuid
+  user_uri                    String
+  organization_uri            String?
+  email                       String?
+  name                        String?
+  scheduling_url              String?
+  status                      String                       @default("active")
+  last_error                  String?
+  can_book                    Boolean?
+  webhook_uri                 String?
+  webhooks_available          Boolean?
+  last_synced_at              DateTime?                    @db.Timestamptz(6)
+  connected_by                String?                      @db.Uuid
+  created_at                  DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                     @default(now()) @db.Timestamptz(6)
+  workspaces                  workspaces                   @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                       users?                       @relation(fields: [connected_by], references: [id], onUpdate: NoAction)
+  calendly_connection_secrets calendly_connection_secrets?
+  calendly_event_types        calendly_event_types[]
+}
+
+model calendly_connection_secrets {
+  connection_id        String               @id @db.Uuid
+  access_token         String
+  refresh_token        String
+  token_expires_at     DateTime             @db.Timestamptz(6)
+  updated_at           DateTime             @default(now()) @db.Timestamptz(6)
+  calendly_connections calendly_connections @relation(fields: [connection_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model calendly_event_types {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id         String               @db.Uuid
+  connection_id        String               @db.Uuid
+  uri                  String
+  name                 String
+  duration_minutes     Int?
+  scheduling_url       String?
+  active               Boolean              @default(true)
+  locations            Json                 @default("[]")
+  service_id           String?              @db.Uuid
+  staff_id             String?              @db.Uuid
+  updated_at           DateTime             @default(now()) @db.Timestamptz(6)
+  workspaces           workspaces           @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  calendly_connections calendly_connections @relation(fields: [connection_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  services             services?            @relation(fields: [service_id], references: [id], onUpdate: NoAction)
+  staff                staff?               @relation(fields: [staff_id], references: [id], onUpdate: NoAction)
+
+  @@unique([connection_id, uri])
+}
+
 model calendar_connections {
   id                          String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspace_id                String                       @db.Uuid
@@ -1634,26 +1692,27 @@ model real_estate_routing_rules {
 }
 
 model services {
-  id               String           @id(map: "clinic_services_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name             String
-  description      String?
-  price            Decimal?         @default(0) @db.Decimal(12, 2)
-  duration_minutes Int?             @default(30)
-  is_active        Boolean?         @default(true)
-  created_at       DateTime?        @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime?        @default(now()) @db.Timestamptz(6)
-  workspace_id     String           @default(dbgenerated("active_ws()")) @db.Uuid
-  category         String?
-  price_is_from    Boolean          @default(true)
-  bookings         bookings[]
-  workspaces       workspaces       @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "clinic_services_workspace_id_fkey")
-  staff_services   staff_services[]
+  id                   String                 @id(map: "clinic_services_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String
+  description          String?
+  price                Decimal?               @default(0) @db.Decimal(12, 2)
+  duration_minutes     Int?                   @default(30)
+  is_active            Boolean?               @default(true)
+  created_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  workspace_id         String                 @default(dbgenerated("active_ws()")) @db.Uuid
+  category             String?
+  price_is_from        Boolean                @default(true)
+  bookings             bookings[]
+  workspaces           workspaces             @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "clinic_services_workspace_id_fkey")
+  staff_services       staff_services[]
+  calendly_event_types calendly_event_types[]
 
   @@index([workspace_id], map: "idx_clinic_services_workspace")
 }
 
 model staff {
-  id                   String                @id(map: "doctors_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                   String                 @id(map: "doctors_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                 String
   title                String?
   qualification        String?
@@ -1661,24 +1720,25 @@ model staff {
   available_days       String[]
   available_start_time String?
   available_end_time   String?
-  fee                  Decimal?              @default(0) @db.Decimal(12, 2)
+  fee                  Decimal?               @default(0) @db.Decimal(12, 2)
   languages            String?
   photo_url            String?
-  weekly_slots         Json?                 @default("{}")
-  date_exceptions      Json?                 @default("[]")
-  created_at           DateTime?             @default(now()) @db.Timestamptz(6)
-  updated_at           DateTime?             @default(now()) @db.Timestamptz(6)
-  workspace_id         String                @default(dbgenerated("active_ws()")) @db.Uuid
+  weekly_slots         Json?                  @default("{}")
+  date_exceptions      Json?                  @default("[]")
+  created_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  workspace_id         String                 @default(dbgenerated("active_ws()")) @db.Uuid
   bio                  String?
   email                String?
   phone                String?
-  is_active            Boolean               @default(true)
-  member_user_id       String?               @db.Uuid
+  is_active            Boolean                @default(true)
+  member_user_id       String?                @db.Uuid
   bookings             bookings[]
   calendar_connections calendar_connections?
-  workspaces           workspaces            @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "doctors_workspace_id_fkey")
-  users                users?                @relation(fields: [member_user_id], references: [id], onUpdate: NoAction)
+  workspaces           workspaces             @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "doctors_workspace_id_fkey")
+  users                users?                 @relation(fields: [member_user_id], references: [id], onUpdate: NoAction)
   staff_services       staff_services[]
+  calendly_event_types calendly_event_types[]
 
   @@index([workspace_id], map: "idx_doctors_workspace")
 }
@@ -1882,6 +1942,7 @@ model users {
   workspaces                                                  workspaces[]
   platform_webhook_endpoints                                  platform_webhook_endpoints[]
   complaints                                                  complaints[]
+  calendly_connections                                        calendly_connections[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2151,6 +2212,8 @@ model workspaces {
   workspace_invitations         workspace_invitations[]
   workspace_members             workspace_members[]
   users                         users?                          @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  calendly_connections          calendly_connections?
+  calendly_event_types          calendly_event_types[]
 
   @@index([plan_id], map: "idx_workspaces_plan_id")
 }

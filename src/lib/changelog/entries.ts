@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-14',
+    title: { es: 'Conecta tu Calendly', en: 'Connect your Calendly' },
+    changes: [
+      { kind: 'new', es: 'En Ajustes → Integraciones conecta el Calendly de tu negocio y elige qué servicio reserva cada tipo de cita.', en: 'In Settings → Integrations, connect your business’s Calendly and choose which service each event type books.' },
+      { kind: 'new', es: 'Tu agente de IA ofrece los horarios libres de Calendly y reserva en el chat; si tu plan de Calendly no lo permite, envía el enlace del horario elegido.', en: 'Your AI agent offers Calendly’s free times and books in the chat; if your Calendly plan doesn’t allow it, it sends the link to the chosen time.' },
+      { kind: 'new', es: 'Las citas y cancelaciones hechas en Calendly aparecen en Whasalia, y las cancelaciones hechas en Whasalia se reflejan en Calendly.', en: 'Appointments and cancellations made in Calendly show up in Whasalia, and cancellations made in Whasalia reach Calendly.' },
+    ],
+  },
+  {
+    date: '2026-10-14',
     title: { es: 'Regístrate gratis y configuración asistida', en: 'Free sign-up and assisted setup' },
     changes: [
       { kind: 'improved', es: 'El sitio te lleva directo a crear tu cuenta gratis; ya no hay que agendar una demo.', en: 'The site takes you straight to creating your free account; no demo booking needed.' },

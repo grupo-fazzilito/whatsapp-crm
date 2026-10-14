@@ -39,7 +39,7 @@
       },
       "integrations": {
         "name": "Integraciones y API",
-        "desc": "Google Calendar para tus citas, MercadoLibre y portales inmobiliarios, y una API REST con webhooks para conectar n8n, Make, Zapier o tu propio sistema."
+        "desc": "Google Calendar y Calendly para tus citas, MercadoLibre y portales inmobiliarios, y una API REST con webhooks para conectar n8n, Make, Zapier o tu propio sistema."
       },
       "tasks": {
         "name": "Tareas",

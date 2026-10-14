@@ -10,8 +10,9 @@ import { loadBusinessContext, type BusinessContext } from './context'
 import { completeJson, llmConfigured, parseJsonLoose, type ChatTurn } from './llm'
 import { agentOutputSchema, buildSystemPrompt, type AgentOutput } from './prompt'
 import { cancelNextBooking, createBookingFromDraft } from './bookings'
+import { calendlySlotsForPrompt } from '@/lib/integrations/calendly/booking'
 import { businessWindows } from './slots'
-import { toMinutes, zonedNow } from './time'
+import { isIsoDate, toMinutes, zonedNow } from './time'
 import { getProducts, searchProducts, type CatalogQuery } from '@/lib/catalog/search'
 import { formatProductPrice, parseCurrency } from '@/lib/catalog/currency'
 import { addToCart, cartItems, getOpenCart, setLineQuantity } from '@/lib/orders/service'
@@ -39,6 +40,7 @@ const TEXT: Record<Lang, Record<string, string>> = {
   es: {
     handover: 'Gracias por escribir. En breve una persona del equipo continúa la conversación. 🙏',
     booked: '✅ ¡Listo! Quedó confirmada la reserva: {booking} el *{date}* a las *{time}*{extra}.',
+    bookingLink: 'Para confirmar tu {booking} del *{date}* a las *{time}*, termina la reserva aquí: {url}',
     slotTaken: 'Ese horario ya no está disponible. Opciones para ese día: {alts}.',
     closed: 'Ese día no hay disponibilidad. ¿Buscamos otra fecha?',
     past: 'Esa fecha u hora ya pasó. ¿Qué otro día sería conveniente?',
@@ -53,6 +55,7 @@ const TEXT: Record<Lang, Record<string, string>> = {
   en: {
     handover: 'Thanks for reaching out. I’m connecting you with a team member who will reply shortly. 🙏',
     booked: '✅ Done! Your {booking} is confirmed for *{date}* at *{time}*{extra}.',
+    bookingLink: 'To confirm your {booking} on *{date}* at *{time}*, finish booking here: {url}',
     slotTaken: 'That time is no longer available. Options that day: {alts}. Which one works for you?',
     closed: 'There’s no availability that day. Shall I suggest another date?',
     past: 'That date or time has already passed. What other day works for you?',
@@ -341,6 +344,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     })),
     customerName: contactName,
     channelLabel: CHANNEL_LABEL[input.channel.type] ?? input.channel.type,
+    calendlySlots: await calendlySlotsFor(ctx, state.booking ?? null),
   }
 
   const turns = await history(input.workspaceId, input.conversationId, ctx.workspace.locale === 'en' ? 'en' : 'es')
@@ -478,6 +482,13 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
       }
       // Not bookable: keep what we know (minus the bad time) and explain.
       // Never forward the model's text here: it may claim the booking is done.
+      if (result.reason === 'link') {
+        const msg = fill(T.bookingLink, { booking: bookingNoun, date: longDate(draft.date!, lang, ctx), time: draft.time!.padStart(5, '0'), url: result.url })
+        await setState(input.workspaceId, input.conversationId, { ai_state: { ...state, booking: undefined } })
+        await reply(input, agent, msg)
+        await log(input, agent, msg, 'booking', out.confidence ?? 1)
+        return true
+      }
       let msg = fill(T.notConfirmed, { booking: bookingNoun })
       if (result.reason === 'slot_taken') msg = fill(T.slotTaken, { alts: result.alternatives.join(', ') })
       else if (result.reason === 'closed') msg = T.closed
@@ -634,9 +645,21 @@ async function lastShownProductId(workspaceId: string, conversationId: string): 
   return null
 }
 
+/** Calendly free times of the draft's service, when it is booked there (errors → no times). */
+async function calendlySlotsFor(ctx: BusinessContext, draft: BookingDraft | null): Promise<Record<string, string[]> | null> {
+  const link = draft?.service_id ? ctx.calendly?.[draft.service_id] : undefined
+  if (!link) return null
+  try {
+    return await calendlySlotsForPrompt(link, ctx.timeZone, isIsoDate(draft?.date) ? draft!.date! : null)
+  } catch (err) {
+    console.warn('[ai] calendly availability unavailable:', err instanceof Error ? err.message : err)
+    return {}
+  }
+}
+
 function describeMissing(missing: string[], lang: Lang, ctx: BusinessContext): string {
-  const es: Record<string, string> = { service: 'el servicio', staff: industryLabel(ctx.workspace.industry, 'staff', 'es', ctx.workspace.settings).toLowerCase(), date: 'la fecha', time: 'la hora', customer_name: 'el nombre completo', party_size: 'el número de personas', product: `qué ${industryLabel(ctx.workspace.industry, 'product', 'es', ctx.workspace.settings).toLowerCase()} es` }
-  const en: Record<string, string> = { service: 'the service', staff: industryLabel(ctx.workspace.industry, 'staff', 'en', ctx.workspace.settings).toLowerCase(), date: 'the date', time: 'the time', customer_name: 'your name', party_size: 'the number of people', product: 'which one you want' }
+  const es: Record<string, string> = { service: 'el servicio', staff: industryLabel(ctx.workspace.industry, 'staff', 'es', ctx.workspace.settings).toLowerCase(), date: 'la fecha', time: 'la hora', customer_name: 'el nombre completo', email: 'tu correo electrónico', party_size: 'el número de personas', product: `qué ${industryLabel(ctx.workspace.industry, 'product', 'es', ctx.workspace.settings).toLowerCase()} es` }
+  const en: Record<string, string> = { service: 'the service', staff: industryLabel(ctx.workspace.industry, 'staff', 'en', ctx.workspace.settings).toLowerCase(), date: 'the date', time: 'the time', customer_name: 'your name', email: 'your email', party_size: 'the number of people', product: 'which one you want' }
   const dict = lang === 'en' ? en : es
   return missing.map((m) => dict[m] ?? m).join(', ')
 }
@@ -724,6 +747,7 @@ export async function previewAgentTurn(input: PreviewTurnInput): Promise<Preview
     customerBookings: [],
     customerName: null,
     channelLabel: CHANNEL_LABEL[input.channelType ?? 'webchat'] ?? 'chat',
+    calendlySlots: await calendlySlotsFor(ctx, input.draft ?? null),
   }
   const system = buildSystemPrompt(promptBase)
   const ask = async (catalogResults?: Parameters<typeof buildSystemPrompt>[0]['catalogResults']) =>

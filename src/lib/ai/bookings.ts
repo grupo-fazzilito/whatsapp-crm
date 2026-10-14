@@ -6,6 +6,8 @@ import { isIsoDate, zonedNow } from './time'
 import { invalidateBusinessContext, loadBusinessContext } from './context'
 import type { BookingDraft } from './types'
 import { scheduleBookingSync } from '@/lib/integrations/google/sync'
+import { bookWithCalendly } from '@/lib/integrations/calendly/booking'
+import { pushCancellations } from '@/lib/integrations/calendly/sync'
 
 export type BookingFailure =
   | { reason: 'missing'; missing: string[] }
@@ -13,6 +15,8 @@ export type BookingFailure =
   | { reason: 'closed' }
   | { reason: 'past' }
   | { reason: 'invalid'; detail: string }
+  /** Calendly can't book by API on this plan: the customer finishes on this link. */
+  | { reason: 'link'; url: string }
 
 export interface CreateBookingInput {
   workspaceId: string
@@ -56,7 +60,9 @@ export async function createBookingFromDraft(
   const hasServices = modules.services && ctx.services.length > 0
   const hasStaff = modules.staff && ctx.staff.length > 0
 
-  const missing = missingBookingData(ctx.workspace.industry, draft, hasServices, hasStaff && getPreset(ctx.workspace.industry).bookingNeedsStaff)
+  // Services booked in Calendly take the staff member from the event type.
+  const calendly = draft.service_id ? ctx.calendly?.[draft.service_id] : undefined
+  const missing = missingBookingData(ctx.workspace.industry, draft, hasServices, !calendly && hasStaff && getPreset(ctx.workspace.industry).bookingNeedsStaff)
   if (missing.length) return { ok: false, reason: 'missing', missing }
 
   const now = zonedNow(ctx.timeZone)
@@ -67,6 +73,20 @@ export async function createBookingFromDraft(
   const service = hasServices ? ctx.services.find((s) => s.id === draft.service_id) : undefined
   if (hasServices && !service) return { ok: false, reason: 'invalid', detail: 'service' }
   const duration = service?.duration_minutes ?? 30
+
+  if (calendly && service) {
+    const email = typeof draft.fields?.email === 'string' ? draft.fields.email : null
+    const r = await bookWithCalendly({
+      workspaceId: input.workspaceId, contactId: input.contactId, conversationId: input.conversationId, aiAgentId: input.aiAgentId,
+      serviceId: service.id, link: calendly, date, time, customerName: draft.customer_name ?? null, email, timeZone: ctx.timeZone,
+      durationMinutes: duration, partySize: draft.party_size ?? null, fields: draft.fields ?? {},
+    })
+    if (!r.ok) return r
+    invalidateBusinessContext(input.workspaceId)
+    if (calendly.staffId) scheduleBookingSync(r.bookingId, input.workspaceId)
+    const staffName = calendly.staffId ? ctx.staff.find((s) => s.id === calendly.staffId)?.name ?? null : null
+    return { ok: true, bookingId: r.bookingId, staffName, serviceName: service.name }
+  }
   const q = {
     hours: ctx.hours,
     exceptions: ctx.exceptions,
@@ -151,5 +171,6 @@ export async function cancelNextBooking(workspaceId: string, contactId: string, 
   await db.bookings.updateMany({ where: { id: data.id }, data: { status: 'cancelled' } })
   invalidateBusinessContext(workspaceId)
   scheduleBookingSync(data.id, workspaceId)
+  void pushCancellations(workspaceId).catch(() => {})
   return { date: data.booking_date, time: data.booking_time }
 }

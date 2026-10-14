@@ -39,7 +39,7 @@
       },
       "integrations": {
         "name": "Integrations and API",
-        "desc": "Google Calendar for appointments, MercadoLibre and real-estate portals, and a REST API with webhooks to connect n8n, Make, Zapier or your own system."
+        "desc": "Google Calendar and Calendly for appointments, MercadoLibre and real-estate portals, and a REST API with webhooks to connect n8n, Make, Zapier or your own system."
       },
       "tasks": {
         "name": "Tasks",

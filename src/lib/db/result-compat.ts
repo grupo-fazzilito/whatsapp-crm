@@ -78,6 +78,7 @@ export const resultCompat = Prisma.defineExtension({
       viewing_stage_synced_at: { needs: { viewing_stage_synced_at: true }, compute: (r) => r.viewing_stage_synced_at === null ? null : r.viewing_stage_synced_at.toISOString() },
       viewing_location_sent_at: { needs: { viewing_location_sent_at: true }, compute: (r) => r.viewing_location_sent_at === null ? null : r.viewing_location_sent_at.toISOString() },
       viewing_feedback_sent_at: { needs: { viewing_feedback_sent_at: true }, compute: (r) => r.viewing_feedback_sent_at === null ? null : r.viewing_feedback_sent_at.toISOString() },
+      calendly_cancel_synced_at: { needs: { calendly_cancel_synced_at: true }, compute: (r) => r.calendly_cancel_synced_at === null ? null : r.calendly_cancel_synced_at.toISOString() },
     },
     broadcast_recipients: {
       sent_at: { needs: { sent_at: true }, compute: (r) => r.sent_at === null ? null : r.sent_at.toISOString() },
@@ -96,6 +97,18 @@ export const resultCompat = Prisma.defineExtension({
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
     },
     calendar_connection_secrets: {
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
+    calendly_connections: {
+      last_synced_at: { needs: { last_synced_at: true }, compute: (r) => r.last_synced_at === null ? null : r.last_synced_at.toISOString() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
+    calendly_connection_secrets: {
+      token_expires_at: { needs: { token_expires_at: true }, compute: (r) => r.token_expires_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
+    calendly_event_types: {
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
     },
     calendar_connections: {

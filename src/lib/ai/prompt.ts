@@ -168,6 +168,8 @@ export interface PromptInput {
   cart?: { lines: { productId: string; name: string; quantity: number; unitPrice: number }[]; subtotal: number } | null
   /** Real estate: the customer's lead profile so far. */
   leadProfile?: Partial<LeadFields> | null
+  /** Free times from Calendly for the chosen service (local date → HH:MM), when it is booked there. */
+  calendlySlots?: Record<string, string[]> | null
 }
 
 function money(ctx: BusinessContext, amount: number | null | undefined): string {
@@ -177,6 +179,19 @@ function money(ctx: BusinessContext, amount: number | null | undefined): string 
 
 function availabilityBlock(input: PromptInput): string {
   const { ctx, draft } = input
+  const linked = draft?.service_id ? ctx.calendly?.[draft.service_id] : undefined
+  if (linked) {
+    const service = ctx.services.find((s) => s.id === draft?.service_id)
+    const slots = input.calendlySlots ?? {}
+    const lines = Object.keys(slots).sort().filter((d) => slots[d].length).slice(0, MAX_SLOT_LINES).map((d) => `- ${weekdayOf(d)} ${d}: ${slots[d].slice(0, SLOTS_PER_DAY).join(', ')}${slots[d].length > SLOTS_PER_DAY ? ', …' : ''}`)
+    return [
+      `AVAILABLE START TIMES (from the business's Calendly, for "${service?.name ?? linked.eventTypeName}"; only these are bookable):`,
+      lines.length ? lines.join('\n') : '- No availability in the next days.',
+      linked.canBook === false
+        ? '- This service is confirmed on Calendly: once the customer picks a time, the system sends them a link to finish.'
+        : "- This service is booked in Calendly: also ask for the customer's email and put it in booking.fields as {key: \"email\", value}. Calendly sends the confirmation there.",
+    ].join('\n')
+  }
   const preset = getPreset(ctx.workspace.industry)
   const now = zonedNow(ctx.timeZone)
   const service = ctx.services.find((s) => s.id === draft?.service_id)
