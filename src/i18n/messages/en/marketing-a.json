@@ -70,78 +70,11 @@
     }
   },
   "mktPricing": {
-    "badge": "pricing",
-    "titleLine1": "Pricing",
-    "titleHighlight": "One platform. Three ways to get started.",
-    "subtitle": "After setup, every plan is ₹2,999/WABA/month — flat. The difference is how much help you get on day one. You choose your level of support.",
-    "plans": {
-      "starter": {
-        "name": "Starter",
-        "tagline": "Full control. You run it.",
-        "subtext": "/WABA/month",
-        "setupFee": "No setup fee",
-        "cta": "Get Started",
-        "footer": "Access provisioned within 24 hours of payment."
-      },
-      "growth": {
-        "name": "Growth",
-        "tagline": "We launch you. You own it.",
-        "subtext": "for first month",
-        "setupFee": "₹2,999 /WABA/month after",
-        "cta": "Book a Call",
-        "badge": "Recommended • Done For You",
-        "footer": "Onboarding begins within 48 hours. Setup complete within 7 days."
-      },
-      "managed": {
-        "name": "Managed",
-        "tagline": "We run it. You check results.",
-        "subtext": "for first month",
-        "setupFee": "₹2,999 /WABA/month after",
-        "cta": "Book a Call",
-        "badge": "Done For You",
-        "footer": "Application required. Pilot month available — ask us."
-      }
-    },
-    "gstNote": "*Pricing exclusive of GST",
-    "compare": {
-      "title": "Compare Plan Features",
-      "subtitle": "Detailed capability matrix across all setup tiers",
-      "colFeature": "All plans · per WABA/month",
-      "diy": "DIY"
-    },
-    "sections": {
-      "platform": "The Platform",
-      "setup": "Setup & Onboarding",
-      "support": "Support & Strategy"
-    },
-    "rows": {
-      "builder": "No-Code Automation Builder",
-      "aiAssistant": "AI Assistant (trained on your docs)",
-      "inbox": "Shared Team Inbox",
-      "integrations": "27+ Integrations",
-      "markup": "0% Message Markup",
-      "ctwa": "Click-to-WhatsApp Ads (CTWA)",
-      "metaVerification": "Meta Business Verification",
-      "numberConnection": "WhatsApp Number Connection",
-      "coexistence": "WhatsApp Co-existence Setup",
-      "platformConfig": "Platform Configuration & Team Access",
-      "kickoff": "Kickoff Meeting",
-      "automationsBuilt": "Automations Built For You",
-      "templates": "Message Templates Written & Submitted",
-      "integrationsWired": "Integrations Wired In",
-      "supportGroup": "Priority WhatsApp Support Group",
-      "groupQa": "Monthly Group Q&A with Lakshit",
-      "strategyCall": "1-on-1 Strategy Call",
-      "fastTrack": "Meta Template Fast-Track Approvals",
-      "accountManager": "Dedicated Account Manager"
-    },
-    "values": {
-      "weConfigure": "We configure it",
-      "coreAutomations": "2–3 core automations",
-      "onboardingCall": "Onboarding call included",
-      "monthlyDeepDive": "Monthly deep-dive (60 min)"
-    },
-    "notSure": "Not sure which plan? Talk to us →"
+    "badge": "Pricing",
+    "titleLine1": "Whasalia is free.",
+    "titleHighlight": "You only pay for AI.",
+    "subtitle": "Use the whole platform with no monthly fee. If you turn on AI agents, top up tokens when you need them.",
+    "notSure": "Questions? Talk to us →"
   },
   "mktIntegrations": {
     "badge": "native sync",
@@ -213,5 +146,42 @@
       "handoffTitle": "Hybrid Human Hand-off",
       "handoffDesc": "Agent seamlessly stops auto-replies when a human rep intervenes. Set triggers for instant human assistance alerts."
     }
+  },
+  "mktPlans": {
+    "plan": {
+      "badge": "Free forever",
+      "tagline": "The whole platform, no monthly fee.",
+      "period": "/month, forever",
+      "cta": "Create a free account",
+      "note": "No card and no trial period."
+    },
+    "features": {
+      "channels": "Shared inbox for WhatsApp, Instagram, Messenger and web chat",
+      "crm": "Contacts, sales pipelines, tags and tasks",
+      "automations": "Flows, automations and broadcasts with Meta-approved templates",
+      "commerce": "Catalog, orders and bookings",
+      "agents": "AI agents trained on your business (they use AI tokens)",
+      "team": "Your team with roles and permissions",
+      "api": "API and webhooks to connect your systems"
+    },
+    "tokens": {
+      "name": "AI tokens",
+      "tagline": "You only pay for the AI you use.",
+      "unit": "per token",
+      "equivalence": "1 token = 1 reply from your AI agent.",
+      "welcome": "{n} free tokens when you create your account",
+      "pack": "{n} tokens",
+      "minimum": "Minimum top-up: {min}. You can also top up another amount.",
+      "expiry": "Tokens expire {months} months after purchase.",
+      "payment": "Pay by card, Yape, Plin or bank transfer."
+    },
+    "costs": {
+      "title": "What uses tokens?",
+      "subtitle": "Only AI actions. Everything else is free.",
+      "action": "AI action",
+      "cost": "Cost",
+      "free": "If you run out of tokens, your AI agents pause and messages go to the inbox for your team to answer. Nothing else stops."
+    },
+    "metaFees": "WhatsApp template messages are charged by Meta directly to your WhatsApp Business account, at its official rates. Whasalia adds no markup."
   }
 }

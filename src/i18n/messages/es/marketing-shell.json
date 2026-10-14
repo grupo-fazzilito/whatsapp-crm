@@ -51,7 +51,7 @@
       },
       "pricing": {
         "title": "Precios",
-        "description": "Precios simples de Whasalia: tokens de IA prepagados y planes para negocios de todos los tamaños."
+        "description": "Whasalia es gratis para siempre. Solo pagas los tokens de IA que usas, sin mensualidad."
       },
       "integrations": {
         "title": "Integraciones",
@@ -126,8 +126,8 @@
         "description": "Cómo Whasalia recopila, usa y protege los datos personales."
       },
       "refundPolicy": {
-        "title": "Política de reembolso",
-        "description": "Política de reembolso de Whasalia."
+        "title": "Política de pagos y reembolsos",
+        "description": "Cómo funcionan los pagos de tokens de IA en Whasalia y cuándo procede un reembolso."
       },
       "termsAndConditions": {
         "title": "Términos y condiciones",

@@ -2,6 +2,8 @@ import 'server-only'
 import { decrypt, encrypt } from '@/lib/whatsapp/encryption'
 import { getPlatformSetting, setPlatformSetting } from '@/lib/platform/settings'
 import { normalizeBilling, type BillingSettings } from './pricing'
+import { publicPricing, type PublicPricing } from './plans'
+import { listPublicPlans } from './plan-store'
 import { DEFAULT_PL_BASE_URL, type AmountFormat, type PaymentLatamConfig } from './payment-latam'
 
 // platform_settings 'billing'        → prices and rules (plain JSON)
@@ -11,6 +13,12 @@ import { DEFAULT_PL_BASE_URL, type AmountFormat, type PaymentLatamConfig } from 
 
 export async function getBillingSettings(): Promise<BillingSettings> {
   return normalizeBilling(await getPlatformSetting<Partial<BillingSettings>>('billing'))
+}
+
+/** Plans and token prices for the public pricing pages. */
+export async function getPublicPricing(): Promise<PublicPricing> {
+  const [settings, plans] = await Promise.all([getBillingSettings(), listPublicPlans()])
+  return publicPricing(settings, plans)
 }
 
 export async function saveBillingSettings(value: BillingSettings, userId: string | null) {

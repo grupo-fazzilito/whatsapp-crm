@@ -70,78 +70,11 @@
     }
   },
   "mktPricing": {
-    "badge": "precios",
-    "titleLine1": "Precios",
-    "titleHighlight": "Una plataforma. Tres formas de empezar.",
-    "subtitle": "Después de la configuración, todos los planes cuestan ₹2,999/WABA/mes, tarifa fija. La diferencia está en cuánta ayuda recibes desde el primer día. Tú eliges tu nivel de soporte.",
-    "plans": {
-      "starter": {
-        "name": "Starter",
-        "tagline": "Control total. Tú lo operas.",
-        "subtext": "/WABA/mes",
-        "setupFee": "Sin costo de configuración",
-        "cta": "Comenzar",
-        "footer": "Acceso habilitado dentro de las 24 horas posteriores al pago."
-      },
-      "growth": {
-        "name": "Growth",
-        "tagline": "Nosotros te lanzamos. Tú lo controlas.",
-        "subtext": "el primer mes",
-        "setupFee": "Después, ₹2,999 /WABA/mes",
-        "cta": "Agenda una llamada",
-        "badge": "Recomendado • Lo hacemos por ti",
-        "footer": "El onboarding comienza en menos de 48 horas. Configuración completa en 7 días."
-      },
-      "managed": {
-        "name": "Managed",
-        "tagline": "Nosotros lo operamos. Tú revisas los resultados.",
-        "subtext": "el primer mes",
-        "setupFee": "Después, ₹2,999 /WABA/mes",
-        "cta": "Agenda una llamada",
-        "badge": "Lo hacemos por ti",
-        "footer": "Requiere solicitud. Mes piloto disponible: pregúntanos."
-      }
-    },
-    "gstNote": "*Precios sin GST incluido",
-    "compare": {
-      "title": "Compara las funciones de cada plan",
-      "subtitle": "Matriz detallada de funcionalidades en todos los niveles de configuración",
-      "colFeature": "Todos los planes · por WABA/mes",
-      "diy": "Por tu cuenta"
-    },
-    "sections": {
-      "platform": "La plataforma",
-      "setup": "Configuración y onboarding",
-      "support": "Soporte y estrategia"
-    },
-    "rows": {
-      "builder": "Constructor de automatizaciones sin código",
-      "aiAssistant": "Asistente de IA (entrenado con tus documentos)",
-      "inbox": "Bandeja de entrada compartida",
-      "integrations": "Más de 27 integraciones",
-      "markup": "0% de recargo por mensaje",
-      "ctwa": "Anuncios Click-to-WhatsApp (CTWA)",
-      "metaVerification": "Verificación de Meta Business",
-      "numberConnection": "Conexión del número de WhatsApp",
-      "coexistence": "Configuración de coexistencia de WhatsApp",
-      "platformConfig": "Configuración de la plataforma y acceso del equipo",
-      "kickoff": "Reunión de arranque",
-      "automationsBuilt": "Automatizaciones creadas por nosotros",
-      "templates": "Plantillas de mensajes redactadas y enviadas",
-      "integrationsWired": "Integraciones conectadas",
-      "supportGroup": "Grupo de soporte prioritario en WhatsApp",
-      "groupQa": "Sesión mensual grupal de preguntas con Lakshit",
-      "strategyCall": "Llamada de estrategia 1 a 1",
-      "fastTrack": "Aprobación acelerada de plantillas de Meta",
-      "accountManager": "Gerente de cuenta dedicado"
-    },
-    "values": {
-      "weConfigure": "Nosotros lo configuramos",
-      "coreAutomations": "2–3 automatizaciones clave",
-      "onboardingCall": "Llamada de onboarding incluida",
-      "monthlyDeepDive": "Revisión mensual a fondo (60 min)"
-    },
-    "notSure": "¿No sabes qué plan elegir? Habla con nosotros →"
+    "badge": "Precios",
+    "titleLine1": "Whasalia es gratis.",
+    "titleHighlight": "Pagas solo la IA.",
+    "subtitle": "Usa toda la plataforma sin mensualidad. Si activas agentes de IA, recargas tokens cuando los necesites.",
+    "notSure": "¿Tienes dudas? Habla con nosotros →"
   },
   "mktIntegrations": {
     "badge": "sincronización nativa",
@@ -213,5 +146,42 @@
       "handoffTitle": "Traspaso híbrido a humanos",
       "handoffDesc": "El agente detiene las respuestas automáticas en cuanto interviene una persona de tu equipo. Configura disparadores para recibir alertas de asistencia humana al instante."
     }
+  },
+  "mktPlans": {
+    "plan": {
+      "badge": "Gratis para siempre",
+      "tagline": "Toda la plataforma, sin mensualidad.",
+      "period": "/mes, para siempre",
+      "cta": "Crear cuenta gratis",
+      "note": "Sin tarjeta y sin periodo de prueba."
+    },
+    "features": {
+      "channels": "Bandeja compartida para WhatsApp, Instagram, Messenger y chat web",
+      "crm": "Contactos, embudos de venta, etiquetas y tareas",
+      "automations": "Flujos, automatizaciones y difusiones con plantillas aprobadas por Meta",
+      "commerce": "Catálogo, pedidos y reservas",
+      "agents": "Agentes de IA entrenados con tu negocio (usan tokens de IA)",
+      "team": "Tu equipo con roles y permisos",
+      "api": "API y webhooks para conectar tus sistemas"
+    },
+    "tokens": {
+      "name": "Tokens de IA",
+      "tagline": "Pagas solo la IA que usas.",
+      "unit": "por token",
+      "equivalence": "1 token = 1 respuesta de tu agente de IA.",
+      "welcome": "{n} tokens de regalo al crear tu cuenta",
+      "pack": "{n} tokens",
+      "minimum": "Recarga mínima: {min}. También puedes recargar otro monto.",
+      "expiry": "Los tokens vencen {months} meses después de la compra.",
+      "payment": "Paga con tarjeta, Yape, Plin o transferencia."
+    },
+    "costs": {
+      "title": "¿Qué consume tokens?",
+      "subtitle": "Solo las acciones de IA. Todo lo demás es gratis.",
+      "action": "Acción de IA",
+      "cost": "Costo",
+      "free": "Si te quedas sin tokens, tus agentes de IA se pausan y los mensajes llegan a la bandeja para que tu equipo responda. Nada más se detiene."
+    },
+    "metaFees": "Los mensajes de plantilla de WhatsApp los cobra Meta directamente a tu cuenta de WhatsApp Business, según sus tarifas oficiales. Whasalia no añade recargo."
   }
 }

@@ -12,6 +12,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-14',
+    title: { es: 'Whasalia es gratis para siempre', en: 'Whasalia is free forever' },
+    changes: [
+      { kind: 'new', es: 'Un solo plan, Free Forever: toda la plataforma sin mensualidad.', en: 'One plan, Free Forever: the whole platform with no monthly fee.' },
+      { kind: 'improved', es: 'Solo pagas la IA, con tokens prepagados. La página de Precios muestra el precio del token y cuánto cuesta cada acción de IA.', en: 'You only pay for AI, with prepaid tokens. The Pricing page shows the token price and what each AI action costs.' },
+      { kind: 'improved', es: 'En Ajustes → Tokens ves en qué plan está tu negocio.', en: 'Settings → Tokens shows which plan your business is on.' },
+    ],
+  },
+  {
     date: '2026-10-12',
     title: { es: 'Nueva dirección: whasalia.com', en: 'New address: whasalia.com' },
     changes: [

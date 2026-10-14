@@ -35,6 +35,7 @@ interface LedgerRow {
 }
 
 interface BillingData {
+  plan: { id: string; name: string; price: number };
   balance: number;
   next_expiry: { at: string; credits: number } | null;
   settings: {
@@ -193,6 +194,10 @@ export function BillingPanel() {
           <CardDescription>{t('billing.subtitle')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            {t('billing.plan.label')} <Badge variant="secondary">{data.plan.name}</Badge>
+            {data.plan.price === 0 && <span className="text-xs text-slate-500 dark:text-slate-400">{t('billing.plan.free')}</span>}
+          </p>
           <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{t('billing.balance')}</p>
