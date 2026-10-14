@@ -27,7 +27,7 @@
       },
       "comments": {
         "name": "Respuestas automáticas a comentarios",
-        "desc": "Cuando alguien comenta «precio» o «info» en tus publicaciones de Facebook o Instagram, Whasalia responde el comentario al instante y le escribe por privado; la conversación sigue en tu bandeja. TikTok, próximamente. Sin gastar tokens."
+        "desc": "Cuando alguien comenta «precio» o «info» en tus publicaciones de Facebook o Instagram, Whasalia responde el comentario al instante y le escribe por privado; la conversación sigue en tu bandeja. 1 token por comentario respondido. TikTok, próximamente."
       },
       "broadcasts": {
         "name": "Difusiones con plantillas",
@@ -170,7 +170,7 @@
       "channels": "Bandeja compartida para WhatsApp, Instagram, Messenger y chat web",
       "crm": "Contactos, embudos de venta, etiquetas y tareas",
       "automations": "Flujos, automatizaciones y difusiones con plantillas aprobadas por Meta",
-      "comments": "Respuestas automáticas a comentarios de Facebook e Instagram (TikTok, próximamente)",
+      "comments": "Respuestas automáticas a comentarios de Facebook e Instagram, 1 token por comentario (TikTok, próximamente)",
       "faqBot": "Bot de preguntas frecuentes con menús numerados, sin gastar tokens",
       "commerce": "Catálogo, pedidos y reservas",
       "calendars": "Google Calendar y Calendly para tus citas",
@@ -191,10 +191,10 @@
     },
     "costs": {
       "title": "¿Qué consume tokens?",
-      "subtitle": "Solo las acciones de IA. Todo lo demás es gratis.",
+      "subtitle": "Solo las acciones de IA y los comentarios respondidos automáticamente. Todo lo demás es gratis.",
       "action": "Acción de IA",
       "cost": "Costo",
-      "free": "Si te quedas sin tokens, tus agentes de IA se pausan y los mensajes llegan a la bandeja para que tu equipo responda. Nada más se detiene."
+      "free": "Si te quedas sin tokens, tus agentes de IA y las respuestas a comentarios se pausan, y los mensajes llegan a la bandeja para que tu equipo responda. Nada más se detiene."
     },
     "metaFees": "Los mensajes de plantilla de WhatsApp los cobra Meta directamente a tu cuenta de WhatsApp Business, según sus tarifas oficiales. Whasalia no añade recargo."
   }

@@ -2,7 +2,7 @@
   "comments": {
     "tab": "Comentarios",
     "title": "Respuestas a comentarios",
-    "subtitle": "Cuando alguien comenta una palabra clave en tus publicaciones de Instagram o Facebook, Whasalia responde el comentario y le escribe por privado. La conversación sigue en la bandeja.",
+    "subtitle": "Cuando alguien comenta una palabra clave en tus publicaciones de Instagram o Facebook, Whasalia responde el comentario y le escribe por privado. La conversación sigue en la bandeja. Cada comentario respondido usa 1 token.",
     "newRule": "Nueva regla",
     "noChannels": "Conecta tu cuenta de Instagram o tu página de Facebook en Canales para usar las respuestas a comentarios.",
     "goChannels": "Ir a Canales",
@@ -78,7 +78,8 @@
         "replied": "Respondido",
         "partial": "En parte",
         "failed": "Falló",
-        "skipped": "Ya respondido antes"
+        "skipped": "Ya respondido antes",
+        "no_tokens": "Sin tokens"
       }
     },
     "bubble": "Respuesta automática a su comentario: «{text}»"

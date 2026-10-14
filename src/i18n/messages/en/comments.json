@@ -2,7 +2,7 @@
   "comments": {
     "tab": "Comments",
     "title": "Comment replies",
-    "subtitle": "When someone comments a keyword on your Instagram or Facebook posts, Whasalia replies to the comment and messages them privately. The conversation continues in the inbox.",
+    "subtitle": "When someone comments a keyword on your Instagram or Facebook posts, Whasalia replies to the comment and messages them privately. The conversation continues in the inbox. Each answered comment uses 1 token.",
     "newRule": "New rule",
     "noChannels": "Connect your Instagram account or Facebook page in Channels to use comment replies.",
     "goChannels": "Go to Channels",
@@ -78,7 +78,8 @@
         "replied": "Replied",
         "partial": "Partly",
         "failed": "Failed",
-        "skipped": "Already replied"
+        "skipped": "Already replied",
+        "no_tokens": "No tokens"
       }
     },
     "bubble": "Automatic reply to their comment: “{text}”"
