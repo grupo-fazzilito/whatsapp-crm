@@ -104,6 +104,10 @@
       "topup": "Top up",
       "depleted": "Out of tokens: AI is paused",
       "low": "Running low"
+    },
+    "plan": {
+      "label": "Your plan:",
+      "free": "Free forever. You only pay for AI tokens."
     }
   },
   "billingAdmin": {

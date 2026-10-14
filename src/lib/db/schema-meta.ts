@@ -1623,9 +1623,21 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
       "rel": "workspaces"
     }
   },
+  "plans": {
+    "price_monthly": "decimal",
+    "created_at": "timestamp",
+    "updated_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    }
+  },
   "workspaces": {
     "created_at": "timestamp",
     "updated_at": "timestamp",
+    "plan_changed_at": "timestamp",
+    "plans": {
+      "rel": "plans"
+    },
     "ai_agents": {
       "rel": "ai_agents"
     },

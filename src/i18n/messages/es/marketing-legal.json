@@ -53,39 +53,39 @@
   },
   "mktRefund": {
     "badge": "Política de reembolso",
-    "title": "Política de suscripciones y reembolsos",
-    "updated": "Última actualización: 23 de junio de 2026",
-    "intro": "En Whasalia ofrecemos servicios profesionales de CRM para WhatsApp y de automatización de la comunicación. Esta política aclara las condiciones relativas a suscripciones recurrentes, configuraciones iniciales, desarrollos a medida, sesiones de consultoría y consultas de facturación.",
+    "title": "Política de pagos y reembolsos",
+    "updated": "Última actualización: 14 de octubre de 2026",
+    "intro": "Whasalia es gratis para siempre con el plan Free Forever. Lo único que se paga son los tokens de IA que usan tus agentes. Esta política explica cómo funcionan esos pagos y cuándo procede un reembolso.",
     "s1": {
-      "title": "1. Suscripciones SaaS",
-      "body": "Nuestra plataforma de software se ofrece mediante suscripción (mensual o anual).",
-      "i1": "Los planes de suscripción trasladan las tarifas de uso de Meta Business Platform a precio fijo, sin recargos.",
-      "i2": "Ningún pago de suscripción es reembolsable una vez iniciado el ciclo de facturación.",
-      "i3": "Puedes cancelar tu suscripción en cualquier momento para evitar futuras renovaciones; tu acceso al panel seguirá activo hasta el final del periodo que ya pagaste."
+      "title": "1. Plan Free Forever",
+      "body": "El uso de la plataforma Whasalia es gratuito con el plan Free Forever: no cobramos mensualidad, configuración ni permanencia.",
+      "i1": "No pedimos tarjeta para crear tu cuenta.",
+      "i2": "Si en el futuro ofrecemos planes de pago, serán opcionales y te avisaremos antes de cualquier cobro.",
+      "i3": "Puedes dejar de usar Whasalia cuando quieras, sin penalidad."
     },
     "s2": {
-      "title": "2. Tarifas de alta y configuración de la cuenta",
-      "body": "Las tarifas de configuración e integración cubren el trabajo directo de configurar tu Meta Business Manager, solicitar el estatus de cuenta de WhatsApp Business y asignar los números.",
-      "i1": "Estas tarifas de alta no son reembolsables una vez iniciada la configuración o la consultoría de la cuenta."
+      "title": "2. Tokens de IA",
+      "body": "Los tokens de IA son prepagados y solo se descuentan cuando un agente de IA realiza una acción, por ejemplo responder un mensaje. Si te quedas sin tokens, los agentes se pausan y el resto de la plataforma sigue funcionando.",
+      "i1": "Los tokens comprados no son reembolsables ni transferibles a otro negocio, y vencen en el plazo indicado al momento de la compra."
     },
     "s3": {
-      "title": "3. Flujos de trabajo de desarrollo a medida",
-      "body": "Las tarifas cobradas por integraciones de chatbots a medida, plugins de API dedicados, configuraciones de webhooks y creación de flujos personalizados se rigen por acuerdos de nivel de servicio (SLA) específicos de cada proyecto.",
-      "i1": "Dado que la ingeniería a medida implica recursos de desarrollo dedicados, estos conceptos no son reembolsables una vez iniciados los hitos de desarrollo."
+      "title": "3. Cobros de Meta",
+      "body": "Los mensajes de plantilla de WhatsApp los cobra Meta directamente a tu cuenta de WhatsApp Business, según sus tarifas oficiales.",
+      "i1": "Whasalia no cobra ni reembolsa esos cargos; cualquier reclamo sobre ellos se gestiona con Meta."
     },
     "s4": {
-      "title": "4. Servicios de consultoría",
-      "body": "Las tarifas de las sesiones de consultoría profesional, las llamadas de planificación estratégica y las auditorías de cumplimiento de Meta se devengan en el momento de la reserva. Si necesitas reprogramar una sesión de consultoría, debes contactar a tu representante con al menos 24 horas de antelación. Las inasistencias o cancelaciones con menos de 24 horas de antelación no son reembolsables."
+      "title": "4. Servicios a medida",
+      "body": "Si contratas con nosotros servicios adicionales (configuración asistida, desarrollos o consultoría), las condiciones de pago y de reembolso se acuerdan por escrito antes de empezar."
     },
     "s5": {
-      "title": "5. Disputas de facturación y su resolución",
-      "body": "Si detectas un cargo duplicado o un error de facturación en tu estado de cuenta, te comprometes a presentar una consulta a nuestro departamento de soporte dentro de los 14 días siguientes a la fecha de la factura.",
-      "i1": "Investigamos todas las consultas de buena fe y corregimos de inmediato los fallos de la plataforma o errores de facturación que se verifiquen.",
-      "i2": "Iniciar contracargos no autorizados sin contactar a nuestro departamento de facturación dará lugar al bloqueo inmediato del espacio de trabajo y a posibles procedimientos de cobro."
+      "title": "5. Cobros duplicados o errores",
+      "body": "Si detectas un cobro duplicado o un error en una recarga de tokens, escríbenos dentro de los 14 días siguientes al pago.",
+      "i1": "Revisamos cada caso y, si el error se confirma, te devolvemos el importe o acreditamos los tokens que correspondan.",
+      "i2": "Antes de iniciar un contracargo con tu banco, contáctanos: así lo resolvemos más rápido."
     },
     "s6": {
-      "title": "6. Contactar con soporte",
-      "body": "Para cualquier consulta sobre facturación, desgloses de facturas o cancelaciones, contacta a nuestro equipo de soporte:",
+      "title": "6. Contacto",
+      "body": "Para consultas sobre recargas, comprobantes o reembolsos, escríbenos:",
       "emailLabel": "Correo electrónico:"
     }
   },
@@ -95,11 +95,11 @@
     "updated": "Última actualización: 23 de junio de 2026",
     "intro": "Te damos la bienvenida a Whasalia. Estos Términos y condiciones (los \"Términos\") rigen tu acceso y uso del sitio web, el panel SaaS, los motores de automatización, las API y las interfaces de gestión de relaciones con clientes que ofrece Whasalia (\"nosotros\" o \"nuestro\"). Al suscribirte a nuestra Plataforma o utilizarla, aceptas cumplir estos Términos y quedar obligado por ellos.",
     "s1": {
-      "title": "1. Suscripción SaaS y facturación",
-      "body": "La suscripción a Whasalia otorga a tu negocio una licencia no exclusiva, intransferible y revocable para acceder a los servicios de nuestra plataforma.",
-      "i1": "Las suscripciones se facturan por adelantado de forma mensual o anual, según el plan elegido.",
-      "i2": "Las tarifas de configuración inicial (si corresponden) y las de configuración a medida/consultoría se cobran antes de la prestación del servicio.",
-      "i3": "La falta de pago de las facturas de una suscripción activa dará lugar al bloqueo de la cuenta y, finalmente, a la eliminación de los datos."
+      "title": "1. Plan, tokens de IA y pagos",
+      "body": "Crear una cuenta en Whasalia otorga a tu negocio una licencia no exclusiva, intransferible y revocable para usar la plataforma con el plan Free Forever, sin mensualidad.",
+      "i1": "Las acciones de IA se pagan con tokens prepagados, que se compran antes de usarlos y vencen en el plazo indicado al comprarlos.",
+      "i2": "Los servicios a medida (configuración asistida, desarrollos o consultoría) se cotizan y pagan aparte, antes de empezar.",
+      "i3": "Si en el futuro ofrecemos planes de pago, serán opcionales y te avisaremos antes de cualquier cobro."
     },
     "s2": {
       "title": "2. Responsabilidades del usuario y uso aceptable",
@@ -167,7 +167,7 @@
     },
     "s4": {
       "title": "4. Pagos y reembolsos",
-      "body": "El acceso a ciertas funciones puede requerir el pago de una cuota de suscripción. Todos los pagos se procesan a través de proveedores externos. Todas las compras son definitivas y no reembolsables, salvo que nuestra Política de reembolso indique lo contrario."
+      "body": "La plataforma es gratuita con el plan Free Forever. Las acciones de IA se pagan con tokens prepagados, procesados por proveedores de pago externos. Las compras de tokens son definitivas y no reembolsables, salvo lo que indique nuestra Política de pagos y reembolsos."
     },
     "s5": {
       "title": "5. Propiedad intelectual",

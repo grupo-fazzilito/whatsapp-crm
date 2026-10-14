@@ -402,9 +402,15 @@ export const resultCompat = Prisma.defineExtension({
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
       last_assigned_at: { needs: { last_assigned_at: true }, compute: (r) => r.last_assigned_at === null ? null : r.last_assigned_at.toISOString() },
     },
+    plans: {
+      price_monthly: { needs: { price_monthly: true }, compute: (r) => r.price_monthly.toNumber() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
     workspaces: {
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
+      plan_changed_at: { needs: { plan_changed_at: true }, compute: (r) => r.plan_changed_at.toISOString() },
     },
     platform_webhook_endpoints: {
       disabled_at: { needs: { disabled_at: true }, compute: (r) => r.disabled_at === null ? null : r.disabled_at.toISOString() },

@@ -52,48 +52,10 @@
       "link": "Explora precios y funciones"
     },
     "pricing": {
-      "badge": "Opciones de precios",
-      "title": "Una plataforma. Tarifas fijas.",
-      "subtitle": "Las suscripciones activas tienen una tarifa fija de ₹2,999/mes por número WABA. Elige el nivel de configuración inicial que mejor se adapte a tu equipo.",
-      "recommended": "Recomendado",
-      "starter": {
-        "name": "Starter",
-        "tag": "Configuración por tu cuenta",
-        "period": "/mes por WABA",
-        "desc": "Acceso completo a la plataforma para automatizar por tu cuenta, con constructores visuales de flujos y bandeja de entrada compartida.",
-        "f1": "API oficial de WhatsApp Business",
-        "f2": "Constructor visual de flujos y chatbots",
-        "f3": "Bandeja de entrada colaborativa",
-        "f4": "Más de 27 integraciones nativas",
-        "f5": "0% de margen sobre las tarifas de la API de Meta",
-        "cta": "Prueba gratis"
-      },
-      "growth": {
-        "name": "Growth",
-        "tag": "Configuración acompañada",
-        "period": " primer mes",
-        "renewal": "Después, ₹2,999/mes",
-        "desc": "Ideal para equipos en crecimiento. Te guiamos en la configuración, verificamos tus cuentas y activamos los canales principales.",
-        "f1": "Todo lo del plan Starter",
-        "f2": "Asistencia con la verificación de Meta Business",
-        "f3": "Configuración de coexistencia de WhatsApp",
-        "f4": "Integraciones personalizadas conectadas",
-        "f5": "Sesión dedicada de configuración de cuenta",
-        "cta": "Agendar onboarding"
-      },
-      "managed": {
-        "name": "Managed",
-        "tag": "Estrategia hecha por nosotros",
-        "period": " mes piloto",
-        "renewal": "Después, ₹2,999/mes",
-        "desc": "Operación totalmente gestionada. Nuestros expertos en automatización redactan plantillas, diseñan bots y te reportan resultados.",
-        "f1": "Todo lo del plan Growth",
-        "f2": "2-3 automatizaciones personalizadas hechas para ti",
-        "f3": "Plantillas de mensajes redactadas y aprobadas",
-        "f4": "Gerente de cuenta dedicado",
-        "f5": "Llamadas mensuales de estrategia 1 a 1",
-        "cta": "Consultar operación"
-      }
+      "badge": "Precios",
+      "title": "Gratis para siempre.",
+      "subtitle": "Toda la plataforma sin mensualidad. La IA se paga aparte, con tokens prepagados.",
+      "seeCosts": "Ver cuánto cuesta cada acción de IA →"
     },
     "faq": {
       "eyebrow": "Preguntas comunes",
@@ -105,8 +67,8 @@
       "a2": "Sí. Whasalia cumple totalmente con las políticas de Meta y de WhatsApp Business Platform. Usamos exclusivamente los endpoints oficiales de la API de WhatsApp Business. No permitimos spam de mensajes masivos, extracción de contactos ni herramientas de envíos masivos, para que el número de tu negocio mantenga una alta confiabilidad.",
       "q3": "¿Necesito una cuenta de WhatsApp Business (WABA)?",
       "a3": "Sí. Para activar la automatización necesitas una cuenta de Meta Business verificada y un número de teléfono limpio. El equipo de soporte de Whasalia te acompaña en todo el proceso de verificación de Meta Business para establecer tu estatus oficial.",
-      "q4": "¿Cuáles son las tarifas de suscripción y los cargos de la API?",
-      "a4": "Nuestra suscripción fija a la plataforma comienza en ₹2,999/mes por número WABA. Las tarifas por conversación de WhatsApp las cobra Meta directamente; Whasalia traslada estos cargos oficiales de Meta con un margen de 0%.",
+      "q4": "¿Cuánto cuesta Whasalia?",
+      "a4": "Whasalia es gratis para siempre: un solo plan, Free Forever, con toda la plataforma. Solo pagas la IA, con tokens prepagados que recargas cuando quieras. Los mensajes de plantilla de WhatsApp los cobra Meta directamente a tu cuenta, sin recargo de Whasalia.",
       "q5": "¿Cómo resuelve consultas el asistente de IA?",
       "a5": "Puedes subir tus lineamientos, preguntas frecuentes y archivos de servicios directamente a la plataforma. Nuestra IA interpreta la intención del usuario, responde las consultas de tus clientes con base en tu base de conocimiento y avisa a los agentes humanos cuando se necesita intervenir manualmente."
     },

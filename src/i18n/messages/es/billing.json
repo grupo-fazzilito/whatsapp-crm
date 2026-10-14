@@ -104,6 +104,10 @@
       "topup": "Recargar",
       "depleted": "Sin tokens: la IA está en pausa",
       "low": "Quedan pocos tokens"
+    },
+    "plan": {
+      "label": "Tu plan:",
+      "free": "Gratis para siempre. Solo pagas los tokens de IA."
     }
   },
   "billingAdmin": {

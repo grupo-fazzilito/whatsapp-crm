@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { creditBalance } from '@/lib/billing/credits'
 import { getBillingSettings, getPaymentLatamConfig } from '@/lib/billing/settings'
+import { workspacePlan } from '@/lib/billing/plan-store'
 
 /**
- * GET /api/billing (admins) → balance, next expiry, prices, payer data,
+ * GET /api/billing (admins) → plan, balance, next expiry, prices, payer data,
  * recent payments, recent movements and this month's usage by action.
  */
 export async function GET() {
@@ -21,7 +22,8 @@ export async function GET() {
   monthStart.setUTCDate(1)
   monthStart.setUTCHours(0, 0, 0, 0)
 
-  const [balance, settings, gateway, account, lots, payments, ledger, usage] = await Promise.all([
+  const [plan, balance, settings, gateway, account, lots, payments, ledger, usage] = await Promise.all([
+    workspacePlan(ws),
     creditBalance(ws),
     getBillingSettings(),
     getPaymentLatamConfig(),
@@ -37,6 +39,7 @@ export async function GET() {
   const next = lots.data?.[0] ?? null
 
   return NextResponse.json({
+    plan: { id: plan.id, name: plan.name, price: plan.price },
     balance,
     next_expiry: next ? { at: next.expires_at, credits: next.credits_remaining } : null,
     lots: lots.data ?? [],

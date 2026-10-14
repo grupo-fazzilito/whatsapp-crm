@@ -52,40 +52,40 @@
     }
   },
   "mktRefund": {
-    "badge": "Refund Policy",
-    "title": "Subscription & Refund Policy",
-    "updated": "Last updated: June 23, 2026",
-    "intro": "At Whasalia, we deliver professional WhatsApp CRM and communication automation services. This policy clarifies terms regarding recurring subscriptions, setup configurations, custom developments, consulting sessions, and billing queries.",
+    "badge": "Refund policy",
+    "title": "Payments and refunds policy",
+    "updated": "Last updated: October 14, 2026",
+    "intro": "Whasalia is free forever on the Free Forever plan. The only thing you pay for is the AI tokens your agents use. This policy explains how those payments work and when a refund applies.",
     "s1": {
-      "title": "1. SaaS Subscriptions",
-      "body": "Our software platform is provided on a subscription basis (monthly or annually).",
-      "i1": "Subscribing plans carry a flat rate pass-through for Meta Business Platform usage fees without markups.",
-      "i2": "All subscription payments are non-refundable once the billing cycle begins.",
-      "i3": "You can cancel your subscription at any time to avoid future renewals; your dashboard access will remain active until the end of your prepaid period."
+      "title": "1. Free Forever plan",
+      "body": "Using the Whasalia platform is free on the Free Forever plan: there is no monthly fee, setup fee or minimum term.",
+      "i1": "We do not ask for a card to create your account.",
+      "i2": "If we offer paid plans in the future, they will be optional and we will tell you before any charge.",
+      "i3": "You can stop using Whasalia whenever you want, with no penalty."
     },
     "s2": {
-      "title": "2. Account Onboarding & Setup Fees",
-      "body": "Setup and integration fees cover the direct labor involved in configuring your Meta Business Manager, applying for WhatsApp Business Account status, and mapping numbers.",
-      "i1": "These onboarding fees are non-refundable once configuration or account consultation has commenced."
+      "title": "2. AI tokens",
+      "body": "AI tokens are prepaid and are only deducted when an AI agent takes an action, such as replying to a message. If you run out of tokens, the agents pause and the rest of the platform keeps working.",
+      "i1": "Purchased tokens are non-refundable, cannot be transferred to another business, and expire within the period shown at purchase."
     },
     "s3": {
-      "title": "3. Custom Development Workflows",
-      "body": "Fees collected for custom chatbot integrations, dedicated API plugins, webhook configurations, and customized flow building are governed by project-specific service level agreements (SLAs).",
-      "i1": "Since custom engineering involves dedicated development resources, these items are non-refundable once development milestones begin."
+      "title": "3. Meta charges",
+      "body": "WhatsApp template messages are charged by Meta directly to your WhatsApp Business account, at its official rates.",
+      "i1": "Whasalia does not charge or refund those fees; any claim about them is handled with Meta."
     },
     "s4": {
-      "title": "4. Consultation Services",
-      "body": "Fees for professional consultation sessions, strategy planning calls, and Meta compliance audits are earned upon booking. If you need to reschedule a consulting slot, you must contact your representative at least 24 hours in advance. No-shows or cancellations inside 24 hours are non-refundable."
+      "title": "4. Custom services",
+      "body": "If you hire additional services from us (assisted setup, development or consulting), payment and refund terms are agreed in writing before work starts."
     },
     "s5": {
-      "title": "5. Billing Disputes & Resolution",
-      "body": "If you identify a duplicate charge or billing error on your statement, you agree to raise an inquiry with our support department within 14 days of the invoice date.",
-      "i1": "We investigate all queries in good faith and correct verified platform glitches or billing errors immediately.",
-      "i2": "Initiating unauthorized chargebacks without contacting our billing desk will result in immediate workspace lockouts and possible collection procedures."
+      "title": "5. Duplicate charges or errors",
+      "body": "If you find a duplicate charge or an error in a token top-up, write to us within 14 days of the payment.",
+      "i1": "We review every case and, if the error is confirmed, we refund the amount or credit the corresponding tokens.",
+      "i2": "Before starting a chargeback with your bank, contact us: we can solve it faster."
     },
     "s6": {
-      "title": "6. Contact Support",
-      "body": "For any queries regarding billing, invoice breakdowns, or cancellations, please contact our support desk:",
+      "title": "6. Contact",
+      "body": "For questions about top-ups, receipts or refunds, write to us:",
       "emailLabel": "Email:"
     }
   },
@@ -95,11 +95,11 @@
     "updated": "Last updated: June 23, 2026",
     "intro": "Welcome to Whasalia. These Terms & Conditions (\"Terms\") govern your access to and use of the website, SaaS dashboard, automation engines, APIs, and customer relationship interfaces provided by Whasalia (\"we\", \"us\", or \"our\"). By subscribing to or utilizing our Platform, you agree to comply with and be bound by these Terms.",
     "s1": {
-      "title": "1. SaaS Subscription & Billing",
-      "body": "Subscribing to Whasalia grants your business a non-exclusive, non-transferable, revocable license to access our platform services.",
-      "i1": "Subscriptions are billed monthly or annually in advance based on the plan selected.",
-      "i2": "Setup fees (if applicable) and custom configuration/consulting fees are collected prior to service provisioning.",
-      "i3": "Failure to pay active subscription invoices will result in account lockout and eventual data purge."
+      "title": "1. Plan, AI tokens and payments",
+      "body": "Creating a Whasalia account grants your business a non-exclusive, non-transferable, revocable license to use the platform on the Free Forever plan, with no monthly fee.",
+      "i1": "AI actions are paid with prepaid tokens, bought before use and expiring within the period shown at purchase.",
+      "i2": "Custom services (assisted setup, development or consulting) are quoted and paid separately, before work starts.",
+      "i3": "If we offer paid plans in the future, they will be optional and we will tell you before any charge."
     },
     "s2": {
       "title": "2. User Responsibilities & Acceptable Use",
@@ -167,7 +167,7 @@
     },
     "s4": {
       "title": "4. Payments & Refunds",
-      "body": "Access to certain features may require payment of a subscription fee. All payments are processed via third-party providers. All purchases are final and non-refundable, unless otherwise stated in our Refund Policy."
+      "body": "The platform is free on the Free Forever plan. AI actions are paid with prepaid tokens, processed by third-party payment providers. Token purchases are final and non-refundable, except as stated in our Payments and Refunds Policy."
     },
     "s5": {
       "title": "5. Intellectual Property",
