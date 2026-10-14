@@ -5,16 +5,18 @@ import type { LoadedChannel } from '@/lib/channels'
 import { findOrCreateContact, findOrCreateConversation } from '@/lib/messaging/ingest'
 import { fillReply, pickPublicReply, pickRule, type CommentEvent } from './model'
 import { GraphError, replyToComment, sendPrivateReply } from './meta'
+import { canSpend, spend } from '@/lib/billing/credits'
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
-export type CommentOutcome = 'no_rule' | 'duplicate' | 'skipped' | 'replied' | 'partial' | 'failed'
+export type CommentOutcome = 'no_rule' | 'duplicate' | 'skipped' | 'no_tokens' | 'replied' | 'partial' | 'failed'
 
 /**
  * Answers one new comment with the first rule that matches it: a public
  * reply under the comment and/or a private message to its author, which
  * opens (or continues) their conversation in the inbox. Each comment is
- * handled once, and each person is answered once per post.
+ * handled once, and each person is answered once per post. Every answered
+ * comment costs tokens ('comment_reply'); with none left it is only logged.
  */
 export async function handleComment(channel: LoadedChannel, ev: CommentEvent): Promise<CommentOutcome> {
   const db = tenantDb(channel.workspace_id)
@@ -34,6 +36,7 @@ export async function handleComment(channel: LoadedChannel, ev: CommentEvent): P
         select: { id: true },
       })
     : null
+  const hasTokens = answeredBefore ? true : await canSpend(channel.workspace_id, 'comment_reply')
 
   // Claim the comment first: Meta retries webhooks, and a retry must not reply twice.
   let row: { id: string }
@@ -48,7 +51,7 @@ export async function handleComment(channel: LoadedChannel, ev: CommentEvent): P
         author_id: ev.from.id,
         author_name: ev.from.name,
         comment_text: ev.text.slice(0, 2000),
-        status: answeredBefore ? 'skipped' : 'failed',
+        status: answeredBefore ? 'skipped' : hasTokens ? 'failed' : 'no_tokens',
       },
       select: { id: true },
     })
@@ -57,6 +60,7 @@ export async function handleComment(channel: LoadedChannel, ev: CommentEvent): P
     throw err
   }
   if (answeredBefore) return 'skipped'
+  if (!hasTokens) return 'no_tokens'
 
   const errors: string[] = []
   let publicReplyId: string | null = null
@@ -90,6 +94,7 @@ export async function handleComment(channel: LoadedChannel, ev: CommentEvent): P
     data: { status, public_reply_id: publicReplyId, private_message_id: privateMessageId, conversation_id: conversationId, error: errors.join(' · ').slice(0, 500) || null },
   })
   if (status !== 'failed') {
+    await spend(channel.workspace_id, 'comment_reply', { conversationId })
     await db.comment_rules.updateMany({ where: { id: rule.id }, data: { replies_count: { increment: 1 }, last_triggered_at: new Date() } })
   }
   return status

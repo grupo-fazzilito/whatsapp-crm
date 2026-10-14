@@ -44,7 +44,7 @@ interface ReplyLog {
   channel_id: string;
   author_name: string | null;
   comment_text: string | null;
-  status: "replied" | "partial" | "failed" | "skipped";
+  status: "replied" | "partial" | "failed" | "skipped" | "no_tokens";
   error: string | null;
   conversation_id: string | null;
   created_at: string;
@@ -77,6 +77,7 @@ const STATUS_VARIANT: Record<ReplyLog["status"], "default" | "secondary" | "dest
   partial: "outline",
   failed: "destructive",
   skipped: "secondary",
+  no_tokens: "destructive",
 };
 
 /** Facebook pages are "messenger" channels; here they are about posts, so call them Facebook. */

@@ -30,6 +30,7 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
   })
 
   const { handleComment } = await import('./server')
+  const { creditBalance, spendCredits, grantCredits } = await import('@/lib/billing/credits')
   const { saveChannelSecrets, loadChannel } = await import('@/lib/channels/store')
   const ws = await pg.workspace()
   let channelId = ''
@@ -39,6 +40,7 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
   const channel = async () => (await loadChannel(ws.workspaceId, channelId))!
 
   beforeAll(async () => {
+    await grantCredits({ workspaceId: ws.workspaceId, amount: 10, source: 'grant', expiresAt: new Date(Date.now() + 86400_000) })
     const c = await ws.db.channels.create({
       data: { workspace_id: ws.workspaceId, type: 'instagram', name: 'IG', external_id: `IG-TEST-${ws.workspaceId}`, settings: { page_id: 'PAGE-1' } },
       select: { id: true },
@@ -55,6 +57,7 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
   })
 
   it('replies in public and in private, and opens the conversation in the inbox', async () => {
+    const before = await creditBalance(ws.workspaceId)
     expect(await handleComment(await channel(), ev('C1', '¿Precio?'))).toBe('replied')
     expect(calls.find((c) => c.url.endsWith('/C1/replies'))?.body).toEqual({ message: '¡Te escribimos ana.pe! 📩' })
     expect(calls.find((c) => c.url.endsWith('/PAGE-1/messages'))?.body).toEqual({ recipient: { comment_id: 'C1' }, message: { text: 'Hola ana.pe, cuesta S/ 50.' } })
@@ -68,6 +71,10 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
     expect(msg).toMatchObject({ sender_type: 'bot', message_id: 'mid-C1', status: 'sent' })
     expect(msg.metadata).toMatchObject({ source: 'comment_reply', comment_text: '¿Precio?' })
     expect((await ws.db.comment_rules.findFirstOrThrow({})).replies_count).toBe(1)
+    // One token per answered comment, tied to the conversation.
+    expect(await creditBalance(ws.workspaceId)).toBe(before - 1)
+    const ledger = await pg.prisma.credit_ledger.findFirstOrThrow({ where: { workspace_id: ws.workspaceId, action: 'comment_reply' } })
+    expect(ledger).toMatchObject({ credits: -1, conversation_id: conv.id })
   })
 
   it('handles a webhook retry once, and the same person once per post', async () => {
@@ -96,6 +103,15 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
     fake.privateFails = false
   })
 
+  it('does not charge failures, skips or comments without a rule', async () => {
+    const before = await creditBalance(ws.workspaceId)
+    await saveChannelSecrets(channelId, { access_token: 'expired' })
+    expect(await handleComment(await channel(), ev('F1', 'precio', 'U9'))).toBe('failed')
+    await saveChannelSecrets(channelId, { access_token: 'page-token' })
+    expect(await handleComment(await channel(), ev('F2', 'hola', 'U9'))).toBe('no_rule')
+    expect(await creditBalance(ws.workspaceId)).toBe(before)
+  })
+
   it('does not count failures and reports a lost token', async () => {
     await saveChannelSecrets(channelId, { access_token: 'expired' })
     expect(await handleComment(await channel(), ev('C7', 'precio', 'U4'))).toBe('failed')
@@ -104,5 +120,13 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
     // Failed answers don't block a later comment of the same person.
     await saveChannelSecrets(channelId, { access_token: 'page-token' })
     expect(await handleComment(await channel(), ev('C8', 'precio', 'U4'))).toBe('replied')
+  })
+
+  it('stops answering when the tokens run out, and logs the comment', async () => {
+    await spendCredits({ workspaceId: ws.workspaceId, amount: await creditBalance(ws.workspaceId), action: 'test' })
+    const before = calls.length
+    expect(await handleComment(await channel(), ev('C9', 'precio', 'U5'))).toBe('no_tokens')
+    expect(calls.length).toBe(before)
+    expect((await ws.db.comment_replies.findFirstOrThrow({ where: { comment_id: 'C9' } })).status).toBe('no_tokens')
   })
 })

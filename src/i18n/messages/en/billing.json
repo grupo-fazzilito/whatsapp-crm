@@ -30,6 +30,7 @@
       "suggest": "Suggested reply",
       "transcription": "Audio transcription",
       "vision": "Image or PDF reading",
+      "comment_reply": "Automatically answered comment",
       "unit": "{n} token(s)",
       "playground": "Agent test message"
     },

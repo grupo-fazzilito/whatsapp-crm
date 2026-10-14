@@ -27,7 +27,7 @@
       },
       "comments": {
         "name": "Automatic comment replies",
-        "desc": "When someone comments “price” or “info” on your Facebook or Instagram posts, Whasalia replies to the comment instantly and messages them privately; the conversation continues in your inbox. TikTok coming soon. No tokens used."
+        "desc": "When someone comments “price” or “info” on your Facebook or Instagram posts, Whasalia replies to the comment instantly and messages them privately; the conversation continues in your inbox. 1 token per answered comment. TikTok coming soon."
       },
       "broadcasts": {
         "name": "Template broadcasts",
@@ -170,7 +170,7 @@
       "channels": "Shared inbox for WhatsApp, Instagram, Messenger and web chat",
       "crm": "Contacts, sales pipelines, tags and tasks",
       "automations": "Flows, automations and broadcasts with Meta-approved templates",
-      "comments": "Automatic replies to Facebook and Instagram comments (TikTok coming soon)",
+      "comments": "Automatic replies to Facebook and Instagram comments, 1 token per comment (TikTok coming soon)",
       "faqBot": "FAQ bot with numbered menus, no tokens used",
       "commerce": "Catalog, orders and bookings",
       "calendars": "Google Calendar and Calendly for your appointments",
@@ -191,10 +191,10 @@
     },
     "costs": {
       "title": "What uses tokens?",
-      "subtitle": "Only AI actions. Everything else is free.",
+      "subtitle": "Only AI actions and automatically answered comments. Everything else is free.",
       "action": "AI action",
       "cost": "Cost",
-      "free": "If you run out of tokens, your AI agents pause and messages go to the inbox for your team to answer. Nothing else stops."
+      "free": "If you run out of tokens, your AI agents and comment replies pause and messages go to the inbox for your team to answer. Nothing else stops."
     },
     "metaFees": "WhatsApp template messages are charged by Meta directly to your WhatsApp Business account, at its official rates. Whasalia adds no markup."
   }

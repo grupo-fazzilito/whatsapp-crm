@@ -30,6 +30,7 @@
       "suggest": "Respuesta sugerida",
       "transcription": "Transcripción de audio",
       "vision": "Lectura de imagen o PDF",
+      "comment_reply": "Comentario respondido automáticamente",
       "unit": "{n} token(s)",
       "playground": "Mensaje de prueba de un agente"
     },
