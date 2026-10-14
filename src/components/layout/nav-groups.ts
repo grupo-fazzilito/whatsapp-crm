@@ -33,11 +33,10 @@ export function sectionGroups(ctx: NavContext): SectionTab[][] {
       ...(ctx.isAdmin ? [{ href: '/business/setup', label: ctx.t('nav.setup') }] : []),
     ],
   ]
-  // Catalog: products, plus services (when the industry has both) and portal imports (real estate).
+  // Catalog: products, plus services (when the industry has both).
   const catalog: SectionTab[] = []
   if (ctx.modules.products) catalog.push({ href: '/catalog', label: ctx.label('productPlural') })
   if (ctx.modules.products && ctx.modules.services) catalog.push({ href: '/business/services', label: ctx.label('servicePlural') })
-  if (ctx.modules.products && ctx.industry === 'real_estate' && ctx.isAdmin) catalog.push({ href: '/real-estate/portals', label: ctx.t('portals.navTitle') })
   groups.push(catalog)
   return groups.filter((g) => g.length > 1)
 }

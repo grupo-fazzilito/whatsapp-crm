@@ -78,6 +78,9 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 
 ## 9. Mantenimiento
 
+- [x] Quitada la importación desde Mercado Libre y portales inmobiliarios; queda solo Catálogo → Importar (CSV / Excel) — 🤖 (2026-10-14, rama `feat/remove-portal-imports`)
+- [ ] Borrar las tablas sin uso `portal_connections`, `portal_feeds`, `portal_import_runs` y el ajuste `mercadolibre` (se dejaron por si tenían datos; revisar en producción antes) — 🤖
+
 - [ ] Revisar las 5 actualizaciones de dependabot pendientes — 🤖
 
 ---

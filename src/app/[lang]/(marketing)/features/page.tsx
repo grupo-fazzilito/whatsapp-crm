@@ -38,6 +38,11 @@ export default function FeaturesPage() {
       icon: <Bot className="size-5 text-teal-400" />
     },
     {
+      name: t("mktFeatures.caps.comments.name"),
+      desc: t("mktFeatures.caps.comments.desc"),
+      icon: <MessageSquareReply className="size-5 text-pink-400" />
+    },
+    {
       name: t("mktFeatures.caps.faq.name"),
       desc: t("mktFeatures.caps.faq.desc"),
       icon: <HelpCircle className="size-5 text-emerald-400" />
@@ -51,11 +56,6 @@ export default function FeaturesPage() {
       name: t("mktFeatures.caps.automations.name"),
       desc: t("mktFeatures.caps.automations.desc"),
       icon: <RefreshCw className="size-5 text-teal-400" />
-    },
-    {
-      name: t("mktFeatures.caps.comments.name"),
-      desc: t("mktFeatures.caps.comments.desc"),
-      icon: <MessageSquareReply className="size-5 text-pink-400" />
     },
     {
       name: t("mktFeatures.caps.broadcasts.name"),

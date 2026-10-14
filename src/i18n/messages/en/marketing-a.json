@@ -3,7 +3,7 @@
     "badge": "features",
     "titleLine1": "All your conversations,",
     "titleHighlight": "in one place",
-    "subtitle": "WhatsApp, Instagram, Messenger and your website chat in one shared inbox, with AI agents, flows, broadcasts, automatic comment replies, sales and bookings. No code.",
+    "subtitle": "WhatsApp, Instagram, Messenger and your website chat in one shared inbox, with AI agents, automatic comment replies on Facebook and Instagram (TikTok coming soon), flows, broadcasts, sales and bookings. No code.",
     "caps": {
       "inbox": {
         "name": "Multichannel shared inbox",
@@ -26,8 +26,8 @@
         "desc": "Sequences with waits, conditions and tags: remind an appointment, win back an inactive customer or follow up on a quote without lifting a finger."
       },
       "comments": {
-        "name": "Comment replies",
-        "desc": "When someone comments “price” or “info” on your Instagram or Facebook post, Whasalia replies to the comment and messages them privately. The conversation continues in your inbox. No tokens used."
+        "name": "Automatic comment replies",
+        "desc": "When someone comments “price” or “info” on your Facebook or Instagram posts, Whasalia replies to the comment instantly and messages them privately; the conversation continues in your inbox. TikTok coming soon. No tokens used."
       },
       "broadcasts": {
         "name": "Template broadcasts",
@@ -39,11 +39,11 @@
       },
       "commerce": {
         "name": "Catalog, orders and bookings",
-        "desc": "Upload your products and services, take orders by chat and let customers book your team's free slots."
+        "desc": "Add your products and services one by one or from a CSV or Excel file, take orders by chat and let customers book your team's free slots."
       },
       "integrations": {
         "name": "Integrations and API",
-        "desc": "Google Calendar and Calendly for appointments, MercadoLibre and real-estate portals, and a REST API with webhooks to connect n8n, Make, Zapier or your own system."
+        "desc": "Google Calendar and Calendly for appointments, and a REST API with webhooks to connect n8n, Make, Zapier or your own system."
       },
       "reports": {
         "name": "Reports",
@@ -170,7 +170,7 @@
       "channels": "Shared inbox for WhatsApp, Instagram, Messenger and web chat",
       "crm": "Contacts, sales pipelines, tags and tasks",
       "automations": "Flows, automations and broadcasts with Meta-approved templates",
-      "comments": "Automatic replies to Instagram and Facebook comments",
+      "comments": "Automatic replies to Facebook and Instagram comments (TikTok coming soon)",
       "faqBot": "FAQ bot with numbered menus, no tokens used",
       "commerce": "Catalog, orders and bookings",
       "calendars": "Google Calendar and Calendly for your appointments",

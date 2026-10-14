@@ -9,7 +9,6 @@ import { processPropertyMatchJobs } from '@/lib/real-estate/leads/alerts'
 import { processViewings } from '@/lib/real-estate/leads/visits'
 import { runGoogleCalendarCron } from '@/lib/integrations/google/sync'
 import { runCalendlyCron } from '@/lib/integrations/calendly/sync'
-import { runScheduledPortalImports } from '@/lib/real-estate/portals/schedule'
 import { processWebhookDeliveries } from '@/lib/webhooks/deliver'
 import { processPlatformWebhookDeliveries } from '@/lib/webhooks/platform'
 import { runBillingCron } from '@/lib/billing/payments'
@@ -112,14 +111,6 @@ export async function GET(request: Request) {
     realEstate = { error: err instanceof Error ? err.message : String(err) }
   }
 
-  // Real estate: daily re-import from Mercado Libre / agency feeds.
-  let portalImports: Awaited<ReturnType<typeof runScheduledPortalImports>> | { error: string }
-  try {
-    portalImports = await runScheduledPortalImports()
-  } catch (err) {
-    portalImports = { error: err instanceof Error ? err.message : String(err) }
-  }
-
   // Outgoing webhooks (public API): deliveries + retries with backoff.
   let webhooks: Awaited<ReturnType<typeof processWebhookDeliveries>> | { error: string }
   try {
@@ -144,5 +135,5 @@ export async function GET(request: Request) {
     billing = { error: err instanceof Error ? err.message : String(err) }
   }
 
-  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, calendly, realEstate, portalImports, webhooks, platformWebhooks, billing })
+  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, calendly, realEstate, webhooks, platformWebhooks, billing })
 }
