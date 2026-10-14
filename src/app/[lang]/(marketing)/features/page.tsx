@@ -16,7 +16,7 @@ import {
   Users,
   ShoppingBag,
   Link2,
-  CheckSquare,
+  MessageSquareReply,
   BarChart3,
   Lock,
   ArrowRight,
@@ -53,6 +53,11 @@ export default function FeaturesPage() {
       icon: <RefreshCw className="size-5 text-teal-400" />
     },
     {
+      name: t("mktFeatures.caps.comments.name"),
+      desc: t("mktFeatures.caps.comments.desc"),
+      icon: <MessageSquareReply className="size-5 text-pink-400" />
+    },
+    {
       name: t("mktFeatures.caps.broadcasts.name"),
       desc: t("mktFeatures.caps.broadcasts.desc"),
       icon: <Megaphone className="size-5 text-emerald-400" />
@@ -71,11 +76,6 @@ export default function FeaturesPage() {
       name: t("mktFeatures.caps.integrations.name"),
       desc: t("mktFeatures.caps.integrations.desc"),
       icon: <Link2 className="size-5 text-pink-400" />
-    },
-    {
-      name: t("mktFeatures.caps.tasks.name"),
-      desc: t("mktFeatures.caps.tasks.desc"),
-      icon: <CheckSquare className="size-5 text-amber-400" />
     },
     {
       name: t("mktFeatures.caps.reports.name"),
