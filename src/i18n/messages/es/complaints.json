@@ -1,0 +1,121 @@
+{
+  "complaints": {
+    "title": "Libro de Reclamaciones",
+    "subtitle": "Hoja de reclamación virtual",
+    "notice": "Conforme a lo establecido en el Código de Protección y Defensa del Consumidor, contamos con un Libro de Reclamaciones a tu disposición.",
+    "sheet": {
+      "number": "Hoja de reclamación N.°",
+      "date": "Fecha",
+      "provider": "Datos del proveedor",
+      "consumer": "1. Datos del consumidor reclamante",
+      "item": "2. Bien contratado",
+      "detail": "3. Detalle de la reclamación y pedido del consumidor",
+      "response": "4. Respuesta del proveedor",
+      "amount": "Monto reclamado"
+    },
+    "fields": {
+      "consumer_name": "Nombres y apellidos",
+      "doc_type": "Tipo de documento",
+      "doc_number": "Número de documento",
+      "address": "Domicilio",
+      "phone": "Teléfono (opcional)",
+      "email": "Correo electrónico",
+      "is_minor": "Soy menor de edad",
+      "guardian_name": "Nombre del padre, madre o apoderado",
+      "item_type": "Tipo",
+      "item_description": "Descripción del producto o servicio",
+      "amount": "Monto reclamado en soles (opcional)",
+      "kind": "Tipo de reclamación",
+      "detail": "Detalle",
+      "request": "Pedido",
+      "accepted": "Declaro que los datos son verdaderos y autorizo a Grupo Fazzilito E.I.R.L. a usarlos para atender esta reclamación, conforme a la Ley N.° 29733 de Protección de Datos Personales."
+    },
+    "placeholders": {
+      "item_description": "Ej.: recarga de tokens de IA del 10/10/2026",
+      "detail": "Cuéntanos qué pasó",
+      "request": "¿Qué solución esperas?"
+    },
+    "docTypes": {
+      "dni": "DNI",
+      "ce": "Carné de extranjería",
+      "pasaporte": "Pasaporte",
+      "ruc": "RUC"
+    },
+    "itemTypes": {
+      "servicio": "Servicio",
+      "producto": "Producto"
+    },
+    "kinds": {
+      "reclamo": "Reclamo",
+      "queja": "Queja"
+    },
+    "kindHelp": {
+      "reclamo": "Disconformidad relacionada con los productos o servicios.",
+      "queja": "Disconformidad no relacionada con los productos o servicios, o malestar o descontento respecto a la atención al público."
+    },
+    "legal": {
+      "deadline": "El proveedor deberá dar respuesta al reclamo o queja en un plazo no mayor a quince (15) días hábiles improrrogables.",
+      "otherWays": "La formulación del reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el INDECOPI."
+    },
+    "submit": "Enviar hoja de reclamación",
+    "sending": "Enviando…",
+    "success": {
+      "title": "Registramos tu reclamación",
+      "body": "Tu hoja de reclamación N.° {code} quedó registrada. Enviamos una copia a {email}.",
+      "due": "Te responderemos a más tardar el {date}.",
+      "print": "Imprimir o guardar como PDF",
+      "another": "Registrar otra reclamación"
+    },
+    "errors": {
+      "required": "Elige una opción.",
+      "name": "Escribe tus nombres y apellidos.",
+      "doc_dni": "El DNI tiene 8 dígitos.",
+      "doc_ce": "El carné de extranjería tiene de 8 a 12 caracteres.",
+      "doc_pasaporte": "El pasaporte tiene de 6 a 12 caracteres.",
+      "doc_ruc": "El RUC tiene 11 dígitos.",
+      "address": "Escribe tu domicilio.",
+      "phone": "Revisa el teléfono.",
+      "email": "Escribe un correo válido.",
+      "guardian": "Escribe el nombre de tu padre, madre o apoderado.",
+      "item": "Describe el producto o servicio.",
+      "amount": "Escribe un monto válido.",
+      "detail": "Cuéntanos el detalle (al menos 10 caracteres).",
+      "request": "Escribe tu pedido.",
+      "accepted": "Debes aceptar para enviar.",
+      "generic": "No pudimos registrar tu reclamación. Inténtalo de nuevo o escríbenos a {email}.",
+      "rate": "Enviaste varias reclamaciones seguidas. Espera un momento e inténtalo de nuevo."
+    },
+    "email": {
+      "receiptSubject": "Constancia de tu hoja de reclamación N.° {code} – Whasalia",
+      "receiptIntro": "Hola {name}:\n\nRegistramos tu hoja de reclamación N.° {code} en el Libro de Reclamaciones de Whasalia. Esta es tu constancia.",
+      "noticeSubject": "Nueva hoja de reclamación N.° {code}",
+      "noticeIntro": "Se registró la hoja de reclamación N.° {code}. Hay que responderla a más tardar el {date} desde Superadmin → Reclamaciones.",
+      "answerSubject": "Respuesta a tu hoja de reclamación N.° {code} – Whasalia",
+      "answerIntro": "Hola {name}:\n\nEsta es nuestra respuesta a tu hoja de reclamación N.° {code}:"
+    }
+  },
+  "complaintsAdmin": {
+    "title": "Libro de Reclamaciones",
+    "subtitle": "Hojas de reclamación del sitio. Hay que responder cada una en 15 días hábiles; la respuesta se envía por correo al consumidor.",
+    "filters": {
+      "pending": "Pendientes",
+      "answered": "Respondidas",
+      "all": "Todas"
+    },
+    "empty": "No hay reclamaciones aquí.",
+    "select": "Elige una reclamación para verla.",
+    "due": "Responder hasta el {date}",
+    "overdue": "Vencida ({date})",
+    "answeredOn": "Respondida el {date}",
+    "status": {
+      "pending": "Pendiente",
+      "answered": "Respondida"
+    },
+    "response": "Respuesta al consumidor",
+    "responsePlaceholder": "Explica qué hiciste o qué solución das (se envía por correo al consumidor).",
+    "send": "Enviar respuesta",
+    "minor": "Menor de edad",
+    "publicLink": "Ver formulario público",
+    "sendFailed": "No pudimos enviar la respuesta. Inténtalo de nuevo."
+  }
+}

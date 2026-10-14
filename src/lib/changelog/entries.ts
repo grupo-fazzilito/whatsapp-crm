@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-14',
+    title: { es: 'Libro de Reclamaciones virtual', en: 'Virtual Complaints Book' },
+    changes: [
+      { kind: 'new', es: 'Puedes registrar un reclamo o una queja desde el enlace «Libro de Reclamaciones» al pie de cada página. Recibes una constancia por correo con el número de tu hoja y la fecha límite de respuesta.', en: 'You can file a claim or complaint from the «Complaints Book» link at the bottom of every page. You get an emailed receipt with your form number and the answer deadline.' },
+    ],
+  },
+  {
+    date: '2026-10-14',
     title: { es: 'Whasalia es gratis para siempre', en: 'Whasalia is free forever' },
     changes: [
       { kind: 'new', es: 'Un solo plan, Free Forever: toda la plataforma sin mensualidad.', en: 'One plan, Free Forever: the whole platform with no monthly fee.' },

@@ -38,7 +38,8 @@
       "t5": "Business Support",
       "disclaimer": "\"Whasalia uses WhatsApp Business API solutions in accordance with Meta and WhatsApp Business policies. Businesses are responsible for obtaining user consent before initiating communication.\"",
       "rights": "© 2026 Whasalia, a product of {company} ({taxId}). All rights reserved.",
-      "changelog": "Changelog"
+      "changelog": "Changelog",
+      "complaints": "Complaints Book"
     },
     "meta": {
       "home": {
@@ -144,6 +145,10 @@
       "changelog": {
         "title": "Changelog",
         "description": "Whasalia improvements and fixes, newest first."
+      },
+      "libroDeReclamaciones": {
+        "title": "Complaints Book",
+        "description": "File a claim or complaint about Whasalia in our virtual Complaints Book (Libro de Reclamaciones)."
       }
     }
   },

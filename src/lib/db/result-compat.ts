@@ -402,6 +402,11 @@ export const resultCompat = Prisma.defineExtension({
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
       last_assigned_at: { needs: { last_assigned_at: true }, compute: (r) => r.last_assigned_at === null ? null : r.last_assigned_at.toISOString() },
     },
+    complaints: {
+      amount: { needs: { amount: true }, compute: (r) => r.amount === null ? null : r.amount.toNumber() },
+      responded_at: { needs: { responded_at: true }, compute: (r) => r.responded_at === null ? null : r.responded_at.toISOString() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+    },
     plans: {
       price_monthly: { needs: { price_monthly: true }, compute: (r) => r.price_monthly.toNumber() },
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
