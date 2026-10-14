@@ -28,7 +28,7 @@
       "terms": "Terms & Conditions",
       "refund": "Refund Policy",
       "about": "Whasalia is a premium AI-powered WhatsApp CRM and customer support automation platform. Automate business communication, configure smart chatbots, organize leads, and sync calendar reminders using the official WhatsApp Business API.",
-      "partner": "Official Meta Business Partner",
+      "partner": "Official WhatsApp Business API",
       "quickLinks": "Quick Links",
       "trust": "Trust Signals",
       "t1": "Secure Platform",
@@ -48,7 +48,7 @@
       },
       "features": {
         "title": "Features",
-        "description": "Shared inbox, AI agents, CRM pipelines, automations, bookings, catalog and reports in one WhatsApp platform."
+        "description": "Shared inbox for WhatsApp, Instagram, Messenger and web chat, AI agents, flows, broadcasts, sales pipelines, orders, bookings and reports."
       },
       "pricing": {
         "title": "Pricing",

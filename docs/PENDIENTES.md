@@ -47,8 +47,10 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 ## 6. Sitio y seguridad
 
 - [x] Datos de Grupo Fazzilito E.I.R.L. (RUC, dirección) en pie de página, contacto y políticas; ley peruana; fuera "chatnexgen" — 🤖 (2026-10-12)
-- [ ] Quitar o cambiar la insignia "Socio oficial de Meta Business" del pie de página (no lo somos; riesgo en la verificación) — 🤖, falta OK de Toño
-- [ ] Revisar contenido heredado de la plantilla: "Nosotros", empleos en San Francisco, testimonios, integraciones indias (IndiaMart, JustDial, Razorpay), página `/admin` con datos de ejemplo — 🤖 propone / 🧑 aprueba
+- [x] Fuera "Socio oficial de Meta" de todo el sitio (ahora "API oficial de WhatsApp Business"); página de Funciones reescrita solo con lo que existe — 🤖 (2026-10-14, rama `feat/honest-features`)
+- [ ] Revisar contenido heredado de la plantilla en las demás páginas: Integraciones, Automatización con IA, Seguridad, Casos de éxito, "Nosotros", empleos en San Francisco, testimonios, página `/admin` con datos de ejemplo — 🤖 propone / 🧑 aprueba
+- [ ] Integración con **Calendly** (como Google Calendar) — 🤖, diseño pendiente de OK de Toño
+- [ ] Botón "Crear bot de preguntas frecuentes" que arme un menú numerado gratis desde la lista de FAQs — 🤖, opcional
 - [ ] Portfolio de Meta: verificación en dos pasos y un segundo administrador — 🧑
 - [ ] Teléfono o WhatsApp de soporte, si se quiere mostrar — 🧑
 - [x] **Libro de Reclamaciones virtual**: formulario en `/es/libro-de-reclamaciones`, enlace en el pie de cada página, constancia por correo, respuestas desde Superadmin → Complaints con plazo de 15 días hábiles — 🤖 (2026-10-14, rama `feat/complaints-book`, falta fusionar)
