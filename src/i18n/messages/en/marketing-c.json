@@ -95,25 +95,6 @@
     "messagePlaceholder": "How can we help your team scale?",
     "submit": "Submit Inquiry"
   },
-  "mktBookDemo": {
-    "badge": "video briefing",
-    "titleLine1": "Book a 1-on-1",
-    "titleHighlight": "Product Walkthrough.",
-    "subtitle": "Schedule a live screen-share with a sales solutions architect. Learn how to connect your Meta templates, configure auto-responder prompts, and track pipeline analytics.",
-    "duration": "30-minute custom briefing",
-    "medium": "Live Zoom / Google Meet screen-share",
-    "successTitle": "Consultation Scheduled!",
-    "successDesc": "Calendar invite sent to your address. We will meet on {date} at {time} via Google Meet.",
-    "selectTitle": "Select Date & Time",
-    "availableDates": "Available Dates",
-    "availableSlots": "Available Slots",
-    "confirm": "Confirm Appointment",
-    "dates": {
-      "d1": "Wed, May 27",
-      "d2": "Thu, May 28",
-      "d3": "Fri, May 29"
-    }
-  },
   "mktApiDocs": {
     "badge": "developer API",
     "titleLine1": "Trigger Messages",

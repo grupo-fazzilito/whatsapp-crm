@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Radio, MessageSquare, Tag, User, Palette, Users, ArrowRight, Zap, UsersRound, Coins } from 'lucide-react';
+import { Radio, MessageSquare, Tag, User, Palette, Users, ArrowRight, Zap, UsersRound, Coins, Plug } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { TeamsManager } from '@/components/settings/teams-manager';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { BillingPanel } from '@/components/billing/billing-panel';
+import { CalendlyCard } from '@/components/integrations/calendly/calendly-card';
 
 const TAB_VALUES = [
   'profile',
@@ -30,6 +31,7 @@ const TAB_VALUES = [
   'teams',
   'appearance',
   'billing',
+  'integrations',
 ] as const;
 type TabValue = (typeof TAB_VALUES)[number];
 
@@ -134,6 +136,15 @@ export default function SettingsPage() {
               {t('billing.tab')}
             </TabsTrigger>
           )}
+          {isAdmin && (
+            <TabsTrigger
+              value="integrations"
+              className="data-active:bg-white dark:data-active:bg-slate-800 data-active:text-primary text-slate-600 dark:text-slate-400 data-active:shadow-sm transition-all duration-200"
+            >
+              <Plug className="size-4" />
+              {t('calendly.tab')}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -186,6 +197,12 @@ export default function SettingsPage() {
         {isAdmin && (
           <TabsContent value="billing">
             <BillingPanel />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="integrations" className="space-y-6">
+            <CalendlyCard />
           </TabsContent>
         )}
       </Tabs>

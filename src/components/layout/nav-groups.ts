@@ -21,6 +21,7 @@ export function sectionGroups(ctx: NavContext): SectionTab[][] {
     [
       { href: '/automations', label: ctx.t('nav.automations') },
       { href: '/flows', label: ctx.t('nav.flows') },
+      { href: '/automations/comments', label: ctx.t('comments.tab') },
     ],
     [
       { href: '/agents', label: ctx.t('nav.agentsList') },

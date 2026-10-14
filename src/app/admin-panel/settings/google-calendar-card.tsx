@@ -22,7 +22,7 @@ const labelCls = "block text-xs font-semibold text-slate-400 uppercase tracking-
 const btnCls =
   "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
-function CopyField({ id, label, value, help }: { id: string; label: string; value: string; help: string }) {
+export function CopyField({ id, label, value, help }: { id: string; label: string; value: string; help: string }) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const copy = async () => {

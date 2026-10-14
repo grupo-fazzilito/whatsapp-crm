@@ -13,7 +13,6 @@ import { AIChatSimulation } from "@/components/marketing/ai-chat-simulation";
 import { CRMPreviewBoard } from "@/components/marketing/crm-preview-board";
 import { ReferenceDashboard } from "@/components/marketing/reference-dashboard";
 import { SocialProofMetrics } from "@/components/marketing/social-proof-metrics";
-import { BookDemoTrigger } from "@/components/marketing/book-demo-trigger";
 import { InfiniteLogoMarquee } from "@/components/marketing/infinite-logo-marquee";
 import { useI18n, useLocalePath } from "@/i18n/client";
 
@@ -126,15 +125,15 @@ export function HomeView({ pricing }: { pricing: PublicPricing }) {
           >
             <MagneticButton>
               <Link
-                href="/login"
+                href="/signup"
                 className="bg-[#00DF82] hover:bg-[#00c673] text-slate-950 px-8 py-3 rounded-full text-xs font-semibold transition-all shadow-[0_4px_20px_rgba(0,223,130,0.15)] flex items-center justify-center"
               >
                 {t("mktHome.hero.getStarted")}
               </Link>
             </MagneticButton>
-            <BookDemoTrigger className="bg-[var(--m-bg-secondary)]/85 border border-[var(--m-border-primary)] hover:bg-[var(--m-bg-tertiary)]/85 text-[var(--m-text-secondary)] px-8 py-3 rounded-full text-xs font-semibold transition-all flex items-center justify-center">
+            <Link href={lp("/features")} className="bg-[var(--m-bg-secondary)]/85 border border-[var(--m-border-primary)] hover:bg-[var(--m-bg-tertiary)]/85 text-[var(--m-text-secondary)] px-8 py-3 rounded-full text-xs font-semibold transition-all flex items-center justify-center">
               {t("mktHome.hero.learnMore")}
-            </BookDemoTrigger>
+            </Link>
           </motion.div>
         </div>
 
@@ -463,15 +462,12 @@ export function HomeView({ pricing }: { pricing: PublicPricing }) {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <MagneticButton>
               <Link
-                href="/login"
+                href="/signup"
                 className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-6 py-3 rounded-xl text-xs font-semibold transition-all shadow-[0_0_16px_rgba(16,185,129,0.2)] hover:shadow-[0_0_24px_rgba(16,185,129,0.4)] flex items-center gap-1.5"
               >
                 {t("mktHome.cta.start")} <ArrowRight className="size-3.5" />
               </Link>
             </MagneticButton>
-            <BookDemoTrigger className="px-6 py-3 rounded-xl text-xs font-semibold transition-all border bg-[var(--m-bg-secondary)] border-[var(--m-border-primary)] text-[var(--m-text-secondary)] hover:bg-[var(--m-bg-tertiary)]">
-              {t("mktHome.cta.enterprise")}
-            </BookDemoTrigger>
           </div>
         </div>
       </section>

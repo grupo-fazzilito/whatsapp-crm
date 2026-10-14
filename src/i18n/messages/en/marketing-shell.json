@@ -15,7 +15,6 @@
       "careers": "Careers",
       "blog": "Blog Hacks"
     },
-    "bookDemo": "Book Demo",
     "dashboard": "Dashboard",
     "signIn": "Sign In",
     "navigation": "Navigation",
@@ -28,7 +27,7 @@
       "terms": "Terms & Conditions",
       "refund": "Refund Policy",
       "about": "Whasalia is a premium AI-powered WhatsApp CRM and customer support automation platform. Automate business communication, configure smart chatbots, organize leads, and sync calendar reminders using the official WhatsApp Business API.",
-      "partner": "Official Meta Business Partner",
+      "partner": "Official WhatsApp Business API",
       "quickLinks": "Quick Links",
       "trust": "Trust Signals",
       "t1": "Secure Platform",
@@ -43,12 +42,12 @@
     },
     "meta": {
       "home": {
-        "title": "Whasalia - AI-powered WhatsApp CRM & automation platform",
-        "description": "Manage leads, automate customer conversations on WhatsApp, Instagram and Messenger, and grow your business with Whasalia's AI agents."
+        "title": "Whasalia — Free CRM for WhatsApp, Instagram and Messenger with AI",
+        "description": "Free-forever CRM: shared inbox, AI agents, flows, sales and bookings for WhatsApp, Instagram and Messenger. You only pay for the AI tokens you use."
       },
       "features": {
         "title": "Features",
-        "description": "Shared inbox, AI agents, CRM pipelines, automations, bookings, catalog and reports in one WhatsApp platform."
+        "description": "Shared inbox for WhatsApp, Instagram, Messenger and web chat, AI agents, flows, broadcasts, sales pipelines, orders, bookings and reports."
       },
       "pricing": {
         "title": "Pricing",
@@ -114,10 +113,6 @@
         "title": "Contact Us",
         "description": "Get in touch with the Whasalia team."
       },
-      "bookDemo": {
-        "title": "Book a Demo",
-        "description": "Book a free walkthrough of Whasalia with our team."
-      },
       "apiDocs": {
         "title": "API Docs",
         "description": "Whasalia public API: send messages, manage contacts and receive webhooks."
@@ -150,7 +145,8 @@
         "title": "Complaints Book",
         "description": "File a claim or complaint about Whasalia in our virtual Complaints Book (Libro de Reclamaciones)."
       }
-    }
+    },
+    "signUp": "Sign up free"
   },
   "mktChangelog": {
     "badge": "Changelog",

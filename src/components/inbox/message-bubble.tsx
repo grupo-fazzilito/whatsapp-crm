@@ -548,7 +548,11 @@ export function MessageBubble({
         isAgent ? "items-end" : "items-start",
       )}
     >
-      {isBot && (
+      {isBot && meta.source === "comment_reply" ? (
+        <span className="mb-0.5 max-w-full truncate px-1 text-[10px] text-slate-400">
+          {t("comments.bubble", { text: String(meta.comment_text ?? "").slice(0, 80) })}
+        </span>
+      ) : isBot && (
         <span className="mb-0.5 inline-flex items-center gap-1 px-1 text-[10px] text-slate-400">
           <Bot className="h-3 w-3" />
           {agentName || t("inbox.bubble.aiAgent")}

@@ -8,7 +8,6 @@ import { authClient } from "@/lib/auth/client";
 import { useMarketingTheme } from "@/components/marketing/marketing-theme-provider";
 import { ThemeToggle } from "./theme-toggle";
 import { MagneticButton } from "./magnetic-button";
-import { BookDemoTrigger } from "./book-demo-trigger";
 import { cn } from "@/lib/utils";
 import { useI18n, useLocalePath } from "@/i18n/client";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -147,17 +146,17 @@ export function GlassNavbar() {
           <div className="hidden md:flex items-center gap-2.5 shrink-0">
             <LanguageSwitcher variant="marketing" />
             <ThemeToggle />
-            <BookDemoTrigger
-              className={cn("text-[11px] font-semibold transition-colors px-3 py-1.5 whitespace-nowrap cursor-pointer", linkCls)}
-            >
-              {t("mktShell.bookDemo")}
-            </BookDemoTrigger>
+            {!isLoggedIn && (
+              <Link href="/login" className={cn("text-[11px] font-semibold transition-colors px-3 py-1.5 whitespace-nowrap", linkCls)}>
+                {t("mktShell.signIn")}
+              </Link>
+            )}
             <MagneticButton>
               <Link
-                href={isLoggedIn ? "/dashboard" : "/login"}
+                href={isLoggedIn ? "/dashboard" : "/signup"}
                 className="text-[11px] font-semibold bg-[#00DF82] hover:bg-[#00c673] text-slate-950 px-4 py-1.5 rounded-full transition-all shadow-[0_2px_12px_rgba(0,223,130,0.2)] whitespace-nowrap"
               >
-                {isLoggedIn ? t("mktShell.dashboard") : t("mktShell.signIn")}
+                {isLoggedIn ? t("mktShell.dashboard") : t("mktShell.signUp")}
               </Link>
             </MagneticButton>
           </div>
@@ -215,15 +214,21 @@ export function GlassNavbar() {
               <LanguageSwitcher variant="marketing" />
               <ThemeToggle className="flex-1 justify-around" />
             </div>
-            <BookDemoTrigger className="w-full text-center text-xs font-bold py-3 rounded-full border transition-colors border-[var(--m-border-primary)] bg-[var(--m-bg-tertiary)] text-[var(--m-text-primary)]">
-              {t("mktShell.bookDemo")}
-            </BookDemoTrigger>
+            {!isLoggedIn && (
+              <Link
+                href="/login"
+                onClick={() => setIsOpen(false)}
+                className="w-full text-center text-xs font-bold py-3 rounded-full border transition-colors border-[var(--m-border-primary)] bg-[var(--m-bg-tertiary)] text-[var(--m-text-primary)]"
+              >
+                {t("mktShell.signIn")}
+              </Link>
+            )}
             <Link
-              href={isLoggedIn ? "/dashboard" : "/login"}
+              href={isLoggedIn ? "/dashboard" : "/signup"}
               onClick={() => setIsOpen(false)}
               className="w-full text-center text-xs font-semibold bg-[#00DF82] text-slate-950 py-3 rounded-full hover:bg-[#00c673] transition-colors"
             >
-              {isLoggedIn ? t("mktShell.dashboard") : t("mktShell.signIn")}
+              {isLoggedIn ? t("mktShell.dashboard") : t("mktShell.signUp")}
             </Link>
           </div>
         </div>

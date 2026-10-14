@@ -37,6 +37,7 @@ function getPageTitle(pathname: string, t: T, label: Label): string {
     ["/tasks", t("crm.tasks.navTitle")],
     ["/broadcasts", t("nav.broadcasts")],
     ["/automations", t("nav.automations")],
+    ["/automations/comments", t("comments.title")],
     ["/flows", t("nav.flows")],
     ["/reports", t("reports.navTitle")],
     ["/support", t("support.page.title")],

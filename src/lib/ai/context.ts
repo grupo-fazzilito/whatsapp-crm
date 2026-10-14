@@ -5,6 +5,7 @@ import type { Workspace } from '@/lib/workspace/types'
 import type { AiAgentRow } from './types'
 import type { BookingRow, BusinessException, BusinessHoursRow, BusyInterval, StaffRow } from './slots'
 import { loadStaffBusy } from '@/lib/integrations/google/busy'
+import { loadCalendlyLinks, type CalendlyServiceLink } from '@/lib/integrations/calendly/booking'
 
 export interface ServiceRow {
   id: string
@@ -72,6 +73,8 @@ export interface BusinessContext {
   /** Google Calendar busy time per staff id (also set on each staff row). */
   busy?: Record<string, BusyInterval[]>
   catalog: CatalogSummary
+  /** Services booked in Calendly: service id → event type. */
+  calendly?: Record<string, CalendlyServiceLink>
 }
 
 export const BOOKING_HORIZON_DAYS = 14
@@ -95,7 +98,7 @@ export async function loadBusinessContext(workspaceId: string, fresh = false): P
   const timeZone = safeTimeZone(workspace.timezone)
   const today = zonedNow(timeZone).date
 
-  const [hours, staff, links, services, faqs, agents, bookings, categories, total] = await Promise.all([
+  const [hours, staff, links, services, faqs, agents, bookings, categories, total, calendly] = await Promise.all([
     soft(db.business_hours.findMany({ where: { workspace_id: workspaceId } }), []),
     soft(db.staff.findMany({ where: { workspace_id: workspaceId, is_active: true }, orderBy: { name: 'asc' } }), []),
     soft(db.staff_services.findMany({ select: { staff_id: true, service_id: true }, where: { workspace_id: workspaceId } }), []),
@@ -122,6 +125,7 @@ export async function loadBusinessContext(workspaceId: string, fresh = false): P
       [],
     ),
     soft(db.products.count({ where: { workspace_id: workspaceId, is_active: true } }), 0),
+    soft(loadCalendlyLinks(workspaceId), {} as Record<string, CalendlyServiceLink>),
   ])
   const smallCatalog =
     total > 0 && total <= SMALL_CATALOG
@@ -166,6 +170,7 @@ export async function loadBusinessContext(workspaceId: string, fresh = false): P
       total,
       products: (smallCatalog ?? null) as CatalogProduct[] | null,
     },
+    calendly,
   }
   cache.set(workspaceId, { at: Date.now(), ctx })
   return ctx

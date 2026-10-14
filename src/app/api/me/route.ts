@@ -9,7 +9,7 @@ export async function GET() {
   const [profile, row] = await Promise.all([
     prisma.profiles.findFirst({
       where: { user_id: user.id },
-      select: { id: true, full_name: true, email: true, avatar_url: true, role: true, beta_features: true, is_platform_admin: true, locale: true, tour_completed_at: true },
+      select: { id: true, full_name: true, email: true, avatar_url: true, role: true, beta_features: true, is_platform_admin: true, locale: true, tour_completed_at: true, setup_offer_seen_at: true },
     }),
     prisma.users.findUnique({ where: { id: user.id }, select: { created_at: true } }),
   ])

@@ -15,7 +15,6 @@
       "careers": "Empleo",
       "blog": "Blog"
     },
-    "bookDemo": "Agendar demo",
     "dashboard": "Panel",
     "signIn": "Iniciar sesión",
     "navigation": "Navegación",
@@ -28,7 +27,7 @@
       "terms": "Términos y condiciones",
       "refund": "Política de reembolso",
       "about": "Whasalia es una plataforma premium de CRM para WhatsApp y automatización de atención al cliente con IA. Automatiza la comunicación de tu negocio, configura chatbots inteligentes, organiza tus leads y sincroniza recordatorios de calendario con la API oficial de WhatsApp Business.",
-      "partner": "Socio oficial de Meta Business",
+      "partner": "API oficial de WhatsApp Business",
       "quickLinks": "Enlaces rápidos",
       "trust": "Confianza",
       "t1": "Plataforma segura",
@@ -43,12 +42,12 @@
     },
     "meta": {
       "home": {
-        "title": "Whasalia - CRM de WhatsApp con IA y automatización",
-        "description": "Gestiona leads, automatiza conversaciones con tus clientes en WhatsApp, Instagram y Messenger, y haz crecer tu negocio con los agentes de IA de Whasalia."
+        "title": "Whasalia — CRM gratis para WhatsApp, Instagram y Messenger con IA",
+        "description": "CRM gratuito para siempre: bandeja compartida, agentes de IA, flujos, ventas y reservas para WhatsApp, Instagram y Messenger. Solo pagas los tokens de IA que usas."
       },
       "features": {
         "title": "Funciones",
-        "description": "Bandeja compartida, agentes de IA, pipelines de CRM, automatizaciones, reservas, catálogo y reportes en una sola plataforma de WhatsApp."
+        "description": "Bandeja compartida para WhatsApp, Instagram, Messenger y chat web, agentes de IA, flujos, difusiones, embudos de venta, pedidos, reservas y reportes."
       },
       "pricing": {
         "title": "Precios",
@@ -114,10 +113,6 @@
         "title": "Contacto",
         "description": "Ponte en contacto con el equipo de Whasalia."
       },
-      "bookDemo": {
-        "title": "Agenda una demo",
-        "description": "Agenda una demostración gratuita de Whasalia con nuestro equipo."
-      },
       "apiDocs": {
         "title": "Documentación de la API",
         "description": "API pública de Whasalia: envía mensajes, gestiona contactos y recibe webhooks."
@@ -150,7 +145,8 @@
         "title": "Libro de Reclamaciones",
         "description": "Registra un reclamo o una queja sobre Whasalia en nuestro Libro de Reclamaciones virtual."
       }
-    }
+    },
+    "signUp": "Regístrate gratis"
   },
   "mktChangelog": {
     "badge": "Novedades",

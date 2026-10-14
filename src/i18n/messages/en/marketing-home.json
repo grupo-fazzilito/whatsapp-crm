@@ -1,11 +1,11 @@
 {
   "mktHome": {
     "hero": {
-      "badge": "🚀 AI-Powered WhatsApp CRM & Business Automation",
-      "title": "The AI WhatsApp CRM built for customer engagement",
-      "subtitle": "Sync team conversations, qualify leads automatically, handle support chats with AI assistance, and streamline appointment scheduling on WhatsApp—fully compliant with Meta guidelines.",
-      "getStarted": "Get Started",
-      "learnMore": "Learn More"
+      "badge": "🎁 Free CRM forever · you only pay for the AI you use",
+      "title": "The free CRM to sell and serve on WhatsApp",
+      "subtitle": "Shared inbox for WhatsApp, Instagram, Messenger and your website, AI agents, flows, sales and bookings. All free: you only pay for the AI tokens you use.",
+      "getStarted": "Sign up free",
+      "learnMore": "See features"
     },
     "integrations": {
       "title": "Integrated With Your Favorite Tools"
@@ -75,8 +75,7 @@
     "cta": {
       "title": "Ready to Automate your WhatsApp?",
       "desc": "Get started in minutes. Connect your Meta Business account, setup your AI customer support workspace, and watch your business scale.",
-      "start": "Start Free Trial",
-      "enterprise": "Contact Enterprise"
+      "start": "Sign up free"
     },
     "chat": {
       "status": "AI Agent · online",
@@ -116,31 +115,6 @@
       "broadcastDesc": "Millions of monthly triggered follow-ups, payment confirmations, & templates.",
       "automation": "AI Automation Rate",
       "automationDesc": "Chat conversations handled completely autonomously without human intervention."
-    },
-    "demo": {
-      "title": "Book a Product Demo",
-      "subtitle": "30-min live walkthrough · Google Meet",
-      "successTitle": "You're booked!",
-      "successBody": "A confirmation email has been sent to {email}. We'll meet on {date} at {time} via Google Meet.",
-      "done": "Done",
-      "errorBooking": "Failed to book walkthrough. Please try again.",
-      "errorNetwork": "An unexpected network error occurred.",
-      "contactDetails": "Contact Details",
-      "fullName": "Full Name *",
-      "namePlaceholder": "Jane Smith",
-      "workEmail": "Work Email *",
-      "emailPlaceholder": "jane@company.com",
-      "phone": "Phone Number *",
-      "selectDateTime": "Select Date & Time",
-      "chooseDate": "1. Choose Date *",
-      "chooseTime": "2. Choose Time *",
-      "meetNote": "30-min Google Meet slot. Calendar invite will be sent.",
-      "selected": "Selected: {date} at {time}",
-      "selectPrompt": "Select a date and time slot...",
-      "confirm": "Confirm Booking",
-      "days": "Sun,Mon,Tue,Wed,Thu,Fri,Sat",
-      "months": "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec",
-      "dateLabel": "{day}, {month} {date}"
     }
   }
 }

@@ -153,5 +153,17 @@
       "save": "Save",
       "saved": "Saved"
     }
+  },
+  "setupHelp": {
+    "title": "Need help setting up your account?",
+    "body": "We set it up with you on a Google Meet video call, so Whasalia is ready to serve your customers.",
+    "i1": "We connect your WhatsApp, Instagram and Messenger",
+    "i2": "We load your hours, services and FAQs",
+    "i3": "We leave your AI agent and first flows working",
+    "once": "one-time payment",
+    "cta": "Message us on WhatsApp",
+    "dismiss": "No, thanks",
+    "menu": "Assisted setup (S/ {price})",
+    "message": "Hi, I'd like the S/ {price} assisted setup for my business {business} on Whasalia."
   }
 }

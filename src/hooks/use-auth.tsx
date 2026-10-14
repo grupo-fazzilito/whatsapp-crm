@@ -34,6 +34,8 @@ interface Profile {
   beta_features: string[];
   /** When the guided tour was finished or skipped (null = show it). */
   tour_completed_at: string | null;
+  /** When the assisted-setup offer was answered (null = not shown yet). */
+  setup_offer_seen_at: string | null;
 }
 
 interface AuthContextValue {

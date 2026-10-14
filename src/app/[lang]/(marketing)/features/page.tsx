@@ -5,23 +5,21 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { SpotlightCard } from "@/components/marketing/spotlight-card";
 import { MagneticButton } from "@/components/marketing/magnetic-button";
-import { 
-  Sparkles, 
-  Users, 
-  RefreshCw, 
-  HelpCircle, 
-  Code, 
-  Link2, 
-  Smartphone, 
-  CheckSquare, 
-  FileImage, 
-  Lock, 
-  ArrowRight,
-  ShieldAlert,
-  Infinity,
-  Zap,
+import {
+  Sparkles,
+  Inbox,
+  Bot,
+  HelpCircle,
+  Workflow,
+  RefreshCw,
+  Megaphone,
+  Users,
+  ShoppingBag,
+  Link2,
+  CheckSquare,
   BarChart3,
-  Bot
+  Lock,
+  ArrowRight,
 } from "lucide-react";
 import { useI18n, useLocalePath } from "@/i18n/client";
 
@@ -30,14 +28,14 @@ export default function FeaturesPage() {
   const lp = useLocalePath();
   const capabilities = [
     {
-      name: t("mktFeatures.caps.contacts.name"),
-      desc: t("mktFeatures.caps.contacts.desc"),
-      icon: <Users className="size-5 text-emerald-400" />
+      name: t("mktFeatures.caps.inbox.name"),
+      desc: t("mktFeatures.caps.inbox.desc"),
+      icon: <Inbox className="size-5 text-emerald-400" />
     },
     {
-      name: t("mktFeatures.caps.drip.name"),
-      desc: t("mktFeatures.caps.drip.desc"),
-      icon: <RefreshCw className="size-5 text-teal-400" />
+      name: t("mktFeatures.caps.agents.name"),
+      desc: t("mktFeatures.caps.agents.desc"),
+      icon: <Bot className="size-5 text-teal-400" />
     },
     {
       name: t("mktFeatures.caps.faq.name"),
@@ -45,19 +43,34 @@ export default function FeaturesPage() {
       icon: <HelpCircle className="size-5 text-emerald-400" />
     },
     {
-      name: t("mktFeatures.caps.api.name"),
-      desc: t("mktFeatures.caps.api.desc"),
-      icon: <Code className="size-5 text-pink-400" />
+      name: t("mktFeatures.caps.flows.name"),
+      desc: t("mktFeatures.caps.flows.desc"),
+      icon: <Workflow className="size-5 text-pink-400" />
+    },
+    {
+      name: t("mktFeatures.caps.automations.name"),
+      desc: t("mktFeatures.caps.automations.desc"),
+      icon: <RefreshCw className="size-5 text-teal-400" />
+    },
+    {
+      name: t("mktFeatures.caps.broadcasts.name"),
+      desc: t("mktFeatures.caps.broadcasts.desc"),
+      icon: <Megaphone className="size-5 text-emerald-400" />
+    },
+    {
+      name: t("mktFeatures.caps.crm.name"),
+      desc: t("mktFeatures.caps.crm.desc"),
+      icon: <Users className="size-5 text-amber-400" />
+    },
+    {
+      name: t("mktFeatures.caps.commerce.name"),
+      desc: t("mktFeatures.caps.commerce.desc"),
+      icon: <ShoppingBag className="size-5 text-teal-400" />
     },
     {
       name: t("mktFeatures.caps.integrations.name"),
       desc: t("mktFeatures.caps.integrations.desc"),
-      icon: <Link2 className="size-5 text-teal-400" />
-    },
-    {
-      name: t("mktFeatures.caps.ctwa.name"),
-      desc: t("mktFeatures.caps.ctwa.desc"),
-      icon: <Smartphone className="size-5 text-emerald-400" />
+      icon: <Link2 className="size-5 text-pink-400" />
     },
     {
       name: t("mktFeatures.caps.tasks.name"),
@@ -65,14 +78,14 @@ export default function FeaturesPage() {
       icon: <CheckSquare className="size-5 text-amber-400" />
     },
     {
-      name: t("mktFeatures.caps.media.name"),
-      desc: t("mktFeatures.caps.media.desc"),
-      icon: <FileImage className="size-5 text-red-400" />
+      name: t("mktFeatures.caps.reports.name"),
+      desc: t("mktFeatures.caps.reports.desc"),
+      icon: <BarChart3 className="size-5 text-emerald-400" />
     },
     {
       name: t("mktFeatures.caps.rbac.name"),
       desc: t("mktFeatures.caps.rbac.desc"),
-      icon: <Lock className="size-5 text-emerald-400" />
+      icon: <Lock className="size-5 text-teal-400" />
     }
   ];
 
@@ -283,7 +296,7 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      {/* Official Meta Business Partner footer-badge */}
+      {/* Official API note */}
       <section className="py-12 border-t border-[var(--m-border-primary)] text-center text-xs font-semibold text-[var(--m-text-muted)]">
         {t("mktFeatures.meta.footerBadge")}
       </section>

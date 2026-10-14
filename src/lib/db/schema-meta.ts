@@ -249,7 +249,8 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "patient_intake": {
       "rel": "patient_intake"
-    }
+    },
+    "calendly_cancel_synced_at": "timestamp"
   },
   "broadcast_recipients": {
     "sent_at": "timestamp",
@@ -298,6 +299,77 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "workspaces": {
       "rel": "workspaces"
+    }
+  },
+  "calendly_connections": {
+    "last_synced_at": "timestamp",
+    "created_at": "timestamp",
+    "updated_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    },
+    "users": {
+      "rel": "users"
+    },
+    "calendly_connection_secrets": {
+      "rel": "calendly_connection_secrets"
+    },
+    "calendly_event_types": {
+      "rel": "calendly_event_types"
+    }
+  },
+  "calendly_connection_secrets": {
+    "token_expires_at": "timestamp",
+    "updated_at": "timestamp",
+    "calendly_connections": {
+      "rel": "calendly_connections"
+    }
+  },
+  "calendly_event_types": {
+    "updated_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    },
+    "calendly_connections": {
+      "rel": "calendly_connections"
+    },
+    "services": {
+      "rel": "services"
+    },
+    "staff": {
+      "rel": "staff"
+    }
+  },
+  "comment_rules": {
+    "last_triggered_at": "timestamp",
+    "created_at": "timestamp",
+    "updated_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    },
+    "channels": {
+      "rel": "channels"
+    },
+    "users": {
+      "rel": "users"
+    },
+    "comment_replies": {
+      "rel": "comment_replies"
+    }
+  },
+  "comment_replies": {
+    "created_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    },
+    "channels": {
+      "rel": "channels"
+    },
+    "comment_rules": {
+      "rel": "comment_rules"
+    },
+    "conversations": {
+      "rel": "conversations"
     }
   },
   "calendar_connections": {
@@ -407,6 +479,12 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "orders": {
       "rel": "orders"
+    },
+    "comment_rules": {
+      "rel": "comment_rules"
+    },
+    "comment_replies": {
+      "rel": "comment_replies"
     }
   },
   "contact_custom_values": {
@@ -639,6 +717,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "tasks": {
       "rel": "tasks"
+    },
+    "comment_replies": {
+      "rel": "comment_replies"
     }
   },
   "credit_ledger": {
@@ -1170,6 +1251,7 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "created_at": "timestamp",
     "updated_at": "timestamp",
     "tour_completed_at": "timestamp",
+    "setup_offer_seen_at": "timestamp",
     "deals": {
       "rel": "deals"
     },
@@ -1248,6 +1330,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "staff_services": {
       "rel": "staff_services"
+    },
+    "calendly_event_types": {
+      "rel": "calendly_event_types"
     }
   },
   "staff": {
@@ -1268,6 +1353,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "staff_services": {
       "rel": "staff_services"
+    },
+    "calendly_event_types": {
+      "rel": "calendly_event_types"
     }
   },
   "staff_services": {
@@ -1557,6 +1645,12 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "complaints": {
       "rel": "complaints"
+    },
+    "calendly_connections": {
+      "rel": "calendly_connections"
+    },
+    "comment_rules": {
+      "rel": "comment_rules"
     }
   },
   "webhook_deliveries": {
@@ -1885,6 +1979,18 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "users": {
       "rel": "users"
+    },
+    "calendly_connections": {
+      "rel": "calendly_connections"
+    },
+    "calendly_event_types": {
+      "rel": "calendly_event_types"
+    },
+    "comment_rules": {
+      "rel": "comment_rules"
+    },
+    "comment_replies": {
+      "rel": "comment_replies"
     }
   },
   "platform_webhook_endpoints": {
