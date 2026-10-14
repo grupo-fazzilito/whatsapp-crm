@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-14',
+    title: { es: 'Respuestas automáticas a comentarios', en: 'Automatic comment replies' },
+    changes: [
+      { kind: 'new', es: 'En Automatizaciones → Comentarios crea reglas por palabra clave: cuando alguien comenta «precio» en tu Instagram o Facebook, Whasalia responde el comentario y le escribe por privado.', en: 'In Automations → Comments, create keyword rules: when someone comments “price” on your Instagram or Facebook, Whasalia replies to the comment and messages them privately.' },
+      { kind: 'new', es: 'La regla puede aplicarse a todas tus publicaciones o a una sola, con varias respuestas públicas que se alternan y el nombre de la persona.', en: 'A rule can apply to all your posts or just one, with several public replies that rotate and the person’s name.' },
+      { kind: 'new', es: 'El mensaje privado abre la conversación en la bandeja, donde sigue tu agente de IA o tu equipo. Cada persona recibe respuesta una sola vez por publicación.', en: 'The private message opens the conversation in the inbox, where your AI agent or your team takes over. Each person is answered once per post.' },
+    ],
+  },
+  {
+    date: '2026-10-14',
     title: { es: 'Conecta tu Calendly', en: 'Connect your Calendly' },
     changes: [
       { kind: 'new', es: 'En Ajustes → Integraciones conecta el Calendly de tu negocio y elige qué servicio reserva cada tipo de cita.', en: 'In Settings → Integrations, connect your business’s Calendly and choose which service each event type books.' },

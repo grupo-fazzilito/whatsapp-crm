@@ -36,6 +36,10 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Agregar productos WhatsApp, Messenger e Instagram; crear configuración de Embedded Signup y de inicio de sesión para empresas — 🧑 (Claude da el paso a paso)
 - [ ] Superadmin → Ajustes → Meta: App ID, ES config ID, login config ID (en Railway solo está `META_APP_SECRET`) — 🧑→🤖
 - [ ] Revisión de permisos avanzados (`whatsapp_business_messaging`, `pages_messaging`, `instagram_manage_messages`…) con video por permiso — 🧑 graba / 🤖 guion
+- [x] **Respuestas a comentarios por palabra clave** (Instagram y Facebook): Automatizaciones → Comentarios; respuesta pública + mensaje privado que abre el chat en la bandeja — 🤖 (2026-10-14, rama `feat/comment-replies`)
+- [ ] Para que funcione con clientes reales: en la app de Meta agregar a la revisión `instagram_manage_comments`, `pages_read_engagement`, `pages_read_user_content` y `pages_manage_engagement` (video: comentar «precio» → respuesta pública + mensaje privado); si se usa una configuración de Facebook Login for Business, agregar esos permisos a la configuración — 🧑
+- [ ] En la app de Meta → Webhooks: objeto **Instagram** suscrito al campo `comments` y objeto **Page** al campo `feed` — 🧑
+- [ ] Los negocios que ya conectaron Instagram/Facebook deben volver a conectar la cuenta para dar el permiso de comentarios — 🧑 (avisar)
 
 ## 5. Precios: Free Forever + tokens de IA
 
@@ -65,10 +69,11 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 
 ## 8. TikTok (mensajes directos)
 
-- [ ] Crear cuenta de desarrollador y registrar la app "Whasalia" en business-api.tiktok.com/portal/apps (URLs de términos y privacidad de whasalia.com) — 🧑
+- [x] Crear cuenta de desarrollador y registrar la app "Whasalia" en business-api.tiktok.com/portal/apps, con permisos Account user, Get account media y Account comment — 🧑 (2026-10-14, en revisión)
 - [ ] Solicitar el producto **Business Messaging API** con el texto de caso de uso que preparó Claude; esperar aprobación de TikTok — 🧑
 - [ ] Tras la aprobación: activar el permiso "TikTok Accounts", poner la Redirect URL `https://whasalia.com/api/integrations/tiktok/callback` y pasar App ID y App Secret — 🧑→🤖
 - [ ] Construir la conexión: botón "Conectar TikTok" por negocio (OAuth), recibir mensajes (webhook firmado), responder texto e imagen dentro de las 48 h, agente de IA y bandeja — 🤖 (empieza con la documentación oficial; se prueba al tener la app aprobada)
+- [ ] Respuestas públicas a comentarios de TikTok por palabra clave (permisos **Account comment** y **Get account media**; TikTok no permite mensaje privado desde un comentario) — 🤖 (cuando la app esté aprobada)
 - [ ] Cuenta de TikTok **Business** de prueba, fuera de la UE/Reino Unido, con "recibir mensajes de todos" activado — 🧑
 
 ## 9. Mantenimiento

@@ -111,6 +111,14 @@ export const resultCompat = Prisma.defineExtension({
     calendly_event_types: {
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
     },
+    comment_rules: {
+      last_triggered_at: { needs: { last_triggered_at: true }, compute: (r) => r.last_triggered_at === null ? null : r.last_triggered_at.toISOString() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
+    comment_replies: {
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+    },
     calendar_connections: {
       token_expires_at: { needs: { token_expires_at: true }, compute: (r) => r.token_expires_at === null ? null : r.token_expires_at.toISOString() },
       watch_expires_at: { needs: { watch_expires_at: true }, compute: (r) => r.watch_expires_at === null ? null : r.watch_expires_at.toISOString() },

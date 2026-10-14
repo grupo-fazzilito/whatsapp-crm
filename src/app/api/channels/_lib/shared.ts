@@ -69,9 +69,9 @@ export async function graphGet<T>(path: string, accessToken: string): Promise<T>
   return data as T
 }
 
-/** Subscribe our app to a Facebook page's messaging webhooks (Messenger + Instagram DMs). */
-export async function subscribePage(pageId: string, pageToken: string): Promise<string | null> {
-  const fields = 'messages,messaging_postbacks,message_reactions,message_deliveries'
+const PAGE_MESSAGE_FIELDS = 'messages,messaging_postbacks,message_reactions,message_deliveries'
+
+async function subscribePageFields(pageId: string, pageToken: string, fields: string): Promise<string | null> {
   try {
     const res = await fetch(
       `${GRAPH}/${encodeURIComponent(pageId)}/subscribed_apps?subscribed_fields=${fields}&access_token=${encodeURIComponent(pageToken)}`,
@@ -83,6 +83,17 @@ export async function subscribePage(pageId: string, pageToken: string): Promise<
   } catch (err) {
     return err instanceof Error ? err.message : 'Subscription failed'
   }
+}
+
+/**
+ * Subscribe our app to a Facebook page's webhooks: messages (Messenger +
+ * Instagram DMs) and post comments (feed). Without the comment
+ * permissions the page is still subscribed to messages.
+ */
+export async function subscribePage(pageId: string, pageToken: string): Promise<string | null> {
+  const withComments = await subscribePageFields(pageId, pageToken, `${PAGE_MESSAGE_FIELDS},feed`)
+  if (!withComments) return null
+  return subscribePageFields(pageId, pageToken, PAGE_MESSAGE_FIELDS)
 }
 
 /** Subscribe our app to a WhatsApp Business Account's webhooks. Best effort. */
@@ -219,6 +230,11 @@ export const META_SCOPES = [
   'instagram_basic',
   'instagram_manage_messages',
   'business_management',
+  // Keyword auto-replies to post comments.
+  'pages_read_engagement',
+  'pages_read_user_content',
+  'pages_manage_engagement',
+  'instagram_manage_comments',
 ]
 
 /** Must be identical in the dialog request and the code exchange. */

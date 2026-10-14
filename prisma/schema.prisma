@@ -498,6 +498,57 @@ model calendly_event_types {
   @@unique([connection_id, uri])
 }
 
+model comment_rules {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id      String            @db.Uuid
+  name              String
+  channel_id        String?           @db.Uuid
+  post_id           String?
+  post_label        String?
+  keywords          String[]          @default([])
+  public_replies    String[]          @default([])
+  private_message   String?
+  enabled           Boolean           @default(true)
+  position          Int               @default(0)
+  replies_count     Int               @default(0)
+  last_triggered_at DateTime?         @db.Timestamptz(6)
+  created_by        String?           @db.Uuid
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime          @default(now()) @db.Timestamptz(6)
+  workspaces        workspaces        @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  channels          channels?         @relation(fields: [channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users             users?            @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  comment_replies   comment_replies[]
+
+  @@index([workspace_id, position], map: "idx_comment_rules_workspace")
+}
+
+model comment_replies {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id       String         @db.Uuid
+  channel_id         String         @db.Uuid
+  rule_id            String?        @db.Uuid
+  comment_id         String
+  post_id            String?
+  author_id          String?
+  author_name        String?
+  comment_text       String?
+  status             String
+  public_reply_id    String?
+  private_message_id String?
+  conversation_id    String?        @db.Uuid
+  error              String?
+  created_at         DateTime       @default(now()) @db.Timestamptz(6)
+  workspaces         workspaces     @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  channels           channels       @relation(fields: [channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  comment_rules      comment_rules? @relation(fields: [rule_id], references: [id], onUpdate: NoAction)
+  conversations      conversations? @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
+
+  @@unique([channel_id, comment_id])
+  @@index([workspace_id, created_at(sort: Desc)], map: "idx_comment_replies_workspace")
+  @@index([channel_id, post_id, author_id], map: "idx_comment_replies_author")
+}
+
 model calendar_connections {
   id                          String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspace_id                String                       @db.Uuid
@@ -607,6 +658,8 @@ model channels {
   conversations     conversations[]
   message_templates message_templates[]
   orders            orders[]
+  comment_rules     comment_rules[]
+  comment_replies   comment_replies[]
 
   @@unique([type, external_id])
   @@index([workspace_id], map: "idx_channels_workspace")
@@ -800,6 +853,7 @@ model conversations {
   orders                                   orders[]
   property_captures                        property_captures[]
   tasks                                    tasks[]
+  comment_replies                          comment_replies[]
 
   @@index([workspace_id, assigned_agent_id], map: "idx_conversations_assigned")
   @@index([channel_id], map: "idx_conversations_channel")
@@ -1943,6 +1997,7 @@ model users {
   platform_webhook_endpoints                                  platform_webhook_endpoints[]
   complaints                                                  complaints[]
   calendly_connections                                        calendly_connections[]
+  comment_rules                                               comment_rules[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2214,6 +2269,8 @@ model workspaces {
   users                         users?                          @relation(fields: [created_by], references: [id], onUpdate: NoAction)
   calendly_connections          calendly_connections?
   calendly_event_types          calendly_event_types[]
+  comment_rules                 comment_rules[]
+  comment_replies               comment_replies[]
 
   @@index([plan_id], map: "idx_workspaces_plan_id")
 }

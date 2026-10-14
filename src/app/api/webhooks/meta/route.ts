@@ -11,6 +11,8 @@ import { findChannelByExternalId } from '@/lib/channels/store'
 import { ingestEvents } from '@/lib/messaging/ingest'
 import { applyCoexBatch } from '@/lib/messaging/echo'
 import type { ChannelType, InboundEvent } from '@/lib/channels'
+import { parseCommentWebhook, type CommentEvent } from '@/lib/comments/model'
+import { handleComments } from '@/lib/comments/server'
 
 // One callback URL for the platform's Meta app: WhatsApp Business,
 // Messenger (object=page) and Instagram (object=instagram).
@@ -84,6 +86,19 @@ async function dispatch(type: ChannelType, events: InboundEvent[]) {
   }
 }
 
+/** New comments on Instagram / Facebook posts → keyword auto-replies. */
+async function dispatchComments(events: CommentEvent[]) {
+  const byChannel = new Map<string, CommentEvent[]>()
+  for (const ev of events) {
+    const key = `${ev.channelType}:${ev.channelExternalId}`
+    byChannel.set(key, [...(byChannel.get(key) ?? []), ev])
+  }
+  for (const list of byChannel.values()) {
+    const channel = await findChannelByExternalId(list[0].channelType, list[0].channelExternalId)
+    if (channel) await handleComments(channel, list)
+  }
+}
+
 async function dispatchCoexistence(batches: CoexBatch[]) {
   for (const batch of batches) {
     const channel = await findChannelByExternalId('whatsapp', batch.phoneNumberId)
@@ -123,6 +138,10 @@ export async function POST(request: Request) {
   if (parsed && events.length > 0) {
     // Ack within Meta's timeout; process after the response is sent.
     after(() => dispatch(parsed.type, events).catch((err) => console.error('[webhook] dispatch failed:', err)))
+  }
+  const comments = parseCommentWebhook(body).filter((c) => !allowed || allowed.has(c.channelExternalId))
+  if (comments.length > 0) {
+    after(() => dispatchComments(comments).catch((err) => console.error('[webhook] comments failed:', err)))
   }
   if (coex.length > 0) {
     after(() => dispatchCoexistence(coex).catch((err) => console.error('[webhook] coexistence failed:', err)))
