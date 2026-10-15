@@ -17,10 +17,10 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 
 ## 2. Correo
 
-- [ ] Verificar `whasalia.com` en Resend (registros DNS en Namecheap). **Bloquea el registro de clientes con email**: hoy los códigos salen de `onboarding@resend.dev`, que solo entrega al dueño de la cuenta Resend — 🧑→🤖
+- [ ] Verificar `whasalia.com` en Resend (registros DNS en Namecheap, en el subdominio `send` para no chocar con Private Email). **Bloquea el registro de clientes con email**: hoy los códigos salen de `onboarding@resend.dev`, que solo entrega al dueño de la cuenta Resend — 🧑→🤖
 - [ ] Cambiar el remitente a `Whasalia <no-reply@whasalia.com>` — 🤖 (después del anterior)
 - [x] Correo del sitio cambiado a `support@whasalia.com` (contacto, pie de página, políticas, Libro de Reclamaciones y avisos de reclamos) — 🤖 (2026-10-14)
-- [ ] **Crear el buzón `support@whasalia.com`**: hoy whasalia.com no tiene registros MX, así que los correos a esa dirección rebotan. Lo más rápido: Namecheap → Domain → Redirect Email (reenvío gratis a `grupofazzilito@gmail.com`); o un buzón real en Zoho Mail / Google Workspace — 🧑
+- [x] Buzón `support@whasalia.com` en Namecheap Private Email; DNS: raíz como ALIAS a Railway, MX, SPF, DKIM (`privateemail._domainkey`) y DMARC — 🧑 (2026-10-14)
 
 ## 3. Login con Facebook y Google
 
@@ -75,7 +75,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 
 ## 8. TikTok (mensajes directos)
 
-- [x] Crear cuenta de desarrollador y registrar la app "Whasalia" en business-api.tiktok.com/portal/apps, con permisos Account user, Get account media y Account comment — 🧑 (2026-10-14, en revisión)
+- [ ] Crear cuenta de desarrollador y registrar la app "Whasalia" en business-api.tiktok.com/portal/apps, con permisos Account user, Get account media y Account comment — 🧑. **Rechazada el 2026-10-14 por "seguridad del dominio"** (dominio nuevo, sin correo propio). Ya hay correo con SPF/DKIM/DMARC: cambiar el correo de la cuenta a `support@whasalia.com`, abrir un ticket de desarrollador pidiendo nueva revisión y usar `https://whasalia.com/en/privacy-policy` y `https://whasalia.com/en/terms-of-service` en el texto de uso
 - [ ] Solicitar el producto **Business Messaging API** con el texto de caso de uso que preparó Claude; esperar aprobación de TikTok — 🧑
 - [ ] Tras la aprobación: activar el permiso "TikTok Accounts", poner la Redirect URL `https://whasalia.com/api/integrations/tiktok/callback` y pasar App ID y App Secret — 🧑→🤖
 - [ ] Construir la conexión: botón "Conectar TikTok" por negocio (OAuth), recibir mensajes (webhook firmado), responder texto e imagen dentro de las 48 h, agente de IA y bandeja — 🤖 (empieza con la documentación oficial; se prueba al tener la app aprobada)
