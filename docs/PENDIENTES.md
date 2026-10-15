@@ -47,6 +47,10 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Cuando haya un plan pago: agregarlo a la tabla `plans`, permitir cambiar el plan de un negocio desde Superadmin y cobrar la mensualidad — 🤖
 - [ ] Confirmar en Superadmin → Facturación el precio del token, packs, tokens de bienvenida y vencimiento (el sitio los muestra tal cual) — 🧑
 - [ ] Pasarela de pago para los tokens (Payment Latam: tarjeta, Yape, Plin, transferencia). Configurar credenciales en Superadmin — 🧑→🤖
+- [ ] **Cobro en Venezuela** (las tarjetas venezolanas casi no pasan por Payment Latam). Elegir una vía — 🧑 decide / 🤖 construye:
+  - **Pago Móvil**: requiere una cuenta bancaria venezolana (socio o representante con RIF). Primero pago manual con comprobante y aprobación en Superadmin; luego verificación automática si el banco tiene API.
+  - **Registrarnos en mispidi.com** y conectar su cobro a la recarga de tokens (revisar requisitos para una empresa peruana, comisiones, API/webhooks).
+  - Mostrar precios en USD a los negocios de Venezuela. Consultar con el contador cómo facturar y declarar estos cobros en SUNAT.
 
 ## 6. Sitio y seguridad
 
