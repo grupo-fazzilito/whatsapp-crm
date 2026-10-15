@@ -50,7 +50,8 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Pasarela de pago para los tokens (Payment Latam: tarjeta, Yape, Plin, transferencia). Configurar credenciales en Superadmin — 🧑→🤖
 - [ ] **Cobro en Venezuela** (las tarjetas venezolanas casi no pasan por Payment Latam). Elegir una vía — 🧑 decide / 🤖 construye:
   - **Pago Móvil**: requiere una cuenta bancaria venezolana (socio o representante con RIF). Primero pago manual con comprobante y aprobación en Superadmin; luego verificación automática si el banco tiene API.
-  - **Registrarnos en mispidi.com** y conectar su cobro a la recarga de tokens (revisar requisitos para una empresa peruana, comisiones, API/webhooks).
+  - **Registrarnos en mispidi.com (SPIDI, Banco Sofitasa)** — encaja con la recarga de tokens: el cliente paga con Pago Móvil, débito inmediato o cripto; el monto se fija en USD y SPIDI liquida en **bolívares a una cuenta bancaria venezolana**. API (docs.mispidi.com): login → token; `POST /api/v1/ext/agreements`; `POST /api/v1/ext/payment-sessions/buttons` (monto, `success_url`, `webhook_url`) → `payment_url`; webhook `payment_session.paid` firmado (HMAC-SHA256, `spidi-signature`); confirmar con `GET /payment-sessions/status/{id}`. Sandbox: `sandbox.api.spidipagos.com` y simulador `sim.mispidi.com`; producción tras una reunión de certificación — 🤖 se integra como Payment Latam
+  - Preguntar a `hola@mispidi.com`: ¿acepta una empresa peruana o hace falta RIF? ¿la cuenta de liquidación debe ser venezolana (propia o de un socio)? comisiones; credenciales de sandbox — 🧑
   - Mostrar precios en USD a los negocios de Venezuela. Consultar con el contador cómo facturar y declarar estos cobros en SUNAT.
 
 ## 6. Sitio y seguridad
