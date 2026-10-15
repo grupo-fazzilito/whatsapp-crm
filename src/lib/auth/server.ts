@@ -98,6 +98,10 @@ function createAuth() {
     advanced: {
       database: { generateId: () => randomUUID() },
       cookiePrefix: 'cnx',
+      // Railway's edge puts the client IP alone in X-Real-IP; X-Forwarded-For
+      // carries the whole proxy chain, which Better Auth won't trust as is.
+      // Without an IP its rate limit falls back to one bucket for everybody.
+      ipAddress: { ipAddressHeaders: ['x-real-ip', 'x-forwarded-for'] },
     },
     databaseHooks: {
       user: {
