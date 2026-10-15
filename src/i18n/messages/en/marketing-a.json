@@ -3,7 +3,7 @@
     "badge": "features",
     "titleLine1": "All your conversations,",
     "titleHighlight": "in one place",
-    "subtitle": "WhatsApp, Instagram, Messenger and your website chat in one shared inbox, with AI agents, automatic comment replies on Facebook and Instagram (TikTok coming soon), flows, broadcasts, sales and bookings. No code.",
+    "subtitle": "WhatsApp, Instagram, Messenger and your website chat in one shared inbox, with AI agents, automatic comment replies on Facebook and Instagram, flows, broadcasts, sales and bookings. No code.",
     "caps": {
       "inbox": {
         "name": "Multichannel shared inbox",
@@ -27,7 +27,7 @@
       },
       "comments": {
         "name": "Automatic comment replies",
-        "desc": "When someone comments “price” or “info” on your Facebook or Instagram posts, Whasalia replies to the comment instantly and messages them privately; the conversation continues in your inbox. 1 token per answered comment. TikTok coming soon."
+        "desc": "When someone comments “price” or “info” on your Facebook or Instagram posts, Whasalia replies to the comment instantly and messages them privately; the conversation continues in your inbox. 1 token per answered comment."
       },
       "broadcasts": {
         "name": "Template broadcasts",
@@ -170,7 +170,7 @@
       "channels": "Shared inbox for WhatsApp, Instagram, Messenger and web chat",
       "crm": "Contacts, sales pipelines, tags and tasks",
       "automations": "Flows, automations and broadcasts with Meta-approved templates",
-      "comments": "Automatic replies to Facebook and Instagram comments, 1 token per comment (TikTok coming soon)",
+      "comments": "Automatic replies to Facebook and Instagram comments, 1 token per comment",
       "faqBot": "FAQ bot with numbered menus, no tokens used",
       "commerce": "Catalog, orders and bookings",
       "calendars": "Google Calendar and Calendly for your appointments",

@@ -3,7 +3,7 @@
     "badge": "funcionalidades",
     "titleLine1": "Todas tus conversaciones,",
     "titleHighlight": "en un solo lugar",
-    "subtitle": "WhatsApp, Instagram, Messenger y el chat de tu web en una bandeja compartida, con agentes de IA, respuestas automáticas a comentarios de Facebook e Instagram (TikTok, próximamente), flujos, difusiones, ventas y reservas. Sin escribir código.",
+    "subtitle": "WhatsApp, Instagram, Messenger y el chat de tu web en una bandeja compartida, con agentes de IA, respuestas automáticas a comentarios de Facebook e Instagram, flujos, difusiones, ventas y reservas. Sin escribir código.",
     "caps": {
       "inbox": {
         "name": "Bandeja compartida multicanal",
@@ -27,7 +27,7 @@
       },
       "comments": {
         "name": "Respuestas automáticas a comentarios",
-        "desc": "Cuando alguien comenta «precio» o «info» en tus publicaciones de Facebook o Instagram, Whasalia responde el comentario al instante y le escribe por privado; la conversación sigue en tu bandeja. 1 token por comentario respondido. TikTok, próximamente."
+        "desc": "Cuando alguien comenta «precio» o «info» en tus publicaciones de Facebook o Instagram, Whasalia responde el comentario al instante y le escribe por privado; la conversación sigue en tu bandeja. 1 token por comentario respondido."
       },
       "broadcasts": {
         "name": "Difusiones con plantillas",
@@ -170,7 +170,7 @@
       "channels": "Bandeja compartida para WhatsApp, Instagram, Messenger y chat web",
       "crm": "Contactos, embudos de venta, etiquetas y tareas",
       "automations": "Flujos, automatizaciones y difusiones con plantillas aprobadas por Meta",
-      "comments": "Respuestas automáticas a comentarios de Facebook e Instagram, 1 token por comentario (TikTok, próximamente)",
+      "comments": "Respuestas automáticas a comentarios de Facebook e Instagram, 1 token por comentario",
       "faqBot": "Bot de preguntas frecuentes con menús numerados, sin gastar tokens",
       "commerce": "Catálogo, pedidos y reservas",
       "calendars": "Google Calendar y Calendly para tus citas",
