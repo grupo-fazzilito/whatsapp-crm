@@ -19,7 +19,8 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 
 - [ ] Verificar `whasalia.com` en Resend (registros DNS en Namecheap). **Bloquea el registro de clientes con email**: hoy los códigos salen de `onboarding@resend.dev`, que solo entrega al dueño de la cuenta Resend — 🧑→🤖
 - [ ] Cambiar el remitente a `Whasalia <no-reply@whasalia.com>` — 🤖 (después del anterior)
-- [ ] Crear buzón real (ej. `soporte@whasalia.com`, Zoho gratis o Google Workspace) y ponerlo en el sitio en lugar de `grupofazzilito@gmail.com` (se cambia en `src/lib/company/index.ts`) — 🧑→🤖
+- [x] Correo del sitio cambiado a `support@whasalia.com` (contacto, pie de página, políticas, Libro de Reclamaciones y avisos de reclamos) — 🤖 (2026-10-14)
+- [ ] **Crear el buzón `support@whasalia.com`**: hoy whasalia.com no tiene registros MX, así que los correos a esa dirección rebotan. Lo más rápido: Namecheap → Domain → Redirect Email (reenvío gratis a `grupofazzilito@gmail.com`); o un buzón real en Zoho Mail / Google Workspace — 🧑
 
 ## 3. Login con Facebook y Google
 
@@ -47,6 +48,11 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Cuando haya un plan pago: agregarlo a la tabla `plans`, permitir cambiar el plan de un negocio desde Superadmin y cobrar la mensualidad — 🤖
 - [ ] Confirmar en Superadmin → Facturación el precio del token, packs, tokens de bienvenida y vencimiento (el sitio los muestra tal cual) — 🧑
 - [ ] Pasarela de pago para los tokens (Payment Latam: tarjeta, Yape, Plin, transferencia). Configurar credenciales en Superadmin — 🧑→🤖
+- [ ] **Cobro en Venezuela** (las tarjetas venezolanas casi no pasan por Payment Latam). Elegir una vía — 🧑 decide / 🤖 construye:
+  - **Pago Móvil**: requiere una cuenta bancaria venezolana (socio o representante con RIF). Primero pago manual con comprobante y aprobación en Superadmin; luego verificación automática si el banco tiene API.
+  - **Registrarnos en mispidi.com (SPIDI, Banco Sofitasa)** — encaja con la recarga de tokens: el cliente paga con Pago Móvil, débito inmediato o cripto; el monto se fija en USD y SPIDI liquida en **bolívares a una cuenta bancaria venezolana**. API (docs.mispidi.com): login → token; `POST /api/v1/ext/agreements`; `POST /api/v1/ext/payment-sessions/buttons` (monto, `success_url`, `webhook_url`) → `payment_url`; webhook `payment_session.paid` firmado (HMAC-SHA256, `spidi-signature`); confirmar con `GET /payment-sessions/status/{id}`. Sandbox: `sandbox.api.spidipagos.com` y simulador `sim.mispidi.com`; producción tras una reunión de certificación — 🤖 se integra como Payment Latam
+  - Preguntar a `hola@mispidi.com`: ¿acepta una empresa peruana o hace falta RIF? ¿la cuenta de liquidación debe ser venezolana (propia o de un socio)? comisiones; credenciales de sandbox — 🧑
+  - Mostrar precios en USD a los negocios de Venezuela. Consultar con el contador cómo facturar y declarar estos cobros en SUNAT.
 
 ## 6. Sitio y seguridad
 
@@ -60,7 +66,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Portfolio de Meta: verificación en dos pasos y un segundo administrador — 🧑
 - [ ] Teléfono o WhatsApp de soporte, si se quiere mostrar — 🧑
 - [x] **Libro de Reclamaciones virtual**: formulario en `/es/libro-de-reclamaciones`, enlace en el pie de cada página, constancia por correo, respuestas desde Superadmin → Complaints con plazo de 15 días hábiles — 🤖 (2026-10-14, rama `feat/complaints-book`, falta fusionar)
-- [ ] Responder cada reclamación en Superadmin → Complaints dentro de 15 días hábiles (llega aviso a `grupofazzilito@gmail.com`; requiere el correo del punto 2) — 🧑
+- [ ] Responder cada reclamación en Superadmin → Complaints dentro de 15 días hábiles (llega aviso a `support@whasalia.com`; requiere el buzón del punto 2) — 🧑
 
 ## 7. Registro y configuración asistida
 
