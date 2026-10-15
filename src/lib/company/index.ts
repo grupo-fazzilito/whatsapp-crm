@@ -10,7 +10,7 @@ export const COMPANY = {
   region: 'Junín',
   postalCode: '12004',
   country: { es: 'Perú', en: 'Peru' },
-  email: 'grupofazzilito@gmail.com',
+  email: 'support@whasalia.com',
 } as const
 
 export function companyAddress(locale: 'es' | 'en') {

@@ -19,7 +19,8 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 
 - [ ] Verificar `whasalia.com` en Resend (registros DNS en Namecheap). **Bloquea el registro de clientes con email**: hoy los códigos salen de `onboarding@resend.dev`, que solo entrega al dueño de la cuenta Resend — 🧑→🤖
 - [ ] Cambiar el remitente a `Whasalia <no-reply@whasalia.com>` — 🤖 (después del anterior)
-- [ ] Crear buzón real (ej. `soporte@whasalia.com`, Zoho gratis o Google Workspace) y ponerlo en el sitio en lugar de `grupofazzilito@gmail.com` (se cambia en `src/lib/company/index.ts`) — 🧑→🤖
+- [x] Correo del sitio cambiado a `support@whasalia.com` (contacto, pie de página, políticas, Libro de Reclamaciones y avisos de reclamos) — 🤖 (2026-10-14)
+- [ ] **Crear el buzón `support@whasalia.com`**: hoy whasalia.com no tiene registros MX, así que los correos a esa dirección rebotan. Lo más rápido: Namecheap → Domain → Redirect Email (reenvío gratis a `grupofazzilito@gmail.com`); o un buzón real en Zoho Mail / Google Workspace — 🧑
 
 ## 3. Login con Facebook y Google
 
@@ -64,7 +65,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Portfolio de Meta: verificación en dos pasos y un segundo administrador — 🧑
 - [ ] Teléfono o WhatsApp de soporte, si se quiere mostrar — 🧑
 - [x] **Libro de Reclamaciones virtual**: formulario en `/es/libro-de-reclamaciones`, enlace en el pie de cada página, constancia por correo, respuestas desde Superadmin → Complaints con plazo de 15 días hábiles — 🤖 (2026-10-14, rama `feat/complaints-book`, falta fusionar)
-- [ ] Responder cada reclamación en Superadmin → Complaints dentro de 15 días hábiles (llega aviso a `grupofazzilito@gmail.com`; requiere el correo del punto 2) — 🧑
+- [ ] Responder cada reclamación en Superadmin → Complaints dentro de 15 días hábiles (llega aviso a `support@whasalia.com`; requiere el buzón del punto 2) — 🧑
 
 ## 7. Registro y configuración asistida
 
