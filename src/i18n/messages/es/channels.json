@@ -148,6 +148,24 @@
       "title": "WhatsApp y demás canales",
       "description": "Los números de WhatsApp, Instagram, Messenger y el chat web ahora se administran en Canales. Puedes conectar varios números y asignar a cada uno su propio agente de IA.",
       "button": "Ir a Canales"
+    },
+    "marketing": {
+      "title": "Mensajes de marketing optimizados",
+      "onboarded": "Activo: tus plantillas de marketing se envían con la API de Marketing Messages de Meta.",
+      "pending": "Tus plantillas de marketing se envían por la API normal de WhatsApp. Desde el 13 de octubre de 2027 Meta solo las aceptará por la API de Marketing Messages: acepta sus términos una vez y Whasalia la usará sola. Mismo precio, mejor entrega.",
+      "notEligible": "Meta indica que esta cuenta no puede usar la API de Marketing Messages. Revisa avisos o restricciones en WhatsApp Manager.",
+      "unknown": "Aún no sabemos si esta cuenta puede usar la API de Marketing Messages.",
+      "noWaba": "Para comprobarlo hace falta el ID de la cuenta de WhatsApp Business (WABA) en el canal.",
+      "howTo": "Un administrador del negocio debe entrar a WhatsApp Manager → Resumen → Alertas → «Aceptar términos».",
+      "open": "Abrir WhatsApp Manager",
+      "check": "Comprobar",
+      "checked": "Estado actualizado",
+      "badge": {
+        "ONBOARDED": "Activo",
+        "ELIGIBLE": "Pendiente",
+        "NOT_ELIGIBLE": "No disponible",
+        "UNKNOWN": "Sin comprobar"
+      }
     }
   }
 }

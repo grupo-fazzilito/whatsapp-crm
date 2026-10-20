@@ -1,7 +1,9 @@
 import 'server-only'
+import { after } from 'next/server'
 import { tenantDb } from '@/lib/db/tenant'
 import type { Prisma } from '@/generated/prisma/client'
-import { saveChannelSecrets } from '@/lib/channels/store'
+import { loadChannel, saveChannelSecrets } from '@/lib/channels/store'
+import { refreshMarketingState } from '@/lib/whatsapp/marketing-server'
 import type { ChannelRow, ChannelType } from '@/lib/channels/types'
 import { PUBLIC_SELECT, isUniqueViolation } from './shared'
 
@@ -60,6 +62,14 @@ export async function insertChannel(input: NewChannel): Promise<CreateResult> {
       await db.channels.deleteMany({ where: { id: channel.id, workspace_id: input.workspaceId } }).catch(() => null)
       return { ok: false, conflict: false, error: err instanceof Error ? err.message : 'Could not save credentials' }
     }
+  }
+  // Whether marketing templates can go through the Marketing Messages API
+  // (after the response; sending checks again if this one fails).
+  if (channel.type === 'whatsapp' && typeof input.settings?.waba_id === 'string' && input.settings.waba_id) {
+    after(async () => {
+      const loaded = await loadChannel(input.workspaceId, channel.id)
+      if (loaded) await refreshMarketingState(loaded)
+    })
   }
   return { ok: true, channel }
 }

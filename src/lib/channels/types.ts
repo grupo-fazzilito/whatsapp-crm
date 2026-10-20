@@ -75,6 +75,8 @@ export type OutboundContent =
   | {
       type: 'template'
       templateName: string
+      /** Meta category (MARKETING, UTILITY, AUTHENTICATION); sendMessage fills it from the synced templates. */
+      category?: string
       language?: string
       params?: string[]
       components?: unknown[]

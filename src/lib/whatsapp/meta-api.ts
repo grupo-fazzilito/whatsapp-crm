@@ -10,6 +10,7 @@
  */
 
 import { waAddressee } from './phone-utils'
+import { MM_GRAPH } from './marketing'
 
 const META_API_VERSION = 'v21.0'
 const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`
@@ -125,6 +126,8 @@ export interface SendTemplateMessageArgs {
   components?: any[]
   /** Meta's message_id of the message being replied to. */
   contextMessageId?: string
+  /** Marketing template of an onboarded account: Marketing Messages API instead of Cloud API. */
+  marketing?: boolean
 }
 
 /**
@@ -143,8 +146,9 @@ export async function sendTemplateMessage(
     params,
     components,
     contextMessageId,
+    marketing,
   } = args
-  const url = `${META_API_BASE}/${phoneNumberId}/messages`
+  const url = marketing ? `${MM_GRAPH}/${phoneNumberId}/marketing_messages` : `${META_API_BASE}/${phoneNumberId}/messages`
 
   const template: Record<string, unknown> = {
     name: templateName,

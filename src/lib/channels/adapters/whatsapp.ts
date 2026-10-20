@@ -6,6 +6,7 @@ import {
   sendTextMessage,
 } from '@/lib/whatsapp/meta-api'
 import { isBsuid, isRecipientNotAllowedError, phoneVariants, sanitizePhoneForMeta, waAddressee } from '@/lib/whatsapp/phone-utils'
+import { usesMarketingApi } from '@/lib/whatsapp/marketing'
 import { ChannelSendError, type CarouselCard, type ChannelAdapter, type OutboundContent, type SendContext, type SendResult } from '../types'
 
 const GRAPH = 'https://graph.facebook.com/v21.0'
@@ -133,19 +134,27 @@ async function sendOnce(ctx: SendContext, to: string, content: OutboundContent):
   switch (content.type) {
     case 'text':
       return (await sendTextMessage({ phoneNumberId, accessToken, to, text: content.text, contextMessageId })).messageId
-    case 'template':
-      return (
-        await sendTemplateMessage({
-          phoneNumberId,
-          accessToken,
-          to,
-          templateName: content.templateName,
-          language: content.language,
-          params: content.params,
-          components: content.components,
-          contextMessageId,
-        })
-      ).messageId
+    case 'template': {
+      const args = {
+        phoneNumberId,
+        accessToken,
+        to,
+        templateName: content.templateName,
+        language: content.language,
+        params: content.params,
+        components: content.components,
+        contextMessageId,
+      }
+      if (usesMarketingApi(ctx.channel.settings, content.category)) {
+        try {
+          return (await sendTemplateMessage({ ...args, marketing: true })).messageId
+        } catch (err) {
+          // Until Cloud API stops taking marketing templates (2027-10-13), it's the fallback.
+          console.warn('[whatsapp] Marketing Messages API refused, sending through Cloud API:', err instanceof Error ? err.message : err)
+        }
+      }
+      return (await sendTemplateMessage(args)).messageId
+    }
     case 'buttons':
       return (
         await sendInteractiveButtons({

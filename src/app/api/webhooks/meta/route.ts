@@ -13,6 +13,8 @@ import { applyCoexBatch } from '@/lib/messaging/echo'
 import type { ChannelType, InboundEvent } from '@/lib/channels'
 import { parseCommentWebhook, type CommentEvent } from '@/lib/comments/model'
 import { handleComments } from '@/lib/comments/server'
+import { parseMarketingTermsSigned } from '@/lib/whatsapp/marketing'
+import { applyMarketingTermsSigned } from '@/lib/whatsapp/marketing-server'
 
 // One callback URL for the platform's Meta app: WhatsApp Business,
 // Messenger (object=page) and Instagram (object=instagram).
@@ -153,6 +155,11 @@ export async function POST(request: Request) {
     after(async () => {
       for (const u of templateUpdates) await applyTemplateStatusUpdate(u).catch((err) => console.error('[webhook] template status failed:', err))
     })
+  }
+  // The business accepted the Marketing Messages API terms. Platform app only, like templates.
+  const termsSigned = !allowed ? parseMarketingTermsSigned(body) : []
+  if (termsSigned.length > 0) {
+    after(() => applyMarketingTermsSigned(termsSigned).catch((err) => console.error('[webhook] marketing terms failed:', err)))
   }
   return NextResponse.json({ status: 'received' }, { status: 200 })
 }

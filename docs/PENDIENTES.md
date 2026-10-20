@@ -43,6 +43,10 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Los negocios que ya conectaron Instagram/Facebook deben volver a conectar la cuenta para dar el permiso de comentarios — 🧑 (avisar)
 - [x] **Clientes de WhatsApp con nombre de usuario (BSUID)**: se reciben y se responden aunque Meta no comparta el teléfono; cambios de número o de BSUID unen al mismo contacto — 🤖 (2026-10-20, rama `feat/whatsapp-bsuid`)
 - [ ] Opcional: reservar el nombre de usuario de empresa de Whasalia en WhatsApp Manager (abierto desde el 29-jun-2026) — 🧑
+- [x] **API de Marketing Messages**: las plantillas de marketing de números con los términos aceptados salen por `/marketing_messages`; el resto sigue por Cloud API; aviso en Canales — 🤖 (2026-10-20, rama `feat/whatsapp-marketing-messages`)
+- [ ] En la app de Meta → Webhooks → WhatsApp Business Account: suscribir el campo **`account_update`** (avisa cuando una empresa acepta los términos de marketing) — 🧑
+- [ ] Avisar a las empresas que usan Difusiones que acepten los términos de Marketing Messages en WhatsApp Manager antes del **13-oct-2027** (desde esa fecha Meta rechaza marketing por Cloud API) — 🧑
+- [ ] Antes del 13-oct-2027: quitar el respaldo por Cloud API para plantillas de marketing — 🤖
 
 ## 5. Precios: Free Forever + tokens de IA
 

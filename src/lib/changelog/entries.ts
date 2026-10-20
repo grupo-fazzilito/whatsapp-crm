@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-20',
+    title: { es: 'WhatsApp: mensajes de marketing optimizados', en: 'WhatsApp: optimized marketing messages' },
+    changes: [
+      { kind: 'new', es: 'Tus plantillas de marketing (difusiones, seguimientos, automatizaciones) se envían con la API de Marketing Messages de Meta, que optimiza la entrega. Mismo precio que antes.', en: 'Your marketing templates (broadcasts, follow-ups, automations) go out through Meta’s Marketing Messages API, which optimizes delivery. Same price as before.' },
+      { kind: 'new', es: 'En Canales, cada número de WhatsApp muestra si ya está activa y cómo activarla: un administrador del negocio acepta los términos una vez en WhatsApp Manager. Mientras tanto, se siguen enviando como hasta ahora.', en: 'In Channels, each WhatsApp number shows whether it is active and how to turn it on: a business admin accepts the terms once in WhatsApp Manager. Until then, they keep going out as before.' },
+    ],
+  },
+  {
+    date: '2026-10-20',
     title: { es: 'WhatsApp: clientes con nombre de usuario', en: 'WhatsApp: customers with a username' },
     changes: [
       { kind: 'fixed', es: 'Los mensajes de clientes que usan nombre de usuario en WhatsApp y no comparten su teléfono ahora llegan a la bandeja, y puedes responderles igual que al resto.', en: 'Messages from WhatsApp customers who use a username and don’t share their phone now reach the inbox, and you can reply to them like anyone else.' },
