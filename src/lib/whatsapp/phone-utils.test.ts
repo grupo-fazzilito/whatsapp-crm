@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  isBsuid,
   isRecipientNotAllowedError,
   isValidE164,
   normalizePhone,
   phoneVariants,
   phonesMatch,
   sanitizePhoneForMeta,
+  waAddressee,
 } from "./phone-utils";
 
 describe("sanitizePhoneForMeta", () => {
@@ -162,3 +164,19 @@ describe("isRecipientNotAllowedError", () => {
     expect(isRecipientNotAllowedError("")).toBe(false);
   });
 });
+
+describe('isBsuid / waAddressee', () => {
+  it('tells BSUIDs from phone numbers', () => {
+    expect(isBsuid('US.13491208655302741918')).toBe(true)
+    expect(isBsuid('US.ENT.11815799212886844830')).toBe(true)
+    expect(isBsuid('51987654321')).toBe(false)
+    expect(isBsuid('+51 987 654 321')).toBe(false)
+    expect(isBsuid('')).toBe(false)
+  })
+
+  it('addresses a phone with `to` and a BSUID with `recipient`', () => {
+    expect(waAddressee('51987654321')).toEqual({ to: '51987654321' })
+    expect(waAddressee('PE.778899')).toEqual({ recipient: 'PE.778899' })
+  })
+})
+

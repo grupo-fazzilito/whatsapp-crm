@@ -120,7 +120,7 @@ export type InboundEvent =
   | {
       kind: 'message'
       channelExternalId: string
-      from: { externalId: string; name?: string | null; handle?: string | null; phone?: string | null }
+      from: InboundSender
       externalMessageId: string
       timestamp: number
       contentType: 'text' | 'image' | 'video' | 'audio' | 'document' | 'location' | 'sticker' | 'interactive'
@@ -141,11 +141,31 @@ export type InboundEvent =
   | {
       kind: 'reaction'
       channelExternalId: string
-      from: { externalId: string }
+      from: Pick<InboundSender, 'externalId' | 'userId'>
       targetExternalId: string
       emoji: string | null
       timestamp: number
     }
+
+  | {
+      /** WhatsApp: the customer changed their number or BSUID; previous → current. */
+      kind: 'identity_change'
+      channelExternalId: string
+      previous: { phone: string | null; userId: string | null }
+      current: { phone: string | null; userId: string | null }
+      timestamp: number
+    }
+
+/** Who wrote: provider id on the channel, plus what else we learn about them. */
+export interface InboundSender {
+  /** Phone digits (WhatsApp), PSID, IGSID, visitor id... For a WhatsApp customer whose phone isn't shared, their BSUID. */
+  externalId: string
+  name?: string | null
+  handle?: string | null
+  phone?: string | null
+  /** WhatsApp business-scoped user id, sent alongside (or instead of) the phone. */
+  userId?: string | null
+}
 
 export interface ChannelAdapter {
   type: ChannelType

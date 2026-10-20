@@ -1,5 +1,5 @@
 import { normalizePhone } from '@/lib/whatsapp/phone-utils'
-import type { InboundEvent } from '../types'
+import type { InboundEvent, InboundSender } from '../types'
 
 interface WaMedia {
   id: string
@@ -9,7 +9,10 @@ interface WaMedia {
 }
 
 export interface WaMessage {
-  from: string
+  /** Customer's phone; left out when they have a username and haven't shared it with us. */
+  from?: string
+  /** Business-scoped user id (BSUID), always sent since April 2026. */
+  from_user_id?: string
   /** Echoes / history: the customer the business wrote to. */
   to?: string
   id: string
@@ -32,6 +35,15 @@ export interface WaMessage {
   context?: { id: string }
   /** History sync only: delivery state on the phone (READ, DELIVERED, PLAYED...). */
   history_context?: { status?: string }
+  /** type 'system': the customer changed their number or BSUID. `from` is then the old number. */
+  system?: { type?: string; wa_id?: string; user_id?: string; previous_user_id?: string }
+}
+
+/** Who wrote: `wa_id` (phone) only when Meta can share it; `user_id` (BSUID) always. */
+export interface WaContact {
+  profile?: { name?: string; username?: string }
+  wa_id?: string
+  user_id?: string
 }
 
 export interface WaHistoryChunk {
@@ -55,7 +67,7 @@ export interface WaWebhookBody {
       field: string
       value: {
         metadata?: { phone_number_id: string; display_phone_number?: string }
-        contacts?: { profile?: { name?: string }; wa_id: string }[]
+        contacts?: WaContact[]
         messages?: WaMessage[]
         message_echoes?: WaMessage[]
         history?: WaHistoryChunk[]
@@ -103,16 +115,20 @@ export function parseWhatsAppWebhook(body: WaWebhookBody): InboundEvent[] {
       }
 
       for (const m of value.messages ?? []) {
-        const profile = value.contacts?.find((c) => c.wa_id === m.from) ?? value.contacts?.[0]
-        const phone = normalizePhone(m.from)
-        const from = { externalId: m.from.replace(/\D/g, ''), name: profile?.profile?.name ?? null, handle: phone, phone }
         const timestamp = parseInt(m.timestamp, 10) * 1000
+        if (m.type === 'system') {
+          const change = identityChange(channelExternalId, m, timestamp)
+          if (change) events.push(change)
+          continue
+        }
+        const from = waSender(m, value.contacts)
+        if (!from) continue
 
         if (m.type === 'reaction' && m.reaction?.message_id) {
           events.push({
             kind: 'reaction',
             channelExternalId,
-            from: { externalId: from.externalId },
+            from: { externalId: from.externalId, userId: from.userId },
             targetExternalId: m.reaction.message_id,
             emoji: m.reaction.emoji || null,
             timestamp,
@@ -134,6 +150,38 @@ export function parseWhatsAppWebhook(body: WaWebhookBody): InboundEvent[] {
     }
   }
   return events
+}
+
+/**
+ * The customer who wrote. Identified by phone when Meta shares it (as
+ * before BSUIDs existed), otherwise by their BSUID. Null when neither came.
+ */
+export function waSender(m: WaMessage, contacts: WaContact[] | undefined): InboundSender | null {
+  const phone = normalizePhone(m.from ?? '')
+  const profile =
+    contacts?.find((c) => (phone && c.wa_id === m.from) || (m.from_user_id && c.user_id === m.from_user_id)) ??
+    contacts?.[0]
+  const userId = m.from_user_id || profile?.user_id || null
+  const externalId = phone || userId
+  if (!externalId) return null
+  const username = profile?.profile?.username
+  return {
+    externalId,
+    name: profile?.profile?.name ?? null,
+    handle: phone || (username ? `@${username}` : null),
+    phone: phone || null,
+    userId,
+  }
+}
+
+/** System message: number change (`from` = old number, `system.wa_id` = new) or BSUID change. */
+function identityChange(channelExternalId: string, m: WaMessage, timestamp: number): InboundEvent | null {
+  const sys = m.system
+  if (sys?.type !== 'user_changed_number' && sys?.type !== 'user_changed_user_id') return null
+  const previous = { phone: normalizePhone(m.from ?? '') || null, userId: sys.previous_user_id || m.from_user_id || null }
+  const current = { phone: normalizePhone(sys.wa_id ?? '') || null, userId: sys.user_id || null }
+  if (!previous.phone && !previous.userId) return null
+  return { kind: 'identity_change', channelExternalId, previous, current, timestamp }
 }
 
 type MessageContent = Pick<

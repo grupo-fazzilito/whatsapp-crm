@@ -5,7 +5,7 @@ import {
   sendTemplateMessage,
   sendTextMessage,
 } from '@/lib/whatsapp/meta-api'
-import { isRecipientNotAllowedError, phoneVariants, sanitizePhoneForMeta } from '@/lib/whatsapp/phone-utils'
+import { isBsuid, isRecipientNotAllowedError, phoneVariants, sanitizePhoneForMeta, waAddressee } from '@/lib/whatsapp/phone-utils'
 import { ChannelSendError, type CarouselCard, type ChannelAdapter, type OutboundContent, type SendContext, type SendResult } from '../types'
 
 const GRAPH = 'https://graph.facebook.com/v21.0'
@@ -32,7 +32,7 @@ async function sendMedia(
     body: JSON.stringify({
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
-      to,
+      ...waAddressee(to),
       type: c.mediaType,
       [c.mediaType]: media,
       ...(contextMessageId ? { context: { message_id: contextMessageId } } : {}),
@@ -43,11 +43,16 @@ async function sendMedia(
   return data.messages[0].id
 }
 
+/** Payloads below are built with `to`; a BSUID goes in `recipient` instead. */
+function addressed({ to, ...rest }: Record<string, unknown>): Record<string, unknown> {
+  return typeof to === 'string' ? { ...waAddressee(to), ...rest } : rest
+}
+
 async function postMessage(phoneNumberId: string, accessToken: string, payload: Record<string, unknown>): Promise<string> {
   const res = await fetch(`${GRAPH}/${phoneNumberId}/messages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', ...payload }),
+    body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', ...addressed(payload) }),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data?.error?.message ?? `Meta API error: ${res.status}`)
@@ -197,6 +202,15 @@ export const whatsappAdapter: ChannelAdapter = {
   // Meta sometimes knows a number with/without a trunk 0 (sandbox lists
   // especially); retry the known variants before giving up.
   async send(ctx, content): Promise<SendResult> {
+    // Customer known only by their BSUID (username, phone not shared).
+    if (isBsuid(ctx.recipient)) {
+      try {
+        return { externalId: await sendOnce(ctx, ctx.recipient, content), recipient: ctx.recipient }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        throw new ChannelSendError(msg, /24 hour|re-engagement|131047/i.test(msg) ? 'window_closed' : 'provider_error')
+      }
+    }
     const variants = phoneVariants(sanitizePhoneForMeta(ctx.recipient))
     if (variants.length === 0) throw new ChannelSendError('Contact has no phone number', 'unsupported')
     let lastError: unknown
@@ -218,7 +232,7 @@ export const whatsappAdapter: ChannelAdapter = {
     await sendReactionMessage({
       phoneNumberId,
       accessToken,
-      to: sanitizePhoneForMeta(ctx.recipient),
+      to: isBsuid(ctx.recipient) ? ctx.recipient : sanitizePhoneForMeta(ctx.recipient),
       targetMessageId: targetExternalId,
       emoji,
     })

@@ -42,6 +42,8 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] En la app de Meta → Webhooks: objeto **Instagram** suscrito al campo `comments` y objeto **Page** al campo `feed` — 🧑
 - [ ] Los negocios que ya conectaron Instagram/Facebook deben volver a conectar la cuenta para dar el permiso de comentarios — 🧑 (avisar)
 
+- [x] **Clientes de WhatsApp con nombre de usuario (BSUID)**: se reciben y se responden aunque Meta no comparta el teléfono; cambios de número o de BSUID unen al mismo contacto — 🤖 (2026-10-20, rama `feat/whatsapp-bsuid`)
+- [ ] Opcional: reservar el nombre de usuario de empresa de Whasalia en WhatsApp Manager (abierto desde el 29-jun-2026) — 🧑
 ## 5. Precios: Free Forever + tokens de IA
 
 - [x] Tabla `plans` ligada a cada negocio (`workspaces.plan_id`); un solo plan, **Free Forever** (`free`, S/ 0); la IA se paga aparte con tokens. Portada, Precios, preguntas frecuentes, términos y política de pagos y reembolsos; el plan se ve en Ajustes → Tokens — 🤖 (2026-10-14, rama `feat/free-forever`, falta fusionar)
