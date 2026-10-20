@@ -14,6 +14,8 @@ import type { ChannelType, InboundEvent } from '@/lib/channels'
 import { parseCommentWebhook, type CommentEvent } from '@/lib/comments/model'
 import { handleComments } from '@/lib/comments/server'
 import { parseMarketingTermsSigned } from '@/lib/whatsapp/marketing'
+import { parseCallWebhook, type CallEvent, type CallWebhookBody } from '@/lib/calls/model'
+import { handleCallEvents } from '@/lib/calls/server'
 import { applyMarketingTermsSigned } from '@/lib/whatsapp/marketing-server'
 
 // One callback URL for the platform's Meta app: WhatsApp Business,
@@ -101,6 +103,17 @@ async function dispatchComments(events: CommentEvent[]) {
   }
 }
 
+/** WhatsApp calls: a customer calling (rings the inbox) or a call ending. */
+async function dispatchCalls(events: CallEvent[]) {
+  const byNumber = new Map<string, CallEvent[]>()
+  for (const ev of events) byNumber.set(ev.phoneNumberId, [...(byNumber.get(ev.phoneNumberId) ?? []), ev])
+  for (const [phoneNumberId, list] of byNumber) {
+    const channel = await findChannelByExternalId('whatsapp', phoneNumberId)
+    if (channel) await handleCallEvents(channel, list)
+    else console.warn(`[webhook] no whatsapp channel for ${phoneNumberId}; ignoring ${list.length} call event(s)`)
+  }
+}
+
 async function dispatchCoexistence(batches: CoexBatch[]) {
   for (const batch of batches) {
     const channel = await findChannelByExternalId('whatsapp', batch.phoneNumberId)
@@ -144,6 +157,11 @@ export async function POST(request: Request) {
   const comments = parseCommentWebhook(body).filter((c) => !allowed || allowed.has(c.channelExternalId))
   if (comments.length > 0) {
     after(() => dispatchComments(comments).catch((err) => console.error('[webhook] comments failed:', err)))
+  }
+  const calls = parseCallWebhook(body as CallWebhookBody).filter((c) => !allowed || allowed.has(c.phoneNumberId))
+  if (calls.length > 0) {
+    // Meta gives 30–60 s to answer: the inbox must ring right away.
+    after(() => dispatchCalls(calls).catch((err) => console.error('[webhook] calls failed:', err)))
   }
   if (coex.length > 0) {
     after(() => dispatchCoexistence(coex).catch((err) => console.error('[webhook] coexistence failed:', err)))

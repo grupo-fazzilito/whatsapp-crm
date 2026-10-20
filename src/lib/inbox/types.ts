@@ -12,6 +12,7 @@ export const EVENT_TYPES = [
   'priority',
   'tag_added',
   'tag_removed',
+  'call',
 ] as const
 export type ConversationEventType = (typeof EVENT_TYPES)[number]
 

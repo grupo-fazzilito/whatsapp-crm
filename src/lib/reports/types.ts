@@ -132,6 +132,8 @@ export interface ReportPayload {
     totalCostLocal: number | null
     calls: number
   } | null
+  /** WhatsApp calls in the range (set by the service; absent when there were none). */
+  calls?: CallStats
   /** Null in the personal view or when neither orders nor bookings are enabled. */
   sales: {
     modules: { orders: boolean; bookings: boolean }
@@ -143,3 +145,15 @@ export interface ReportPayload {
     conversion: { activeConversations: number; withOrder: number; rate: number | null }
   } | null
 }
+
+export interface CallStats {
+  total: number
+  answered: number
+  /** Nobody picked up (includes calls that failed before being answered). */
+  missed: number
+  rejected: number
+  talkSeconds: number
+  /** Median length of answered calls. */
+  medianSeconds: number | null
+}
+

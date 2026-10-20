@@ -5,6 +5,8 @@ import {
   ArrowRightLeft,
   CheckCircle2,
   Flag,
+  Phone,
+  PhoneMissed,
   RotateCcw,
   Tag as TagIcon,
   UserCheck,
@@ -13,6 +15,7 @@ import {
 import { useI18n } from "@/i18n/client";
 import type { ConversationEvent } from "@/lib/inbox/types";
 import { priorityOf } from "@/lib/inbox/priority";
+import { formatDuration } from "@/lib/calls/model";
 
 type T = ReturnType<typeof useI18n>["t"];
 
@@ -25,6 +28,7 @@ const ICONS = {
   priority: Flag,
   tag_added: TagIcon,
   tag_removed: TagIcon,
+  call: Phone,
 } as const;
 
 /** Sentence for a timeline event, e.g. "Ana transfirió a Luis: motivo…". */
@@ -64,6 +68,16 @@ export function describeEvent(e: ConversationEvent, t: T, nameOf: (userId: strin
     case "tag_removed":
       text = t("inboxpro.events.tagRemoved", { actor, tag: String(data.tag_name ?? "—") });
       break;
+    case "call":
+      text =
+        data.status === "completed"
+          ? e.from_user
+            ? t("inboxpro.events.callAnswered", { actor, duration: formatDuration(Number(data.duration ?? 0)) })
+            : t("inboxpro.events.callCompleted", { duration: formatDuration(Number(data.duration ?? 0)) })
+          : data.status === "rejected"
+            ? t("inboxpro.events.callRejected")
+            : t("inboxpro.events.callMissed");
+      break;
     default:
       text = actor;
   }
@@ -79,7 +93,8 @@ interface EventDividerProps {
 /** Small centred divider in the thread for an ownership / state change. */
 export function EventDivider({ event, nameOf, teamName }: EventDividerProps) {
   const { t } = useI18n();
-  const Icon = ICONS[event.type] ?? ArrowRightLeft;
+  const missedCall = event.type === "call" && (event.data as Record<string, unknown> | null)?.status !== "completed";
+  const Icon = missedCall ? PhoneMissed : ICONS[event.type] ?? ArrowRightLeft;
   const text = describeEvent(event, t, nameOf, teamName);
   const time = format(new Date(event.created_at), "HH:mm");
   return (

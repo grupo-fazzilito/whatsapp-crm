@@ -549,6 +549,33 @@ model comment_replies {
   @@index([channel_id, post_id, author_id], map: "idx_comment_replies_author")
 }
 
+model whatsapp_calls {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id     String         @db.Uuid
+  channel_id       String         @db.Uuid
+  conversation_id  String?        @db.Uuid
+  contact_id       String?        @db.Uuid
+  call_id          String
+  direction        String         @default("inbound")
+  status           String         @default("ringing")
+  sdp_offer        String?
+  answered_by      String?        @db.Uuid
+  answered_at      DateTime?      @db.Timestamptz(6)
+  ended_at         DateTime?      @db.Timestamptz(6)
+  duration_seconds Int?
+  error            String?
+  created_at       DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime       @default(now()) @db.Timestamptz(6)
+  workspaces       workspaces     @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  channels         channels       @relation(fields: [channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  conversations    conversations? @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
+  contacts         contacts?      @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  users            users?         @relation(fields: [answered_by], references: [id], onUpdate: NoAction)
+
+  @@unique([channel_id, call_id])
+  @@index([workspace_id, created_at(sort: Desc)], map: "idx_whatsapp_calls_workspace")
+}
+
 model calendar_connections {
   id                          String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspace_id                String                       @db.Uuid
@@ -661,6 +688,8 @@ model channels {
   comment_rules     comment_rules[]
   comment_replies   comment_replies[]
 
+  whatsapp_calls whatsapp_calls[]
+
   @@unique([type, external_id])
   @@index([workspace_id], map: "idx_channels_workspace")
 }
@@ -760,6 +789,8 @@ model contacts {
   property_captures             property_captures[]
   tasks                         tasks[]
 
+  whatsapp_calls whatsapp_calls[]
+
   @@index([phone], map: "idx_contacts_phone")
   @@index([user_id], map: "idx_contacts_user_id")
   @@index([workspace_id], map: "idx_contacts_workspace")
@@ -854,6 +885,8 @@ model conversations {
   property_captures                        property_captures[]
   tasks                                    tasks[]
   comment_replies                          comment_replies[]
+
+  whatsapp_calls whatsapp_calls[]
 
   @@index([workspace_id, assigned_agent_id], map: "idx_conversations_assigned")
   @@index([channel_id], map: "idx_conversations_channel")
@@ -1998,6 +2031,7 @@ model users {
   complaints                                                  complaints[]
   calendly_connections                                        calendly_connections[]
   comment_rules                                               comment_rules[]
+  whatsapp_calls                                              whatsapp_calls[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2271,6 +2305,8 @@ model workspaces {
   calendly_event_types          calendly_event_types[]
   comment_rules                 comment_rules[]
   comment_replies               comment_replies[]
+
+  whatsapp_calls whatsapp_calls[]
 
   @@index([plan_id], map: "idx_workspaces_plan_id")
 }

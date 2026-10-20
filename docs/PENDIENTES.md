@@ -47,6 +47,12 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] En la app de Meta → Webhooks → WhatsApp Business Account: suscribir el campo **`account_update`** (avisa cuando una empresa acepta los términos de marketing) — 🧑
 - [ ] Avisar a las empresas que usan Difusiones que acepten los términos de Marketing Messages en WhatsApp Manager antes del **13-oct-2027** (desde esa fecha Meta rechaza marketing por Cloud API) — 🧑
 - [ ] Antes del 13-oct-2027: quitar el respaldo por Cloud API para plantillas de marketing — 🤖
+- [x] **Llamadas de WhatsApp, fase 1** (las atiende una persona desde la bandeja, WebRTC en el navegador); el modal de conexión explica coexistencia vs. solo API — 🤖 (2026-10-20, rama `feat/whatsapp-calls`)
+- [ ] En la app de Meta → Webhooks → WhatsApp Business Account: suscribir el campo **`calls`** — 🧑
+- [ ] Probar una llamada real: número solo API con límite de 2.000+ destinatarios/día (o número de prueba de Meta), activar en Canales y llamar desde un celular — 🧑
+- [ ] Confirmar la tarifa de Meta por llamadas entrantes (página de precios de Calling API) — 🧑/🤖
+- [ ] Llamadas fase 2: que las atienda el agente de IA (voz en tiempo real; servicio de audio aparte y tokens por minuto) — 🤖 (futuro)
+- [ ] Llamadas salientes (pedir permiso al cliente y llamar desde la bandeja) — 🤖 (futuro)
 
 ## 5. Precios: Free Forever + tokens de IA
 

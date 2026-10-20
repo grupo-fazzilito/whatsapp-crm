@@ -17,6 +17,7 @@ import { CHANNEL_STYLE, selectClass, widgetSnippet, type AgentOption, type Chann
 import { CopyField } from './copy-field';
 import { readWelcomeMenu } from './welcome-menu-dialog';
 import { MarketingMessagesBox } from './marketing-messages-box';
+import { CallingBox } from './calling-box';
 
 const STATUS_STYLE: Record<ChannelDTO['status'], string> = {
   connected: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -145,6 +146,8 @@ export function ChannelCard({ channel, agents, isAdmin, origin, onAgentChange, o
             </Button>
           )}
         </div>
+
+        {channel.type === 'whatsapp' && <CallingBox channel={channel} isAdmin={isAdmin} />}
 
         {channel.type === 'whatsapp' && <MarketingMessagesBox channel={channel} isAdmin={isAdmin} />}
 

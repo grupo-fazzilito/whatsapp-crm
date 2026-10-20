@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-20',
+    title: { es: 'Llamadas de WhatsApp en la bandeja', en: 'WhatsApp calls in the inbox' },
+    changes: [
+      { kind: 'new', es: 'Tus clientes pueden llamarte por WhatsApp y la llamada suena en la bandeja: contesta desde el navegador con tu micrófono, silencia o cuelga, con la conversación del cliente a mano.', en: 'Customers can call you on WhatsApp and the call rings in the inbox: answer from the browser with your microphone, mute or hang up, with the customer’s conversation at hand.' },
+      { kind: 'new', es: 'Cada llamada queda en la conversación (atendida, con su duración, o perdida) y en Reportes ves las llamadas recibidas, atendidas y perdidas.', en: 'Every call is logged in the conversation (answered, with its length, or missed), and Reports shows calls received, answered and missed.' },
+      { kind: 'new', es: 'Actívalas en Canales → WhatsApp, opcionalmente solo en tu horario de atención. Requieren un número conectado solo a la API (no coexistencia).', en: 'Turn them on in Channels → WhatsApp, optionally only during business hours. They need a number connected only to the API (not coexistence).' },
+      { kind: 'improved', es: 'Al conectar WhatsApp, el asistente explica las ventajas y desventajas de la coexistencia y de usar solo la API.', en: 'When connecting WhatsApp, the wizard explains the pros and cons of coexistence and of API only.' },
+    ],
+  },
+  {
+    date: '2026-10-20',
     title: { es: 'WhatsApp: mensajes de marketing optimizados', en: 'WhatsApp: optimized marketing messages' },
     changes: [
       { kind: 'new', es: 'Tus plantillas de marketing (difusiones, seguimientos, automatizaciones) se envían con la API de Marketing Messages de Meta, que optimiza la entrega. Mismo precio que antes.', en: 'Your marketing templates (broadcasts, follow-ups, automations) go out through Meta’s Marketing Messages API, which optimizes delivery. Same price as before.' },

@@ -19,7 +19,7 @@ import {
 import type { ReportRange } from './range'
 import { reportSettings } from './settings'
 import type { Closure } from './sessions'
-import type { ChannelRef, NamedRef, ReportPayload, ReportScope, ResolutionBasis } from './types'
+import type { CallStats, ChannelRef, NamedRef, ReportPayload, ReportScope, ResolutionBasis } from './types'
 
 export const STREAM_LIMIT = 100_000
 const PAGE = 1000
@@ -211,7 +211,35 @@ export async function buildReport(req: ReportRequest): Promise<ReportResult> {
     basis: closureData.basis,
     now,
   })
+  const calls = await callStats(db, { from, to, channelId: req.channelId, agentId })
+  if (calls) report.calls = calls
   return { ok: true, report }
+}
+
+/** WhatsApp calls received in the range; with an agent filter, only the ones they answered. */
+async function callStats(db: ReturnType<typeof tenantDb>, f: { from: Date; to: Date; channelId: string | null; agentId: string | null }): Promise<CallStats | undefined> {
+  const rows = await db.whatsapp_calls
+    .findMany({
+      where: {
+        created_at: { gte: f.from, lt: f.to },
+        status: { in: ['completed', 'missed', 'rejected', 'failed'] },
+        ...(f.channelId ? { channel_id: f.channelId } : {}),
+        ...(f.agentId ? { answered_by: f.agentId } : {}),
+      },
+      select: { status: true, duration_seconds: true },
+    })
+    .catch(() => [])
+  if (rows.length === 0) return undefined
+  const durations = rows.filter((r) => r.status === 'completed').map((r) => r.duration_seconds ?? 0).sort((a, b) => a - b)
+  const mid = Math.floor(durations.length / 2)
+  return {
+    total: rows.length,
+    answered: durations.length,
+    missed: rows.filter((r) => r.status === 'missed' || r.status === 'failed').length,
+    rejected: rows.filter((r) => r.status === 'rejected').length,
+    talkSeconds: durations.reduce((a, b) => a + b, 0),
+    medianSeconds: durations.length ? (durations.length % 2 ? durations[mid] : Math.round((durations[mid - 1] + durations[mid]) / 2)) : null,
+  }
 }
 
 /** Merges {sla_minutes, usd_rate} into workspaces.settings.reports. */

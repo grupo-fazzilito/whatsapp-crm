@@ -99,7 +99,11 @@
       "tagAdded": "{actor} añadió la etiqueta {tag}",
       "tagRemoved": "{actor} quitó la etiqueta {tag}",
       "someone": "Alguien",
-      "system": "El sistema"
+      "system": "El sistema",
+      "callAnswered": "Llamada de WhatsApp atendida por {actor} · {duration}",
+      "callCompleted": "Llamada de WhatsApp · {duration}",
+      "callMissed": "Llamada de WhatsApp perdida",
+      "callRejected": "Llamada de WhatsApp rechazada"
     },
     "notes": {
       "label": "Nota interna — solo visible para el equipo",

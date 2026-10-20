@@ -1,0 +1,36 @@
+{
+  "calls": {
+    "incoming": "Llamada de WhatsApp",
+    "from": "{name} te está llamando",
+    "unknown": "Cliente",
+    "answer": "Contestar",
+    "reject": "Rechazar",
+    "hangup": "Colgar",
+    "mute": "Silenciar",
+    "unmute": "Activar micrófono",
+    "openChat": "Abrir conversación",
+    "connecting": "Conectando…",
+    "inCall": "En llamada",
+    "ended": "Llamada finalizada",
+    "taken": "Otra persona del equipo ya contestó.",
+    "goneAway": "La llamada ya terminó.",
+    "microphone": "Permite el acceso al micrófono para contestar llamadas.",
+    "failed": "No se pudo conectar la llamada: {message}",
+    "leaveWarning": "Tienes una llamada en curso. Si sales, se cortará.",
+    "settings": {
+      "title": "Llamadas de WhatsApp",
+      "on": "Activadas: tus clientes pueden llamarte desde WhatsApp y la llamada suena en la bandeja de quienes estén conectados.",
+      "off": "Tus clientes no ven el botón de llamar. Al activarlas, las llamadas suenan en la bandeja y las atiende tu equipo desde el navegador (con micrófono).",
+      "coexistence": "No disponible con coexistencia: Meta solo permite llamadas en números conectados únicamente a la API (sin la app WhatsApp Business).",
+      "tierLow": "Meta exige un límite de mensajes de 2.000 destinatarios únicos al día o más para activar llamadas. Este número está en {tier}: sube de nivel enviando más mensajes de calidad.",
+      "hours": "Solo en el horario de atención del negocio",
+      "hoursHelp": "Fuera de horario WhatsApp invita al cliente a escribir.",
+      "enable": "Activar llamadas",
+      "disable": "Desactivar",
+      "saved": "Llamadas actualizadas",
+      "error": "Meta respondió: {message}",
+      "badgeOn": "Activadas",
+      "badgeOff": "Desactivadas"
+    }
+  }
+}

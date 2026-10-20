@@ -55,7 +55,7 @@ export function MarketingMessagesBox({ channel, isAdmin }: { channel: ChannelDTO
           <Megaphone className="size-3.5" />
           {t('channels.marketing.title')}
         </p>
-        <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', BADGE_STYLE[status])}>
+        <span className={cn('shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium', BADGE_STYLE[status])}>
           {t(`channels.marketing.badge.${status}`)}
         </span>
       </div>

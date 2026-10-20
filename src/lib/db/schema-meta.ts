@@ -372,6 +372,27 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
       "rel": "conversations"
     }
   },
+  "whatsapp_calls": {
+    "answered_at": "timestamp",
+    "ended_at": "timestamp",
+    "created_at": "timestamp",
+    "updated_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    },
+    "channels": {
+      "rel": "channels"
+    },
+    "conversations": {
+      "rel": "conversations"
+    },
+    "contacts": {
+      "rel": "contacts"
+    },
+    "users": {
+      "rel": "users"
+    }
+  },
   "calendar_connections": {
     "token_expires_at": "timestamp",
     "watch_expires_at": "timestamp",
@@ -485,6 +506,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "comment_replies": {
       "rel": "comment_replies"
+    },
+    "whatsapp_calls": {
+      "rel": "whatsapp_calls"
     }
   },
   "contact_custom_values": {
@@ -600,6 +624,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "tasks": {
       "rel": "tasks"
+    },
+    "whatsapp_calls": {
+      "rel": "whatsapp_calls"
     }
   },
   "conversation_events": {
@@ -720,6 +747,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "comment_replies": {
       "rel": "comment_replies"
+    },
+    "whatsapp_calls": {
+      "rel": "whatsapp_calls"
     }
   },
   "credit_ledger": {
@@ -1651,6 +1681,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "comment_rules": {
       "rel": "comment_rules"
+    },
+    "whatsapp_calls": {
+      "rel": "whatsapp_calls"
     }
   },
   "webhook_deliveries": {
@@ -1991,6 +2024,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "comment_replies": {
       "rel": "comment_replies"
+    },
+    "whatsapp_calls": {
+      "rel": "whatsapp_calls"
     }
   },
   "platform_webhook_endpoints": {
