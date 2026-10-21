@@ -102,3 +102,17 @@ export function phoneVariants(sanitized: string): string[] {
 export function isRecipientNotAllowedError(message: string): boolean {
   return /131030|not in allowed list|not in the allowed list/i.test(message)
 }
+
+/**
+ * WhatsApp business-scoped user id (BSUID): "PE.1349120865530274", or a
+ * parent one "US.ENT.1181579921288684". Meta sends it instead of the phone
+ * when a customer with a username hasn't shared their number with us.
+ */
+export function isBsuid(id: string): boolean {
+  return /^[A-Z]{2}\.(?:ENT\.)?[A-Za-z0-9]{1,128}$/.test(id)
+}
+
+/** Who a Cloud API message goes to: `to` for a phone, `recipient` for a BSUID. */
+export function waAddressee(to: string): { to: string } | { recipient: string } {
+  return isBsuid(to) ? { recipient: to } : { to }
+}

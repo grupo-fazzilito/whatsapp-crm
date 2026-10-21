@@ -12,6 +12,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-20',
+    title: { es: 'WhatsApp: clientes con nombre de usuario', en: 'WhatsApp: customers with a username' },
+    changes: [
+      { kind: 'fixed', es: 'Los mensajes de clientes que usan nombre de usuario en WhatsApp y no comparten su teléfono ahora llegan a la bandeja, y puedes responderles igual que al resto.', en: 'Messages from WhatsApp customers who use a username and don’t share their phone now reach the inbox, and you can reply to them like anyone else.' },
+      { kind: 'improved', es: 'Si un cliente cambia de número o de identificador en WhatsApp, sigue siendo el mismo contacto, con su historial.', en: 'If a customer changes their WhatsApp number or identifier, they stay the same contact, with their history.' },
+    ],
+  },
+  {
     date: '2026-10-14',
     title: { es: 'Importa tu catálogo desde CSV o Excel', en: 'Import your catalog from CSV or Excel' },
     changes: [

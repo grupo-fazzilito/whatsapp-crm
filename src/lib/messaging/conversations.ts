@@ -1,6 +1,6 @@
 import 'server-only'
 import { tenantDb } from '@/lib/db/tenant'
-import { normalizePhone, phonesMatch } from '@/lib/whatsapp/phone-utils'
+import { isBsuid, normalizePhone, phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { defaultChannel } from '@/lib/channels/store'
 import type { LoadedChannel, OutboundContent } from '@/lib/channels'
 import { sendMessage, type SendMessageInput, type SendMessageResult } from './send'
@@ -43,11 +43,12 @@ export async function findOrCreateContactByPhone(
 /** Best-effort WhatsApp identity (wa id = phone digits) for a contact. */
 async function ensureWhatsAppIdentity(workspaceId: string, contactId: string) {
   const db = tenantDb(workspaceId)
-  const existing = await db.contact_identities.findFirst({
+  const existing = await db.contact_identities.findMany({
     where: { contact_id: contactId, channel_type: 'whatsapp' },
-    select: { id: true },
+    select: { external_id: true },
   })
-  if (existing) return
+  // A BSUID alone doesn't count: the phone is still worth adding.
+  if (existing.some((i) => !isBsuid(i.external_id))) return
   const contact = await db.contacts.findFirst({ where: { id: contactId }, select: { phone: true } })
   const digits = normalizePhone(contact?.phone ?? '')
   if (!digits) return

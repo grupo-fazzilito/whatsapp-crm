@@ -69,6 +69,64 @@ describe('parseWhatsAppWebhook', () => {
     )
     expect(ev).toMatchObject({ replyToExternalId: 'wamid.P' })
   })
+
+  // Business-scoped user ids: https://developers.facebook.com/documentation/business-messaging/whatsapp/business-scoped-user-ids
+  it('identifies a customer with a username and no shared phone by their BSUID', () => {
+    const [ev] = parseWhatsAppWebhook(
+      wa({
+        contacts: [{ profile: { name: 'Sheena Nelson', username: 'realsheenanelson' }, user_id: 'US.13491208655302741918' }],
+        messages: [{ from_user_id: 'US.13491208655302741918', id: 'wamid.B', timestamp: '1', type: 'text', text: { body: 'Does it come in another color?' } }],
+      }),
+    )
+    expect(ev).toMatchObject({
+      kind: 'message',
+      text: 'Does it come in another color?',
+      from: { externalId: 'US.13491208655302741918', userId: 'US.13491208655302741918', phone: null, name: 'Sheena Nelson', handle: '@realsheenanelson' },
+    })
+  })
+
+  it('keeps the phone as the id and carries the BSUID along when both come', () => {
+    const [ev] = parseWhatsAppWebhook(
+      wa({
+        contacts: [{ profile: { name: 'Ana' }, wa_id: '51987654321', user_id: 'PE.778899' }],
+        messages: [{ from: '51987654321', from_user_id: 'PE.778899', id: 'wamid.C', timestamp: '1', type: 'text', text: { body: 'Hola' } }],
+      }),
+    )
+    expect(ev).toMatchObject({ from: { externalId: '51987654321', phone: '51987654321', userId: 'PE.778899', name: 'Ana' } })
+  })
+
+  it('skips a message with neither phone nor BSUID instead of failing the batch', () => {
+    const events = parseWhatsAppWebhook(
+      wa({
+        messages: [
+          { id: 'wamid.X', timestamp: '1', type: 'text', text: { body: '?' } },
+          { from: '51911', id: 'wamid.Y', timestamp: '1', type: 'text', text: { body: 'ok' } },
+        ],
+      }),
+    )
+    expect(events.map((e) => e.kind === 'message' && e.externalMessageId)).toEqual(['wamid.Y'])
+  })
+
+  it('turns number and BSUID changes into identity changes, not chat messages', () => {
+    const events = parseWhatsAppWebhook(
+      wa({
+        messages: [
+          {
+            from: '16505551234', id: 'wamid.S1', timestamp: '5', type: 'system',
+            system: { type: 'user_changed_number', wa_id: '12195555358', user_id: 'US.134912', previous_user_id: 'US.102309' },
+          },
+          {
+            id: 'wamid.S2', timestamp: '6', type: 'system',
+            system: { type: 'user_changed_user_id', user_id: 'US.555', previous_user_id: 'US.444' },
+          },
+        ],
+      }),
+    )
+    expect(events).toEqual([
+      { kind: 'identity_change', channelExternalId: 'PN1', previous: { phone: '16505551234', userId: 'US.102309' }, current: { phone: '12195555358', userId: 'US.134912' }, timestamp: 5000 },
+      { kind: 'identity_change', channelExternalId: 'PN1', previous: { phone: null, userId: 'US.444' }, current: { phone: null, userId: 'US.555' }, timestamp: 6000 },
+    ])
+  })
 })
 
 const page = (object: string, messaging: unknown[]) =>

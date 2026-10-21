@@ -96,12 +96,20 @@ export async function findOrCreateContact(
 ): Promise<{ id: string; wasCreated: boolean } | null> {
   const ws = channel.workspace_id
   const db = tenantDb(ws)
+  // WhatsApp: the phone and the BSUID are both identities of the person;
+  // either one finds them, and the one missing is added.
+  const keys = [...new Set([from.externalId, from.userId].filter((k): k is string => !!k))]
 
-  const identity = await db.contact_identities.findFirst({
-    where: { channel_type: channel.type, external_id: from.externalId },
-    select: { contact_id: true },
+  const known = await db.contact_identities.findMany({
+    where: { channel_type: channel.type, external_id: { in: keys } },
+    select: { contact_id: true, external_id: true },
   })
-  if (identity) return { id: identity.contact_id, wasCreated: false }
+  // Prefer the phone's contact: it may have a history the BSUID one lacks.
+  const identity = known.find((k) => k.external_id === from.externalId) ?? known[0]
+  if (identity) {
+    await linkIdentities(channel, identity.contact_id, from, keys.filter((k) => !known.some((x) => x.external_id === k)))
+    return { id: identity.contact_id, wasCreated: false }
+  }
 
   // WhatsApp: a contact created by hand / CSV import has a phone but no
   // identity yet. Match it (tolerating formatting) before creating one.
@@ -151,7 +159,61 @@ export async function findOrCreateContact(
       return winner ? { id: winner.contact_id, wasCreated: false } : null
     }
   }
+  await linkIdentities(channel, contactId!, from, keys.filter((k) => k !== from.externalId))
   return { id: contactId!, wasCreated }
+}
+
+/**
+ * Adds the identities the contact doesn't have yet (best effort: one that
+ * already belongs to someone else is left there), and the phone when we
+ * only knew them by BSUID until now.
+ */
+async function linkIdentities(channel: LoadedChannel, contactId: string, from: MessageEvent['from'], missing: string[]) {
+  const db = tenantDb(channel.workspace_id)
+  for (const externalId of missing) {
+    const isUserId = externalId === from.userId && externalId !== from.phone
+    await db.contact_identities
+      .create({
+        data: {
+          workspace_id: channel.workspace_id,
+          contact_id: contactId,
+          channel_type: channel.type,
+          external_id: externalId,
+          handle: isUserId ? (from.handle?.startsWith('@') ? from.handle : null) : from.handle ?? from.phone ?? null,
+        },
+      })
+      .catch(() => {})
+  }
+  if (from.phone) {
+    await db.contacts.updateMany({ where: { id: contactId, phone: null }, data: { phone: from.phone } }).catch(() => {})
+  }
+}
+
+/**
+ * WhatsApp system message: the customer changed their number or BSUID.
+ * The contact keeps their conversation; the old id is replaced by the new.
+ */
+async function applyIdentityChange(channel: LoadedChannel, ev: Extract<InboundEvent, { kind: 'identity_change' }>) {
+  const db = tenantDb(channel.workspace_id)
+  const before = [ev.previous.phone, ev.previous.userId].filter((k): k is string => !!k)
+  const identity = await db.contact_identities.findFirst({
+    where: { channel_type: channel.type, external_id: { in: before } },
+    select: { contact_id: true },
+  })
+  if (!identity) return
+  const contactId = identity.contact_id
+  const replaced = [
+    ev.current.phone && ev.previous.phone !== ev.current.phone ? ev.previous.phone : null,
+    ev.current.userId && ev.previous.userId !== ev.current.userId ? ev.previous.userId : null,
+  ].filter((k): k is string => !!k)
+  if (replaced.length) {
+    await db.contact_identities.deleteMany({ where: { contact_id: contactId, channel_type: channel.type, external_id: { in: replaced } } })
+  }
+  const added = [ev.current.phone, ev.current.userId].filter((k): k is string => !!k)
+  await linkIdentities(channel, contactId, { externalId: added[0] ?? '', phone: ev.current.phone, userId: ev.current.userId }, added)
+  if (ev.current.phone && ev.previous.phone && ev.current.phone !== ev.previous.phone) {
+    await db.contacts.updateMany({ where: { id: contactId }, data: { phone: `+${ev.current.phone}` } })
+  }
 }
 
 export async function findOrCreateConversation(channel: LoadedChannel, contactId: string) {
@@ -203,7 +265,7 @@ async function flagBroadcastReply(workspaceId: string, contactId: string) {
 // ------------------------------------------------------------
 async function applyReaction(channel: LoadedChannel, ev: Extract<InboundEvent, { kind: 'reaction' }>) {
   const db = tenantDb(channel.workspace_id)
-  const contact = await findOrCreateContact(channel, { externalId: ev.from.externalId })
+  const contact = await findOrCreateContact(channel, ev.from)
   if (!contact) return
   const conversation = await findOrCreateConversation(channel, contact.id)
   if (!conversation) return
@@ -502,6 +564,7 @@ export async function ingestEvents(channel: LoadedChannel, events: InboundEvent[
     try {
       if (ev.kind === 'reaction') await applyReaction(channel, ev)
       else if (ev.kind === 'message') await ingestMessage(channel, ev)
+      else if (ev.kind === 'identity_change') await applyIdentityChange(channel, ev)
     } catch (err) {
       console.error(`[ingest] ${ev.kind} failed:`, err)
     }

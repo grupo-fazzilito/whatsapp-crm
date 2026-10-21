@@ -5,6 +5,7 @@ import { getAdapter, ChannelSendError, type LoadedChannel, type OutboundContent 
 import { locationText } from '@/lib/channels/types'
 import { defaultChannel, loadChannel } from '@/lib/channels/store'
 import { armFollowupsForOutbound } from '@/lib/automations/followups'
+import { isBsuid } from '@/lib/whatsapp/phone-utils'
 
 export type SenderType = 'agent' | 'bot'
 
@@ -63,21 +64,23 @@ function dbContentType(content: OutboundContent): string {
 
 /**
  * Recipient id on this channel: the contact identity for the channel
- * type, falling back to the phone number for WhatsApp.
+ * type, falling back to the phone number for WhatsApp. On WhatsApp the
+ * phone wins over the BSUID (Meta recommends it; it keeps the phone
+ * coming in webhooks), which is only used for customers who never
+ * shared their number.
  */
 async function resolveRecipient(channel: LoadedChannel, contactId: string): Promise<string | null> {
   const db = tenantDb(channel.workspace_id)
-  const identity = await db.contact_identities.findFirst({
+  const identities = await db.contact_identities.findMany({
     where: { contact_id: contactId, channel_type: channel.type },
     select: { external_id: true },
     orderBy: { created_at: 'desc' },
   })
-  if (identity?.external_id) return identity.external_id
-  if (channel.type === 'whatsapp') {
-    const contact = await db.contacts.findFirst({ where: { id: contactId }, select: { phone: true } })
-    return contact?.phone ?? null
-  }
-  return null
+  if (channel.type !== 'whatsapp') return identities[0]?.external_id ?? null
+  const phone = identities.find((i) => !isBsuid(i.external_id))?.external_id
+  if (phone) return phone
+  const contact = await db.contacts.findFirst({ where: { id: contactId }, select: { phone: true } })
+  return contact?.phone || identities[0]?.external_id || null
 }
 
 /**
@@ -163,7 +166,7 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
 
     // WhatsApp may have accepted a different variant of the number;
     // remember it so the next send goes straight through.
-    if (channel?.type === 'whatsapp' && usedRecipient) {
+    if (channel?.type === 'whatsapp' && usedRecipient && !isBsuid(usedRecipient)) {
       await db.contacts
         .updateMany({
           where: { id: conversation.contact_id, phone: { not: `+${usedRecipient}` } },
