@@ -40,7 +40,9 @@
     "tools": "Herramientas",
     "general": "General",
     "agentsList": "Agentes",
-    "sections": "Secciones"
+    "sections": "Secciones",
+    "collapseMenu": "Contraer menú",
+    "expandMenu": "Expandir menú"
   },
   "workspace": {
     "switch": "Cambiar de negocio",

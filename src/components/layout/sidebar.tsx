@@ -35,6 +35,8 @@ import {
   BarChart3,
   HousePlus,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Hand,
 } from "lucide-react";
 import {
@@ -83,6 +85,7 @@ const toolNavItems: NavItem[] = [
 ];
 
 const TOOLS_OPEN_KEY = "nav:tools-open";
+const COLLAPSED_KEY = "whasalia.sidebar.collapsed";
 
 const bottomNavItems = [
   { href: "/settings", label: "nav.settings", icon: Settings },
@@ -130,6 +133,20 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     setToolsOpen(next);
     try {
       localStorage.setItem(TOOLS_OPEN_KEY, next ? "1" : "0");
+    } catch {}
+  };
+  // Desktop: the menu can shrink to icons only (remembered per browser).
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(COLLAPSED_KEY) === "1") setCollapsed(true);
+    } catch {}
+  }, []);
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    try {
+      localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0");
     } catch {}
   };
   const { unread: totalUnread, attention: needsAttention } = useInboxCounts();
@@ -184,20 +201,39 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           "transition-transform duration-200 ease-out will-change-transform",
           open ? "translate-x-0" : "-translate-x-full",
           // Desktop: static, always visible — reset all the mobile framing.
-          "lg:static lg:z-0 lg:w-60 lg:translate-x-0 lg:transition-none",
+          "lg:static lg:z-0 lg:translate-x-0 lg:transition-[width] lg:duration-200",
+          collapsed ? "lg:w-16" : "lg:w-60",
         )}
         aria-label="Primary"
       >
         {/* Logo row. On mobile we put a close button here; on desktop the
             close button is hidden since the sidebar is always-visible. */}
-        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-sidebar-border px-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
+        <div
+          className={cn(
+            "relative flex h-14 shrink-0 items-center justify-between gap-2 border-b border-sidebar-border px-4",
+            collapsed && "lg:justify-center lg:px-2",
+          )}
+        >
+          <Link href="/dashboard" className="flex items-center gap-2" aria-label="Whasalia">
             <img
               src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
               alt="Whasalia Logo"
-              className="h-8 w-auto object-contain"
+              className={cn("h-8 w-auto object-contain", collapsed && "lg:hidden")}
             />
+            {/* Collapsed menu: just the Whasalia icon. */}
+            <img src="/images/logo/favicon.png" alt="" aria-hidden="true" className={cn("hidden h-8 w-8 rounded-lg", collapsed && "lg:block")} />
           </Link>
+          {/* Desktop: collapse / expand, on the edge next to the logo. */}
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? t("nav.expandMenu") : t("nav.collapseMenu")}
+            title={collapsed ? t("nav.expandMenu") : t("nav.collapseMenu")}
+            aria-expanded={!collapsed}
+            className="absolute -right-3 top-1/2 z-10 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground/70 shadow-sm hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex"
+          >
+            {collapsed ? <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" /> : <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />}
+          </button>
           <button
             type="button"
             onClick={onClose}
@@ -209,8 +245,8 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         </div>
 
         {/* Main navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <div className="mb-4" data-tour="workspace-switcher">
+        <nav className={cn("flex-1 overflow-y-auto px-3 py-4", collapsed && "lg:px-2")}>
+          <div className={cn("mb-4", collapsed && "lg:hidden")} data-tour="workspace-switcher">
             <WorkspaceSwitcher />
           </div>
           <ul className="flex flex-col gap-1">
@@ -224,20 +260,22 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                   <Link
                     data-tour={`nav:${item.href}`}
                     href={item.href}
+                    title={collapsed ? t(item.label) : undefined}
                     className={cn(
                       // Taller on mobile so fingers can hit the row reliably (≥44px).
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                      collapsed && "lg:justify-center lg:px-0",
                       active
                         ? "bg-primary/10 text-primary"
                         : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     )}
                   >
                     <item.icon className="h-4 w-4" />
-                    <span className="flex-1">{t(item.label)}</span>
+                    <span className={cn("flex-1", collapsed && "lg:sr-only")}>{t(item.label)}</span>
                     {item.beta && (
                       <span
                         aria-label="Beta feature"
-                        className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-300"
+                        className={cn("rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-300", collapsed && "lg:hidden")}
                       >
                         Beta
                       </span>
@@ -255,10 +293,14 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                   {item.href === "/inbox" && needsAttention > 0 && (
                     <Link
                       href="/inbox?view=attention"
-                      className="ml-7 mt-0.5 flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
+                      title={collapsed ? `${t("inboxpro.attention.nav")} (${needsAttention})` : undefined}
+                      className={cn(
+                        "ml-7 mt-0.5 flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-amber-600 hover:bg-amber-500/10 dark:text-amber-400",
+                        collapsed && "lg:ml-0 lg:justify-center lg:gap-0.5 lg:px-0",
+                      )}
                     >
                       <Hand className="h-3.5 w-3.5" aria-hidden="true" />
-                      <span className="flex-1">{t("inboxpro.attention.nav")}</span>
+                      <span className={cn("flex-1", collapsed && "lg:sr-only")}>{t("inboxpro.attention.nav")}</span>
                       <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold text-slate-950">
                         {needsAttention > 99 ? "99+" : needsAttention}
                       </span>
@@ -272,7 +314,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           {businessNavItems.length > 0 && (
             <>
               <div className="my-4 border-t border-sidebar-border" />
-              <div className="px-3 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider" data-tour="nav:business">
+              <div className={cn("px-3 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider", collapsed && "lg:hidden")} data-tour="nav:business">
                 {t("nav.business")}
               </div>
               <ul className="flex flex-col gap-1">
@@ -281,19 +323,21 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     <Link
                       data-tour={`nav:${item.href}`}
                       href={item.href}
+                      title={collapsed ? item.label : undefined}
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                      collapsed && "lg:justify-center lg:px-0",
                         isActive(item.href)
                           ? "bg-primary/10 text-primary"
                           : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                       )}
                     >
                       <item.icon className="h-4 w-4" />
-                      <span className="flex-1">{item.label}</span>
+                      <span className={cn("flex-1", collapsed && "lg:sr-only")}>{item.label}</span>
                       {!!item.badge && (
                         <span
                           aria-label={t("orders.navBadge", { count: item.badge })}
-                          className="min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[10px] font-semibold leading-none text-primary-foreground"
+                          className={cn("min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[10px] font-semibold leading-none text-primary-foreground", collapsed && "lg:hidden")}
                         >
                           {item.badge > 99 ? "99+" : item.badge}
                         </span>
@@ -311,13 +355,13 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             onClick={toggleTools}
             aria-expanded={toolsOpen || toolActive}
             aria-controls="nav-tools"
-            className="mb-2 flex w-full items-center justify-between rounded px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={cn("mb-2 flex w-full items-center justify-between rounded px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", collapsed && "lg:hidden")}
           >
             {t("nav.tools")}
             <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", !(toolsOpen || toolActive) && "-rotate-90")} aria-hidden />
           </button>
-          {(toolsOpen || toolActive) && (
-            <ul id="nav-tools" className="flex flex-col gap-1">
+          {(toolsOpen || toolActive || collapsed) && (
+            <ul id="nav-tools" className={cn("flex flex-col gap-1", !(toolsOpen || toolActive) && "hidden lg:flex")}>
               {toolNavItems.map((item) => (
                 <li key={item.href}>
                   <Link
@@ -325,13 +369,14 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     href={item.href}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                      collapsed && "lg:justify-center lg:px-0",
                       isActive(item.href)
                         ? "bg-primary/10 text-primary"
                         : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     )}
                   >
                     <item.icon className="h-4 w-4" />
-                    <span className="flex-1">{t(item.href === "/reports" && !can("admin") ? "reports.navPersonal" : item.label)}</span>
+                    <span className={cn("flex-1", collapsed && "lg:sr-only")}>{t(item.href === "/reports" && !can("admin") ? "reports.navPersonal" : item.label)}</span>
                   </Link>
                 </li>
               ))}
@@ -341,7 +386,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           {profile?.is_platform_admin && (
             <>
               <div className="my-4 border-t border-sidebar-border" />
-              <div className="px-3 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+              <div className={cn("px-3 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider", collapsed && "lg:hidden")}>
                 {t("nav.platformAdmin")}
               </div>
               <ul className="flex flex-col gap-1">
@@ -350,13 +395,14 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     href="/admin-panel"
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                      collapsed && "lg:justify-center lg:px-0",
                       pathname === "/admin-panel"
                         ? "bg-primary/10 text-primary"
                         : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     )}
                   >
                     <Shield className="h-4 w-4" />
-                    <span className="flex-1">{t("nav.clientsOverview")}</span>
+                    <span className={cn("flex-1", collapsed && "lg:sr-only")}>{t("nav.clientsOverview")}</span>
                   </Link>
                 </li>
                 <li>
@@ -364,13 +410,14 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     href="/admin/portfolio"
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                      collapsed && "lg:justify-center lg:px-0",
                       pathname.startsWith("/admin/portfolio")
                         ? "bg-primary/10 text-primary"
                         : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     )}
                   >
                     <Briefcase className="h-4 w-4" />
-                    <span className="flex-1">{t("nav.portfolio")}</span>
+                    <span className={cn("flex-1", collapsed && "lg:sr-only")}>{t("nav.portfolio")}</span>
                   </Link>
                 </li>
               </ul>
@@ -389,13 +436,14 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     href={item.href}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                      collapsed && "lg:justify-center lg:px-0",
                       active
                         ? "bg-primary/10 text-primary"
                         : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     )}
                   >
                     <item.icon className="h-4 w-4" />
-                    {t(item.label)}
+                    <span className={cn(collapsed && "lg:sr-only")}>{t(item.label)}</span>
                   </Link>
                 </li>
               );
@@ -406,7 +454,12 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         {/* User section */}
         <div className="shrink-0 border-t border-sidebar-border p-3">
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus:bg-sidebar-accent focus:outline-none data-[state=open]:bg-sidebar-accent">
+            <DropdownMenuTrigger
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus:bg-sidebar-accent focus:outline-none data-[state=open]:bg-sidebar-accent",
+                collapsed && "lg:justify-center lg:px-0",
+              )}
+            >
               <Avatar className="size-8 shrink-0">
                 {profile?.avatar_url ? (
                   <AvatarImage
@@ -420,7 +473,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     "U"}
                 </AvatarFallback>
               </Avatar>
-              <div className="min-w-0 flex-1">
+              <div className={cn("min-w-0 flex-1", collapsed && "lg:hidden")}>
                 <p className="truncate text-sm font-medium text-sidebar-foreground">
                   {profile?.full_name ?? "User"}
                 </p>

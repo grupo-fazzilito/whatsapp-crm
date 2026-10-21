@@ -503,7 +503,19 @@ html[data-mtheme="light"] .bg-emerald-600.text-white,
 html[data-mtheme="light"] .bg-emerald-500.text-white,
 html[data-mtheme="light"] .bg-emerald-500 .text-white,
 html[data-mtheme="light"] .bg-red-500.text-white,
-html[data-mtheme="light"] .bg-red-500 .text-white {
+html[data-mtheme="light"] .bg-red-500 .text-white,
+/* Brand / solid colour buttons (Facebook blue, WhatsApp green, hang up…) keep white text too. */
+html[data-mtheme="light"] [class*="bg-[#"].text-white,
+html[data-mtheme="light"] [class*="bg-[#"] .text-white,
+html[data-mtheme="light"] [class*="bg-gradient-to-"].text-white,
+html[data-mtheme="light"] [class*="bg-gradient-to-"] .text-white,
+html[data-mtheme="light"] .bg-red-600.text-white,
+html[data-mtheme="light"] .bg-blue-600.text-white,
+html[data-mtheme="light"] .bg-sky-600.text-white,
+html[data-mtheme="light"] .bg-indigo-600.text-white,
+html[data-mtheme="light"] .bg-violet-600.text-white,
+html[data-mtheme="light"] .bg-purple-600.text-white,
+html[data-mtheme="light"] .bg-black.text-white {
   color: #ffffff !important;
 }
 
