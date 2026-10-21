@@ -28,6 +28,10 @@ export interface AiAgent {
   transfer_agent_ids: string[];
   /** Business knowledge written by the owner (≤ 5,000 chars). */
   training_context: string | null;
+  /** Who gets the conversation on handover: round-robin, one member or a team. */
+  handover_mode: 'auto' | 'member' | 'team';
+  handover_user_id: string | null;
+  handover_team_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -56,6 +60,9 @@ export const EMPTY_AGENT: AgentDraft = {
   enabled: true,
   transfer_agent_ids: [],
   model: null,
+  handover_mode: 'auto',
+  handover_user_id: null,
+  handover_team_id: null,
 };
 
 /** Agents this one can hand conversations to (mirrors transferTargets in src/lib/ai/engine.ts). */

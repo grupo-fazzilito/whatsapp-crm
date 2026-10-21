@@ -5,6 +5,7 @@
 import { isUuid } from '@/lib/workspace/constants'
 
 export const AGENT_LANGUAGES = ['auto', 'es', 'en'] as const
+export const HANDOVER_MODES = ['auto', 'member', 'team'] as const
 
 const TEXT_FIELDS = ['description', 'persona', 'instructions', 'greeting_message', 'after_hours_message'] as const
 const MAX_TEXT = 20_000
@@ -30,6 +31,10 @@ export interface AgentInput {
   model?: string | null
   transfer_agent_ids?: string[]
   training_context?: string | null
+  /** Who gets the conversation on handover: round-robin, one member or a team. */
+  handover_mode?: (typeof HANDOVER_MODES)[number]
+  handover_user_id?: string | null
+  handover_team_id?: string | null
 }
 
 type Parsed = { ok: true; value: AgentInput } | { ok: false; error: string }
@@ -103,6 +108,17 @@ export function parseAgentInput(body: Record<string, unknown>, partial: boolean)
       return { ok: false, error: 'transfer_agent_ids must be agent ids' }
     }
     value.transfer_agent_ids = [...new Set(ids as string[])]
+  }
+  if ('handover_mode' in body) {
+    if (!(HANDOVER_MODES as readonly unknown[]).includes(body.handover_mode)) return { ok: false, error: 'invalid handover_mode' }
+    value.handover_mode = body.handover_mode as AgentInput['handover_mode']
+  }
+  for (const f of ['handover_user_id', 'handover_team_id'] as const) {
+    if (!(f in body)) continue
+    const v = body[f]
+    if (v === null || v === '') value[f] = null
+    else if (typeof v === 'string' && isUuid(v)) value[f] = v
+    else return { ok: false, error: `invalid ${f}` }
   }
   return { ok: true, value }
 }

@@ -46,7 +46,12 @@
       "escalationPlaceholder": "Type and press Enter or comma",
       "escalationHelp": "If the customer writes any of them, the agent stops replying and notifies your team.",
       "training_context": "Training context",
-      "description": "What it handles"
+      "description": "What it handles",
+      "handoverTo": "When handing over to a person, assign to…",
+      "handoverAuto": "Automatic (or alert everyone available)",
+      "handoverTeams": "Teams",
+      "handoverMembers": "People",
+      "handoverHelp": "Whoever gets it is notified. If nobody is assigned, everyone available is alerted and the chat shows in “Attention needed”."
     },
     "tone": {
       "friendly": "Friendly",

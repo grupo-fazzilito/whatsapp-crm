@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
-import { AtSign, ArrowRightLeft, Bell, CheckCheck, UserCheck, Info, Coins } from "lucide-react";
+import { AtSign, ArrowRightLeft, Bell, BellRing, CheckCheck, Hand, UserCheck, Info, Coins, Volume2, VolumeX } from "lucide-react";
 import { useRealtimeChanges } from "@/lib/realtime/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -13,6 +13,16 @@ import { cn } from "@/lib/utils";
 import type { AppNotification } from "@/lib/inbox/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { OPEN_CONVERSATION_EVENT } from "./events";
+import {
+  ALERT_TYPES,
+  desktopPermission,
+  playChime,
+  requestDesktopPermission,
+  setSoundEnabled,
+  showDesktop,
+  soundEnabled,
+  type DesktopPermission,
+} from "@/lib/notifications/alert";
 
 const TYPE_ICON = {
   mention: AtSign,
@@ -20,6 +30,7 @@ const TYPE_ICON = {
   transferred: ArrowRightLeft,
   system: Info,
   billing: Coins,
+  handover: Hand,
 } as const;
 
 /** Header bell: unread count, live updates, mark read, jump to the conversation. */
@@ -33,6 +44,8 @@ export function NotificationBell() {
   const [items, setItems] = useState<AppNotification[]>([]);
   const [unread, setUnread] = useState(0);
   const [announce, setAnnounce] = useState("");
+  const [sound, setSound] = useState(() => (typeof window === "undefined" ? true : soundEnabled()));
+  const [desktop, setDesktop] = useState<DesktopPermission>(() => (typeof window === "undefined" ? "unsupported" : desktopPermission()));
   const userId = user?.id;
   const workspaceId = workspace?.id;
 
@@ -84,6 +97,10 @@ export function NotificationBell() {
         setItems((prev) => (prev.some((n) => n.id === row.id) ? prev : [row, ...prev].slice(0, 50)));
         if (!row.read_at) setUnread((n) => n + 1);
         setAnnounce(row.title);
+        if (!row.read_at && ALERT_TYPES.has(row.type)) {
+          if (soundEnabled()) playChime();
+          showDesktop(row, () => openItemRef.current(row));
+        }
         return;
       }
       // Marked read in another tab: sync the list and the count.
@@ -127,6 +144,16 @@ export function NotificationBell() {
     }
     router.push(n.link);
   };
+  const openItemRef = useRef(openItem);
+  useEffect(() => {
+    openItemRef.current = openItem;
+  });
+
+  const toggleSound = () => {
+    setSoundEnabled(!sound);
+    setSound(!sound);
+  };
+  const enableDesktop = async () => setDesktop(await requestDesktopPermission());
 
   const label = unread > 0 ? `${t("inboxpro.notifications.title")}, ${t("inboxpro.notifications.unread", { n: unread })}` : t("inboxpro.notifications.title");
   const dateLocale = locale === "es" ? esLocale : enUS;
@@ -207,6 +234,29 @@ export function NotificationBell() {
               })}
             </ul>
           )}
+          <div className="flex flex-wrap items-center gap-2 border-t border-border px-3 py-2 text-xs">
+            <button
+              type="button"
+              onClick={toggleSound}
+              aria-pressed={sound}
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {sound ? <Volume2 className="h-3.5 w-3.5" aria-hidden="true" /> : <VolumeX className="h-3.5 w-3.5" aria-hidden="true" />}
+              {sound ? t("inboxpro.notifications.soundOn") : t("inboxpro.notifications.soundOff")}
+            </button>
+            {desktop === "default" && (
+              <button
+                type="button"
+                onClick={() => void enableDesktop()}
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <BellRing className="h-3.5 w-3.5" aria-hidden="true" />
+                {t("inboxpro.notifications.enableDesktop")}
+              </button>
+            )}
+            {desktop === "granted" && <span className="text-muted-foreground">{t("inboxpro.notifications.desktopOn")}</span>}
+            {desktop === "denied" && <span className="text-muted-foreground">{t("inboxpro.notifications.desktopBlocked")}</span>}
+          </div>
         </PopoverContent>
       </Popover>
       <span className="sr-only" aria-live="polite">

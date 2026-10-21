@@ -12,6 +12,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-21',
+    title: { es: 'Bandeja: atención requerida, panel con pestañas y CRM', en: 'Inbox: attention needed, tabbed panel and CRM' },
+    changes: [
+      { kind: 'new', es: 'Cuando la IA pasa un chat a una persona, aparece «Atención requerida» debajo de Bandeja y en la nueva pestaña «Atención» de la lista; se quita cuando alguien del equipo responde, lo resuelve o lo devuelve a la IA.', en: 'When the AI hands a chat to a person, “Attention needed” shows under Inbox and in the new “Attention” tab of the list; it clears when a team member replies, resolves it or gives it back to the AI.' },
+      { kind: 'new', es: 'Ese traspaso ahora siempre avisa: a la persona asignada o, si no hay nadie, a todos los disponibles. En cada agente de IA puedes elegir a quién asignar (una persona, un equipo o reparto automático).', en: 'That handover now always notifies: the assigned person or, if nobody is, everyone available. In each AI agent you can choose who gets it (a person, a team or automatic).' },
+      { kind: 'new', es: 'Sonido y avisos del escritorio para chats asignados, transferidos o que te pasa la IA; actívalos desde la campanita.', en: 'Sound and desktop alerts for chats assigned, transferred or handed to you by the AI; turn them on from the bell.' },
+      { kind: 'improved', es: 'Panel derecho del chat: arriba quién atiende (asignar, transferir y agente de IA) y pestañas Contacto (datos editables, etiquetas, notas) y CRM (negocios con su etapa, tareas, campos personalizados y pedidos). «Tomar la conversación» queda a la vista en la cabecera.', en: 'Chat side panel: who handles it at the top (assign, transfer and AI agent) and Contact (editable details, tags, notes) and CRM (deals with their stage, tasks, custom fields and orders) tabs. “Take over” stays in sight in the header.' },
+      { kind: 'new', es: 'Ajustes → Campos personalizados: crea campos de texto, número, fecha, lista de opciones o sí/no para tus contactos.', en: 'Settings → Custom fields: create text, number, date, option list or yes/no fields for your contacts.' },
+      { kind: 'new', es: 'Cada negocio empieza con un embudo de ventas listo (Nuevo lead → Contactado → Interesado → Propuesta → Negociación → Cierre).', en: 'Every business starts with a ready sales pipeline (New lead → Contacted → Interested → Proposal → Negotiation → Closing).' },
+    ],
+  },
+  {
     date: '2026-10-20',
     title: { es: 'Llamadas de WhatsApp en la bandeja', en: 'WhatsApp calls in the inbox' },
     changes: [

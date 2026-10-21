@@ -180,7 +180,11 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
 
   if (status !== 'failed') {
     await db.conversations
-      .updateMany({ where: { id: conversationId }, data: { last_message_text: preview, last_message_at: now, updated_at: now } })
+      .updateMany({
+        where: { id: conversationId },
+        // A team member answered: the conversation stops waiting for a person.
+        data: { last_message_text: preview, last_message_at: now, updated_at: now, ...(sender.type === 'agent' ? { needs_human_since: null } : {}) },
+      })
       .catch(() => {})
 
     // WhatsApp may have accepted a different variant of the number;

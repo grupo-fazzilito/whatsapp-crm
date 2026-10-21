@@ -146,7 +146,28 @@
           "paid": "Paid",
           "refunded": "Refunded"
         }
-      }
+      },
+      "tabs": {
+        "label": "Contact details",
+        "contact": "Contact",
+        "crm": "CRM"
+      },
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Contact updated",
+      "name": "Name",
+      "phone": "Phone",
+      "email": "Email",
+      "company": "Company",
+      "noData": "No contact details",
+      "addTag": "Add tag",
+      "removeTag": "Remove tag {name}",
+      "noMoreTags": "No more tags",
+      "customFields": "Custom fields",
+      "saveFields": "Save fields",
+      "fieldsSaved": "Fields saved",
+      "details": "Details"
     },
     "templates": {
       "title": "Send template",

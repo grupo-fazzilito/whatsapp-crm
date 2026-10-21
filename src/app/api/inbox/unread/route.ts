@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { listUnreadCounts } from '@/lib/inbox/queries'
 
-/** GET /api/inbox/unread → { conversations: [{id, unread_count}] } */
+/** GET /api/inbox/unread → { conversations: [{id, unread_count, status, needs_human_since}] } */
 export async function GET() {
   const guard = await requireWorkspace('agent')
   if (!guard.ok) return guard.response

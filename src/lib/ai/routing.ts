@@ -106,7 +106,7 @@ export async function routeInbound(input: RouteInput): Promise<boolean> {
             content: { type: 'text', text: '¡Gracias! Te comunico con una persona del equipo; en breve te responden. 🙏' },
             sender: { type: 'bot' },
           })
-          await handOverToHuman(base, `Eligió "${choice.label}" en el menú de bienvenida`, choice.target.assignee_user_id ?? null)
+          await handOverToHuman(base, `Eligió "${choice.label}" en el menú de bienvenida`, { assigneeUserId: choice.target.assignee_user_id ?? null })
           return true
         }
       } else if ((input.aiState.menu_attempts ?? 0) < MAX_MENU_ATTEMPTS) {

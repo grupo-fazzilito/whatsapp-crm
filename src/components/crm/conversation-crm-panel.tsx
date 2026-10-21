@@ -20,6 +20,8 @@ import { CreateTaskDialog } from './create-task-dialog';
 interface PanelDeal {
   id: string;
   title: string;
+  pipeline_id: string;
+  stage_id: string | null;
   value: number;
   currency: string | null;
   stage: { name: string; color: string } | null;
@@ -52,6 +54,29 @@ export function ConversationCrmPanel({ conversationId, contactId, contactName, c
   const [taskForDeal, setTaskForDeal] = useState<string | null>(null);
   const [closing, setClosing] = useState<{ deal: PanelDeal; status: CloseStatus } | null>(null);
   const [completing, setCompleting] = useState<TaskRow | null>(null);
+  const [stages, setStages] = useState<{ id: string; name: string; pipeline_id: string; color: string }[]>([]);
+
+  useEffect(() => {
+    if (!wsId) return;
+    let cancelled = false;
+    apiJson<{ stages: { id: string; name: string; pipeline_id: string; color: string }[] }>('/api/crm/pipelines')
+      .then((d) => !cancelled && setStages(d.stages ?? []))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [wsId]);
+
+  async function moveDeal(deal: PanelDeal, stageId: string) {
+    const stage = stages.find((x) => x.id === stageId);
+    if (!stage) return;
+    setDeals((prev) => prev?.map((d) => (d.id === deal.id ? { ...d, stage_id: stage.id, stage: { name: stage.name, color: stage.color } } : d)) ?? prev);
+    try {
+      await apiJson(`/api/crm/deals/${deal.id}`, { method: 'PATCH', body: { pipeline_id: deal.pipeline_id, stage_id: stage.id } });
+    } catch {
+      setDeals((prev) => prev?.map((d) => (d.id === deal.id ? deal : d)) ?? prev);
+    }
+  }
 
   const load = useCallback(async () => {
     if (!wsId || !contactId) return;
@@ -140,12 +165,31 @@ export function ConversationCrmPanel({ conversationId, contactId, contactName, c
                   <span className="shrink-0 font-semibold tabular-nums">{money(d.value, d.currency)}</span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-muted-foreground">
                     <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ backgroundColor: d.stage?.color ?? '#94a3b8' }} />
-                    <span className="truncate">
-                      {d.stage?.name ?? '—'}
-                      {d.pipeline?.name ? ` · ${d.pipeline.name}` : ''}
-                    </span>
+                    {stages.some((x) => x.pipeline_id === d.pipeline_id) ? (
+                      <select
+                        aria-label={t('crm.panel.stageFor', { title: d.title })}
+                        title={d.pipeline?.name ?? undefined}
+                        className="h-6 min-w-0 flex-1 truncate rounded border border-border bg-background px-1 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        value={d.stage_id ?? ''}
+                        onChange={(e) => void moveDeal(d, e.target.value)}
+                      >
+                        {!d.stage_id && <option value="">—</option>}
+                        {stages
+                          .filter((x) => x.pipeline_id === d.pipeline_id)
+                          .map((x) => (
+                            <option key={x.id} value={x.id}>
+                              {x.name}
+                            </option>
+                          ))}
+                      </select>
+                    ) : (
+                      <span className="truncate">
+                        {d.stage?.name ?? '—'}
+                        {d.pipeline?.name ? ` · ${d.pipeline.name}` : ''}
+                      </span>
+                    )}
                   </span>
                   <span className="flex shrink-0 gap-0.5">
                     <Button

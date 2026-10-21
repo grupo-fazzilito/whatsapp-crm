@@ -204,8 +204,8 @@ describe('conversation filters', () => {
     ({ status: 'open', last_message_at: '2026-10-08T10:00:00Z', ...o }) as FilterableConversation & { id: string }
   const list = [
     conv({ id: '1', assigned_agent_id: 'me', priority: 'urgent', conversation_tags: [{ tag_id: 't1' }], contact: { name: 'Ana' } }),
-    conv({ id: '2', status: 'pending', priority: 'low', contact: { name: 'Beto', contact_tags: [{ tag_id: 't1' }] } }),
-    conv({ id: '3', status: 'closed', assigned_agent_id: 'me', contact: { name: 'Carla' } }),
+    conv({ id: '2', status: 'pending', priority: 'low', needs_human_since: '2026-10-21T10:00:00Z', contact: { name: 'Beto', contact_tags: [{ tag_id: 't1' }] } }),
+    conv({ id: '3', status: 'closed', assigned_agent_id: 'me', needs_human_since: '2026-10-21T10:00:00Z', contact: { name: 'Carla' } }),
     conv({ id: '4', assigned_agent_id: 'other', channel_id: 'ch2', last_message_text: 'quiero pollo', priority: 'high' }),
   ]
   const ids = (f: Partial<typeof DEFAULT_FILTERS>) =>
@@ -216,6 +216,8 @@ describe('conversation filters', () => {
     expect(ids({ view: 'mine' })).toEqual(['1'])
     expect(ids({ view: 'unassigned' })).toEqual(['2'])
     expect(ids({ view: 'resolved' })).toEqual(['3'])
+    // Waiting for a person, and not resolved.
+    expect(ids({ view: 'attention' })).toEqual(['2'])
   })
 
   it('filters by status, channel, priority and search', () => {

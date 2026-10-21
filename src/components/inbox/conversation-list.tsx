@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { Conversation, ConversationStatus, Profile, Tag } from "@/types";
-import { Search, ChevronDown, ArrowUpDown, Tag as TagIcon, Flag, X } from "lucide-react";
+import { Search, ChevronDown, ArrowUpDown, Tag as TagIcon, Flag, Hand, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -117,9 +118,16 @@ export function ConversationList({
   const { t } = useI18n();
   const [search, setSearch] = useState("");
   const [prefs] = useState(readPrefs);
-  const [view, setView] = useState<InboxView>(
-    prefs.view && (INBOX_VIEWS as readonly string[]).includes(prefs.view) ? prefs.view : "all",
-  );
+  // ?view=attention (sidebar "Atención requerida") wins over the saved view,
+  // also when the link is followed while the inbox is already open.
+  const viewParam = useSearchParams().get("view");
+  const isView = (v: unknown): v is InboxView => typeof v === "string" && (INBOX_VIEWS as readonly string[]).includes(v);
+  const [view, setView] = useState<InboxView>(isView(viewParam) ? viewParam : isView(prefs.view) ? prefs.view : "all");
+  const [seenViewParam, setSeenViewParam] = useState(viewParam);
+  if (viewParam !== seenViewParam) {
+    setSeenViewParam(viewParam);
+    if (isView(viewParam)) setView(viewParam);
+  }
   const [status, setStatus] = useState<OpenStatusFilter>("all");
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [tagIds, setTagIds] = useState<string[]>(Array.isArray(prefs.tagIds) ? prefs.tagIds : []);
@@ -267,8 +275,8 @@ export function ConversationList({
           />
         </div>
 
-        {/* Views: Todas / Mías / Sin asignar / Resueltas */}
-        <div role="tablist" aria-label={t("inboxpro.views.label")} className="grid grid-cols-4 gap-0.5 rounded-lg bg-slate-800 p-0.5">
+        {/* Views: Todas / Atención / Mías / Sin asignar / Resueltas */}
+        <div role="tablist" aria-label={t("inboxpro.views.label")} className="grid grid-cols-5 gap-0.5 rounded-lg bg-slate-800 p-0.5">
           {INBOX_VIEWS.map((v) => {
             const active = view === v;
             return (
@@ -284,7 +292,18 @@ export function ConversationList({
                 )}
               >
                 <span className="max-w-full truncate">{t(`inboxpro.views.${v}`)}</span>
-                <span className={cn("text-[10px]", active ? "text-primary" : "text-slate-400")}>{viewCounts[v]}</span>
+                <span
+                  className={cn(
+                    "text-[10px]",
+                    v === "attention" && viewCounts[v] > 0
+                      ? "rounded-full bg-amber-500 px-1.5 font-semibold text-slate-950"
+                      : active
+                        ? "text-primary"
+                        : "text-slate-400",
+                  )}
+                >
+                  {viewCounts[v]}
+                </span>
               </button>
             );
           })}
@@ -580,6 +599,15 @@ function ConversationItem({
             {conversation.last_message_text || t("inbox.list.noMessages")}
           </p>
           <div className="flex shrink-0 items-center gap-1.5">
+            {conversation.needs_human_since && conversation.status !== "closed" && (
+              <span
+                title={t("inboxpro.attention.row")}
+                aria-label={t("inboxpro.attention.row")}
+                className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-slate-950"
+              >
+                <Hand className="h-2.5 w-2.5" aria-hidden="true" />
+              </span>
+            )}
             {conversation.unread_count > 0 && (
               <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
                 {conversation.unread_count}

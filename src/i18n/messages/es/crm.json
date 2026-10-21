@@ -18,7 +18,8 @@
       "noDeals": "Sin negocios abiertos.",
       "noTasks": "Sin tareas pendientes.",
       "taskForDeal": "Crear tarea para {title}",
-      "allTasks": "Ver todas mis tareas"
+      "allTasks": "Ver todas mis tareas",
+      "stageFor": "Etapa de {title}"
     },
     "tasks": {
       "navTitle": "Tareas",
@@ -324,6 +325,43 @@
       "lostMonth": "Perdidos este mes",
       "lostMonthTip": "Negocios marcados como perdidos desde el primer día del mes.",
       "howCalculated": "Cómo se calcula {label}"
+    },
+    "customFields": {
+      "tab": "Campos personalizados",
+      "title": "Campos personalizados",
+      "description": "Datos propios de tus clientes (cumpleaños, ciudad, plan, fuente…). Aparecen en la pestaña CRM del chat y en la ficha del contacto.",
+      "name": "Nombre del campo",
+      "type": "Tipo",
+      "options": "Opciones",
+      "optionsHelp": "Una opción por línea.",
+      "add": "Agregar campo",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "deleteConfirm": "¿Eliminar el campo «{name}»? Se borrará el valor que tenga en cada contacto.",
+      "empty": "Todavía no hay campos personalizados.",
+      "saved": "Campo guardado",
+      "deleted": "Campo eliminado",
+      "adminOnly": "Solo un administrador puede crear o cambiar campos.",
+      "types": {
+        "text": "Texto",
+        "number": "Número",
+        "date": "Fecha",
+        "select": "Lista de opciones",
+        "boolean": "Sí / No"
+      },
+      "errors": {
+        "name": "Escribe un nombre.",
+        "type": "Tipo no válido.",
+        "options": "Agrega al menos una opción.",
+        "duplicate": "Ya existe un campo con ese nombre."
+      },
+      "yes": "Sí",
+      "no": "No",
+      "choose": "Elegir…",
+      "none": "Sin campos personalizados.",
+      "create": "Crear campos en Ajustes"
     }
   }
 }

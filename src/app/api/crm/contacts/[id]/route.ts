@@ -14,8 +14,9 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
 }
 
 /**
- * PATCH /api/crm/contacts/[id] { phone, name?, email?, company?, tag_ids? } — any member.
- * tag_ids, when present, replaces the contact's tags.
+ * PATCH /api/crm/contacts/[id] { phone?, name?, email?, company?, tag_ids? } — any member.
+ * Only the keys sent change (empty clears; contacts from Instagram, Messenger
+ * or web chat have no phone). tag_ids, when present, replaces the contact's tags.
  */
 export async function PATCH(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const guard = await requireWorkspace('agent')
@@ -24,8 +25,11 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
   const { id } = await ctx.params
   if (!isUuid(id)) return NextResponse.json({ error: 'not_found' }, { status: 404 })
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
-  const phone = clip(body?.phone, 50)
-  if (!body || !phone) return NextResponse.json({ error: 'phone_required' }, { status: 400 })
+  if (!body) return NextResponse.json({ error: 'invalid' }, { status: 400 })
+  const data: Record<string, string | null> = {}
+  for (const [key, max] of [['phone', 50], ['name', 200], ['email', 200], ['company', 200]] as const) {
+    if (key in body) data[key] = clip(body[key], max)
+  }
   const tagIds = body.tag_ids
   if (tagIds !== undefined) {
     if (!Array.isArray(tagIds) || tagIds.length > 100) return NextResponse.json({ error: 'invalid_tags' }, { status: 400 })
@@ -34,7 +38,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
   try {
     const { count } = await db.contacts.updateMany({
       where: { id },
-      data: { phone, name: clip(body.name, 200), email: clip(body.email, 200), company: clip(body.company, 200), updated_at: new Date().toISOString() },
+      data: { ...data, updated_at: new Date().toISOString() },
     })
     if (!count) return NextResponse.json({ error: 'not_found' }, { status: 404 })
     if (Array.isArray(tagIds)) {

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { useTotalUnread } from "@/hooks/use-total-unread";
+import { useInboxCounts } from "@/hooks/use-total-unread";
 import { useTheme } from "@/hooks/use-theme";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useT } from "@/i18n/client";
@@ -35,6 +35,7 @@ import {
   BarChart3,
   HousePlus,
   ChevronDown,
+  Hand,
 } from "lucide-react";
 import {
   Avatar,
@@ -131,7 +132,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
       localStorage.setItem(TOOLS_OPEN_KEY, next ? "1" : "0");
     } catch {}
   };
-  const totalUnread = useTotalUnread();
+  const { unread: totalUnread, attention: needsAttention } = useInboxCounts();
   const { mode } = useTheme();
   const isLight = mode === "light";
 
@@ -251,6 +252,18 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                       </span>
                     )}
                   </Link>
+                  {item.href === "/inbox" && needsAttention > 0 && (
+                    <Link
+                      href="/inbox?view=attention"
+                      className="ml-7 mt-0.5 flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
+                    >
+                      <Hand className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span className="flex-1">{t("inboxpro.attention.nav")}</span>
+                      <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold text-slate-950">
+                        {needsAttention > 99 ? "99+" : needsAttention}
+                      </span>
+                    </Link>
+                  )}
                 </li>
               );
             })}

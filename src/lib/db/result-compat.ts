@@ -177,6 +177,7 @@ export const resultCompat = Prisma.defineExtension({
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
       ai_paused_until: { needs: { ai_paused_until: true }, compute: (r) => r.ai_paused_until === null ? null : r.ai_paused_until.toISOString() },
+      needs_human_since: { needs: { needs_human_since: true }, compute: (r) => r.needs_human_since === null ? null : r.needs_human_since.toISOString() },
       resolved_at: { needs: { resolved_at: true }, compute: (r) => r.resolved_at === null ? null : r.resolved_at.toISOString() },
       last_customer_message_at: { needs: { last_customer_message_at: true }, compute: (r) => r.last_customer_message_at === null ? null : r.last_customer_message_at.toISOString() },
       ai_summary_at: { needs: { ai_summary_at: true }, compute: (r) => r.ai_summary_at === null ? null : r.ai_summary_at.toISOString() },

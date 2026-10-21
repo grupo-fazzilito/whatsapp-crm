@@ -7,6 +7,12 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "users": {
       "rel": "users"
     },
+    "handover_user": {
+      "rel": "users"
+    },
+    "handover_team": {
+      "rel": "teams"
+    },
     "workspaces": {
       "rel": "workspaces"
     },
@@ -667,6 +673,7 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "created_at": "timestamp",
     "updated_at": "timestamp",
     "ai_paused_until": "timestamp",
+    "needs_human_since": "timestamp",
     "resolved_at": "timestamp",
     "last_customer_message_at": "timestamp",
     "ai_summary_at": "timestamp",
@@ -1499,6 +1506,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "workspaces": {
       "rel": "workspaces"
+    },
+    "ai_agents_handover": {
+      "rel": "ai_agents"
     }
   },
   "users": {
@@ -1684,6 +1694,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "whatsapp_calls": {
       "rel": "whatsapp_calls"
+    },
+    "ai_agents_handover": {
+      "rel": "ai_agents"
     }
   },
   "webhook_deliveries": {

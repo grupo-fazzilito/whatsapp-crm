@@ -237,3 +237,121 @@ export async function autoAssignConversation(
     return null
   }
 }
+
+// ---------------------------------------------------------------- AI → human
+
+export interface HandoverTarget {
+  /** auto = round-robin (when the workspace enabled it); member / team = the AI agent's choice. */
+  handover_mode?: string | null
+  handover_user_id?: string | null
+  handover_team_id?: string | null
+}
+
+export interface HandoverInput {
+  workspaceId: string
+  conversationId: string
+  reason: string
+  /** Someone chosen explicitly (welcome-menu option); wins over the agent's setting. */
+  assigneeUserId?: string | null
+  target?: HandoverTarget | null
+}
+
+/**
+ * The AI passes the conversation to a person: marks it as waiting for a
+ * human, assigns it (explicit person → current assignee → the agent's
+ * member / team → round-robin), logs it in the timeline and notifies
+ * whoever has to answer — the assignee, or else the available members of
+ * the team / workspace (everyone active when nobody is available).
+ * Returns the assignee. Never throws.
+ */
+export async function handOverConversation(input: HandoverInput): Promise<string | null> {
+  const { workspaceId, conversationId } = input
+  try {
+    const db = tenantDb(workspaceId)
+    const [ws, conv] = await Promise.all([
+      db.workspaces.findFirst({ where: { id: workspaceId }, select: { settings: true, locale: true } }),
+      db.conversations.findFirst({ where: { id: conversationId }, select: { assigned_agent_id: true, team_id: true } }),
+    ])
+    if (!conv) return null
+    const target = input.target ?? {}
+    const settings = parseInboxSettings(ws?.settings)
+
+    let assignee: string | null = null
+    let teamId: string | null = conv.team_id ?? null
+    let assignedNow = false
+
+    if (input.assigneeUserId && (await activeMemberIds(workspaceId, [input.assigneeUserId])).length) {
+      assignee = input.assigneeUserId
+      assignedNow = assignee !== conv.assigned_agent_id
+    } else if (conv.assigned_agent_id) {
+      assignee = conv.assigned_agent_id
+    } else if (target.handover_mode === 'member' && target.handover_user_id && (await activeMemberIds(workspaceId, [target.handover_user_id])).length) {
+      assignee = target.handover_user_id
+      assignedNow = true
+    } else {
+      if (target.handover_mode === 'team' && target.handover_team_id && (await teamOf(workspaceId, target.handover_team_id))) {
+        teamId = target.handover_team_id
+      } else if (!teamId && settings.default_team_id && (await teamOf(workspaceId, settings.default_team_id))) {
+        teamId = settings.default_team_id
+      }
+      // A team was chosen for the AI, or the workspace hands out conversations.
+      if (target.handover_mode === 'team' || settings.auto_assign === 'round_robin') {
+        assignee = await pickAssignee(workspaceId, teamId)
+        assignedNow = !!assignee
+      }
+    }
+
+    const now = new Date()
+    if (assignedNow && assignee) {
+      // Conditional: a person may have claimed it meanwhile.
+      const won = await db.conversations.updateMany({
+        where: { id: conversationId, assigned_agent_id: conv.assigned_agent_id ?? null },
+        data: { assigned_agent_id: assignee },
+      })
+      if (won.count) await markAssigned(workspaceId, assignee)
+      else assignee = (await db.conversations.findFirst({ where: { id: conversationId }, select: { assigned_agent_id: true } }))?.assigned_agent_id ?? null
+    }
+    await db.conversations.updateMany({
+      where: { id: conversationId },
+      data: { ...(teamId !== conv.team_id ? { team_id: teamId } : {}), updated_at: now.toISOString() },
+    })
+    await db.conversations.updateMany({ where: { id: conversationId, needs_human_since: null }, data: { needs_human_since: now } })
+
+    await recordEvent({
+      workspaceId,
+      conversationId,
+      type: 'ai_handover',
+      toUser: assignee,
+      teamId,
+      note: input.reason,
+      data: { auto_assigned: assignedNow },
+    })
+
+    const contact = (await contactNameOf(conversationId)) ?? notificationText(ws?.locale, 'customer')
+    const body = `${contact} · ${input.reason}`
+    if (assignee) {
+      await notify([{ workspaceId, userId: assignee, type: 'handover', title: notificationText(ws?.locale, 'handoverToYou'), body, conversationId }])
+    } else {
+      const recipients = await attentionRecipients(workspaceId, teamId)
+      await notify(recipients.map((userId) => ({ workspaceId, userId, type: 'handover' as const, title: notificationText(ws?.locale, 'handoverTeam'), body, conversationId })))
+    }
+    return assignee
+  } catch (err) {
+    console.error('[inbox] handover failed:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
+/** Available active members of the team (or workspace); everyone active when nobody is available. */
+async function attentionRecipients(workspaceId: string, teamId: string | null): Promise<string[]> {
+  const team = teamId ? await teamOf(workspaceId, teamId) : null
+  const members = await quiet(
+    tenantDb(workspaceId).workspace_members.findMany({
+      where: { status: 'active', ...(team?.memberIds.length ? { user_id: { in: team.memberIds } } : {}) },
+      select: { user_id: true, available: true },
+    }),
+    [],
+  )
+  const available = members.filter((m) => m.available !== false).map((m) => m.user_id)
+  return available.length ? available : members.map((m) => m.user_id)
+}

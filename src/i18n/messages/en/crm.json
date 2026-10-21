@@ -18,7 +18,8 @@
       "noDeals": "No open deals.",
       "noTasks": "No pending tasks.",
       "taskForDeal": "Create task for {title}",
-      "allTasks": "See all my tasks"
+      "allTasks": "See all my tasks",
+      "stageFor": "Stage of {title}"
     },
     "tasks": {
       "navTitle": "Tasks",
@@ -324,6 +325,43 @@
       "lostMonth": "Lost this month",
       "lostMonthTip": "Deals marked as lost since the first day of the month.",
       "howCalculated": "How {label} is calculated"
+    },
+    "customFields": {
+      "tab": "Custom fields",
+      "title": "Custom fields",
+      "description": "Your own customer data (birthday, city, plan, source…). Shown in the chat's CRM tab and on the contact.",
+      "name": "Field name",
+      "type": "Type",
+      "options": "Options",
+      "optionsHelp": "One option per line.",
+      "add": "Add field",
+      "save": "Save",
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": "Delete the “{name}” field? Its value will be removed from every contact.",
+      "empty": "No custom fields yet.",
+      "saved": "Field saved",
+      "deleted": "Field deleted",
+      "adminOnly": "Only an admin can create or change fields.",
+      "types": {
+        "text": "Text",
+        "number": "Number",
+        "date": "Date",
+        "select": "List of options",
+        "boolean": "Yes / No"
+      },
+      "errors": {
+        "name": "Enter a name.",
+        "type": "Invalid type.",
+        "options": "Add at least one option.",
+        "duplicate": "A field with that name already exists."
+      },
+      "yes": "Yes",
+      "no": "No",
+      "choose": "Choose…",
+      "none": "No custom fields.",
+      "create": "Create fields in Settings"
     }
   }
 }

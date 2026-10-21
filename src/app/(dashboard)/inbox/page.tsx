@@ -7,6 +7,7 @@ import { useRealtime, type ConversationTagRow } from "@/hooks/use-realtime";
 import { ConversationList } from "@/components/inbox/conversation-list";
 import { MessageThread, type ConversationPatch } from "@/components/inbox/message-thread";
 import { ContactSidebar } from "@/components/inbox/contact-sidebar";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import Link from "next/link";
 import { WifiOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -44,6 +45,8 @@ export default function InboxPage() {
   const [activeConversation, setActiveConversation] =
     useState<Conversation | null>(null);
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
+  // Contact panel as a sheet on screens too narrow to show it on the side.
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   /**
    * Bumped whenever we want children (ConversationList, MessageThread)
@@ -522,6 +525,13 @@ export default function InboxPage() {
     []
   );
 
+  // The contact was edited in the side panel: show the new data everywhere.
+  const handleContactUpdated = useCallback((contact: Contact) => {
+    setActiveContact(contact);
+    setConversations((prev) => prev.map((c) => (c.contact_id === contact.id ? { ...c, contact } : c)));
+    setActiveConversation((prev) => (prev && prev.contact_id === contact.id ? { ...prev, contact } : prev));
+  }, []);
+
   const activeChannel = activeConversation?.channel_id
     ? (directory.channelsById.get(activeConversation.channel_id) ?? null)
     : null;
@@ -532,6 +542,23 @@ export default function InboxPage() {
   // it back to the list. On lg+ both panes render side-by-side as
   // before, unchanged.
   const hasActiveConv = !!activeConversation;
+
+  const contactPanel = (className?: string) => (
+    <ContactSidebar
+      className={className}
+      contact={activeContact}
+      conversationId={activeConversation?.id ?? null}
+      conversation={activeConversation}
+      channel={activeChannel}
+      agentsById={directory.agentsById}
+      members={directory.members}
+      teams={extras.teams}
+      teamMembers={extras.teamMembers}
+      tags={extras.tags}
+      onConversationPatch={handleConversationPatch}
+      onContactUpdated={handleContactUpdated}
+    />
+  );
 
   return (
     <div className="-m-4 flex h-[calc(100vh-3.5rem)] flex-col overflow-hidden sm:-m-6">
@@ -603,15 +630,19 @@ export default function InboxPage() {
             tagsById={extras.tagsById}
             onTagCreated={extras.addTag}
             teams={extras.teams}
-            teamMembers={extras.teamMembers}
             quickReplies={extras.quickReplies}
+            onOpenDetails={() => setDetailsOpen(true)}
           />
         </div>
 
-        {/* Right panel: Contact sidebar — desktop only. */}
-        <div className="hidden shrink-0 lg:block">
-          <ContactSidebar contact={activeContact} conversationId={activeConversation?.id ?? null} />
-        </div>
+        {/* Right panel: attention + Contacto / CRM. Always open on lg+; a sheet on smaller screens. */}
+        <div className="hidden shrink-0 lg:block">{contactPanel()}</div>
+        <Sheet open={detailsOpen && !!activeConversation} onOpenChange={setDetailsOpen}>
+          <SheetContent side="right" className="w-80 max-w-full gap-0 border-slate-800 bg-slate-900 p-0 lg:hidden">
+            <SheetTitle className="sr-only">{t("inbox.sidebar.details")}</SheetTitle>
+            {contactPanel("w-full border-l-0")}
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );

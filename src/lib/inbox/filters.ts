@@ -1,8 +1,8 @@
 import { priorityOf, priorityRank } from './priority'
 import type { Priority } from './types'
 
-/** Top-level inbox views. The first three hide resolved conversations. */
-export const INBOX_VIEWS = ['all', 'mine', 'unassigned', 'resolved'] as const
+/** Top-level inbox views. All but 'resolved' hide resolved conversations; 'attention' = waiting for a person. */
+export const INBOX_VIEWS = ['all', 'attention', 'mine', 'unassigned', 'resolved'] as const
 export type InboxView = (typeof INBOX_VIEWS)[number]
 
 export const SORT_MODES = ['recent', 'priority', 'waiting'] as const
@@ -20,6 +20,7 @@ export interface FilterableConversation {
   last_message_at?: string | null
   last_customer_message_at?: string | null
   resolved_at?: string | null
+  needs_human_since?: string | null
   conversation_tags?: { id?: string; tag_id: string }[] | null
   contact?: {
     name?: string | null
@@ -67,6 +68,7 @@ export function matchesFilters(c: FilterableConversation, f: ConversationFilters
     if (f.status !== 'all' && c.status !== f.status) return false
     if (f.view === 'mine' && (!f.currentUserId || c.assigned_agent_id !== f.currentUserId)) return false
     if (f.view === 'unassigned' && c.assigned_agent_id) return false
+    if (f.view === 'attention' && !c.needs_human_since) return false
   }
   if (f.channelId && c.channel_id !== f.channelId) return false
   if (f.priorities.length && !f.priorities.includes(priorityOf(c.priority))) return false
