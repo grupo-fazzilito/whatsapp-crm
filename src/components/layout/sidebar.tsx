@@ -25,8 +25,6 @@ import {
   UserRound,
   BriefcaseBusiness,
   Calendar,
-  Shield,
-  Briefcase,
   Radio,
   Bot,
   Package,
@@ -383,46 +381,6 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             </ul>
           )}
 
-          {profile?.is_platform_admin && (
-            <>
-              <div className="my-4 border-t border-sidebar-border" />
-              <div className={cn("px-3 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider", collapsed && "lg:hidden")}>
-                {t("nav.platformAdmin")}
-              </div>
-              <ul className="flex flex-col gap-1">
-                <li>
-                  <Link
-                    href="/admin-panel"
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
-                      collapsed && "lg:justify-center lg:px-0",
-                      pathname === "/admin-panel"
-                        ? "bg-primary/10 text-primary"
-                        : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    )}
-                  >
-                    <Shield className="h-4 w-4" />
-                    <span className={cn("flex-1", collapsed && "lg:sr-only")}>{t("nav.clientsOverview")}</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/admin/portfolio"
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
-                      collapsed && "lg:justify-center lg:px-0",
-                      pathname.startsWith("/admin/portfolio")
-                        ? "bg-primary/10 text-primary"
-                        : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    )}
-                  >
-                    <Briefcase className="h-4 w-4" />
-                    <span className={cn("flex-1", collapsed && "lg:sr-only")}>{t("nav.portfolio")}</span>
-                  </Link>
-                </li>
-              </ul>
-            </>
-          )}
 
           <div className="my-4 border-t border-sidebar-border" />
 

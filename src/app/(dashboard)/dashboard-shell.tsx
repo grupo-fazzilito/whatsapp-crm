@@ -34,13 +34,15 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router]);
 
-  // The platform super-admin has no business of its own: send it to its panel.
-  const isPlatformAdminWithoutWorkspace = !wsLoading && missing && !!profile?.is_platform_admin;
+  // The platform super-admin never works inside a business's CRM (the
+  // server layout already sends it to /admin-panel; this covers a profile
+  // flagged while the page was open).
+  const sendToAdminPanel = !!profile?.is_platform_admin;
   useEffect(() => {
-    if (isPlatformAdminWithoutWorkspace) router.replace("/admin-panel");
-  }, [isPlatformAdminWithoutWorkspace, router]);
+    if (sendToAdminPanel) router.replace("/admin-panel");
+  }, [sendToAdminPanel, router]);
 
-  if (loading || (user && wsLoading)) {
+  if (loading || (user && wsLoading) || sendToAdminPanel) {
     return (
       <div className="flex h-screen items-center justify-center bg-background text-foreground animate-fade-in">
         <div className="flex flex-col items-center gap-3">

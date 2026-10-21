@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AdminShell } from "../admin-shell";
 
 // Custom brand icons using inline SVGs to bypass Lucide version incompatibilities
 function GithubIcon({ className }: { className?: string }) {
@@ -765,6 +766,7 @@ export default function AdminPortfolioPage() {
   }, [items]);
 
   return (
+    <AdminShell>
     <div className="space-y-6 text-foreground">
       {/* Breadcrumbs and Top Actions */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -1097,5 +1099,6 @@ export default function AdminPortfolioPage() {
         </Dialog>
       </AnimatePresence>
     </div>
+    </AdminShell>
   );
 }

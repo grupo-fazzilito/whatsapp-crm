@@ -5,6 +5,7 @@ import { getLocale } from "@/i18n/server";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { getWorkspaceContext } from "@/lib/workspace/context";
+import { isPlatformAdmin } from "@/lib/admin/guard";
 
 // Server layout whose only job is to declare "do not index" metadata
 // for the authed app. robots.ts already disallows these paths at the
@@ -29,6 +30,8 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // The platform super-admin works from /admin-panel, never inside a business's CRM.
+  if (await isPlatformAdmin()) redirect("/admin-panel");
   // Signed in without a business yet (Google / Facebook sign-up): set it up first.
   if (!(await getWorkspaceContext()) && (await getSessionUser())) redirect("/welcome");
   const locale = await getLocale();
