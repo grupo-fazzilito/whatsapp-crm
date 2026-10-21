@@ -545,6 +545,8 @@ export function MessageComposer({
             {menu.kind === "slash" && (
               <Link
                 href="/settings?tab=quick-replies"
+                // Keep the textarea focused: its blur closes this menu before the click lands.
+                onMouseDown={(e) => e.preventDefault()}
                 className="block border-t border-slate-700 px-3 py-1.5 text-[11px] text-primary hover:underline"
               >
                 {t("inboxpro.composer.manageQuickReplies")}
