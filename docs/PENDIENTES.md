@@ -33,7 +33,8 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 
 ## 4. Meta: WhatsApp, Instagram y Messenger para clientes reales
 
-- [ ] Verificación del negocio de Grupo Fazzilito E.I.R.L. (Ficha RUC + correo `@whasalia.com` o dominio verificado) — 🧑
+- [x] Verificación del negocio de Grupo Fazzilito E.I.R.L. (Ficha RUC + correo `@whasalia.com` o dominio verificado) — 🧑 (verificado el 2026-10-20)
+- [ ] WhatsApp: Meta marca "WhatsApp needs more information" tras la verificación; abrir el aviso en Centro de seguridad y responder lo que pida — 🧑
 - [ ] Agregar productos WhatsApp, Messenger e Instagram; crear configuración de Embedded Signup y de inicio de sesión para empresas — 🧑 (Claude da el paso a paso)
 - [ ] Superadmin → Ajustes → Meta: App ID, ES config ID, login config ID (en Railway solo está `META_APP_SECRET`) — 🧑→🤖
 - [ ] Revisión de permisos avanzados (`whatsapp_business_messaging`, `pages_messaging`, `instagram_manage_messages`…) con video por permiso — 🧑 graba / 🤖 guion
