@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { CheckCircle2, ExternalLink, Info, Loader2, Smartphone, SmartphoneNfc } from 'lucide-react';
+import { Check, CheckCircle2, Cloud, ExternalLink, Info, Loader2, Smartphone, SmartphoneNfc, X } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -300,10 +300,11 @@ export function WhatsAppSignup({ agents, onCreated, onManual, onDone }: Props) {
     );
   }
 
-  const options: { id: Mode; icon: typeof Smartphone; title: string; body: string }[] = [
-    { id: 'coexistence', icon: SmartphoneNfc, title: t('metawa.signup.coexTitle'), body: t('metawa.signup.coexBody') },
-    { id: 'standard', icon: Smartphone, title: t('metawa.signup.newTitle'), body: t('metawa.signup.newBody') },
+  const options: { id: Mode; icon: typeof Smartphone; title: string; body: string; key: 'coex' | 'new' }[] = [
+    { id: 'coexistence', icon: SmartphoneNfc, title: t('metawa.signup.coexTitle'), body: t('metawa.signup.coexBody'), key: 'coex' },
+    { id: 'standard', icon: Cloud, title: t('metawa.signup.newTitle'), body: t('metawa.signup.newBody'), key: 'new' },
   ];
+  const points = (key: 'coex' | 'new', kind: 'Pros' | 'Cons') => [1, 2, 3].map((n) => t(`metawa.signup.${key}${kind}.${n}`));
 
   return (
     <div className="grid gap-4">
@@ -322,6 +323,29 @@ export function WhatsAppSignup({ agents, onCreated, onManual, onDone }: Props) {
             <span className="min-w-0">
               <span className="block text-sm font-medium text-foreground">{o.title}</span>
               <span className="block text-xs text-muted-foreground">{o.body}</span>
+              {mode === o.id && (
+                <span className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {(['Pros', 'Cons'] as const).map((kind) => (
+                    <span key={kind} className="block">
+                      <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {kind === 'Pros' ? t('metawa.signup.pros') : t('metawa.signup.cons')}
+                      </span>
+                      <span className="mt-1 grid gap-1">
+                        {points(o.key, kind).map((p) => (
+                          <span key={p} className="flex gap-1.5 text-xs text-foreground">
+                            {kind === 'Pros' ? (
+                              <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                            ) : (
+                              <X className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+                            )}
+                            <span>{p}</span>
+                          </span>
+                        ))}
+                      </span>
+                    </span>
+                  ))}
+                </span>
+              )}
             </span>
           </label>
         ))}
@@ -330,10 +354,7 @@ export function WhatsAppSignup({ agents, onCreated, onManual, onDone }: Props) {
       {mode === 'coexistence' ? (
         <div className="flex gap-2 rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <div className="grid gap-1">
-            <p>{t('metawa.signup.coexReq')}</p>
-            <p>{t('metawa.signup.coexLimits')}</p>
-          </div>
+          <p>{t('metawa.signup.coexReq')}</p>
         </div>
       ) : (
         <div className="grid gap-1.5">

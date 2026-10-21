@@ -11,6 +11,7 @@ import { Header } from "@/components/layout/header";
 import { CreditsBanner } from "@/components/billing/credits-banner";
 import { TourProvider } from "@/components/tour/guided-tour";
 import { SetupHelpOffer } from "@/components/support/setup-help-dialog";
+import { CallCenter } from "@/components/calls/call-center";
 
 // Auth-gated dashboard shell. Extracted from the layout so the layout
 // itself can stay a server component and export metadata (noindex) —
@@ -75,6 +76,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
+      <CallCenter />
     </div>
   );
 }

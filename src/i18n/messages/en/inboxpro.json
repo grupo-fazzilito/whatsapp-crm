@@ -99,7 +99,11 @@
       "tagAdded": "{actor} added the tag {tag}",
       "tagRemoved": "{actor} removed the tag {tag}",
       "someone": "Someone",
-      "system": "The system"
+      "system": "The system",
+      "callAnswered": "WhatsApp call answered by {actor} · {duration}",
+      "callCompleted": "WhatsApp call · {duration}",
+      "callMissed": "Missed WhatsApp call",
+      "callRejected": "WhatsApp call declined"
     },
     "notes": {
       "label": "Internal note — only visible to your team",

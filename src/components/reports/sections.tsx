@@ -92,6 +92,25 @@ export function AttentionSection({ data }: { data: ReportPayload }) {
         />
       </Grid>
 
+      {data.calls && (
+        <ReportCard title={t('reports.calls.title')}>
+          <Grid>
+            <StatTile label={t('reports.calls.total')} value={f.n(data.calls.total)} />
+            <StatTile
+              label={t('reports.calls.answered')}
+              value={f.n(data.calls.answered)}
+              sub={t('reports.calls.answeredSub', { rate: f.pct(data.calls.answered / data.calls.total) })}
+            />
+            <StatTile label={t('reports.calls.missed')} value={f.n(data.calls.missed)} sub={t('reports.calls.missedSub', { rejected: f.n(data.calls.rejected) })} />
+            <StatTile
+              label={t('reports.calls.talk')}
+              value={f.dur(data.calls.talkSeconds * 1000)}
+              sub={t('reports.calls.talkSub', { value: f.dur(data.calls.medianSeconds === null ? null : data.calls.medianSeconds * 1000) })}
+            />
+          </Grid>
+        </ReportCard>
+      )}
+
       <ReportCard title={t('reports.attention.waitingTitle')} description={t('reports.attention.waitingDescription')}>
         <DataTable
           caption={t('reports.attention.waitingTitle')}

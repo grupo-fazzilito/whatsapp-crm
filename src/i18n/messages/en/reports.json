@@ -192,6 +192,16 @@
       "save": "Save",
       "cancel": "Cancel",
       "saved": "Settings saved"
+    },
+    "calls": {
+      "title": "WhatsApp calls",
+      "total": "Calls received",
+      "answered": "Answered",
+      "answeredSub": "{rate} of all",
+      "missed": "Missed",
+      "missedSub": "{rejected} declined",
+      "talk": "Time on calls",
+      "talkSub": "Median {value} per call"
     }
   }
 }

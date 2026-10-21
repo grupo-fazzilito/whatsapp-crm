@@ -1,0 +1,36 @@
+{
+  "calls": {
+    "incoming": "WhatsApp call",
+    "from": "{name} is calling you",
+    "unknown": "Customer",
+    "answer": "Answer",
+    "reject": "Decline",
+    "hangup": "Hang up",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "openChat": "Open conversation",
+    "connecting": "Connecting…",
+    "inCall": "On a call",
+    "ended": "Call ended",
+    "taken": "Someone else on the team already answered.",
+    "goneAway": "The call has already ended.",
+    "microphone": "Allow microphone access to answer calls.",
+    "failed": "The call could not connect: {message}",
+    "leaveWarning": "You are on a call. Leaving will hang it up.",
+    "settings": {
+      "title": "WhatsApp calls",
+      "on": "On: customers can call you from WhatsApp and the call rings in the inbox of whoever is online.",
+      "off": "Customers don't see the call button. Once on, calls ring in the inbox and your team answers from the browser (with a microphone).",
+      "coexistence": "Not available with coexistence: Meta only allows calls on numbers connected only to the API (without the WhatsApp Business app).",
+      "tierLow": "Meta requires a messaging limit of 2,000 unique recipients a day or more to turn on calls. This number is at {tier}: move up by sending more quality messages.",
+      "hours": "Only during business hours",
+      "hoursHelp": "Outside those hours WhatsApp invites the customer to send a message.",
+      "enable": "Turn on calls",
+      "disable": "Turn off",
+      "saved": "Calls updated",
+      "error": "Meta replied: {message}",
+      "badgeOn": "On",
+      "badgeOff": "Off"
+    }
+  }
+}

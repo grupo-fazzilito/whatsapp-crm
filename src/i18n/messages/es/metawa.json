@@ -44,13 +44,12 @@
       "setup6": "Guarda el App ID y el App Secret (Configuración de la app → Básica)."
     },
     "signup": {
-      "question": "¿Qué número vas a conectar?",
-      "coexTitle": "Ya uso WhatsApp Business en mi celular (coexistencia)",
-      "coexBody": "Tu número sigue funcionando en la app WhatsApp Business y además se conecta aquí. Puedes traer tus contactos y el historial de chats.",
-      "newTitle": "Número nuevo",
-      "newBody": "Un número que no está en WhatsApp (o que dejarás de usar en la app). Quedará solo en la API oficial.",
+      "question": "¿Cómo quieres conectar tu número?",
+      "coexTitle": "Coexistencia: app WhatsApp Business + Whasalia",
+      "coexBody": "Para el número que ya usas en la app WhatsApp Business del celular. Sigue funcionando ahí y además llega a Whasalia.",
+      "newTitle": "Solo API de WhatsApp (Cloud API)",
+      "newBody": "El número funciona solo a través de Whasalia, sin la app en el celular. Ideal para un número nuevo o para equipos.",
       "coexReq": "Necesitas la app WhatsApp Business 2.24.17 o superior y tener el celular a mano: Meta te pedirá escanear un código desde la app. Mantén la app abierta unos minutos tras conectar.",
-      "coexLimits": "Limitaciones de Meta: no se sincronizan grupos, mensajes temporales ni de una sola vista; las listas de difusión pasan a solo lectura; se desvinculan los dispositivos complementarios; velocidad máxima de 20 mensajes por segundo.",
       "pin": "PIN de verificación en dos pasos (opcional)",
       "pinHelp": "6 dígitos. Si el número ya tiene uno, escríbelo; si no, generaremos uno y lo guardaremos cifrado.",
       "pinInvalid": "El PIN debe tener 6 dígitos.",
@@ -70,7 +69,29 @@
       "doneCoex3": "Cuando respondes desde el celular, el agente de IA se pausa en esa conversación para no interrumpirte.",
       "doneStandard": "Tu número quedó registrado en la API oficial de WhatsApp y listo para recibir mensajes.",
       "historyFailed": "No se pudo solicitar el historial de chats; los mensajes nuevos sí se sincronizarán.",
-      "payment": "Para enviar plantillas, agrega un método de pago en WhatsApp Manager (business.facebook.com/wa/manage)."
+      "payment": "Para enviar plantillas, agrega un método de pago en WhatsApp Manager (business.facebook.com/wa/manage).",
+      "pros": "Ventajas",
+      "cons": "Desventajas",
+      "coexPros": {
+        "1": "Sigues respondiendo desde la app del celular con el mismo número.",
+        "2": "Traes tus contactos y el historial de chats (hasta 6 meses).",
+        "3": "Se conecta en minutos, sin cambiar de número."
+      },
+      "coexCons": {
+        "1": "No permite llamadas de WhatsApp en Whasalia: las sigues recibiendo en el celular.",
+        "2": "Límites de Meta: máximo 20 mensajes por segundo; no se sincronizan grupos, mensajes temporales ni de una sola vista; las listas de difusión quedan en solo lectura; se desvinculan los dispositivos vinculados (WhatsApp Web, etc.).",
+        "3": "Tienes que abrir la app en el celular al menos una vez cada 14 días para que siga conectada."
+      },
+      "newPros": {
+        "1": "Recibe y contesta llamadas de WhatsApp desde la bandeja.",
+        "2": "Mayor capacidad de envío (hasta 80 mensajes por segundo) y todas las funciones de la API.",
+        "3": "Todo el equipo y la IA trabajan desde Whasalia, sin depender de un celular."
+      },
+      "newCons": {
+        "1": "El número deja de funcionar en la app WhatsApp del celular.",
+        "2": "Si el número ya está en WhatsApp, primero debes eliminar esa cuenta en la app; el historial del celular no se trae.",
+        "3": "Necesitas recibir un SMS o una llamada en ese número para verificarlo."
+      }
     },
     "manual": {
       "appSecret": "App Secret de tu app de Meta (opcional)",

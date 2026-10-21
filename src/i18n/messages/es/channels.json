@@ -29,7 +29,7 @@
       "tiktok": "TikTok"
     },
     "typeHint": {
-      "whatsapp": "Un número de WhatsApp Business (Cloud API). Puedes conectar varios.",
+      "whatsapp": "Tu número de WhatsApp Business: junto con la app del celular (coexistencia) o solo por la API. Puedes conectar varios.",
       "instagram": "Mensajes directos de una cuenta profesional de Instagram.",
       "messenger": "Mensajes de tu página de Facebook.",
       "webchat": "Un chat flotante para tu sitio web.",

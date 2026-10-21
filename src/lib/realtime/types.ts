@@ -10,6 +10,7 @@ export const REALTIME_TABLES = [
   'tasks',
   'bookings',
   'lead_profiles',
+  'whatsapp_calls',
 ] as const
 export type RealtimeTable = (typeof REALTIME_TABLES)[number]
 

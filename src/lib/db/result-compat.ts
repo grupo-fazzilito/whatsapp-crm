@@ -119,6 +119,12 @@ export const resultCompat = Prisma.defineExtension({
     comment_replies: {
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
     },
+    whatsapp_calls: {
+      answered_at: { needs: { answered_at: true }, compute: (r) => r.answered_at === null ? null : r.answered_at.toISOString() },
+      ended_at: { needs: { ended_at: true }, compute: (r) => r.ended_at === null ? null : r.ended_at.toISOString() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
     calendar_connections: {
       token_expires_at: { needs: { token_expires_at: true }, compute: (r) => r.token_expires_at === null ? null : r.token_expires_at.toISOString() },
       watch_expires_at: { needs: { watch_expires_at: true }, compute: (r) => r.watch_expires_at === null ? null : r.watch_expires_at.toISOString() },

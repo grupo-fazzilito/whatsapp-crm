@@ -44,13 +44,12 @@
       "setup6": "Save the App ID and App Secret (App settings → Basic)."
     },
     "signup": {
-      "question": "Which number will you connect?",
-      "coexTitle": "I already use WhatsApp Business on my phone (coexistence)",
-      "coexBody": "Your number keeps working in the WhatsApp Business app and is also connected here. You can bring your contacts and chat history.",
-      "newTitle": "New number",
-      "newBody": "A number that isn't on WhatsApp (or that you'll stop using in the app). It will only live on the official API.",
+      "question": "How do you want to connect your number?",
+      "coexTitle": "Coexistence: WhatsApp Business app + Whasalia",
+      "coexBody": "For the number you already use in the WhatsApp Business app on your phone. It keeps working there and also reaches Whasalia.",
+      "newTitle": "WhatsApp API only (Cloud API)",
+      "newBody": "The number works only through Whasalia, without the app on a phone. Best for a new number or for teams.",
       "coexReq": "You need WhatsApp Business app 2.24.17 or later and your phone at hand: Meta will ask you to scan a code from the app. Keep the app open for a few minutes after connecting.",
-      "coexLimits": "Meta limitations: groups, disappearing and view-once messages aren't synced; broadcast lists become read-only; companion devices are unlinked; throughput is capped at 20 messages per second.",
       "pin": "Two-step verification PIN (optional)",
       "pinHelp": "6 digits. If the number already has one, type it; otherwise we'll generate one and store it encrypted.",
       "pinInvalid": "The PIN must be 6 digits.",
@@ -70,7 +69,29 @@
       "doneCoex3": "When you reply from the phone, the AI agent pauses in that conversation so it doesn't talk over you.",
       "doneStandard": "Your number is registered on the official WhatsApp API and ready to receive messages.",
       "historyFailed": "Chat history couldn't be requested; new messages will still sync.",
-      "payment": "To send templates, add a payment method in WhatsApp Manager (business.facebook.com/wa/manage)."
+      "payment": "To send templates, add a payment method in WhatsApp Manager (business.facebook.com/wa/manage).",
+      "pros": "Pros",
+      "cons": "Cons",
+      "coexPros": {
+        "1": "Keep replying from the app on your phone with the same number.",
+        "2": "Bring your contacts and chat history (up to 6 months).",
+        "3": "Connects in minutes, without changing numbers."
+      },
+      "coexCons": {
+        "1": "No WhatsApp calls in Whasalia: you keep getting them on the phone.",
+        "2": "Meta limits: up to 20 messages per second; groups, disappearing and view-once messages aren't synced; broadcast lists become read-only; linked devices (WhatsApp Web, etc.) are unlinked.",
+        "3": "You must open the app on the phone at least once every 14 days to stay connected."
+      },
+      "newPros": {
+        "1": "Receive and answer WhatsApp calls from the inbox.",
+        "2": "Higher sending capacity (up to 80 messages per second) and every API feature.",
+        "3": "The whole team and the AI work from Whasalia, without depending on a phone."
+      },
+      "newCons": {
+        "1": "The number stops working in the WhatsApp app on the phone.",
+        "2": "If the number is already on WhatsApp, you first have to delete that account in the app; the phone's history isn't brought over.",
+        "3": "You need to receive an SMS or a call on that number to verify it."
+      }
     },
     "manual": {
       "appSecret": "Your Meta app's App Secret (optional)",
