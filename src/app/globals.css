@@ -453,7 +453,8 @@ html[data-mtheme="light"] .bg-slate-900\/50,
 html[data-mtheme="light"] .bg-slate-900\/60,
 html[data-mtheme="light"] .bg-slate-900\/70,
 html[data-mtheme="light"] .bg-slate-900\/80,
-html[data-mtheme="light"] .bg-slate-900\/90 {
+html[data-mtheme="light"] .bg-slate-900\/90,
+html[data-mtheme="light"] .bg-slate-900\/95 {
   background-color: #ffffff !important;
 }
 
@@ -578,18 +579,25 @@ html:not([data-mtheme="light"]) .status-select-cancelled {
 
 /* ── Dashboard light mode: slate-800/700 backgrounds ── */
 html[data-mtheme="light"] .bg-slate-800,
+html[data-mtheme="light"] .bg-slate-800\/80,
+html[data-mtheme="light"] .bg-slate-800\/70,
 html[data-mtheme="light"] .bg-slate-800\/60,
 html[data-mtheme="light"] .bg-slate-800\/40,
 html[data-mtheme="light"] .bg-slate-800\/30 {
   background-color: #f1f5f9 !important;
 }
 
-html[data-mtheme="light"] .bg-slate-700 {
+html[data-mtheme="light"] .bg-slate-700,
+html[data-mtheme="light"] .bg-slate-700\/60,
+html[data-mtheme="light"] .bg-slate-700\/50,
+html[data-mtheme="light"] .bg-slate-700\/40 {
   background-color: #e2e8f0 !important;
 }
 
 html[data-mtheme="light"] .hover\:bg-slate-800:hover,
-html[data-mtheme="light"] .hover\:bg-slate-800\/60:hover {
+html[data-mtheme="light"] .hover\:bg-slate-800\/60:hover,
+html[data-mtheme="light"] .hover\:bg-slate-800\/50:hover,
+html[data-mtheme="light"] .hover\:bg-slate-900:hover {
   background-color: #e2e8f0 !important;
 }
 

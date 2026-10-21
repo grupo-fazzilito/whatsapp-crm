@@ -589,7 +589,7 @@ export function MessageBubble({
             isAgent ? "justify-end" : "justify-start",
           )}
         >
-          <span className="text-[10px] text-white/60">{time}</span>
+          <span className={cn("text-[10px]", isAgent ? "text-white/70" : "text-slate-400")}>{time}</span>
           {isAgent && <StatusIcon status={message.status} />}
         </div>
       </div>
