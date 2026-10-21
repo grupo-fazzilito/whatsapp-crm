@@ -6,6 +6,7 @@ import { locationText } from '@/lib/channels/types'
 import { defaultChannel, loadChannel } from '@/lib/channels/store'
 import { armFollowupsForOutbound } from '@/lib/automations/followups'
 import { isBsuid } from '@/lib/whatsapp/phone-utils'
+import { ensureMarketingState } from '@/lib/whatsapp/marketing-server'
 
 export type SenderType = 'agent' | 'bot'
 
@@ -84,6 +85,23 @@ async function resolveRecipient(channel: LoadedChannel, contactId: string): Prom
 }
 
 /**
+ * WhatsApp template with its Meta category, so marketing ones go through
+ * the Marketing Messages API once the business has accepted its terms.
+ */
+async function withTemplateCategory(channel: LoadedChannel, content: Extract<OutboundContent, { type: 'template' }>) {
+  let category = content.category
+  if (!category) {
+    const tpl = await tenantDb(channel.workspace_id).message_templates.findFirst({
+      where: { name: content.templateName, ...(content.language ? { language: content.language } : {}) },
+      select: { category: true },
+    })
+    category = tpl?.category ?? undefined
+  }
+  if (category?.toUpperCase() === 'MARKETING') await ensureMarketingState(channel).catch(() => null)
+  return { ...content, category }
+}
+
+/**
  * The one way to send a message: resolves the conversation's channel,
  * sends through its adapter, stores the message row and bumps the
  * conversation. Failures are stored as status='failed' (so the inbox
@@ -119,7 +137,8 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
     if (!channel) throw new ChannelSendError('No channel connected for this conversation', 'not_configured')
     const recipient = await resolveRecipient(channel, conversation.contact_id)
     if (!recipient) throw new ChannelSendError(`Contact has no ${channel.type} identity`, 'unsupported')
-    const result = await getAdapter(channel.type).send({ channel, recipient, replyToExternalId }, content)
+    const outbound = channel.type === 'whatsapp' && content.type === 'template' ? await withTemplateCategory(channel, content) : content
+    const result = await getAdapter(channel.type).send({ channel, recipient, replyToExternalId }, outbound)
     externalId = result.externalId
     usedRecipient = result.recipient
     // Web chat has no provider round-trip: the row is the delivery.
