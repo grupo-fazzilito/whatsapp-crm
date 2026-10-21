@@ -12,6 +12,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-21',
+    title: { es: 'Arreglo en respuestas rápidas', en: 'Quick replies fix' },
+    changes: [
+      { kind: 'fixed', es: 'En la bandeja, el enlace «Gestionar respuestas rápidas» del menú que aparece al escribir / ya abre la configuración.', en: 'In the inbox, the “Manage quick replies” link in the menu that opens when you type / now opens the settings.' },
+    ],
+  },
+  {
     date: '2026-10-20',
     title: { es: 'Llamadas de WhatsApp en la bandeja', en: 'WhatsApp calls in the inbox' },
     changes: [
