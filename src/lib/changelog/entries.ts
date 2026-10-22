@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-21',
+    title: { es: 'Menú contraíble y mejoras del modo claro', en: 'Collapsible menu and light mode fixes' },
+    changes: [
+      { kind: 'new', es: 'El menú de la izquierda se puede contraer para ver solo iconos (flecha junto al logo) y se recuerda en tu navegador.', en: 'The left menu can collapse to icons only (arrow next to the logo) and your browser remembers it.' },
+      { kind: 'fixed', es: 'Modo claro: el chat seleccionado en la bandeja se marca en un tono suave y legible, la barra de etiquetas y Chat/Archivos ya no es negra, y los botones de Facebook y otros botones de color mantienen el texto blanco.', en: 'Light mode: the selected chat in the inbox uses a soft, readable highlight, the tags and Chat/Files bar is no longer black, and Facebook and other colored buttons keep their white text.' },
+    ],
+  },
+  {
+    date: '2026-10-21',
     title: { es: 'Bandeja: atención requerida, panel con pestañas y CRM', en: 'Inbox: attention needed, tabbed panel and CRM' },
     changes: [
       { kind: 'new', es: 'Cuando la IA pasa un chat a una persona, aparece «Atención requerida» debajo de Bandeja y en la nueva pestaña «Atención» de la lista; se quita cuando alguien del equipo responde, lo resuelve o lo devuelve a la IA.', en: 'When the AI hands a chat to a person, “Attention needed” shows under Inbox and in the new “Attention” tab of the list; it clears when a team member replies, resolves it or gives it back to the AI.' },

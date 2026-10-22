@@ -561,7 +561,7 @@ function ConversationItem({
       aria-current={isActive ? "true" : undefined}
       className={cn(
         "flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-slate-800/50",
-        isActive && "border-l-2 border-primary bg-slate-800/70"
+        isActive && "border-l-2 border-primary bg-primary/10 dark:bg-slate-800/70"
       )}
     >
       {/* Avatar with channel badge */}
