@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-22',
+    title: { es: 'Nuevo logo, Google Calendar en Integraciones y ventanas más fluidas', en: 'New logo, Google Calendar in Integrations and smoother windows' },
+    changes: [
+      { kind: 'improved', es: 'Nuevo logo de Whasalia en la app, la web y el ícono de la pestaña del navegador.', en: 'New Whasalia logo across the app, the website and the browser tab icon.' },
+      { kind: 'new', es: 'Ajustes → Integraciones: conecta Google Calendar para cada persona del equipo que recibe reservas, sin salir de la configuración.', en: 'Settings → Integrations: connect Google Calendar for each team member who takes bookings, right from the settings.' },
+      { kind: 'improved', es: 'Todas las ventanas y paneles laterales se abren con la misma animación suave.', en: 'All dialogs and side panels open with the same smooth animation.' },
+    ],
+  },
+  {
+    date: '2026-10-22',
     title: { es: 'Bandeja a todo el ancho y modo claro más legible', en: 'Full-width inbox and more readable light mode' },
     changes: [
       { kind: 'improved', es: 'La bandeja usa todo el ancho de la pantalla, también con el menú contraído, sin márgenes vacíos a los lados.', en: 'The inbox uses the full screen width, also with the menu collapsed, with no empty margins at the sides.' },

@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     siteName: "Whasalia",
     images: [
       {
-        url: `${SITE_URL}/images/logo/whasalia-logo.png`,
+        url: `${SITE_URL}/images/logo/whasalia-logo-light.png`,
         width: 1544,
         height: 338,
         alt: "Whasalia CRM Logo",
@@ -49,10 +49,11 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: [`${SITE_URL}/images/logo/whasalia-logo.png`],
+    images: [`${SITE_URL}/images/logo/whasalia-logo-light.png`],
   },
   icons: {
     icon: [{ url: "/favicon.png", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   formatDetection: {
     email: false,
@@ -152,7 +153,7 @@ export default async function RootLayout({
               "name": "Whasalia",
               "alternateName": "Whasalia",
               "url": SITE_URL,
-              "logo": `${SITE_URL}/images/logo/whasalia-logo.png`,
+              "logo": `${SITE_URL}/images/logo/whasalia-logo-light.png`,
               "legalName": COMPANY.legalName,
               "taxID": COMPANY.taxId,
               "email": COMPANY.email,

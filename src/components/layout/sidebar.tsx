@@ -216,7 +216,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             <img
               src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
               alt="Whasalia Logo"
-              className={cn("h-8 w-auto object-contain", collapsed && "lg:hidden")}
+              className={cn("h-10 w-auto object-contain", collapsed && "lg:hidden")}
             />
             {/* Collapsed menu: just the Whasalia icon. */}
             <img src="/images/logo/favicon.png" alt="" aria-hidden="true" className={cn("hidden h-8 w-8 rounded-lg", collapsed && "lg:block")} />

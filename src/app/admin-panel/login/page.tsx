@@ -50,7 +50,7 @@ export default function AdminLoginPage() {
             <img
               src="/images/logo/whasalia-logo.png"
               alt="Whasalia Logo"
-              className="h-14 w-auto object-contain mb-4"
+              className="h-16 w-auto object-contain mb-4"
             />
             <h1 className="text-xl font-bold text-white">Super Admin</h1>
             <p className="text-sm text-slate-400 mt-1">Agency Control Panel</p>

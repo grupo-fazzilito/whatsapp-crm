@@ -51,7 +51,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
             <img
               src="/images/logo/whasalia-logo.png"
               alt="Whasalia Logo"
-              className="h-8 w-auto object-contain"
+              className="h-10 w-auto object-contain"
             />
           </Link>
           <button onClick={onClose} className="lg:hidden text-slate-500 hover:text-white transition-colors">

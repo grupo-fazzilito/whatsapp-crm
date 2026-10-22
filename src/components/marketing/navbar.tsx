@@ -122,7 +122,7 @@ export function GlassNavbar() {
             <img
               src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
               alt="Whasalia"
-              className="h-8 w-auto object-contain group-hover:scale-110 transition-transform"
+              className="h-10 w-auto object-contain group-hover:scale-110 transition-transform"
             />
           </Link>
 

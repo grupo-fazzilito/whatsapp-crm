@@ -30,7 +30,7 @@ export function ReferenceDashboard() {
             <img
               src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
               alt="Whasalia Logo"
-              className="h-6 w-auto object-contain"
+              className="h-7 w-auto object-contain"
             />
           </div>
 
