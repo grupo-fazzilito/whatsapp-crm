@@ -565,9 +565,7 @@ export function MessageBubble({
         className={cn(
           "relative rounded-2xl px-3 py-2",
           isAgent
-            ? isBot
-              ? "rounded-br-md bg-primary/80 text-primary-foreground"
-              : "rounded-br-md bg-primary text-primary-foreground"
+            ? "rounded-br-md bg-primary text-primary-foreground"
             : "rounded-bl-md bg-slate-800 text-slate-100",
           failed && "ring-1 ring-red-500/70",
         )}
@@ -589,7 +587,7 @@ export function MessageBubble({
             isAgent ? "justify-end" : "justify-start",
           )}
         >
-          <span className={cn("text-[10px]", isAgent ? "text-white/70" : "text-slate-400")}>{time}</span>
+          <span className={cn("text-[10px]", isAgent ? "text-primary-foreground/90" : "text-slate-400")}>{time}</span>
           {isAgent && <StatusIcon status={message.status} />}
         </div>
       </div>

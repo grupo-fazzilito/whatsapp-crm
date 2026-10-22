@@ -58,7 +58,7 @@ export function LanguageSwitcher({ variant = "app", className }: { variant?: "ap
             className={cn(
               "h-7 min-w-9 rounded-full px-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
               active
-                ? "bg-emerald-500 text-white shadow-sm"
+                ? "bg-emerald-700 text-white shadow-sm"
                 : variant === "marketing"
                   ? "text-[var(--m-text-tertiary)] hover:text-[var(--m-text-primary)]"
                   : "text-muted-foreground hover:text-foreground",
