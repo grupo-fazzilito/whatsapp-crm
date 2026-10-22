@@ -11,7 +11,15 @@
       "adminsTitle": "Administradores de la plataforma",
       "adminsBody": "Los administradores son cuentas normales marcadas como administradores de plataforma. El primero se activa poniendo su correo en la variable PLATFORM_ADMIN_EMAILS; después puedes marcar otros desde la base de datos.",
       "notificationsTitle": "Notificaciones",
-      "comingSoon": "Próximamente"
+      "comingSoon": "Próximamente",
+      "tabs": {
+        "general": "General",
+        "ai": "IA",
+        "billing": "Tokens y pagos",
+        "meta": "Meta / WhatsApp",
+        "integrations": "Calendarios",
+        "support": "Soporte"
+      }
     },
     "ai": {
       "title": "Proveedores de IA",
