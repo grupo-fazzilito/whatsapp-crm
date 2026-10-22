@@ -784,3 +784,25 @@ html[data-mtheme="light"] input::placeholder,
 html[data-mtheme="light"] textarea::placeholder {
   color: #64748b !important;
 }
+
+/* ── Modals: one smooth slide everywhere ──
+   Dialogs and sheets also slide when they are mounted already open
+   (`{editing && <Editor />}`), where the library's starting style never runs. */
+@keyframes modal-in-right { from { transform: translateX(2.5rem); opacity: 0; } }
+@keyframes modal-in-left { from { transform: translateX(-2.5rem); opacity: 0; } }
+@keyframes modal-in-bottom { from { transform: translateY(2.5rem); opacity: 0; } }
+@keyframes modal-in-top { from { transform: translateY(-2.5rem); opacity: 0; } }
+@keyframes modal-backdrop-in { from { opacity: 0; } }
+.modal-in-right { animation: modal-in-right 200ms ease-in-out; }
+.modal-in-left { animation: modal-in-left 200ms ease-in-out; }
+.modal-in-bottom { animation: modal-in-bottom 200ms ease-in-out; }
+.modal-in-top { animation: modal-in-top 200ms ease-in-out; }
+.modal-backdrop-in { animation: modal-backdrop-in 200ms ease-in-out; }
+[data-slot="sheet-content"][data-side="right"] { animation: modal-in-right 200ms ease-in-out; }
+[data-slot="sheet-content"][data-side="left"] { animation: modal-in-left 200ms ease-in-out; }
+[data-slot="sheet-content"][data-side="bottom"] { animation: modal-in-bottom 200ms ease-in-out; }
+[data-slot="sheet-content"][data-side="top"] { animation: modal-in-top 200ms ease-in-out; }
+@media (prefers-reduced-motion: reduce) {
+  .modal-in-right, .modal-in-left, .modal-in-bottom, .modal-in-top, .modal-backdrop-in, [data-slot="sheet-content"] { animation: none; }
+}
+
