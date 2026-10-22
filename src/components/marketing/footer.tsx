@@ -42,7 +42,7 @@ export function Footer() {
             <img
               src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
               alt="Whasalia"
-              className="h-8 w-auto object-contain"
+              className="h-10 w-auto object-contain"
             />
           </Link>
           <p className="text-xs text-[var(--m-text-tertiary)] leading-relaxed max-w-sm">
