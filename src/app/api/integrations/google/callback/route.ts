@@ -15,8 +15,8 @@ export async function GET(request: Request) {
     userId: user?.id ?? null,
   })
 
-  const target = new URL(outcome.back === 'profile' ? '/settings' : '/business/staff', siteUrl())
-  if (outcome.back === 'profile') target.searchParams.set('tab', 'profile')
+  const target = new URL(outcome.back === 'staff' ? '/business/staff' : '/settings', siteUrl())
+  if (outcome.back !== 'staff') target.searchParams.set('tab', outcome.back)
   if (outcome.ok) {
     target.searchParams.set('gcal', 'connected')
     target.searchParams.set('staff', outcome.staffId)

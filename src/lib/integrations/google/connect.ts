@@ -1,4 +1,5 @@
 import 'server-only'
+import type { GcalReturn } from './state'
 import { prisma } from '@/lib/db/prisma'
 import { tenantDb } from '@/lib/db/tenant'
 import { decrypt, encrypt } from '@/lib/whatsapp/encryption'
@@ -34,8 +35,8 @@ export async function getConnectionForStaff(workspaceId: string, staffId: string
 }
 
 export type CallbackOutcome =
-  | { ok: true; workspaceId: string; staffId: string; email: string | null; back: 'staff' | 'profile' }
-  | { ok: false; error: string; back: 'staff' | 'profile' }
+  | { ok: true; workspaceId: string; staffId: string; email: string | null; back: GcalReturn }
+  | { ok: false; error: string; back: GcalReturn }
 
 /**
  * OAuth callback: validates the signed state against the signed-in user,
