@@ -11,7 +11,15 @@
       "adminsTitle": "Platform admins",
       "adminsBody": "Admins are regular accounts flagged as platform admins. The first one is enabled by putting its email in the PLATFORM_ADMIN_EMAILS variable; others can then be flagged in the database.",
       "notificationsTitle": "Notifications",
-      "comingSoon": "Coming soon"
+      "comingSoon": "Coming soon",
+      "tabs": {
+        "general": "General",
+        "ai": "AI",
+        "billing": "Tokens & payments",
+        "meta": "Meta / WhatsApp",
+        "integrations": "Calendars",
+        "support": "Support"
+      }
     },
     "ai": {
       "title": "AI providers",

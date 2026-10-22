@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Settings, Shield, Bell, Users, Save, Loader2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Settings, Shield, Bell, Users, Save, Loader2, Sparkles, Coins, MessageCircle, CalendarDays, LifeBuoy } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { AdminShell } from "../admin-shell";
 import { AiProvidersCard } from "./ai-providers-card";
 import { GoogleCalendarCard } from "./google-calendar-card";
@@ -14,8 +16,24 @@ import { useI18n } from "@/i18n/client";
 const inputCls = "w-full rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors";
 const labelCls = "block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5";
 
+const TABS = [
+  { id: "general", icon: Shield },
+  { id: "ai", icon: Sparkles },
+  { id: "billing", icon: Coins },
+  { id: "meta", icon: MessageCircle },
+  { id: "integrations", icon: CalendarDays },
+  { id: "support", icon: LifeBuoy },
+] as const;
+type TabId = (typeof TABS)[number]["id"];
+const isTab = (v: string | null): v is TabId => TABS.some((x) => x.id === v);
+
 export default function AdminSettingsPage() {
   const { t } = useI18n();
+  const router = useRouter();
+  const params = useSearchParams();
+  // The URL keeps the tab, so links like ?tab=meta open the right one.
+  const tab: TabId = isTab(params.get("tab")) ? (params.get("tab") as TabId) : "general";
+  const go = (id: TabId) => router.replace(`/admin-panel/settings?tab=${id}`, { scroll: false });
   const [general, setGeneral] = useState({ agency_name: "", support_email: "" });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -54,56 +72,91 @@ export default function AdminSettingsPage() {
           <p className="mt-1 text-sm text-slate-400">{t("admin.settings.subtitle")}</p>
         </div>
 
-        <AiProvidersCard />
+        <div role="tablist" aria-label={t("admin.settings.title")} className="flex flex-wrap gap-1 rounded-xl border border-slate-800 bg-slate-900 p-1">
+          {TABS.map(({ id, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              id={`settings-tab-${id}`}
+              aria-selected={tab === id}
+              aria-controls={`settings-panel-${id}`}
+              tabIndex={tab === id ? 0 : -1}
+              onClick={() => go(id)}
+              onKeyDown={(e) => {
+                if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+                e.preventDefault();
+                const i = TABS.findIndex((x) => x.id === id);
+                const next = TABS[(i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length].id;
+                go(next);
+                document.getElementById(`settings-tab-${next}`)?.focus();
+              }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+                tab === id ? "bg-emerald-500/15 text-emerald-400" : "text-slate-400 hover:bg-slate-800 hover:text-white",
+              )}
+            >
+              <Icon className="size-3.5" aria-hidden />
+              {t(`admin.settings.tabs.${id}`)}
+            </button>
+          ))}
+        </div>
 
-        <BillingCard />
-
-        <SupportCard />
-
-        <MetaWhatsAppCard />
-
-        <GoogleCalendarCard />
-        <CalendlyCard />
-
-        <section className="rounded-xl border border-slate-800 bg-slate-900 p-6 space-y-4" aria-labelledby="agency-title">
-          <h2 id="agency-title" className="text-sm font-bold text-white flex items-center gap-2">
-            <Shield className="size-4 text-emerald-400" aria-hidden /> {t("admin.settings.agencyTitle")}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="agency-name" className={labelCls}>{t("admin.settings.agencyName")}</label>
-              <input id="agency-name" value={general.agency_name} onChange={(e) => setGeneral((g) => ({ ...g, agency_name: e.target.value }))} className={inputCls} />
+        <div role="tabpanel" id={`settings-panel-${tab}`} aria-labelledby={`settings-tab-${tab}`} className="space-y-6">
+          {tab === "ai" && <AiProvidersCard />}
+          {tab === "billing" && <BillingCard />}
+          {tab === "meta" && <MetaWhatsAppCard />}
+          {tab === "integrations" && (
+            <>
+              <GoogleCalendarCard />
+              <CalendlyCard />
+            </>
+          )}
+          {tab === "support" && <SupportCard />}
+          {tab === "general" && (
+            <>
+          <section className="rounded-xl border border-slate-800 bg-slate-900 p-6 space-y-4" aria-labelledby="agency-title">
+            <h2 id="agency-title" className="text-sm font-bold text-white flex items-center gap-2">
+              <Shield className="size-4 text-emerald-400" aria-hidden /> {t("admin.settings.agencyTitle")}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="agency-name" className={labelCls}>{t("admin.settings.agencyName")}</label>
+                <input id="agency-name" value={general.agency_name} onChange={(e) => setGeneral((g) => ({ ...g, agency_name: e.target.value }))} className={inputCls} />
+              </div>
+              <div>
+                <label htmlFor="support-email" className={labelCls}>{t("admin.settings.supportEmail")}</label>
+                <input id="support-email" type="email" value={general.support_email} onChange={(e) => setGeneral((g) => ({ ...g, support_email: e.target.value }))} className={inputCls} />
+              </div>
             </div>
-            <div>
-              <label htmlFor="support-email" className={labelCls}>{t("admin.settings.supportEmail")}</label>
-              <input id="support-email" type="email" value={general.support_email} onChange={(e) => setGeneral((g) => ({ ...g, support_email: e.target.value }))} className={inputCls} />
-            </div>
-          </div>
-          {error && <p role="alert" className="text-xs text-red-300">{error}</p>}
-          <button
-            type="button"
-            onClick={saveGeneral}
-            disabled={saving}
-            className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-            {saved ? t("admin.settings.saved") : t("admin.settings.save")}
-          </button>
-        </section>
+            {error && <p role="alert" className="text-xs text-red-300">{error}</p>}
+            <button
+              type="button"
+              onClick={saveGeneral}
+              disabled={saving}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+              {saved ? t("admin.settings.saved") : t("admin.settings.save")}
+            </button>
+          </section>
 
-        <section className="rounded-xl border border-slate-800 bg-slate-900 p-6 space-y-2" aria-labelledby="admins-title">
-          <h2 id="admins-title" className="text-sm font-bold text-white flex items-center gap-2">
-            <Users className="size-4 text-emerald-400" aria-hidden /> {t("admin.settings.adminsTitle")}
-          </h2>
-          <p className="text-xs text-slate-400">{t("admin.settings.adminsBody")}</p>
-        </section>
+          <section className="rounded-xl border border-slate-800 bg-slate-900 p-6 space-y-2" aria-labelledby="admins-title">
+            <h2 id="admins-title" className="text-sm font-bold text-white flex items-center gap-2">
+              <Users className="size-4 text-emerald-400" aria-hidden /> {t("admin.settings.adminsTitle")}
+            </h2>
+            <p className="text-xs text-slate-400">{t("admin.settings.adminsBody")}</p>
+          </section>
 
-        <section className="rounded-xl border border-slate-800 bg-slate-900 p-6 opacity-60" aria-labelledby="notif-title">
-          <h2 id="notif-title" className="text-sm font-bold text-white flex items-center gap-2">
-            <Bell className="size-4 text-emerald-400" aria-hidden /> {t("admin.settings.notificationsTitle")}
-            <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[10px] font-medium text-slate-400">{t("admin.settings.comingSoon")}</span>
-          </h2>
-        </section>
+          <section className="rounded-xl border border-slate-800 bg-slate-900 p-6 opacity-60" aria-labelledby="notif-title">
+            <h2 id="notif-title" className="text-sm font-bold text-white flex items-center gap-2">
+              <Bell className="size-4 text-emerald-400" aria-hidden /> {t("admin.settings.notificationsTitle")}
+              <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[10px] font-medium text-slate-400">{t("admin.settings.comingSoon")}</span>
+            </h2>
+          </section>
+            </>
+          )}
+        </div>
       </div>
     </AdminShell>
   );
