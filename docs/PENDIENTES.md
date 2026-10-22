@@ -57,6 +57,8 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [x] **Bandeja: atención requerida y panel con pestañas** — traspaso de la IA/flujo que asigna y avisa (persona, equipo o disponibles), «Atención requerida» en el menú y pestaña «Atención», panel derecho con Atención + Contacto/CRM, sonido y avisos del escritorio, campos personalizados en Ajustes, embudo de ventas por defecto — 🤖 (2026-10-21, rama `feat/inbox-contact-panel`)
 - [ ] Avisos con Whasalia cerrado (web push con service worker) o por correo — 🤖 (si se pide)
 - [x] **Super admin**: solo entra por `/admin-panel/login` (el login normal la rechaza) y nunca ve el CRM de un cliente; «Entrar como cliente» en Panel de admin → Clientes (sesión de 1 h, sin rastro para el cliente) con registro interno en Panel de admin → Access log — 🤖 (2026-10-22, rama `feat/admin-impersonation`)
+- [x] **Notificaciones del super admin** (campanita del panel con sonido y aviso del escritorio; interruptores por evento en Ajustes → General): usuario/negocio nuevo, tickets, reclamos, pagos, tokens agotados/bajos, canal conectado — 🤖 (2026-10-22, rama `feat/admin-notifications`)
+- [ ] Notificaciones del super admin **por correo** a support@whasalia.com (pago fallido, reclamo, ticket…), cuando Resend esté configurado — 🤖
 - [ ] Borrar la tabla `portfolio_items` (el «Showcase Portfolio» de plantilla se eliminó el 2026-10-22) tras comprobar en producción que no tiene datos que guardar — 🤖
 
 ## 5. Precios: Free Forever + tokens de IA

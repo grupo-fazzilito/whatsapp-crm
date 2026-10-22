@@ -171,7 +171,8 @@
       "booking_status_changed": "Booking status changed",
       "lead_qualified": "Lead qualified (real estate)",
       "deal_stage_changed": "Deal moved to another stage",
-      "ping": "Test (ping)"
+      "ping": "Test (ping)",
+      "complaint_created": "Complaint filed"
     }
   }
 }

@@ -61,6 +61,67 @@
       "ended": "Fin",
       "active": "En curso",
       "none": "Todavía no hay accesos."
+    },
+    "notify": {
+      "title": "Notificaciones",
+      "empty": "Sin notificaciones todavía.",
+      "markAll": "Marcar todo como leído",
+      "unread": "{n} sin leer",
+      "settingsTitle": "Notificaciones",
+      "settingsBody": "Elige de qué quieres enterarte. Llegan a la campanita del panel (con sonido y aviso del escritorio si los activas).",
+      "saved": "Notificaciones guardadas",
+      "types": {
+        "user_signed_up": {
+          "title": "Nuevo usuario",
+          "body": "{name} · {email}",
+          "label": "Nuevo usuario registrado"
+        },
+        "workspace_created": {
+          "title": "Nuevo negocio",
+          "body": "{business}",
+          "label": "Nuevo negocio creado"
+        },
+        "ticket_created": {
+          "title": "Nuevo ticket #{number}",
+          "body": "{subject} · {business}",
+          "label": "Ticket de soporte nuevo"
+        },
+        "ticket_replied": {
+          "title": "El cliente respondió el ticket #{number}",
+          "body": "{subject} · {business}",
+          "label": "Respuesta del cliente en un ticket"
+        },
+        "complaint_created": {
+          "title": "Nuevo reclamo N.º {number}",
+          "body": "{name} · {email}",
+          "label": "Reclamo o queja en el libro de reclamaciones"
+        },
+        "payment_paid": {
+          "title": "Pago recibido",
+          "body": "{business} · {amount} · {tokens} tokens",
+          "label": "Pago recibido (compra de tokens)"
+        },
+        "payment_failed": {
+          "title": "Pago fallido",
+          "body": "{business} · {amount}",
+          "label": "Pago fallido o rechazado"
+        },
+        "tokens_depleted": {
+          "title": "Negocio sin tokens",
+          "body": "{business}",
+          "label": "Un negocio se quedó sin tokens"
+        },
+        "tokens_low": {
+          "title": "Saldo de tokens bajo",
+          "body": "{business} · quedan {balance}",
+          "label": "Saldo de tokens bajo"
+        },
+        "channel_connected": {
+          "title": "Canal conectado",
+          "body": "{business} conectó {channel}",
+          "label": "Un negocio conectó un canal"
+        }
+      }
     }
   }
 }

@@ -11,6 +11,7 @@ export const PLATFORM_ONLY_EVENTS = [
   'ticket.created',
   'ticket.replied',
   'ticket.status_changed',
+  'complaint.created',
   'payment.created',
   'payment.paid',
   'payment.failed',
@@ -29,7 +30,7 @@ export type PlatformEvent = (typeof PLATFORM_EVENTS)[number]
 /** Groups for the event picker: platform groups first, then the workspace ones. */
 export const PLATFORM_EVENT_GROUPS: { key: string; events: readonly string[] }[] = [
   { key: 'accounts', events: ['user.signed_up', 'workspace.created', 'member.added'] },
-  { key: 'support', events: ['ticket.created', 'ticket.replied', 'ticket.status_changed'] },
+  { key: 'support', events: ['ticket.created', 'ticket.replied', 'ticket.status_changed', 'complaint.created'] },
   { key: 'billing', events: ['payment.created', 'payment.paid', 'payment.failed', 'tokens.added', 'tokens.low', 'tokens.depleted'] },
   { key: 'channels', events: ['channel.connected', 'channel.disconnected', 'channel.removed'] },
   ...WEBHOOK_EVENT_GROUPS,
