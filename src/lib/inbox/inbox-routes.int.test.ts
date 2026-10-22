@@ -20,13 +20,11 @@ describe.skipIf(!pg)('inbox routes on PostgreSQL', async () => {
   const flowRuns = await import('@/app/api/flows/[id]/runs/route')
   const captures = await import('@/app/api/captures/route')
   const channels = await import('@/app/api/channels/route')
-  const portfolio = await import('@/app/api/admin/portfolio/route')
 
   type Made = Awaited<ReturnType<NonNullable<typeof pg>['workspace']>>
   let a: Made
   let a2: { userId: string } // second member of workspace a
   let b: Made
-  const portfolioIds: string[] = []
 
   function as(ws: Made, role: 'agent' | 'admin' = 'admin', userId = ws.userId) {
     vi.mocked(requireWorkspace).mockImplementation(async (min = 'agent') => {
@@ -48,7 +46,6 @@ describe.skipIf(!pg)('inbox routes on PostgreSQL', async () => {
     a2 = { userId: u.id }
   })
   afterAll(async () => {
-    await pg!.prisma.portfolio_items.deleteMany({ where: { id: { in: portfolioIds } } })
     await pg!.cleanup(a, b)
     await pg!.prisma.users.deleteMany({ where: { id: a2.userId } })
     await pg!.prisma.$disconnect()
@@ -180,23 +177,5 @@ describe.skipIf(!pg)('inbox routes on PostgreSQL', async () => {
     expect(body.channels.map((c: { name: string }) => c.name)).toContain('Web')
     for (const c of body.channels) expect(c.workspace_id).toBe(a.workspaceId)
     expect(body.features).toBeDefined()
-  })
-
-  it('admin portfolio: CRUD for platform admins only', async () => {
-    let res: Response = await portfolio.POST(json('POST', { title: 'Demo', metadata_tags: ['next'] }) as never)
-    const { item } = await res.json()
-    portfolioIds.push(item.id)
-    expect(item).toMatchObject({ title: 'Demo', description: null, metadata_tags: ['next'], project_links: {}, preview_media: [] })
-    res = await portfolio.PUT(json('PUT', { id: item.id, title: 'Demo 2' }) as never)
-    expect((await res.json()).item.title).toBe('Demo 2')
-    const list = await (await portfolio.GET()).json()
-    expect(list.db_fallback).toBe(false)
-    expect(list.items.some((i: { id: string }) => i.id === item.id)).toBe(true)
-    res = await portfolio.DELETE(new Request(`http://local/x?id=${item.id}`) as never)
-    expect(await res.json()).toEqual({ ok: true })
-    expect(await pg!.prisma.portfolio_items.count({ where: { id: item.id } })).toBe(0)
-
-    vi.mocked(isPlatformAdmin).mockResolvedValueOnce(false)
-    expect((await portfolio.GET()).status).toBe(401)
   })
 })

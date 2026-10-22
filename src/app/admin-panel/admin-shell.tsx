@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Shield, Users, BarChart2, Settings, LogOut,
-  Menu, X, Bell, ChevronRight, Building2, Coins, LifeBuoy, Webhook, BookOpen, Briefcase,
+  Menu, X, Bell, ChevronRight, Building2, Coins, LifeBuoy, Webhook, BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,6 @@ const NAV = [
   { href: "/admin-panel/support",  label: "Support",   icon: LifeBuoy   },
   { href: "/admin-panel/complaints", label: "Complaints", icon: BookOpen },
   { href: "/admin-panel/webhooks", label: "Webhooks",  icon: Webhook    },
-  { href: "/admin-panel/portfolio", label: "Portfolio", icon: Briefcase  },
   { href: "/admin-panel/settings", label: "Settings",  icon: Settings   },
 ];
 
