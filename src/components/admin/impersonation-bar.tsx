@@ -21,9 +21,10 @@ export function ImpersonationBar() {
       <button
         type="button"
         disabled={busy}
-        onClick={() => {
+        onClick={async () => {
           setBusy(true);
-          void stopImpersonating();
+          await stopImpersonating();
+          setBusy(false);
         }}
         className="rounded-md bg-amber-950 px-2.5 py-0.5 text-xs font-semibold text-amber-100 hover:bg-amber-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-950 disabled:opacity-60"
       >
