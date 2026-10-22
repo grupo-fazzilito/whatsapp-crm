@@ -56,7 +56,8 @@ export interface CustomField {
   user_id?: string | null;
   field_name: string;
   field_type: string;
-  field_options?: Record<string, unknown>;
+  /** 'select' fields: the allowed options. */
+  field_options?: unknown;
   created_at: string;
 }
 
@@ -110,6 +111,8 @@ export interface Conversation {
   team_id?: string | null;
   /** Last inbound customer message (waiting-time sort). */
   last_customer_message_at?: string | null;
+  /** Waiting for a person since (AI / flow handed it over; cleared when someone replies). */
+  needs_human_since?: string | null;
   /** Embedded by the inbox list query. */
   conversation_tags?: { id: string; tag_id: string }[];
   /** AI summary as JSON text (migration 040; see src/lib/ai/assist/core.ts). */

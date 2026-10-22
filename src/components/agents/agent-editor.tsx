@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useT } from '@/i18n/client';
@@ -44,6 +44,9 @@ function toDraft(a: AiAgent | null): AgentDraft {
     enabled: a.enabled,
     transfer_agent_ids: [...(a.transfer_agent_ids ?? [])],
     model: a.model ?? null,
+    handover_mode: a.handover_mode ?? 'auto',
+    handover_user_id: a.handover_user_id ?? null,
+    handover_team_id: a.handover_team_id ?? null,
   };
 }
 
@@ -57,6 +60,25 @@ export function AgentEditor({ agent, allAgents, readOnly, onClose, onSaved }: Pr
   const set = <K extends keyof AgentDraft>(k: K, v: AgentDraft[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const others = allAgents.filter((a) => a.id !== agent?.id);
   const isRouter = draft.skills.includes('router');
+  const [people, setPeople] = useState<{ teams: { id: string; name: string }[]; members: { user_id: string; name: string }[] }>({ teams: [], members: [] });
+
+  // Members and teams for "on handover, assign to…".
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/teams', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { teams?: { id: string; name: string }[]; members?: { user_id: string; full_name: string; email: string }[] } | null) => {
+        if (cancelled || !d) return;
+        setPeople({
+          teams: (d.teams ?? []).map((x) => ({ id: x.id, name: x.name })),
+          members: (d.members ?? []).map((m) => ({ user_id: m.user_id, name: m.full_name || m.email })),
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Skills that depend on a workspace module stay hidden when it's off.
   const skillVisible = (s: AgentSkill) =>
@@ -81,6 +103,9 @@ export function AgentEditor({ agent, allAgents, readOnly, onClose, onSaved }: Pr
       model: draft.model || null,
       // Drop ids of agents deleted meanwhile.
       transfer_agent_ids: draft.transfer_agent_ids.filter((id) => others.some((a) => a.id === id)),
+      handover_mode: draft.handover_mode,
+      handover_user_id: draft.handover_mode === 'member' ? draft.handover_user_id : null,
+      handover_team_id: draft.handover_mode === 'team' ? draft.handover_team_id : null,
     };
     if (!row.name) return;
     setSaving(true);
@@ -283,6 +308,44 @@ export function AgentEditor({ agent, allAgents, readOnly, onClose, onSaved }: Pr
               />
               <p className="text-xs text-muted-foreground">{t('agents.field.escalationHelp')}</p>
             </div>
+
+            {draft.skills.includes('handover') && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="ag-handover">{t('agents.field.handoverTo')}</Label>
+                <select
+                  id="ag-handover"
+                  className={selectClass}
+                  value={draft.handover_mode === 'member' ? `m:${draft.handover_user_id ?? ''}` : draft.handover_mode === 'team' ? `t:${draft.handover_team_id ?? ''}` : 'auto'}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v.startsWith('m:')) setDraft((d) => ({ ...d, handover_mode: 'member', handover_user_id: v.slice(2), handover_team_id: null }));
+                    else if (v.startsWith('t:')) setDraft((d) => ({ ...d, handover_mode: 'team', handover_team_id: v.slice(2), handover_user_id: null }));
+                    else setDraft((d) => ({ ...d, handover_mode: 'auto', handover_user_id: null, handover_team_id: null }));
+                  }}
+                >
+                  <option value="auto">{t('agents.field.handoverAuto')}</option>
+                  {people.teams.length > 0 && (
+                    <optgroup label={t('agents.field.handoverTeams')}>
+                      {people.teams.map((x) => (
+                        <option key={x.id} value={`t:${x.id}`}>
+                          {x.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {people.members.length > 0 && (
+                    <optgroup label={t('agents.field.handoverMembers')}>
+                      {people.members.map((m) => (
+                        <option key={m.user_id} value={`m:${m.user_id}`}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+                <p className="text-xs text-muted-foreground">{t('agents.field.handoverHelp')}</p>
+              </div>
+            )}
           </fieldset>
 
           <SheetFooter className="sticky bottom-0 flex-row justify-end gap-2 border-t border-border bg-popover">

@@ -18,7 +18,7 @@ const h = vi.hoisted(() => {
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/messaging/send', () => ({ sendMessage: h.sendMessage }))
 vi.mock('@/lib/billing/credits', () => ({ canSpend: h.canSpend, spend: h.spend }))
-vi.mock('@/lib/inbox/server', () => ({ autoAssignConversation: vi.fn(async () => {}) }))
+vi.mock('@/lib/inbox/server', () => ({ handOverConversation: vi.fn(async () => null) }))
 vi.mock('./llm', async (orig) => ({
   ...(await orig<typeof import('./llm')>()),
   completeJson: h.completeJson,

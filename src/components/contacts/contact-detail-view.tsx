@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { apiJson } from '@/lib/crm/api-client';
+import { useT } from '@/i18n/client';
+import { CustomFieldInput } from '@/components/crm/custom-field-input';
 import { toast } from 'sonner';
 import type { Contact, Tag, ContactTag, ContactNote, CustomField, ContactCustomValue, Deal } from '@/types';
 import {
@@ -46,6 +49,7 @@ export function ContactDetailView({
   contactId,
   onUpdated,
 }: ContactDetailViewProps) {
+  const t = useT();
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(false);
   const [copiedPhone, setCopiedPhone] = useState(false);
@@ -535,25 +539,23 @@ export function ContactDetailView({
                   </div>
                 ) : customFields.length === 0 ? (
                   <p className="text-sm text-slate-500 text-center py-8">
-                    No custom fields defined. Create them in Settings.
+                    {t('crm.customFields.none')}{' '}
+                    <Link href="/settings?tab=custom-fields" className="text-primary underline-offset-2 hover:underline">
+                      {t('crm.customFields.create')}
+                    </Link>
                   </p>
                 ) : (
                   <div className="space-y-3">
                     {customFields.map((field) => (
                       <div key={field.id} className="space-y-1.5">
-                        <Label className="text-slate-400 text-xs capitalize">
+                        <Label htmlFor={`cf-${field.id}`} className="text-slate-400 text-xs">
                           {field.field_name}
                         </Label>
-                        <Input
+                        <CustomFieldInput
+                          id={`cf-${field.id}`}
+                          field={field}
                           value={customValues[field.id] ?? ''}
-                          onChange={(e) =>
-                            setCustomValues((prev) => ({
-                              ...prev,
-                              [field.id]: e.target.value,
-                            }))
-                          }
-                          placeholder={`Enter ${field.field_name}...`}
-                          className="bg-slate-800 border-slate-700 text-white h-8 text-sm placeholder:text-slate-500"
+                          onChange={(v) => setCustomValues((prev) => ({ ...prev, [field.id]: v }))}
                         />
                       </div>
                     ))}
@@ -568,7 +570,7 @@ export function ContactDetailView({
                       ) : (
                         <Save className="size-3.5" />
                       )}
-                      Save Custom Fields
+                      {t('crm.customFields.save')}
                     </Button>
                   </div>
                 )}

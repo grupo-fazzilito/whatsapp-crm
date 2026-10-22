@@ -31,7 +31,12 @@ model ai_agents {
   description         String?
   transfer_agent_ids  String[]        @default([]) @db.Uuid
   training_context    String?
+  handover_mode       String          @default("auto")
+  handover_user_id    String?         @db.Uuid
+  handover_team_id    String?         @db.Uuid
   users               users?          @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  handover_user       users?          @relation("ai_agents_handover_user", fields: [handover_user_id], references: [id], onUpdate: NoAction)
+  handover_team       teams?          @relation(fields: [handover_team_id], references: [id], onUpdate: NoAction)
   workspaces          workspaces      @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   ai_chat_logs        ai_chat_logs[]
   ai_usage            ai_usage[]
@@ -850,6 +855,7 @@ model conversations {
   channel_id                               String?               @db.Uuid
   ai_state                                 Json                  @default("{}")
   ai_paused_until                          DateTime?             @db.Timestamptz(6)
+  needs_human_since                        DateTime?             @db.Timestamptz(6)
   ai_agent_id                              String?               @db.Uuid
   priority                                 String                @default("normal")
   resolved_at                              DateTime?             @db.Timestamptz(6)
@@ -888,6 +894,7 @@ model conversations {
 
   whatsapp_calls whatsapp_calls[]
 
+  @@index([workspace_id], map: "idx_conversations_needs_human", where: raw("(needs_human_since IS NOT NULL)"))
   @@index([workspace_id, assigned_agent_id], map: "idx_conversations_assigned")
   @@index([channel_id], map: "idx_conversations_channel")
   @@index([contact_id], map: "idx_conversations_contact_id")
@@ -1959,6 +1966,7 @@ model teams {
   real_estate_routing_rules real_estate_routing_rules[]
   team_members              team_members[]
   workspaces                workspaces                  @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  ai_agents_handover        ai_agents[]
 }
 
 model users {
@@ -2032,6 +2040,7 @@ model users {
   calendly_connections                                        calendly_connections[]
   comment_rules                                               comment_rules[]
   whatsapp_calls                                              whatsapp_calls[]
+  ai_agents_handover                                          ai_agents[]                     @relation("ai_agents_handover_user")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

@@ -5,28 +5,43 @@ import { useRealtimeChanges } from "@/lib/realtime/client";
 import { useWorkspace } from "@/hooks/use-workspace";
 import type { Conversation } from "@/types";
 
+interface Row {
+  unread: number;
+  /** Open and waiting for a person (AI / flow handed it over). */
+  attention: boolean;
+}
+
+type CountRow = Pick<Conversation, "id" | "status" | "unread_count" | "needs_human_since">;
+
+const rowOf = (c: Partial<CountRow>): Row => ({
+  unread: c.unread_count ?? 0,
+  attention: !!c.needs_human_since && c.status !== "closed",
+});
+
 /**
- * Count of conversations with at least one unread inbound message for
- * the current user. Used by the sidebar to surface a green dot on the
- * Inbox nav entry when the user is elsewhere in the app.
+ * Inbox counters for the sidebar: conversations with unread inbound
+ * messages, and conversations waiting for a person ("Atención requerida").
  *
  * Registers its own listener on the shared realtime stream, independent
  * of the inbox page's, so both can coexist without sharing state.
  */
-export function useTotalUnread(): number {
-  const [total, setTotal] = useState(0);
+export function useInboxCounts(): { unread: number; attention: number } {
+  const [counts, setCounts] = useState({ unread: 0, attention: 0 });
 
-  // Keep a live local mirror of {id: unread_count} so INSERT/UPDATE/DELETE
-  // events can adjust the total in O(1) without refetching.
-  const countsRef = useRef<Map<string, number>>(new Map());
+  // Live local mirror by conversation id, so INSERT/UPDATE/DELETE events
+  // adjust the totals without refetching.
+  const rowsRef = useRef<Map<string, Row>>(new Map());
   const { workspace } = useWorkspace();
   const workspaceId = workspace?.id;
 
   const recompute = () => {
-    // Cheap: conversations per workspace stay small.
-    let sum = 0;
-    for (const n of countsRef.current.values()) if (n > 0) sum += 1;
-    setTotal(sum);
+    let unread = 0;
+    let attention = 0;
+    for (const r of rowsRef.current.values()) {
+      if (r.unread > 0) unread += 1;
+      if (r.attention) attention += 1;
+    }
+    setCounts({ unread, attention });
   };
 
   useEffect(() => {
@@ -38,17 +53,10 @@ export function useTotalUnread(): number {
       try {
         const res = await fetch("/api/inbox/unread", { cache: "no-store" });
         if (!res.ok) return;
-        const data = (await res.json()) as { conversations?: { id: string; unread_count: number | null }[] };
+        const data = (await res.json()) as { conversations?: CountRow[] };
         if (cancelled || !data.conversations) return;
-        const map = new Map<string, number>();
-        let sum = 0;
-        for (const row of data.conversations) {
-          const n = row.unread_count ?? 0;
-          map.set(row.id, n);
-          if (n > 0) sum += 1;
-        }
-        countsRef.current = map;
-        setTotal(sum);
+        rowsRef.current = new Map(data.conversations.map((c) => [c.id, rowOf(c)]));
+        recompute();
       } catch {
         // offline — realtime updates and the next mount catch up
       }
@@ -63,15 +71,20 @@ export function useTotalUnread(): number {
     workspaceId,
     tables: ["conversations"],
     onChange: (change) => {
-      const map = countsRef.current;
+      const map = rowsRef.current;
       if (change.eventType === "DELETE") {
         if (change.old.id) map.delete(change.old.id);
       } else {
-        map.set(change.new.id, change.new.unread_count ?? 0);
+        map.set(change.new.id, rowOf(change.new));
       }
       recompute();
     },
   });
 
-  return total;
+  return counts;
+}
+
+/** Conversations with at least one unread inbound message. */
+export function useTotalUnread(): number {
+  return useInboxCounts().unread;
 }

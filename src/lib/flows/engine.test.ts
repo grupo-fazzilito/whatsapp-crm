@@ -1,4 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+// The handoff node notifies through the inbox (server-only, DB).
+vi.mock("@/lib/inbox/server", () => ({ handOverConversation: vi.fn(async () => null) }));
 import {
   matchReplyId,
   matchesKeywordTrigger,

@@ -146,7 +146,28 @@
           "paid": "Pagado",
           "refunded": "Reembolsado"
         }
-      }
+      },
+      "tabs": {
+        "label": "Detalles del contacto",
+        "contact": "Contacto",
+        "crm": "CRM"
+      },
+      "edit": "Editar",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "saved": "Contacto actualizado",
+      "name": "Nombre",
+      "phone": "Teléfono",
+      "email": "Correo",
+      "company": "Empresa",
+      "noData": "Sin datos de contacto",
+      "addTag": "Añadir etiqueta",
+      "removeTag": "Quitar etiqueta {name}",
+      "noMoreTags": "No hay más etiquetas",
+      "customFields": "Campos personalizados",
+      "saveFields": "Guardar campos",
+      "fieldsSaved": "Campos guardados",
+      "details": "Detalles"
     },
     "templates": {
       "title": "Enviar plantilla",

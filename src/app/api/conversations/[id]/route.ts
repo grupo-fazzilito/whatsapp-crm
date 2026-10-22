@@ -64,6 +64,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (body.status === 'closed' && current.status !== 'closed') {
       update.resolved_at = new Date().toISOString()
       update.resolved_by = user.id
+      // Resolved: nobody is waiting for a person any more.
+      update.needs_human_since = null
     } else if (body.status !== 'closed' && current.status === 'closed') {
       update.resolved_at = null
       update.resolved_by = null
@@ -83,6 +85,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       if (!('assigned_agent_id' in body)) update.assigned_agent_id = user.id
     } else if (body.ai_paused_until === 'resume') {
       update.ai_paused_until = null
+      // Back to the AI: it no longer waits for a person.
+      update.needs_human_since = null
     } else {
       return NextResponse.json({ error: "ai_paused_until must be 'pause' or 'resume'" }, { status: 400 })
     }

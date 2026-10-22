@@ -25,9 +25,9 @@ export async function listInboxConversations(db: TenantDb, opts: { id?: string }
   return rows.map(({ contacts, ...rest }) => ({ ...rest, contact: contacts ?? null }))
 }
 
-/** {id, unread_count} of every conversation (sidebar unread dot). */
+/** {id, unread_count, status, needs_human_since} of every conversation (sidebar counters). */
 export async function listUnreadCounts(db: TenantDb) {
-  return db.conversations.findMany({ select: { id: true, unread_count: true } })
+  return db.conversations.findMany({ select: { id: true, unread_count: true, status: true, needs_human_since: true } })
 }
 
 /** Whole thread, oldest first. */

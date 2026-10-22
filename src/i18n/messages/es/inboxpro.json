@@ -10,7 +10,8 @@
       "all": "Todas",
       "mine": "Mías",
       "unassigned": "Sin asignar",
-      "resolved": "Resueltas"
+      "resolved": "Resueltas",
+      "attention": "Atención"
     },
     "filters": {
       "allStatuses": "Abiertas y pendientes",
@@ -103,7 +104,9 @@
       "callAnswered": "Llamada de WhatsApp atendida por {actor} · {duration}",
       "callCompleted": "Llamada de WhatsApp · {duration}",
       "callMissed": "Llamada de WhatsApp perdida",
-      "callRejected": "Llamada de WhatsApp rechazada"
+      "callRejected": "Llamada de WhatsApp rechazada",
+      "aiHandover": "La IA pasó la conversación a una persona",
+      "aiHandoverTo": "La IA pasó la conversación a {to}"
     },
     "notes": {
       "label": "Nota interna — solo visible para el equipo",
@@ -156,7 +159,12 @@
       "unread": "{n} sin leer",
       "unreadItem": "Sin leer",
       "empty": "No tienes notificaciones",
-      "markAll": "Marcar todas como leídas"
+      "markAll": "Marcar todas como leídas",
+      "soundOn": "Sonido activado",
+      "soundOff": "Sonido apagado",
+      "enableDesktop": "Activar avisos en el escritorio",
+      "desktopOn": "Avisos del escritorio activados",
+      "desktopBlocked": "Avisos del escritorio bloqueados en el navegador"
     },
     "availability": {
       "label": "Disponible",
@@ -270,6 +278,17 @@
         "name_required": "El nombre es obligatorio",
         "name_taken": "Ya existe un equipo con ese nombre"
       }
+    },
+    "attention": {
+      "nav": "Atención requerida",
+      "row": "Espera atención humana",
+      "title": "Atención",
+      "badge": "Atención requerida",
+      "assignee": "Atiende",
+      "nobody": "Sin asignar",
+      "team": "Equipo: {team}",
+      "aiPaused": "IA en pausa hasta las {time}: atiende una persona",
+      "aiActive": "{name} responde automáticamente"
     }
   }
 }

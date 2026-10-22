@@ -13,6 +13,7 @@ export const EVENT_TYPES = [
   'tag_added',
   'tag_removed',
   'call',
+  'ai_handover',
 ] as const
 export type ConversationEventType = (typeof EVENT_TYPES)[number]
 
@@ -53,7 +54,7 @@ export interface QuickReply {
   updated_at: string
 }
 
-export type NotificationType = 'mention' | 'assigned' | 'transferred' | 'system' | 'billing'
+export type NotificationType = 'mention' | 'assigned' | 'transferred' | 'system' | 'billing' | 'handover'
 
 export interface AppNotification {
   id: string

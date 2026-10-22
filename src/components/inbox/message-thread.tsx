@@ -19,18 +19,15 @@ import type {
 import {
   MessageSquare,
   ChevronDown,
-  UserPlus,
-  Check,
   Clock,
   ArrowLeft,
   RefreshCw,
   Sparkles,
   Bot,
   Hand,
-  PauseCircle,
+  PanelRight,
   CheckCircle2,
   RotateCcw,
-  ArrowRightLeft,
   MessagesSquare,
   Paperclip,
   NotebookText,
@@ -43,7 +40,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { channelCapabilities, attachmentKind } from "@/lib/channels/capabilities";
@@ -65,8 +61,6 @@ import { EventDivider } from "./event-divider";
 import { PriorityPicker } from "./priority";
 import { ConversationTags, type ConversationTagLink } from "./conversation-tags";
 import { ConversationFiles } from "./conversation-files";
-import { TransferDialog } from "./transfer-dialog";
-import type { TeamMemberInfo } from "./use-inbox-extras";
 
 interface ReplyDraft {
   id: string;
@@ -94,6 +88,7 @@ export type ConversationPatch = Partial<
     | "resolved_by"
     | "team_id"
     | "conversation_tags"
+    | "needs_human_since"
   >
 > & {
   /** AI agent owning the conversation (overrides the channel's). */
@@ -101,7 +96,7 @@ export type ConversationPatch = Partial<
 };
 
 /** Patch with only the columns a PATCH/transfer response row carries. */
-function patchFromRow(row: Conversation): ConversationPatch {
+export function patchFromRow(row: Conversation): ConversationPatch {
   return {
     status: row.status,
     assigned_agent_id: row.assigned_agent_id ?? undefined,
@@ -112,6 +107,7 @@ function patchFromRow(row: Conversation): ConversationPatch {
     resolved_at: row.resolved_at ?? null,
     resolved_by: row.resolved_by ?? null,
     team_id: row.team_id ?? null,
+    needs_human_since: row.needs_human_since ?? null,
   };
 }
 
@@ -164,9 +160,9 @@ interface MessageThreadProps {
   tagsById?: Map<string, Tag>;
   onTagCreated?: (tag: Tag) => void;
   teams?: Team[];
-  /** Members with availability (transfer dialog). */
-  teamMembers?: TeamMemberInfo[];
   quickReplies?: QuickReply[];
+  /** Opens the contact panel (small screens, where it isn't shown on the side). */
+  onOpenDetails?: () => void;
 }
 
 function groupByDate(items: TimelineItem[]) {
@@ -197,7 +193,6 @@ const EMPTY_MEMBERS: Profile[] = [];
 const EMPTY_TAGS: Tag[] = [];
 const EMPTY_TAG_MAP = new Map<string, Tag>();
 const EMPTY_TEAMS: Team[] = [];
-const EMPTY_TEAM_MEMBERS: TeamMemberInfo[] = [];
 const EMPTY_QR: QuickReply[] = [];
 const EMPTY_LINKS: ConversationTagLink[] = [];
 
@@ -245,8 +240,8 @@ export function MessageThread({
   tagsById = EMPTY_TAG_MAP,
   onTagCreated,
   teams = EMPTY_TEAMS,
-  teamMembers = EMPTY_TEAM_MEMBERS,
   quickReplies = EMPTY_QR,
+  onOpenDetails,
 }: MessageThreadProps) {
   const { user, profile } = useAuth();
   const { workspace, can } = useWorkspace();
@@ -290,7 +285,6 @@ export function MessageThread({
   const [replyTo, setReplyTo] = useState<ReplyDraft | null>(null);
   const [events, setEvents] = useState<ConversationEvent[]>([]);
   const [view, setView] = useState<"chat" | "files">("chat");
-  const [transferOpen, setTransferOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [showSimulator, setShowSimulator] = useState(false);
   const [simulatedText, setSimulatedText] = useState("");
@@ -807,19 +801,7 @@ export function MessageThread({
     [conversation, onNewMessage, postSend, t],
   );
 
-  const handleTransferred = useCallback(
-    (row: Conversation) => {
-      onConversationPatch(row.id, patchFromRow(row));
-    },
-    [onConversationPatch],
-  );
 
-  const handleAssignChange = useCallback(
-    (agentId: string | null) => {
-      void patchConversation({ assigned_agent_id: agentId });
-    },
-    [patchConversation],
-  );
 
   const handleAiToggle = useCallback(
     async (action: "pause" | "resume") => {
@@ -835,17 +817,6 @@ export function MessageThread({
     [patchConversation, t],
   );
 
-  const handleAiAgentChange = useCallback(
-    async (agentId: string | null) => {
-      setAiBusy(true);
-      const ok = await patchConversation({ ai_agent_id: agentId });
-      setAiBusy(false);
-      if (!ok) return;
-      const name = agentId ? agentsById.get(agentId)?.name : null;
-      toast.success(name ? t("routing.inbox.changed", { name }) : t("routing.inbox.cleared"));
-    },
-    [patchConversation, agentsById, t],
-  );
 
   const handleOpenTemplates = useCallback(() => {
     setTemplateModalOpen(true);
@@ -1078,22 +1049,14 @@ export function MessageThread({
   const currentStatus = STATUS_OPTIONS.find(
     (s) => s.value === conversation.status
   );
-  const assignedAgentId = conversation.assigned_agent_id ?? null;
-  const currentAssignee = members.find((p) => p.user_id === assignedAgentId);
-  const assignLabel = assignedAgentId
-    ? (currentAssignee?.full_name || t("inbox.thread.assigned"))
-    : t("inbox.thread.assign");
 
   // AI agent handling the conversation: its own (menu choice, transfer,
   // flow, manual) or else the channel's; and whether a human has taken
   // over (ai_paused_until in the future).
   const conversationAgentId = conversation.ai_agent_id ?? null;
   const effectiveAgentId = conversationAgentId ?? channel?.ai_agent_id ?? null;
-  const channelAgent = channel?.ai_agent_id ? agentsById.get(channel.ai_agent_id) : undefined;
   const currentAgent = effectiveAgentId ? agentsById.get(effectiveAgentId) : undefined;
   const hasAi = !!effectiveAgentId;
-  const selectableAgents = [...agentsById.values()].filter((a) => a.enabled !== false);
-  const showAiBar = hasAi || selectableAgents.length > 0;
   const pausedUntil = conversation.ai_paused_until ? new Date(conversation.ai_paused_until) : null;
   const aiPaused = !!pausedUntil && pausedUntil.getTime() > now;
   const agentName = currentAgent?.name ?? t("inbox.bubble.aiAgent");
@@ -1112,7 +1075,7 @@ export function MessageThread({
       {/* Header — solid bg-slate-900 sits on top of the doodle so the
           name/avatar/dropdowns stay legible. */}
       <div className="flex items-center justify-between gap-2 border-b border-slate-800 bg-slate-900 px-3 py-3 sm:px-4">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <div className="flex min-w-0 max-w-[55%] shrink-0 items-center gap-2 sm:gap-3">
           {/* Back-to-list button — mobile only. Hidden on lg+ where the
               conversation list is always visible next to the thread. */}
           {onBack && (
@@ -1128,7 +1091,7 @@ export function MessageThread({
           <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-700 text-sm font-medium text-white">
             {displayName.charAt(0).toUpperCase()}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-24">
             <h2 className="truncate text-sm font-semibold text-white">{displayName}</h2>
             <p className="flex min-w-0 items-center gap-2 text-xs text-slate-400">
               <ChannelBadge channel={channel} className="max-w-full shrink-0" />
@@ -1153,7 +1116,7 @@ export function MessageThread({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1">
           {/* Manual refresh — forces a refetch of the messages + the
               conversation list (the parent bumps its resyncToken). Useful
               when realtime missed an event or the agent just wants to be
@@ -1222,62 +1185,6 @@ export function MessageThread({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Assign dropdown — scoped to active workspace members */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className={cn(
-                "inline-flex items-center justify-center h-7 gap-1 px-2 text-xs rounded-md hover:bg-slate-800",
-                assignedAgentId ? "text-primary" : "text-slate-400"
-              )}
-              aria-label={t("inbox.thread.assign")}
-            >
-              <UserPlus className="h-3 w-3" />
-              <span className="hidden max-w-28 truncate sm:inline">{assignLabel}</span>
-              <ChevronDown className="h-3 w-3" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="border-slate-700 bg-slate-800"
-            >
-              {members.length === 0 ? (
-                <DropdownMenuItem disabled className="text-sm text-slate-500">
-                  {t("inbox.thread.noTeammates")}
-                </DropdownMenuItem>
-              ) : (
-                members.map((p) => {
-                  const isSelected = p.user_id === assignedAgentId;
-                  return (
-                    <DropdownMenuItem
-                      key={p.id}
-                      onClick={() => handleAssignChange(p.user_id)}
-                      className={cn(
-                        "text-sm",
-                        isSelected ? "text-primary" : "text-slate-300"
-                      )}
-                    >
-                      <span className="flex-1">
-                        {p.full_name || p.email}
-                        {p.user_id === user?.id ? ` ${t("inbox.thread.me")}` : ""}
-                      </span>
-                      {isSelected && <Check className="ml-2 h-3 w-3" />}
-                    </DropdownMenuItem>
-                  );
-                })
-              )}
-              {assignedAgentId && (
-                <>
-                  <DropdownMenuSeparator className="bg-slate-700" />
-                  <DropdownMenuItem
-                    onClick={() => handleAssignChange(null)}
-                    className="text-sm text-slate-400"
-                  >
-                    {t("inbox.thread.unassign")}
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
           {/* AI summary of the conversation (AI assist) */}
           <button
             type="button"
@@ -1290,17 +1197,37 @@ export function MessageThread({
             <span className="hidden 2xl:inline">{t("aiassist.summary.button")}</span>
           </button>
 
-          {/* Transfer to a member / team with a reason */}
-          <button
-            type="button"
-            onClick={() => setTransferOpen(true)}
-            aria-label={t("inboxpro.header.transfer")}
-            title={t("inboxpro.header.transfer")}
-            className="inline-flex h-7 items-center justify-center gap-1 rounded-md px-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white"
-          >
-            <ArrowRightLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="hidden 2xl:inline">{t("inboxpro.header.transfer")}</span>
-          </button>
+          {/* Take over from the AI / give it back — kept up here, always in sight. */}
+          {hasAi && (
+            <button
+              type="button"
+              disabled={aiBusy}
+              onClick={() => handleAiToggle(aiPaused ? "resume" : "pause")}
+              title={aiPaused && pausedUntil ? t("inbox.thread.ai.pausedUntil", { name: agentName, time: format(pausedUntil, "HH:mm", { locale: dateLocale }) }) : t("inbox.thread.ai.handledBy", { name: agentName })}
+              className={cn(
+                "inline-flex h-7 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md border px-2 text-xs font-medium transition-colors disabled:opacity-60",
+                aiPaused
+                  ? "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
+                  : "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20",
+              )}
+            >
+              {aiPaused ? <Bot className="h-3.5 w-3.5" aria-hidden="true" /> : <Hand className="h-3.5 w-3.5" aria-hidden="true" />}
+              <span>{aiPaused ? t("inbox.thread.ai.giveBack") : t("inbox.thread.ai.take")}</span>
+            </button>
+          )}
+
+          {/* Contact / CRM / attention panel (on wide screens it's always open on the right) */}
+          {onOpenDetails && (
+            <button
+              type="button"
+              onClick={onOpenDetails}
+              aria-label={t("inbox.sidebar.details")}
+              title={t("inbox.sidebar.details")}
+              className="inline-flex h-7 items-center justify-center gap-1 rounded-md px-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white lg:hidden"
+            >
+              <PanelRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          )}
 
           {/* Resolve / reopen */}
           <button
@@ -1374,98 +1301,6 @@ export function MessageThread({
           })}
         </div>
       </div>
-
-      {/* AI control bar — who handles the conversation (agent picker) and
-          the take-over / give-back toggle. */}
-      {showAiBar && (
-        <div
-          className={cn(
-            "flex shrink-0 items-center justify-between gap-2 border-b px-3 py-1.5 sm:px-4",
-            aiPaused
-              ? "border-amber-500/20 bg-amber-500/10"
-              : "border-primary/20 bg-primary/10",
-          )}
-        >
-          <div className="flex min-w-0 items-center gap-1.5 text-xs">
-            {aiPaused ? (
-              <PauseCircle className="h-3.5 w-3.5 shrink-0 text-amber-400" />
-            ) : (
-              <Bot className="h-3.5 w-3.5 shrink-0 text-primary" />
-            )}
-            <span className={cn("truncate", aiPaused ? "text-amber-300" : "text-slate-200")}>
-              {!hasAi
-                ? t("routing.inbox.noAiConfigured")
-                : aiPaused && pausedUntil
-                  ? t("inbox.thread.ai.pausedUntil", {
-                      name: agentName,
-                      time: format(pausedUntil, "HH:mm", { locale: dateLocale }),
-                    })
-                  : t("inbox.thread.ai.handledBy", { name: agentName })}
-            </span>
-            {hasAi && !conversationAgentId && (
-              <span className="hidden shrink-0 rounded bg-slate-800/70 px-1 text-[10px] text-slate-400 sm:inline">
-                {t("routing.inbox.fromChannel")}
-              </span>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                disabled={aiBusy}
-                aria-label={t("routing.inbox.change")}
-                title={t("routing.inbox.change")}
-                className="inline-flex h-6 shrink-0 items-center gap-0.5 rounded-md px-1.5 text-[11px] text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-60"
-              >
-                <span className="hidden sm:inline">{t("routing.inbox.change")}</span>
-                <ChevronDown className="h-3 w-3" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="border-slate-700 bg-slate-800">
-                {selectableAgents.map((a) => {
-                  const selected = a.id === conversationAgentId;
-                  return (
-                    <DropdownMenuItem
-                      key={a.id}
-                      onClick={() => void handleAiAgentChange(a.id)}
-                      className={cn("text-sm", selected ? "text-primary" : "text-slate-300")}
-                    >
-                      <Bot className="h-3.5 w-3.5" />
-                      <span className="flex-1">{a.name}</span>
-                      {selected && <Check className="ml-2 h-3 w-3" />}
-                    </DropdownMenuItem>
-                  );
-                })}
-                <DropdownMenuSeparator className="bg-slate-700" />
-                <DropdownMenuItem
-                  onClick={() => void handleAiAgentChange(null)}
-                  className={cn("text-sm", !conversationAgentId ? "text-primary" : "text-slate-400")}
-                >
-                  <span className="flex-1">
-                    {channelAgent
-                      ? t("routing.inbox.noneChannel", { name: channelAgent.name })
-                      : t("routing.inbox.none")}
-                  </span>
-                  {!conversationAgentId && <Check className="ml-2 h-3 w-3" />}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          {hasAi && (
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={aiBusy}
-            onClick={() => handleAiToggle(aiPaused ? "resume" : "pause")}
-            className={cn(
-              "h-7 shrink-0 gap-1 px-2 text-xs",
-              aiPaused
-                ? "text-amber-300 hover:bg-amber-500/20 hover:text-amber-200"
-                : "text-primary hover:bg-primary/20",
-            )}
-          >
-            {aiPaused ? <Bot className="h-3.5 w-3.5" /> : <Hand className="h-3.5 w-3.5" />}
-            {aiPaused ? t("inbox.thread.ai.giveBack") : t("inbox.thread.ai.take")}
-          </Button>
-          )}
-        </div>
-      )}
 
       {/* Customer Message Simulator Bar */}
       {showSimulator && (
@@ -1673,16 +1508,6 @@ export function MessageThread({
         canManageSettings={can("admin")}
       />
 
-      <TransferDialog
-        open={transferOpen}
-        onOpenChange={setTransferOpen}
-        conversationId={conversation.id}
-        members={teamMembers}
-        teams={teams}
-        currentUserId={user?.id ?? null}
-        currentAssigneeId={assignedAgentId}
-        onTransferred={handleTransferred}
-      />
 
       {capabilities.templates && (
         <TemplatePicker

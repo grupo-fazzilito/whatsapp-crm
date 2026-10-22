@@ -72,7 +72,7 @@ describe.skipIf(!pg)('browser data routes on PostgreSQL', async () => {
     expect(await q.markConversationRead(a.db, otherConvId)).toBe(false)
     expect((await prisma.conversations.findUniqueOrThrow({ where: { id: otherConvId } })).unread_count).toBe(5)
     expect(await q.markConversationRead(a.db, convId)).toBe(true)
-    expect(await q.listUnreadCounts(a.db)).toEqual([{ id: convId, unread_count: 0 }])
+    expect(await q.listUnreadCounts(a.db)).toMatchObject([{ id: convId, unread_count: 0, status: "open", needs_human_since: null }])
   })
 
   it('only failed messages can be deleted', async () => {

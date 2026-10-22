@@ -46,7 +46,12 @@
       "escalationPlaceholder": "Escribe y presiona Enter o coma",
       "escalationHelp": "Si el cliente escribe alguna, el agente deja de responder y avisa a tu equipo.",
       "training_context": "Contexto de entrenamiento",
-      "description": "Qué atiende"
+      "description": "Qué atiende",
+      "handoverTo": "Al pasar a una persona, asignar a…",
+      "handoverAuto": "Reparto automático (o avisar a todos los disponibles)",
+      "handoverTeams": "Equipos",
+      "handoverMembers": "Personas",
+      "handoverHelp": "Quien quede asignado recibe una notificación. Si no hay nadie asignado, se avisa a todos los disponibles y el chat aparece en «Atención requerida»."
     },
     "tone": {
       "friendly": "Amigable",

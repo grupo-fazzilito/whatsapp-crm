@@ -12,12 +12,26 @@ export async function listAgentsWithChannels(db: TenantDb) {
   return { agents, channels }
 }
 
-/** Keeps only transfer targets that are agents of this workspace. */
+/**
+ * Keeps only transfer targets that are agents of this workspace, and a
+ * handover member / team that belongs to it (else it falls back to auto).
+ */
 async function withValidTransfers(db: TenantDb, input: AgentInput, selfId?: string): Promise<AgentInput> {
-  if (!input.transfer_agent_ids?.length) return input
-  const rows = await db.ai_agents.findMany({ select: { id: true }, where: { id: { in: input.transfer_agent_ids } } })
-  const ok = new Set(rows.map((r) => r.id))
-  return { ...input, transfer_agent_ids: input.transfer_agent_ids.filter((id) => ok.has(id) && id !== selfId) }
+  let out = input
+  if (input.transfer_agent_ids?.length) {
+    const rows = await db.ai_agents.findMany({ select: { id: true }, where: { id: { in: input.transfer_agent_ids } } })
+    const ok = new Set(rows.map((r) => r.id))
+    out = { ...out, transfer_agent_ids: input.transfer_agent_ids.filter((id) => ok.has(id) && id !== selfId) }
+  }
+  if (out.handover_user_id && !(await db.workspace_members.findFirst({ where: { user_id: out.handover_user_id, status: 'active' }, select: { id: true } }))) {
+    out = { ...out, handover_user_id: null }
+  }
+  if (out.handover_team_id && !(await db.teams.findFirst({ where: { id: out.handover_team_id }, select: { id: true } }))) {
+    out = { ...out, handover_team_id: null }
+  }
+  if (out.handover_mode === 'member' && 'handover_user_id' in out && !out.handover_user_id) out = { ...out, handover_mode: 'auto' }
+  if (out.handover_mode === 'team' && 'handover_team_id' in out && !out.handover_team_id) out = { ...out, handover_mode: 'auto' }
+  return out
 }
 
 export async function createAgent(db: TenantDb, workspaceId: string, userId: string, input: AgentInput) {

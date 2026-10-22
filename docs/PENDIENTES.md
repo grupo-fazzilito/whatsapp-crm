@@ -54,6 +54,8 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Confirmar la tarifa de Meta por llamadas entrantes (página de precios de Calling API) — 🧑/🤖
 - [ ] Llamadas fase 2: que las atienda el agente de IA (voz en tiempo real; servicio de audio aparte y tokens por minuto) — 🤖 (futuro)
 - [ ] Llamadas salientes (pedir permiso al cliente y llamar desde la bandeja) — 🤖 (futuro)
+- [x] **Bandeja: atención requerida y panel con pestañas** — traspaso de la IA/flujo que asigna y avisa (persona, equipo o disponibles), «Atención requerida» en el menú y pestaña «Atención», panel derecho con Atención + Contacto/CRM, sonido y avisos del escritorio, campos personalizados en Ajustes, embudo de ventas por defecto — 🤖 (2026-10-21, rama `feat/inbox-contact-panel`)
+- [ ] Avisos con Whasalia cerrado (web push con service worker) o por correo — 🤖 (si se pide)
 
 ## 5. Precios: Free Forever + tokens de IA
 

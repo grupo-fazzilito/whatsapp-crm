@@ -21,6 +21,10 @@ export interface AiAgentRow {
   enabled: boolean
   /** Agents this one may hand the conversation to (empty = none, or any for routers). */
   transfer_agent_ids: string[]
+  /** Who gets the conversation when this agent hands it to a person. */
+  handover_mode?: 'auto' | 'member' | 'team' | string
+  handover_user_id?: string | null
+  handover_team_id?: string | null
 }
 
 export type AgentSkill = 'faq' | 'bookings' | 'catalog' | 'orders' | 'handover' | 'router'

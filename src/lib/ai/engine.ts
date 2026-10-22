@@ -19,7 +19,7 @@ import { addToCart, cartItems, getOpenCart, setLineQuantity } from '@/lib/orders
 import { ordersEnabled, productAction, sendCartSummary, sendProductCarousel, startCheckout, type CommerceCtx } from '@/lib/orders/chat'
 import { texts } from '@/lib/orders/texts'
 import type { AiAgentRow, BookingDraft, ConversationAiState } from './types'
-import { autoAssignConversation } from '@/lib/inbox/server'
+import { handOverConversation, type HandoverTarget } from '@/lib/inbox/server'
 import { qualifiesLeads } from '@/lib/real-estate/leads/prompt-section'
 import { applyAiCapture, applyAiLeadProfile, leadForPrompt } from '@/lib/real-estate/leads/ai'
 import { onViewingConfirmed } from '@/lib/real-estate/leads/visits'
@@ -137,11 +137,15 @@ async function setState(workspaceId: string, conversationId: string, patch: Reco
   await quiet(tenantDb(workspaceId).conversations.updateMany({ where: { id: conversationId }, data: patch as Prisma.conversationsUncheckedUpdateManyInput }))
 }
 
-/** Pass to humans: pause the AI, flag the conversation, leave a note. */
+/**
+ * Pass to humans: pause the AI, leave a note, then assign and notify
+ * (explicit person, the agent's member / team, or round-robin) and mark
+ * the conversation as waiting for a person.
+ */
 export async function handOverToHuman(
   input: Pick<RunAgentInput, 'workspaceId' | 'contactId' | 'conversationId' | 'messageText'>,
   reason: string,
-  assigneeUserId?: string | null,
+  opts: { assigneeUserId?: string | null; agent?: HandoverTarget | null } = {},
 ) {
   const db = tenantDb(input.workspaceId)
   const conv = await db.conversations.findFirst({ select: { unread_count: true }, where: { id: input.conversationId } }).catch(() => null)
@@ -149,15 +153,19 @@ export async function handOverToHuman(
     status: 'open',
     ai_paused_until: new Date(Date.now() + HANDOVER_PAUSE_MS).toISOString(),
     unread_count: Math.max(1, conv?.unread_count ?? 0),
-    ...(assigneeUserId ? { assigned_agent_id: assigneeUserId } : {}),
   })
   await quiet(db.contact_notes.create({ data: {
     workspace_id: input.workspaceId,
     contact_id: input.contactId,
     note_text: `[IA → humano] ${reason}. Último mensaje: "${input.messageText.slice(0, 300)}"`,
   } }))
-  // Nobody picked yet: round-robin when the workspace enabled it.
-  if (!assigneeUserId) await autoAssignConversation(input.workspaceId, input.conversationId, 'ai_handover')
+  await handOverConversation({
+    workspaceId: input.workspaceId,
+    conversationId: input.conversationId,
+    reason,
+    assigneeUserId: opts.assigneeUserId ?? null,
+    target: opts.agent ?? null,
+  })
 }
 
 function isClosedNow(ctx: BusinessContext): boolean {
@@ -261,7 +269,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
   if (agent.skills.includes('handover') && agent.escalation_keywords?.some((k) => k && new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(lower))) {
     const lang = pickLang(agent, ctx, null)
     await reply(input, agent, TEXT[lang].handover)
-    await handOverToHuman(input, 'El cliente pidió hablar con una persona')
+    await handOverToHuman(input, 'El cliente pidió hablar con una persona', { agent })
     await log(input, agent, TEXT[lang].handover, 'handover', 1)
     return true
   }
@@ -390,7 +398,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     if (!agent.skills.includes('handover')) return false
     const lang = pickLang(agent, ctx, null)
     await reply(input, agent, TEXT[lang].fallback)
-    await handOverToHuman(input, 'La IA no pudo procesar el mensaje')
+    await handOverToHuman(input, 'La IA no pudo procesar el mensaje', { agent })
     return true
   }
   if (!input.depth) await spend(input.workspaceId, 'reply', { conversationId: input.conversationId })
@@ -431,7 +439,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
   // 6) Handover / emergency.
   if (out.handover || out.intent === 'emergency') {
     await reply(input, agent, out.reply?.trim() || T.handover)
-    await handOverToHuman(input, out.intent === 'emergency' ? 'Posible emergencia' : 'La IA pasó la conversación a una persona')
+    await handOverToHuman(input, out.intent === 'emergency' ? 'Posible emergencia' : 'La IA pasó la conversación a una persona', { agent })
     await log(input, agent, out.reply, out.intent, out.confidence ?? 0)
     return true
   }

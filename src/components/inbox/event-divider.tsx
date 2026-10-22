@@ -5,6 +5,7 @@ import {
   ArrowRightLeft,
   CheckCircle2,
   Flag,
+  Hand,
   Phone,
   PhoneMissed,
   RotateCcw,
@@ -29,6 +30,7 @@ const ICONS = {
   tag_added: TagIcon,
   tag_removed: TagIcon,
   call: Phone,
+  ai_handover: Hand,
 } as const;
 
 /** Sentence for a timeline event, e.g. "Ana transfirió a Luis: motivo…". */
@@ -67,6 +69,9 @@ export function describeEvent(e: ConversationEvent, t: T, nameOf: (userId: strin
       break;
     case "tag_removed":
       text = t("inboxpro.events.tagRemoved", { actor, tag: String(data.tag_name ?? "—") });
+      break;
+    case "ai_handover":
+      text = e.to_user ? t("inboxpro.events.aiHandoverTo", { to }) : t("inboxpro.events.aiHandover");
       break;
     case "call":
       text =

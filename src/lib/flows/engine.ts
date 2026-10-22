@@ -33,6 +33,7 @@
  */
 
 import type { Prisma } from "@/generated/prisma/client";
+import { handOverConversation } from "@/lib/inbox/server";
 import { isPrismaError } from "@/lib/db/errors";
 // Type only: the DB client is loaded lazily (server-only), so engine.test.ts
 // can import the pure helpers.
@@ -484,18 +485,20 @@ async function executeHandoff(
   node: FlowNodeRow,
 ): Promise<void> {
   const cfg = node.config as { assign_to?: string; note?: string };
-  const convUpdate: Record<string, unknown> = {
-    status: "pending",
-    updated_at: new Date().toISOString(),
-  };
-  if (cfg.assign_to) convUpdate.assigned_agent_id = cfg.assign_to;
   if (run.conversation_id) {
     await quiet(
       db.conversations.updateMany({
         where: { id: run.conversation_id, workspace_id: run.workspace_id },
-        data: convUpdate,
+        data: { status: "pending", updated_at: new Date().toISOString() },
       }),
     );
+    // Assigns (the node's member, or round-robin), marks it as waiting for a person and notifies.
+    await handOverConversation({
+      workspaceId: run.workspace_id,
+      conversationId: run.conversation_id,
+      reason: cfg.note?.trim() || "Un flujo pasó la conversación a una persona",
+      assigneeUserId: cfg.assign_to ?? null,
+    });
   }
   await logEvent(db, run.id, "handoff", node.node_key, {
     note: cfg.note ?? null,

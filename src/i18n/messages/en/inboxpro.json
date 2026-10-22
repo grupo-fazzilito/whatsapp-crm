@@ -10,7 +10,8 @@
       "all": "All",
       "mine": "Mine",
       "unassigned": "Unassigned",
-      "resolved": "Resolved"
+      "resolved": "Resolved",
+      "attention": "Attention"
     },
     "filters": {
       "allStatuses": "Open and pending",
@@ -103,7 +104,9 @@
       "callAnswered": "WhatsApp call answered by {actor} · {duration}",
       "callCompleted": "WhatsApp call · {duration}",
       "callMissed": "Missed WhatsApp call",
-      "callRejected": "WhatsApp call declined"
+      "callRejected": "WhatsApp call declined",
+      "aiHandover": "The AI handed the conversation to a person",
+      "aiHandoverTo": "The AI handed the conversation to {to}"
     },
     "notes": {
       "label": "Internal note — only visible to your team",
@@ -156,7 +159,12 @@
       "unread": "{n} unread",
       "unreadItem": "Unread",
       "empty": "You have no notifications",
-      "markAll": "Mark all as read"
+      "markAll": "Mark all as read",
+      "soundOn": "Sound on",
+      "soundOff": "Sound off",
+      "enableDesktop": "Turn on desktop alerts",
+      "desktopOn": "Desktop alerts on",
+      "desktopBlocked": "Desktop alerts blocked by the browser"
     },
     "availability": {
       "label": "Available",
@@ -270,6 +278,17 @@
         "name_required": "The name is required",
         "name_taken": "There's already a team with that name"
       }
+    },
+    "attention": {
+      "nav": "Attention needed",
+      "row": "Waiting for a person",
+      "title": "Attention",
+      "badge": "Attention needed",
+      "assignee": "Handled by",
+      "nobody": "Unassigned",
+      "team": "Team: {team}",
+      "aiPaused": "AI paused until {time}: a person is handling it",
+      "aiActive": "{name} replies automatically"
     }
   }
 }

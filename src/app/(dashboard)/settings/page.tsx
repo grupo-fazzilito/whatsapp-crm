@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Radio, MessageSquare, Tag, User, Palette, Users, ArrowRight, Zap, UsersRound, Coins, Plug } from 'lucide-react';
+import { Radio, MessageSquare, Tag, User, Palette, Users, ArrowRight, Zap, UsersRound, Coins, Plug, ListPlus } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { MyGoogleCalendarCard } from '@/components/integrations/google/my-calend
 import { AppearancePanel } from '@/components/settings/appearance-panel';
 import { TeamManager } from '@/components/settings/team-manager';
 import { QuickRepliesManager } from '@/components/settings/quick-replies-manager';
+import { CustomFieldsManager } from '@/components/settings/custom-fields-manager';
 import { TeamsManager } from '@/components/settings/teams-manager';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
@@ -27,6 +28,7 @@ const TAB_VALUES = [
   'whatsapp',
   'templates',
   'tags',
+  'custom-fields',
   'quick-replies',
   'teams',
   'appearance',
@@ -107,6 +109,13 @@ export default function SettingsPage() {
             Tags
           </TabsTrigger>
           <TabsTrigger
+            value="custom-fields"
+            className="data-active:bg-white dark:data-active:bg-slate-800 data-active:text-primary text-slate-600 dark:text-slate-400 data-active:shadow-sm transition-all duration-200"
+          >
+            <ListPlus className="size-4" />
+            {t('crm.customFields.tab')}
+          </TabsTrigger>
+          <TabsTrigger
             value="quick-replies"
             className="data-active:bg-white dark:data-active:bg-slate-800 data-active:text-primary text-slate-600 dark:text-slate-400 data-active:shadow-sm transition-all duration-200"
           >
@@ -180,6 +189,10 @@ export default function SettingsPage() {
 
         <TabsContent value="tags">
           <TagManager />
+        </TabsContent>
+
+        <TabsContent value="custom-fields">
+          <CustomFieldsManager />
         </TabsContent>
 
         <TabsContent value="quick-replies">
