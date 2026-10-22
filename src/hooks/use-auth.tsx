@@ -69,8 +69,17 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 /** Ends an admin's visit to a customer account and returns to the admin panel. */
 export async function stopImpersonating(): Promise<void> {
-  const res = await fetch("/api/auth/whasalia/stop-impersonating", { method: "POST" }).catch(() => null);
-  const data = (await res?.json().catch(() => null)) as { signedOut?: boolean } | null;
+  // Better Auth only takes JSON POSTs: without the header it answers 415.
+  const res = await fetch("/api/auth/whasalia/stop-impersonating", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  }).catch(() => null);
+  const data = (await res?.json().catch(() => null)) as { signedOut?: boolean; message?: string } | null;
+  if (!res?.ok) {
+    window.alert(data?.message || "No se pudo volver al panel de administración.");
+    return;
+  }
   window.location.href = data?.signedOut ? "/admin-panel/login" : "/admin-panel";
 }
 

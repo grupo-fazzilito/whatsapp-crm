@@ -70,6 +70,12 @@
       "setup3": "Scopes: openid, email, calendar.events and calendar.freebusy.",
       "setup4": "Create an OAuth client ID of type “Web application” with the redirect URI above.",
       "setup5": "While the app is unverified, add your agents as test users (their access expires every 7 days). calendar.events is a sensitive scope: publish the app and request Google verification."
+    },
+    "integrations": {
+      "description": "Each person on the team connects their Google Calendar: {bookings} are created as events and their busy times aren't offered to customers.",
+      "needsBookings": "Google Calendar syncs your team's {bookings}. To use it, turn on bookings and {staffPlural} in the business settings.",
+      "openSetup": "Go to business settings",
+      "noStaff": "No {staffPlural} yet. Add them to connect their calendar:"
     }
   }
 }

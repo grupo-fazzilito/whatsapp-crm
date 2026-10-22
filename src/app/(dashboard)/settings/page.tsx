@@ -21,6 +21,7 @@ import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { BillingPanel } from '@/components/billing/billing-panel';
 import { CalendlyCard } from '@/components/integrations/calendly/calendly-card';
+import { GoogleCalendarCard } from '@/components/integrations/google/google-calendar-card';
 
 const TAB_VALUES = [
   'profile',
@@ -215,6 +216,7 @@ export default function SettingsPage() {
 
         {isAdmin && (
           <TabsContent value="integrations" className="space-y-6">
+            <GoogleCalendarCard />
             <CalendlyCard />
           </TabsContent>
         )}

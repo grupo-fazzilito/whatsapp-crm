@@ -9,6 +9,7 @@ import { buttonVariants, Button } from '@/components/ui/button';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { cn } from '@/lib/utils';
 import { relativeTime, type GcalConnection } from './use-gcal';
+import type { GcalReturn } from '@/lib/integrations/google/state';
 
 interface Props {
   staffId: string;
@@ -17,7 +18,7 @@ interface Props {
   configured: boolean;
   canManage: boolean;
   /** Where the OAuth round-trip returns. */
-  returnTo?: 'staff' | 'profile';
+  returnTo?: GcalReturn;
   onChanged: () => void;
   compact?: boolean;
 }
@@ -40,7 +41,7 @@ export function CalendarConnection({ staffId, staffName, connection, configured,
   const { label } = useWorkspace();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  const startHref = `/api/integrations/google/start?staff_id=${encodeURIComponent(staffId)}${returnTo === 'profile' ? '&return=profile' : ''}`;
+  const startHref = `/api/integrations/google/start?staff_id=${encodeURIComponent(staffId)}${returnTo !== 'staff' ? `&return=${returnTo}` : ''}`;
 
   const disconnect = async () => {
     setBusy(true);

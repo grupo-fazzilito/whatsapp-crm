@@ -70,6 +70,12 @@
       "setup3": "Permisos: openid, email, calendar.events y calendar.freebusy.",
       "setup4": "Crea un ID de cliente OAuth tipo «Aplicación web» con la URI de redireccionamiento de arriba.",
       "setup5": "Mientras la app no esté verificada, agrega a los asesores como usuarios de prueba (sus accesos vencen cada 7 días). calendar.events es un permiso sensible: publica la app y solicita la verificación de Google."
+    },
+    "integrations": {
+      "description": "Cada persona del equipo conecta su Google Calendar: las {bookings} se crean como eventos y sus horarios ocupados no se ofrecen a los clientes.",
+      "needsBookings": "Google Calendar sincroniza las {bookings} de tu equipo. Para usarlo, activa las reservas y el {staffPlural} en la configuración del negocio.",
+      "openSetup": "Ir a Configuración del negocio",
+      "noStaff": "Todavía no hay {staffPlural}. Agrégalos para conectar su calendario:"
     }
   }
 }

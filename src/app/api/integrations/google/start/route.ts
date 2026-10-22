@@ -26,8 +26,13 @@ export async function GET(request: Request) {
   if (!cfg) return NextResponse.json({ error: 'Google Calendar is not configured on this platform' }, { status: 503 })
 
   const state = signState(
-    { w: workspace.id, s: staffId, u: user.id, r: url.searchParams.get('return') === 'profile' ? 'profile' : 'staff' },
+    { w: workspace.id, s: staffId, u: user.id, r: returnOf(url.searchParams.get('return')) },
     stateSecret(),
   )
   return NextResponse.redirect(buildAuthUrl(cfg, state, user.email), { status: 302 })
+}
+
+/** Page to come back to after Google (Settings → Profile / Integrations, else the staff page). */
+function returnOf(v: string | null): 'staff' | 'profile' | 'integrations' {
+  return v === 'profile' || v === 'integrations' ? v : 'staff'
 }

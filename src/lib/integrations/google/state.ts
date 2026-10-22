@@ -4,6 +4,9 @@ import crypto from 'crypto'
 // (CSRF) and carries who is connecting which staff calendar.
 //   base64url(JSON payload) + "." + base64url(HMAC-SHA256(payload))
 
+/** Page the OAuth round-trip returns to. */
+export type GcalReturn = 'staff' | 'profile' | 'integrations'
+
 export interface OAuthState {
   /** workspace id */
   w: string
@@ -15,8 +18,8 @@ export interface OAuthState {
   n: string
   /** expiry, epoch ms */
   e: number
-  /** where to send the user back ('staff' | 'profile') */
-  r?: 'staff' | 'profile'
+  /** where to send the user back */
+  r?: GcalReturn
 }
 
 export const STATE_TTL_MS = 10 * 60 * 1000
