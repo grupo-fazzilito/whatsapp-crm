@@ -31,7 +31,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/30 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs",
+        "modal-backdrop-in fixed inset-0 isolate z-50 bg-black/30 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs",
         className
       )}
       {...props}
@@ -73,7 +73,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed inset-y-0 right-0 z-50 h-dvh w-full overflow-y-auto overscroll-contain border-l bg-popover text-sm text-popover-foreground shadow-2xl outline-none transition duration-200 ease-in-out data-ending-style:translate-x-10 data-ending-style:opacity-0 data-starting-style:translate-x-10 data-starting-style:opacity-0 sm:max-w-md",
+          "modal-in-right fixed inset-y-0 right-0 z-50 h-dvh w-full overflow-y-auto overscroll-contain border-l bg-popover text-sm text-popover-foreground shadow-2xl outline-none transition duration-200 ease-in-out data-ending-style:translate-x-10 data-ending-style:opacity-0 data-starting-style:translate-x-10 data-starting-style:opacity-0 sm:max-w-md",
           typeof className === "string" ? panelClasses(className) : className
         )}
         {...props}

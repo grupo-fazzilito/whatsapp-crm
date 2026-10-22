@@ -53,10 +53,6 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
               alt="Whasalia Logo"
               className="h-8 w-auto object-contain"
             />
-            <div>
-              <p className="text-sm font-bold text-white leading-none">Super Admin</p>
-              <p className="text-[10px] text-slate-500 mt-0.5">Agency Panel</p>
-            </div>
           </Link>
           <button onClick={onClose} className="lg:hidden text-slate-500 hover:text-white transition-colors">
             <X className="size-4" />

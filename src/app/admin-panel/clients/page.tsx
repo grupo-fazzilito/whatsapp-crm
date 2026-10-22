@@ -343,7 +343,7 @@ export default function AdminClientsPage() {
               <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
                 className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={()=>setDetail(null)}/>
               <motion.div initial={{x:"100%"}} animate={{x:0}} exit={{x:"100%"}}
-                transition={{type:"spring",stiffness:320,damping:32}}
+                transition={{duration:0.2,ease:"easeInOut"}}
                 className="relative w-full max-w-sm h-full overflow-y-auto bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col"
                 onClick={e=>e.stopPropagation()}
               >
@@ -486,7 +486,7 @@ export default function AdminClientsPage() {
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
                 className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={()=>setDelId(null)}/>
-              <motion.div initial={{opacity:0,scale:0.95}} animate={{opacity:1,scale:1}} exit={{opacity:0,scale:0.95}}
+              <motion.div initial={{opacity:0,x:40}} animate={{opacity:1,x:0}} exit={{opacity:0,x:40}} transition={{duration:0.2,ease:"easeInOut"}}
                 className="relative w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl space-y-4">
                 <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
                   <Trash2 className="size-6 text-red-400"/>
