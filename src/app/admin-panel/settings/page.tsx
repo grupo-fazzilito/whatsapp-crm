@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Settings, Shield, Bell, Users, Save, Loader2, Sparkles, Coins, MessageCircle, CalendarDays, LifeBuoy } from "lucide-react";
+import { Settings, Shield, Users, Save, Loader2, Sparkles, Coins, MessageCircle, CalendarDays, LifeBuoy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AdminShell } from "../admin-shell";
 import { AiProvidersCard } from "./ai-providers-card";
@@ -11,6 +11,7 @@ import { CalendlyCard } from "./calendly-card";
 import { MetaWhatsAppCard } from "./meta-whatsapp-card";
 import { BillingCard } from "./billing-card";
 import { SupportCard } from "./support-card";
+import { AdminNotificationsCard } from "./notifications-card";
 import { useI18n } from "@/i18n/client";
 
 const inputCls = "w-full rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors";
@@ -148,12 +149,7 @@ export default function AdminSettingsPage() {
             <p className="text-xs text-slate-400">{t("admin.settings.adminsBody")}</p>
           </section>
 
-          <section className="rounded-xl border border-slate-800 bg-slate-900 p-6 opacity-60" aria-labelledby="notif-title">
-            <h2 id="notif-title" className="text-sm font-bold text-white flex items-center gap-2">
-              <Bell className="size-4 text-emerald-400" aria-hidden /> {t("admin.settings.notificationsTitle")}
-              <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[10px] font-medium text-slate-400">{t("admin.settings.comingSoon")}</span>
-            </h2>
-          </section>
+          <AdminNotificationsCard />
             </>
           )}
         </div>

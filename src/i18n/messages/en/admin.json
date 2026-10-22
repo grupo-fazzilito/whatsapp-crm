@@ -61,6 +61,67 @@
       "ended": "Ended",
       "active": "Ongoing",
       "none": "No access yet."
+    },
+    "notify": {
+      "title": "Notifications",
+      "empty": "No notifications yet.",
+      "markAll": "Mark all as read",
+      "unread": "{n} unread",
+      "settingsTitle": "Notifications",
+      "settingsBody": "Choose what you want to hear about. They arrive in the panel's bell (with sound and desktop alerts if you turn them on).",
+      "saved": "Notifications saved",
+      "types": {
+        "user_signed_up": {
+          "title": "New user",
+          "body": "{name} · {email}",
+          "label": "New user signed up"
+        },
+        "workspace_created": {
+          "title": "New business",
+          "body": "{business}",
+          "label": "New business created"
+        },
+        "ticket_created": {
+          "title": "New ticket #{number}",
+          "body": "{subject} · {business}",
+          "label": "New support ticket"
+        },
+        "ticket_replied": {
+          "title": "Customer replied to ticket #{number}",
+          "body": "{subject} · {business}",
+          "label": "Customer reply on a ticket"
+        },
+        "complaint_created": {
+          "title": "New complaint No. {number}",
+          "body": "{name} · {email}",
+          "label": "Complaint in the complaints book"
+        },
+        "payment_paid": {
+          "title": "Payment received",
+          "body": "{business} · {amount} · {tokens} tokens",
+          "label": "Payment received (token purchase)"
+        },
+        "payment_failed": {
+          "title": "Payment failed",
+          "body": "{business} · {amount}",
+          "label": "Failed or declined payment"
+        },
+        "tokens_depleted": {
+          "title": "Business out of tokens",
+          "body": "{business}",
+          "label": "A business ran out of tokens"
+        },
+        "tokens_low": {
+          "title": "Low token balance",
+          "body": "{business} · {balance} left",
+          "label": "Low token balance"
+        },
+        "channel_connected": {
+          "title": "Channel connected",
+          "body": "{business} connected {channel}",
+          "label": "A business connected a channel"
+        }
+      }
     }
   }
 }

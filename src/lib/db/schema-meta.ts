@@ -415,6 +415,12 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
       "rel": "workspaces"
     }
   },
+  "platform_notifications": {
+    "created_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    }
+  },
   "calendar_connections": {
     "token_expires_at": "timestamp",
     "watch_expires_at": "timestamp",
@@ -2068,6 +2074,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "admin_impersonations": {
       "rel": "admin_impersonations"
+    },
+    "platform_notifications": {
+      "rel": "platform_notifications"
     }
   },
   "platform_webhook_endpoints": {

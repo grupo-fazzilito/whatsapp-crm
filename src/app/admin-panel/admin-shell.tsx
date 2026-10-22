@@ -5,9 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Shield, Users, BarChart2, Settings, LogOut,
-  Menu, X, Bell, ChevronRight, Building2, Coins, LifeBuoy, Webhook, BookOpen, KeyRound,
+  Menu, X, ChevronRight, Building2, Coins, LifeBuoy, Webhook, BookOpen, KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AdminNotificationBell } from "./notification-bell";
 
 const NAV = [
   { href: "/admin-panel",          label: "Overview",  icon: BarChart2  },
@@ -125,9 +126,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
-              <Bell className="size-4" />
-            </button>
+            <AdminNotificationBell />
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs font-bold">
               A
             </div>

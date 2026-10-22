@@ -604,6 +604,18 @@ model admin_impersonations {
   @@index([started_at(sort: Desc)], map: "idx_admin_impersonations_started")
 }
 
+model platform_notifications {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type         String
+  workspace_id String?     @db.Uuid
+  data         Json        @default("{}")
+  read_by      String[]    @default([]) @db.Uuid
+  created_at   DateTime    @default(now()) @db.Timestamptz(6)
+  workspaces   workspaces? @relation(fields: [workspace_id], references: [id], onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_platform_notifications_created")
+}
+
 model calendar_connections {
   id                          String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspace_id                String                       @db.Uuid
@@ -2344,6 +2356,8 @@ model workspaces {
   whatsapp_calls whatsapp_calls[]
 
   admin_impersonations admin_impersonations[]
+
+  platform_notifications platform_notifications[]
 
   @@index([plan_id], map: "idx_workspaces_plan_id")
 }

@@ -171,7 +171,8 @@
       "booking_status_changed": "Cambio de estado de la reserva",
       "lead_qualified": "Lead calificado (inmobiliaria)",
       "deal_stage_changed": "Oportunidad cambió de etapa",
-      "ping": "Prueba (ping)"
+      "ping": "Prueba (ping)",
+      "complaint_created": "Reclamo o queja registrada"
     }
   }
 }
