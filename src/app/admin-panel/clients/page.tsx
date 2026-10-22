@@ -4,16 +4,19 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Users, Search, MoreVertical, Trash2, CheckCircle, XCircle,
+  Users, Search, MoreVertical, Trash2, CheckCircle, XCircle, LogIn,
   X, Loader2, ChevronUp, ChevronDown, RefreshCw,
   Wifi, WifiOff, MessageSquare, Radio, Zap, Phone,
   Building2, MapPin, ShieldCheck, ShieldOff, Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n/client";
 import { AdminShell } from "../admin-shell";
 
 interface Client {
   id: string;
+  /** Owner user id (the account "Entrar como cliente" opens). */
+  owner_id: string | null;
   name: string;
   email: string;
   avatar_url: string | null;
@@ -70,6 +73,29 @@ export default function AdminClientsPage() {
   const [openMenu, setOpenMenu] = useState<string|null>(null);
   const [menuPos,  setMenuPos]  = useState<{top:number;right:number}>({top:0,right:0});
   const [toggling, setToggling] = useState<string|null>(null);
+  const [entering, setEntering] = useState<string|null>(null);
+  const t = useT();
+
+  // "Entrar como cliente": opens the owner's account in this browser.
+  const enterAs = useCallback(async (c: Client) => {
+    if (!c.owner_id) return;
+    setEntering(c.id);
+    try {
+      const res = await fetch("/api/auth/whasalia/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: c.owner_id }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        window.alert(t("admin.impersonation.failed", { reason: body?.message || body?.code || `HTTP ${res.status}` }));
+        return;
+      }
+      window.location.href = "/dashboard";
+    } finally {
+      setEntering(null);
+    }
+  }, [t]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -82,7 +108,7 @@ export default function AdminClientsPage() {
   useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
-    let r = clients.filter(c => {
+    const r = clients.filter(c => {
       const q = search.toLowerCase();
       const matchQ = !q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q);
       const matchS =
@@ -280,6 +306,14 @@ export default function AdminClientsPage() {
                     className="w-40 rounded-xl border border-slate-700 bg-slate-800 shadow-2xl overflow-hidden"
                     onClick={e => e.stopPropagation()}
                   >
+                    {c.owner_id && (
+                      <button
+                        onClick={() => { void enterAs(c); setOpenMenu(null); }}
+                        className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold text-sky-400 hover:bg-sky-500/10 transition-colors"
+                      >
+                        <LogIn className="size-3.5"/> {t("admin.impersonation.enter")}
+                      </button>
+                    )}
                     <button
                       onClick={() => { toggleActive(c); setOpenMenu(null); }}
                       className={cn("flex items-center gap-2 w-full px-3 py-2.5 text-xs font-semibold transition-colors",
@@ -412,6 +446,16 @@ export default function AdminClientsPage() {
 
                   {/* Actions */}
                   <div className="space-y-2 pt-2">
+                    {detail.owner_id && (
+                      <button
+                        onClick={() => void enterAs(detail)}
+                        disabled={entering === detail.id}
+                        className="w-full py-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-colors bg-sky-500/10 border-sky-500/20 text-sky-400 hover:bg-sky-500/20 disabled:opacity-60"
+                      >
+                        {entering === detail.id ? <Loader2 className="size-3.5 animate-spin"/> : <LogIn className="size-3.5"/>}
+                        {entering === detail.id ? t("admin.impersonation.entering") : t("admin.impersonation.enter")}
+                      </button>
+                    )}
                     <button
                       onClick={()=>toggleActive(detail)}
                       disabled={toggling===detail.id}

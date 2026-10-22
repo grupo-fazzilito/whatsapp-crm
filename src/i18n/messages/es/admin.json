@@ -37,6 +37,22 @@
       "removeConfirm": "¿Quitar la clave de {provider} guardada en el panel? Si hay una en .env se usará esa.",
       "getKey": "Obtener clave",
       "noneConfigured": "No hay ningún proveedor configurado: los agentes de IA no pueden responder."
+    },
+    "impersonation": {
+      "viewing": "Estás viendo la cuenta de {name} como administrador de Whasalia",
+      "back": "Volver al panel de admin",
+      "enter": "Entrar como cliente",
+      "entering": "Abriendo la cuenta…",
+      "failed": "No se pudo abrir la cuenta: {reason}",
+      "log": "Accesos a cuentas",
+      "logDescription": "Registro interno de cuándo un administrador entró a la cuenta de un cliente. El cliente no lo ve.",
+      "admin": "Administrador",
+      "account": "Cuenta",
+      "business": "Negocio",
+      "started": "Inicio",
+      "ended": "Fin",
+      "active": "En curso",
+      "none": "Todavía no hay accesos."
     }
   }
 }

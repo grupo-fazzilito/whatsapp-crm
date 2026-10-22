@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/auth/session'
 import { prisma } from '@/lib/db/prisma'
 
-/** GET /api/me → { user, profile } of the signed-in account (401 when signed out). */
+/** GET /api/me → { user, profile, impersonating } of the signed-in account (401 when signed out). */
 export async function GET() {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -16,5 +16,7 @@ export async function GET() {
   return NextResponse.json({
     user: { id: user.id, email: user.email, created_at: row?.created_at ?? null, user_metadata: { full_name: profile?.full_name ?? user.name } },
     profile: profile ? { ...profile, beta_features: profile.beta_features ?? [] } : null,
+    // A platform admin is viewing this account (shows the "back to admin" bar).
+    impersonating: !!user.impersonatedBy,
   })
 }

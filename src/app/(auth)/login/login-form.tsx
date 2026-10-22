@@ -34,7 +34,13 @@ export function LoginForm({ providers, socialError, next }: { providers: SocialP
     const { error } = await authClient.signIn.email({ email, password });
 
     if (error) {
-      setError(error.status === 401 || error.status === 403 ? t("authPages.login.invalidCredentials") : (error.message ?? t("authPages.login.failed")));
+      setError(
+        error.code === "ADMIN_USE_PANEL"
+          ? t("authPages.login.adminUsePanel")
+          : error.status === 401 || error.status === 403
+            ? t("authPages.login.invalidCredentials")
+            : (error.message ?? t("authPages.login.failed")),
+      );
       setLoading(false);
       return;
     }

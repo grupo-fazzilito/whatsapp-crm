@@ -37,6 +37,22 @@
       "removeConfirm": "Remove the {provider} key stored in the panel? If .env has one, that will be used.",
       "getKey": "Get a key",
       "noneConfigured": "No provider is configured: AI agents can't reply."
+    },
+    "impersonation": {
+      "viewing": "You are viewing {name}'s account as a Whasalia admin",
+      "back": "Back to the admin panel",
+      "enter": "Sign in as customer",
+      "entering": "Opening the account…",
+      "failed": "Could not open the account: {reason}",
+      "log": "Account access",
+      "logDescription": "Internal record of when an admin opened a customer's account. The customer doesn't see it.",
+      "admin": "Admin",
+      "account": "Account",
+      "business": "Business",
+      "started": "Started",
+      "ended": "Ended",
+      "active": "Ongoing",
+      "none": "No access yet."
     }
   }
 }

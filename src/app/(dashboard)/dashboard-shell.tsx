@@ -12,6 +12,7 @@ import { CreditsBanner } from "@/components/billing/credits-banner";
 import { TourProvider } from "@/components/tour/guided-tour";
 import { SetupHelpOffer } from "@/components/support/setup-help-dialog";
 import { CallCenter } from "@/components/calls/call-center";
+import { ImpersonationBar } from "@/components/admin/impersonation-bar";
 
 // Auth-gated dashboard shell. Extracted from the layout so the layout
 // itself can stay a server component and export metadata (noindex) —
@@ -64,7 +65,9 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+      <ImpersonationBar />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
       <Sidebar open={sidebarOpen} onClose={closeSidebar} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header onOpenSidebar={() => setSidebarOpen(true)} />
@@ -77,6 +80,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         </main>
+      </div>
       </div>
       <CallCenter />
     </div>

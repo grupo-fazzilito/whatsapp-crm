@@ -56,6 +56,8 @@ interface AuthContextValue {
    * and may take the "not opted in" branch incorrectly.
    */
   profileLoading: boolean;
+  /** A platform admin opened this account ("Entrar como cliente"). */
+  impersonating: boolean;
   signOut: () => Promise<void>;
   /** Re-fetch the current user's profile row — call after a save from
    *  the settings form so header/sidebar reflect the change without a
@@ -64,6 +66,13 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+/** Ends an admin's visit to a customer account and returns to the admin panel. */
+export async function stopImpersonating(): Promise<void> {
+  const res = await fetch("/api/auth/whasalia/stop-impersonating", { method: "POST" }).catch(() => null);
+  const data = (await res?.json().catch(() => null)) as { signedOut?: boolean } | null;
+  window.location.href = data?.signedOut ? "/admin-panel/login" : "/admin-panel";
+}
 
 /**
  * AuthProvider — wrap this around the dashboard layout.
@@ -74,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [impersonating, setImpersonating] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -83,8 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
         return;
       }
-      const data = (await res.json()) as { user: User; profile: Profile | null };
+      const data = (await res.json()) as { user: User; profile: Profile | null; impersonating?: boolean };
       setUser(data.user);
+      setImpersonating(!!data.impersonating);
       setProfile(data.profile ? { ...data.profile, beta_features: data.profile.beta_features ?? [] } : null);
     } catch (err) {
       console.error("[AuthProvider] /api/me failed:", err);
@@ -100,11 +111,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [load]);
 
   const signOut = useCallback(async () => {
+    // An admin viewing this account goes back to the admin panel instead.
+    if (impersonating) return stopImpersonating();
     await authClient.signOut().catch(() => {});
     setUser(null);
     setProfile(null);
     window.location.href = "/login";
-  }, []);
+  }, [impersonating]);
 
   const refreshProfile = useCallback(async () => {
     setProfileLoading(true);
@@ -113,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, loading, profileLoading, signOut, refreshProfile }}
+      value={{ user, profile, loading, profileLoading, impersonating, signOut, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>
@@ -134,6 +147,7 @@ export function useAuth(): AuthContextValue {
       profile: null,
       loading: false,
       profileLoading: false,
+      impersonating: false,
       signOut: async () => {
         window.location.href = "/login";
       },

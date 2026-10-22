@@ -101,6 +101,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "updated_at": "timestamp",
     "users": {
       "rel": "users"
+    },
+    "impersonator": {
+      "rel": "users"
     }
   },
   "auth_verifications": {
@@ -397,6 +400,19 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "users": {
       "rel": "users"
+    }
+  },
+  "admin_impersonations": {
+    "started_at": "timestamp",
+    "ended_at": "timestamp",
+    "admin": {
+      "rel": "users"
+    },
+    "target": {
+      "rel": "users"
+    },
+    "workspaces": {
+      "rel": "workspaces"
     }
   },
   "calendar_connections": {
@@ -1697,6 +1713,15 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "ai_agents_handover": {
       "rel": "ai_agents"
+    },
+    "impersonations_made": {
+      "rel": "admin_impersonations"
+    },
+    "impersonations_received": {
+      "rel": "admin_impersonations"
+    },
+    "impersonation_sessions": {
+      "rel": "auth_sessions"
     }
   },
   "webhook_deliveries": {
@@ -2040,6 +2065,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "whatsapp_calls": {
       "rel": "whatsapp_calls"
+    },
+    "admin_impersonations": {
+      "rel": "admin_impersonations"
     }
   },
   "platform_webhook_endpoints": {
