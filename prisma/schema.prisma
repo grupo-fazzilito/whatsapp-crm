@@ -137,15 +137,18 @@ model auth_accounts {
 }
 
 model auth_sessions {
-  id         String   @id
-  user_id    String   @db.Uuid
-  token      String   @unique
-  expires_at DateTime @db.Timestamptz(6)
-  ip_address String?
-  user_agent String?
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  updated_at DateTime @default(now()) @db.Timestamptz(6)
-  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id              String   @id
+  user_id         String   @db.Uuid
+  token           String   @unique
+  expires_at      DateTime @db.Timestamptz(6)
+  ip_address      String?
+  user_agent      String?
+  impersonated_by String?  @db.Uuid
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+  users           users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  impersonator users? @relation("auth_sessions_impersonated_by", fields: [impersonated_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([user_id], map: "idx_auth_sessions_user")
 }
@@ -579,6 +582,26 @@ model whatsapp_calls {
 
   @@unique([channel_id, call_id])
   @@index([workspace_id, created_at(sort: Desc)], map: "idx_whatsapp_calls_workspace")
+}
+
+model admin_impersonations {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  admin_user_id  String?     @db.Uuid
+  admin_email    String
+  target_user_id String?     @db.Uuid
+  target_email   String
+  workspace_id   String?     @db.Uuid
+  workspace_name String?
+  session_token  String?
+  ip_address     String?
+  user_agent     String?
+  started_at     DateTime    @default(now()) @db.Timestamptz(6)
+  ended_at       DateTime?   @db.Timestamptz(6)
+  admin          users?      @relation("admin_impersonations_admin", fields: [admin_user_id], references: [id], onUpdate: NoAction)
+  target         users?      @relation("admin_impersonations_target", fields: [target_user_id], references: [id], onUpdate: NoAction)
+  workspaces     workspaces? @relation(fields: [workspace_id], references: [id], onUpdate: NoAction)
+
+  @@index([started_at(sort: Desc)], map: "idx_admin_impersonations_started")
 }
 
 model calendar_connections {
@@ -2041,6 +2064,9 @@ model users {
   comment_rules                                               comment_rules[]
   whatsapp_calls                                              whatsapp_calls[]
   ai_agents_handover                                          ai_agents[]                     @relation("ai_agents_handover_user")
+  impersonations_made                                         admin_impersonations[]          @relation("admin_impersonations_admin")
+  impersonations_received                                     admin_impersonations[]          @relation("admin_impersonations_target")
+  impersonation_sessions                                      auth_sessions[]                 @relation("auth_sessions_impersonated_by")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2316,6 +2342,8 @@ model workspaces {
   comment_replies               comment_replies[]
 
   whatsapp_calls whatsapp_calls[]
+
+  admin_impersonations admin_impersonations[]
 
   @@index([plan_id], map: "idx_workspaces_plan_id")
 }

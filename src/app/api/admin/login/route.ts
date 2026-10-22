@@ -4,6 +4,7 @@ import { findUserByEmail } from "@/lib/auth/users";
 import { verifyPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/db/prisma";
 import { withAuthCookies } from "@/lib/auth/cookies";
+import { ADMIN_LOGIN_HEADER, adminLoginMark } from "@/lib/admin/platform-admins";
 
 // Platform admin sign-in: a normal account flagged as profiles.is_platform_admin
 // (or listed in PLATFORM_ADMIN_EMAILS, promoted on first sign-in).
@@ -33,7 +34,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "This account is not a platform admin" }, { status: 403 });
   }
 
-  const res = await auth().api.signInEmail({ body: { email, password }, headers: req.headers, asResponse: true });
+  // Marks this as the admin sign-in: the normal login refuses admin accounts.
+  const headers = new Headers(req.headers);
+  headers.set(ADMIN_LOGIN_HEADER, adminLoginMark());
+  const res = await auth().api.signInEmail({ body: { email, password }, headers, asResponse: true });
   if (!res.ok) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   return withAuthCookies(res, NextResponse.json({ ok: true }));
 }

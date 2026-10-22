@@ -42,14 +42,16 @@ function visible(el: Element | null): el is HTMLElement {
 
 export function TourProvider({ children }: { children: ReactNode }) {
   const { t } = useI18n();
-  const { profile, profileLoading, refreshProfile } = useAuth();
+  // An admin viewing the account neither gets the tour nor marks it seen.
+  const { profile, profileLoading, refreshProfile, impersonating } = useAuth();
   const pathname = usePathname();
   const autoStarted = useRef(false);
 
   const markDone = useCallback(async () => {
+    if (impersonating) return;
     await fetch('/api/me/tour', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: true }) }).catch(() => {});
     void refreshProfile();
-  }, [refreshProfile]);
+  }, [refreshProfile, impersonating]);
 
   const start = useCallback(() => {
     const steps: DriveStep[] = [];
@@ -83,12 +85,12 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
   // First sign-in: start once the dashboard has rendered.
   useEffect(() => {
-    if (autoStarted.current || profileLoading || !profile || profile.tour_completed_at) return;
+    if (autoStarted.current || profileLoading || !profile || profile.tour_completed_at || impersonating) return;
     if (pathname !== '/dashboard') return;
     autoStarted.current = true;
     const timer = setTimeout(start, 900);
     return () => clearTimeout(timer);
-  }, [profile, profileLoading, pathname, start]);
+  }, [profile, profileLoading, pathname, start, impersonating]);
 
   const value = useMemo(() => ({ start }), [start]);
   return <TourContext.Provider value={value}>{children}</TourContext.Provider>;

@@ -4,7 +4,10 @@ import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { nextCookies } from 'better-auth/next-js'
 import { baseClient } from '@/lib/db/prisma'
+import { APIError, createAuthMiddleware } from 'better-auth/api'
 import { hashPassword, verifyPassword } from './password'
+import { impersonation } from './impersonation'
+import { hasAdminLoginMark, isPlatformAdminEmail, isPlatformAdminUser } from '@/lib/admin/platform-admins'
 
 // Better Auth on our own tables (public.users / auth_sessions / auth_accounts /
 // auth_verifications, snake_case columns mapped below). Email + password, plus
@@ -64,6 +67,8 @@ function createAuth() {
       expiresIn: 60 * 60 * 24 * 30,
       updateAge: 60 * 60 * 24,
       cookieCache: { enabled: true, maxAge: 60 },
+      // Set when a platform admin opens the account ("Entrar como cliente").
+      additionalFields: { impersonatedBy: { type: 'string', required: false, input: false, fieldName: 'impersonated_by' } },
     },
     user: {
       modelName: 'users',
@@ -116,12 +121,17 @@ function createAuth() {
       },
       session: {
         create: {
-          // Banned users cannot start a session.
-          before: async (session) => {
-            const user = await baseClient().users.findUnique({ where: { id: session.userId }, select: { banned: true } })
+          before: async (session, ctx) => {
+            // Banned users cannot start a session.
+            const user = await baseClient().users.findUnique({ where: { id: session.userId }, select: { banned: true, email: true } })
             if (!user || user.banned) return false
+            // Platform admins only sign in through /admin-panel/login (Google / Facebook included).
+            const opened = (session as { impersonatedBy?: string | null }).impersonatedBy
+            if (!opened && !hasAdminLoginMark(ctx?.headers) && (await isPlatformAdminUser({ id: session.userId, email: user.email }))) return false
           },
           after: async (session) => {
+            // An admin opening the account is not the customer signing in.
+            if ((session as { impersonatedBy?: string | null }).impersonatedBy) return
             await baseClient()
               .users.update({ where: { id: session.userId }, data: { last_sign_in_at: new Date() } })
               .catch(() => {})
@@ -129,7 +139,17 @@ function createAuth() {
         },
       },
     },
-    plugins: [nextCookies()],
+    hooks: {
+      // Clear message on the normal login page for a platform admin account.
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== '/sign-in/email' || hasAdminLoginMark(ctx.headers)) return
+        const email = typeof ctx.body?.email === 'string' ? ctx.body.email : ''
+        if (email && (await isPlatformAdminEmail(email))) {
+          throw new APIError('FORBIDDEN', { message: 'Esta cuenta solo puede entrar desde el panel de administración.', code: 'ADMIN_USE_PANEL' })
+        }
+      }),
+    },
+    plugins: [impersonation(), nextCookies()],
   })
 }
 

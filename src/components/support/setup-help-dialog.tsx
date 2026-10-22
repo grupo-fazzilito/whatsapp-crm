@@ -29,13 +29,13 @@ function useSetupMessage() {
  */
 export function SetupHelpOffer() {
   const { t } = useI18n();
-  const { profile, refreshProfile } = useAuth();
+  const { profile, refreshProfile, impersonating } = useAuth();
   const { role } = useWorkspace();
   const message = useSetupMessage();
   const [whatsapp, setWhatsapp] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
-  const eligible = !!profile && !!profile.tour_completed_at && !profile.setup_offer_seen_at && (role === 'owner' || role === 'admin');
+  const eligible = !impersonating && !!profile && !!profile.tour_completed_at && !profile.setup_offer_seen_at && (role === 'owner' || role === 'admin');
 
   useEffect(() => {
     if (!eligible) return;

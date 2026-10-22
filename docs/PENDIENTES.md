@@ -56,6 +56,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Llamadas salientes (pedir permiso al cliente y llamar desde la bandeja) — 🤖 (futuro)
 - [x] **Bandeja: atención requerida y panel con pestañas** — traspaso de la IA/flujo que asigna y avisa (persona, equipo o disponibles), «Atención requerida» en el menú y pestaña «Atención», panel derecho con Atención + Contacto/CRM, sonido y avisos del escritorio, campos personalizados en Ajustes, embudo de ventas por defecto — 🤖 (2026-10-21, rama `feat/inbox-contact-panel`)
 - [ ] Avisos con Whasalia cerrado (web push con service worker) o por correo — 🤖 (si se pide)
+- [x] **Super admin**: solo entra por `/admin-panel/login` (el login normal la rechaza) y nunca ve el CRM de un cliente; «Entrar como cliente» en Panel de admin → Clientes (sesión de 1 h, sin rastro para el cliente) con registro interno en Panel de admin → Access log — 🤖 (2026-10-22, rama `feat/admin-impersonation`)
 - [ ] Borrar la tabla `portfolio_items` (el «Showcase Portfolio» de plantilla se eliminó el 2026-10-22) tras comprobar en producción que no tiene datos que guardar — 🤖
 
 ## 5. Precios: Free Forever + tokens de IA
