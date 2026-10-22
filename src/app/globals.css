@@ -419,6 +419,66 @@ html[data-mtheme="light"][data-theme] {
 
 }
 
+/* The accent is tuned for dark backgrounds; on white it is too light to
+ * read as text or under white button labels. Light mode uses a deeper
+ * shade of each theme (≥ 4.5:1 against white both ways). */
+html[data-mtheme="light"]:not([data-theme]),
+html[data-mtheme="light"][data-theme="emerald"] {
+  --primary: oklch(0.5 0.12 163);
+  --primary-hover: oklch(0.45 0.11 163);
+}
+html[data-mtheme="light"][data-theme="violet"] {
+  --primary: oklch(0.5 0.24 293);
+  --primary-hover: oklch(0.45 0.22 293);
+}
+html[data-mtheme="light"][data-theme="cobalt"] {
+  --primary: oklch(0.5 0.2 258);
+  --primary-hover: oklch(0.45 0.18 258);
+}
+html[data-mtheme="light"][data-theme="amber"] {
+  --primary: oklch(0.53 0.15 50);
+  --primary-hover: oklch(0.48 0.14 50);
+}
+html[data-mtheme="light"][data-theme="rose"] {
+  --primary: oklch(0.52 0.21 16);
+  --primary-hover: oklch(0.47 0.19 16);
+}
+html[data-mtheme="light"],
+html[data-mtheme="light"][data-theme] {
+  --primary-foreground: oklch(1 0 0);
+  --primary-soft: color-mix(in oklch, var(--primary) 10%, transparent);
+  --primary-soft-2: color-mix(in oklch, var(--primary) 18%, transparent);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --chart-1: var(--primary);
+}
+
+/* Status and accent text (-300/-400) is picked for the dark inbox; on white
+ * it falls to ~2:1. Light mode uses the -700/-800 shade of the same hue. */
+html[data-mtheme="light"] .text-red-300,
+html[data-mtheme="light"] .text-red-400 { color: #b91c1c !important; }
+html[data-mtheme="light"] .text-orange-300,
+html[data-mtheme="light"] .text-orange-400 { color: #9a3412 !important; }
+html[data-mtheme="light"] .text-amber-300,
+html[data-mtheme="light"] .text-amber-400,
+html[data-mtheme="light"] .text-amber-500,
+html[data-mtheme="light"] .text-amber-600,
+html[data-mtheme="light"] .text-yellow-300,
+html[data-mtheme="light"] .text-yellow-400 { color: #92400e !important; }
+html[data-mtheme="light"] .text-emerald-300,
+html[data-mtheme="light"] .text-emerald-400,
+html[data-mtheme="light"] .text-green-400 { color: #047857 !important; }
+html[data-mtheme="light"] .text-teal-400,
+html[data-mtheme="light"] .text-cyan-400 { color: #0f766e !important; }
+html[data-mtheme="light"] .text-sky-300,
+html[data-mtheme="light"] .text-sky-400,
+html[data-mtheme="light"] .text-blue-400 { color: #0369a1 !important; }
+html[data-mtheme="light"] .text-violet-400,
+html[data-mtheme="light"] .text-purple-400 { color: #6d28d9 !important; }
+html[data-mtheme="light"] .text-pink-400,
+html[data-mtheme="light"] .text-rose-400 { color: #be123c !important; }
+html[data-mtheme="light"] .text-sidebar-foreground\/50 { color: #475569 !important; }
+
 /* Force hardcoded dark backgrounds to adapt gracefully in Light Mode */
 html[data-mtheme="light"] .bg-slate-950,
 html[data-mtheme="light"] .bg-slate-950\/10,
@@ -500,6 +560,7 @@ html[data-mtheme="light"] .bg-emerald-650 .text-white,
 html[data-mtheme="light"] .bg-emerald-650.text-white,
 html[data-mtheme="light"] .bg-emerald-600 .text-white,
 html[data-mtheme="light"] .bg-emerald-600.text-white,
+html[data-mtheme="light"] .bg-emerald-700.text-white,
 html[data-mtheme="light"] .bg-emerald-500.text-white,
 html[data-mtheme="light"] .bg-emerald-500 .text-white,
 html[data-mtheme="light"] .bg-red-500.text-white,

@@ -25,7 +25,6 @@ import {
   ListPlus,
   ShoppingBag,
   ShoppingCart,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -36,6 +35,7 @@ import { LeadPanel } from "@/components/real-estate/lead-panel";
 import { CustomFieldInput } from "@/components/crm/custom-field-input";
 import type { Team } from "@/lib/inbox/types";
 import { AttentionPanel } from "./attention-panel";
+import { TagChip } from "./tag-chip";
 import type { ConversationPatch } from "./message-thread";
 import type { InboxChannel } from "./channel-badge";
 import type { InboxAgent } from "./use-inbox-directory";
@@ -391,21 +391,13 @@ function ContactTags({
     <div className="mt-2 flex flex-wrap items-center gap-1">
       {tags.length === 0 && <p className="px-1 text-xs text-slate-500">{t("inbox.sidebar.noTags")}</p>}
       {tags.map((tag) => (
-        <span
+        <TagChip
           key={tag.id}
-          className="inline-flex items-center gap-1 rounded-full py-0.5 pl-2 pr-1 text-[11px] font-medium"
-          style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
-        >
-          {tag.name}
-          <button
-            type="button"
-            onClick={() => void call("DELETE", tag)}
-            aria-label={t("inbox.sidebar.removeTag", { name: tag.name })}
-            className="rounded-full p-0.5 hover:bg-black/20"
-          >
-            <X className="h-2.5 w-2.5" aria-hidden="true" />
-          </button>
-        </span>
+          name={tag.name}
+          color={tag.color}
+          onRemove={() => void call("DELETE", tag)}
+          removeLabel={t("inbox.sidebar.removeTag", { name: tag.name })}
+        />
       ))}
       <select
         aria-label={t("inbox.sidebar.addTag")}

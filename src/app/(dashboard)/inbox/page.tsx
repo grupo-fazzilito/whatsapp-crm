@@ -569,7 +569,7 @@ export default function InboxPage() {
           <WifiOff className="h-4 w-4 text-amber-400" />
           <p className="text-xs text-amber-400">
             {t("inbox.banner.noChannels")}{" "}
-            <Link href="/channels" className="font-medium underline underline-offset-2 hover:text-amber-300">
+            <Link href="/channels" className="font-medium underline underline-offset-2 hover:opacity-80">
               {t("inbox.banner.goToSettings")}
             </Link>
           </p>

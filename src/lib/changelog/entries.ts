@@ -12,6 +12,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-22',
+    title: { es: 'Modo claro más legible', en: 'More readable light mode' },
+    changes: [
+      { kind: 'fixed', es: 'Modo claro: el color principal usa un tono más oscuro para que textos, enlaces y botones se lean bien sobre fondo blanco; también se corrigieron el aviso de canales sin conectar, las prioridades, las etiquetas, las horas de los mensajes y el selector de idioma.', en: 'Light mode: the main color uses a deeper shade so text, links and buttons read well on white; the no-channel notice, priorities, tags, message times and language switch were fixed too.' },
+    ],
+  },
+  {
     date: '2026-10-21',
     title: { es: 'Menú contraíble y mejoras del modo claro', en: 'Collapsible menu and light mode fixes' },
     changes: [
