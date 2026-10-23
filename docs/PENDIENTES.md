@@ -80,6 +80,8 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Revisar contenido heredado de la plantilla en las demás páginas: Integraciones, Automatización con IA, Seguridad, Casos de éxito, "Nosotros", empleos en San Francisco, testimonios, página `/admin` con datos de ejemplo — 🤖 propone / 🧑 aprueba
 - [x] Integración con **Calendly** (una cuenta por negocio; la IA reserva directo o envía enlace; citas y cancelaciones en ambos sentidos) — 🤖 (2026-10-14, rama `feat/calendly`)
 - [x] Crear la app OAuth en developer.calendly.com y pegar Client ID, Client secret y Webhook signing key en Superadmin → Settings → Calendly — 🧑 (2026-10-23)
+- [x] Agendar sin IA: paso «Agendar cita» en los flujos y botón «Enviar agenda» en la bandeja (el cliente elige día y hora tocando); las citas manuales de servicios vinculados también se reservan en Calendly — 🤖 (2026-10-23, rama `feat/booking-picker`)
+- [ ] (Mejora) Selector de citas con **WhatsApp Flows** (formulario nativo de Meta con calendario) en lugar de listas; requiere publicar cada formulario en Meta — 🤖
 - [ ] Pantalla para que cada negocio cree sus **claves de API y webhooks** (la API y los textos existen, falta la pantalla; la página de Funciones ya lo menciona) — 🤖
 - [ ] Botón "Crear bot de preguntas frecuentes" que arme un menú numerado gratis desde la lista de FAQs — 🤖, opcional
 - [ ] Portfolio de Meta: verificación en dos pasos y un segundo administrador — 🧑

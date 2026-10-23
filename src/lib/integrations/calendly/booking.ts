@@ -95,6 +95,7 @@ export async function bookWithCalendly(input: {
   durationMinutes: number
   partySize?: number | null
   fields?: Record<string, unknown>
+  source?: string
 }): Promise<CalendlyBookingResult> {
   const times = await calendlyTimes(input.link, input.date, input.date, input.timeZone, true)
   const byDate = slotsByDate(times, input.timeZone)
@@ -154,7 +155,7 @@ export async function bookWithCalendly(input: {
       party_size: input.partySize ?? null,
       custom_fields: (input.fields ?? {}) as object,
       status: 'confirmed',
-      source: 'ai',
+      source: input.source ?? 'ai',
       calendly_event_uri: created.event,
       calendly_invitee_uri: created.uri,
       calendly_cancel_url: created.cancel_url,

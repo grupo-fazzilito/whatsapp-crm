@@ -209,9 +209,10 @@ export function BookingFormDialog(props: BookingFormProps) {
     try {
       // The server resets the reminder flags when the date/time changes.
       const res = booking
-        ? await api<{ id: string }>(`/api/bookings/${booking.id}`, { method: 'PATCH', body: payload })
-        : await api<{ id: string }>('/api/bookings', { method: 'POST', body: payload })
+        ? await api<{ id: string; warning?: string }>(`/api/bookings/${booking.id}`, { method: 'PATCH', body: payload })
+        : await api<{ id: string; warning?: string }>('/api/bookings', { method: 'POST', body: payload })
       savedId = res.id
+      if (res.warning) toast.warning(res.warning)
     } catch (err) {
       setSaving(false)
       toast.error(err instanceof Error ? err.message : String(err))

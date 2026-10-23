@@ -47,6 +47,7 @@ import { decideFallback, resolveFallbackPolicy } from "./fallback";
 import { matchMenuReply, menuDisplay, menuOptions, numberedMenuText } from "./options";
 import type { AiAgentRow } from "@/lib/ai/types";
 import {
+  type BookAppointmentNodeConfig,
   type CollectInputNodeConfig,
   type ConditionNodeConfig,
   type DispatchInboundInput,
@@ -130,7 +131,8 @@ export function isSuspending(node_type: string): boolean {
   return (
     node_type === "send_buttons" ||
     node_type === "send_list" ||
-    node_type === "collect_input"
+    node_type === "collect_input" ||
+    node_type === "book_appointment"
   );
 }
 
@@ -856,6 +858,47 @@ async function advanceFromNodeKey(
       }
       return { outcome: "advanced" };
     }
+    if (node.node_type === "book_appointment") {
+      const cfg = node.config as unknown as BookAppointmentNodeConfig;
+      if (cfg.text?.trim()) {
+        try {
+          await engineSendText({
+            workspaceId: run.workspace_id,
+            conversationId: run.conversation_id!,
+            contactId: run.contact_id!,
+            text: interpolateVars(cfg.text, run.vars),
+          });
+        } catch (err) {
+          await logEvent(db, run.id, "error", node.node_key, {
+            reason: "send_text_failed",
+            detail: errMessage(err),
+          });
+        }
+      }
+      // Park the run on this step first: the picker's answers resume it.
+      const parked = await advanceCurrentNodeKey(
+        db,
+        run.id,
+        run.current_node_key,
+        node.node_key,
+      );
+      if (!parked) {
+        await logEvent(db, run.id, "error", node.node_key, {
+          reason: "lost_race_during_advance",
+        });
+        return { outcome: "advanced" };
+      }
+      run.current_node_key = node.node_key;
+      const outcome = await startPickerForStep(run, node);
+      if (!outcome) return { outcome: "advanced" };
+      // Ended right away (e.g. no free times): continue on that exit.
+      currentKey = bookingExit(cfg, outcome);
+      await logEvent(db, run.id, "node_entered", node.node_key, {
+        booking_outcome: outcome,
+        advancing_to: currentKey,
+      });
+      continue;
+    }
     if (node.node_type === "handoff") {
       await executeHandoff(db, run, node);
       return { outcome: "handed_off" };
@@ -882,6 +925,64 @@ async function advanceFromNodeKey(
   });
   await endRun(db, run.id, "failed", "advance_loop_overflow");
   return { outcome: "completed" };
+}
+
+type BookingOutcome = "booked" | "link" | "not_booked";
+
+function bookingExit(cfg: BookAppointmentNodeConfig, outcome: BookingOutcome): string {
+  return outcome === "booked"
+    ? cfg.booked_next
+    : outcome === "link"
+      ? cfg.link_next
+      : cfg.not_booked_next;
+}
+
+/**
+ * Sends the booking picker of a book_appointment step. Null while it waits
+ * for the customer; the outcome when it ended right away.
+ */
+async function startPickerForStep(
+  run: FlowRunRow,
+  node: FlowNodeRow,
+): Promise<BookingOutcome | null> {
+  const cfg = node.config as unknown as BookAppointmentNodeConfig;
+  const { startBookingPicker } = await import("@/lib/bookings/picker");
+  const r = await startBookingPicker({
+    workspaceId: run.workspace_id,
+    conversationId: run.conversation_id!,
+    origin: "flow",
+    flow: { run_id: run.id, node_key: node.node_key },
+    preset: { service_id: cfg.service_id || null, staff_id: cfg.staff_id || null },
+  });
+  if (r.status === "waiting") return null;
+  return r.status === "done" ? r.outcome : "not_booked";
+}
+
+/**
+ * The booking picker of a book_appointment step ended: continue the run
+ * on the matching exit. No-op when the run already moved on.
+ */
+export async function resumeRunAfterBooking(
+  workspaceId: string,
+  runId: string,
+  nodeKey: string,
+  outcome: BookingOutcome,
+): Promise<void> {
+  const { tenantDb } = await import("@/lib/db/tenant");
+  const db = tenantDb(workspaceId);
+  const run = (await db.flow_runs
+    .findFirst({ where: { id: runId, status: "active", current_node_key: nodeKey } })
+    .catch(() => null)) as unknown as FlowRunRow | null;
+  if (!run) return;
+  const nodes = await loadAllNodes(db, workspaceId, run.flow_id);
+  const node = nodes.get(nodeKey);
+  if (!node || node.node_type !== "book_appointment") return;
+  const next = bookingExit(node.config as unknown as BookAppointmentNodeConfig, outcome);
+  await logEvent(db, run.id, "node_entered", nodeKey, {
+    booking_outcome: outcome,
+    advancing_to: next,
+  });
+  await advanceFromNodeKey(db, run, next, nodes);
 }
 
 /**
@@ -1101,6 +1202,14 @@ async function handleReplyForActiveRun(
       await sendButtonsAndSuspend(db, run, currentNode);
     } else if (currentNode.node_type === "send_list") {
       await sendListAndSuspend(db, run, currentNode);
+    } else if (currentNode.node_type === "book_appointment") {
+      // The picker expired or was cleared: send it again.
+      const outcome = await startPickerForStep(run, currentNode);
+      if (outcome) {
+        const next = bookingExit(currentNode.config as unknown as BookAppointmentNodeConfig, outcome);
+        const result = await advanceFromNodeKey(db, run, next, nodes, message);
+        return { consumed: true, flow_run_id: run.id, outcome: result.outcome };
+      }
     } else if (currentNode.node_type === "collect_input") {
       // Customer typed something we couldn't accept (empty after trim,
       // or var_key missing — rare). Re-send the prompt so they try again.

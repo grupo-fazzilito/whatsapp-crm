@@ -37,6 +37,7 @@ import { extractMentions, filterMentionCandidates, mentionQuery, type MentionCan
 import type { QuickReply, QuickReplyAttachment } from "@/lib/inbox/types";
 import { ReplyQuote } from "./reply-quote";
 import { SuggestReplyButton } from "./ai-assist/suggest-button";
+import { SendScheduleButton } from "./send-schedule-dialog";
 
 interface ReplyDraft {
   /** Internal UUID of the message being replied to — sent back through onSend. */
@@ -589,6 +590,10 @@ export function MessageComposer({
               <Paperclip className="h-4 w-4" />
             </Button>
           </>
+        )}
+
+        {!isNote && (
+          <SendScheduleButton conversationId={conversationId} disabled={inputDisabled || sending} />
         )}
 
         {!isNote && (

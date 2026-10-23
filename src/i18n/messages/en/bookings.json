@@ -27,7 +27,9 @@
     },
     "source": {
       "ai": "Booked by AI",
-      "manual": "Manual"
+      "manual": "Manual",
+      "flow": "Flow",
+      "picker": "Chat schedule"
     },
     "fields": {
       "when": "Date & time",
@@ -238,6 +240,62 @@
         "description": "Remind patients to renew a treatment",
         "body": "💊 *Treatment reminder*\n\nHi {{name}}! Your {{medication_name}} treatment (prescribed {{last_date}}) may be running out.\n\nReply VISIT to book a follow-up {{booking}}.\n\n— *{{business_name}}*"
       }
+    },
+    "picker": {
+      "chooseOne": "Which {what} would you like to book?",
+      "chooseStaff": "Who would you like your {booking} with?",
+      "chooseDay": "📅 Pick a day for *{what}*:",
+      "chooseTime": "🕒 Pick a time on {date}:",
+      "listButton": "See options",
+      "times": "{n} free times",
+      "oneTime": "1 free time",
+      "moreTimes": "More times",
+      "askField": "To finish, please type: *{label}*",
+      "email": "Your email",
+      "invalidField": "I couldn't read that, please try again.",
+      "booked": "✅ Done! We booked *{what}* for {date} at {time}{staff}.",
+      "withStaff": " with {name}",
+      "link": "To finish your booking, open: {url}",
+      "noSlots": "There are no free times in the next few days.",
+      "dayFull": "That day has no free times left.",
+      "slotTaken": "That time was just taken.",
+      "didntGet": "I didn't get that. Tap one of the options:",
+      "gaveUp": "Let's leave the booking for later. Message us whenever you want to book.",
+      "expired": "That schedule is no longer active. Message us if you want to book.",
+      "failed": "We couldn't book your appointment. Someone from the team will help you shortly."
+    },
+    "sendSchedule": {
+      "button": "Send schedule",
+      "title": "Send the schedule to the customer",
+      "description": "The customer picks a day and time by tapping options in the chat, without the AI and without using credits. The booking goes to {bookings}.",
+      "calendly": "Services linked to Calendly are booked in Calendly.",
+      "google": "Bookings are copied to the Google Calendar of whoever attends.",
+      "service": "Service",
+      "customerChooses": "Let the customer choose",
+      "staff": "Attended by",
+      "anyStaff": "Anyone with free time",
+      "product": "What is visited",
+      "send": "Send schedule",
+      "sent": "Schedule sent. When the customer picks, the booking shows up in the chat.",
+      "windowClosed": "More than 24 hours since the customer's last message: WhatsApp only allows templates.",
+      "bookingsOff": "Turn on bookings in the business settings to send the schedule.",
+      "noSlots": "No free times in the next few days for this selection.",
+      "error": "The schedule couldn't be sent."
+    },
+    "flowStep": {
+      "help": "The customer picks a day and time by tapping options, without the AI and without using credits. Services linked to Calendly are booked in Calendly; the rest in your schedule (and in the Google Calendar of whoever attends, when connected).",
+      "text": "Message before the schedule (optional)",
+      "service": "Service",
+      "staff": "Attended by",
+      "booked": "If booked → go to",
+      "link": "If the Calendly link was sent → go to",
+      "notBooked": "If not booked → go to"
+    },
+    "calendlyManual": {
+      "email": "To book this service in Calendly the contact needs an email. Add it to the contact and try again.",
+      "slot": "That time isn't free in Calendly. Pick another one.",
+      "plan": "Your Calendly plan doesn't allow booking from Whasalia: the booking was saved here only.",
+      "reschedule": "Calendly bookings can't be moved from here. Cancel it and create a new one."
     }
   }
 }

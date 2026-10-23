@@ -103,7 +103,7 @@ export function BookingDetailsDialog({
                   {String(v)}
                 </Item>
               ))}
-              <Item label={t('bookings.fields.source')}>{t(`bookings.source.${b.source === 'ai' ? 'ai' : 'manual'}`)}</Item>
+              <Item label={t('bookings.fields.source')}>{t(`bookings.source.${b.source === 'ai' || b.source === 'flow' || b.source === 'picker' ? b.source : 'manual'}`)}</Item>
             </div>
             {b.notes && (
               <Item label={t('bookings.form.notes')}>

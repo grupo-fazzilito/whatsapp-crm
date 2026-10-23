@@ -24,6 +24,8 @@ import {
   PackageCheck,
   Wallet,
   BadgeCheck,
+  CalendarClock,
+  Workflow,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useI18n } from "@/i18n/client";
@@ -551,6 +553,16 @@ export function MessageBubble({
       {isBot && meta.source === "comment_reply" ? (
         <span className="mb-0.5 max-w-full truncate px-1 text-[10px] text-slate-400">
           {t("comments.bubble", { text: String(meta.comment_text ?? "").slice(0, 80) })}
+        </span>
+      ) : isBot && meta.source === "booking_picker" ? (
+        <span className="mb-0.5 inline-flex items-center gap-1 px-1 text-[10px] text-slate-400">
+          <CalendarClock className="h-3 w-3" aria-hidden="true" />
+          {t("inbox.bubble.bookingPicker")}
+        </span>
+      ) : isBot && meta.source === "flow" ? (
+        <span className="mb-0.5 inline-flex items-center gap-1 px-1 text-[10px] text-slate-400">
+          <Workflow className="h-3 w-3" aria-hidden="true" />
+          {t("inbox.bubble.flow")}
         </span>
       ) : isBot && (
         <span className="mb-0.5 inline-flex items-center gap-1 px-1 text-[10px] text-slate-400">
