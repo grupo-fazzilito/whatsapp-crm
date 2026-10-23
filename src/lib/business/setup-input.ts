@@ -3,6 +3,7 @@
 // only known columns with the expected types and throws InputError on
 // invalid values. `partial` parsers only include keys present in the body.
 import { INDUSTRY_IDS } from '@/lib/industries'
+import { parseReminderSettings } from '@/lib/bookings/reminder-settings'
 
 export class InputError extends Error {
   constructor(message: string) {
@@ -276,7 +277,7 @@ export function parseWorkspacePatch(body: Body): Row {
 }
 
 /** Top-level settings keys the setup screens may write. */
-export const SETTINGS_KEYS = ['modules', 'labels', 'booking_capacity', 'orders', 'product_attributes'] as const
+export const SETTINGS_KEYS = ['modules', 'labels', 'booking_capacity', 'orders', 'product_attributes', 'booking_reminders'] as const
 
 /** Merges a settings patch (top-level keys) into the latest stored settings. */
 export function mergeSettings(current: unknown, patch: unknown): Row {
@@ -285,7 +286,13 @@ export function mergeSettings(current: unknown, patch: unknown): Row {
   for (const [k, v] of Object.entries(patch)) {
     if (!(SETTINGS_KEYS as readonly string[]).includes(k)) throw new InputError(`settings.${k} cannot be changed here`)
     if (k === 'booking_capacity') base[k] = int(v, 1, 500, 'booking_capacity')
-    else if (k === 'product_attributes') {
+    else if (k === 'booking_reminders') {
+      try {
+        base[k] = parseReminderSettings(v)
+      } catch (err) {
+        throw new InputError(err instanceof Error ? err.message : 'Invalid booking_reminders')
+      }
+    } else if (k === 'product_attributes') {
       if (!Array.isArray(v)) throw new InputError('product_attributes must be a list')
       base[k] = v
     } else if (k === 'orders') {

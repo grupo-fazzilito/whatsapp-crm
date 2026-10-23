@@ -4,7 +4,9 @@ import { tenantDb } from '@/lib/db/tenant'
 import { sendMessage } from '@/lib/messaging/send'
 import { createTranslator, type Translator } from '@/i18n/translate'
 import { getPreset, industryLabel, resolveIndustry } from '@/lib/industries'
-import { loadBusinessContext, type BusinessContext } from '@/lib/ai/context'
+import { invalidateBusinessContext, loadBusinessContext, type BusinessContext } from '@/lib/ai/context'
+import { scheduleBookingSync } from '@/lib/integrations/google/sync'
+import { pushCancellations } from '@/lib/integrations/calendly/sync'
 import { createBookingFromDraft } from '@/lib/ai/bookings'
 import { longDate } from '@/lib/ai/engine'
 import { freeSlotsForBusiness, freeSlotsForStaff, upcomingDates } from '@/lib/ai/slots'
@@ -255,18 +257,20 @@ async function advance(env: Env, state: PickerState, lead?: string, depth = 0): 
 async function book(env: Env, state: PickerState): Promise<StepResult> {
   const { t, ctx } = env
   const d = state.draft
+  const { replaces, ...draft } = d
   const result = await createBookingFromDraft({
     workspaceId: env.workspaceId,
     contactId: env.contactId,
     conversationId: env.conversationId,
     aiAgentId: null,
-    draft: { ...d, customer_name: d.customer_name ?? env.contact.name },
+    draft: { ...draft, customer_name: d.customer_name ?? env.contact.name },
     source: state.origin === 'flow' ? 'flow' : 'picker',
   })
   if (result.ok) {
+    if (replaces) await cancelReplaced(env, replaces)
     if (d.product_id) await onViewingConfirmed(env.workspaceId, result.bookingId, { sendLocation: true }).catch(() => undefined)
     const what = result.serviceName ?? industryLabel(ctx.workspace.industry, 'booking', env.lang, ctx.workspace.settings).toLowerCase()
-    const text = t('bookings.picker.booked', {
+    const text = t(replaces ? 'bookings.picker.rebooked' : 'bookings.picker.booked', {
       what,
       date: longDate(d.date!, env.lang, ctx),
       time: d.time!,
@@ -296,6 +300,17 @@ async function book(env: Env, state: PickerState): Promise<StepResult> {
       console.error('[picker] booking failed:', result.detail)
       return finish(env, state, 'not_booked', t('bookings.picker.failed'))
   }
+}
+
+/** The booking the customer asked to change (from a reminder): cancelled here, in Google Calendar and in Calendly. */
+async function cancelReplaced(env: Env, bookingId: string) {
+  const { count } = await tenantDb(env.workspaceId)
+    .bookings.updateMany({ where: { id: bookingId, contact_id: env.contactId, status: { in: ['pending', 'confirmed'] } }, data: { status: 'cancelled', updated_at: new Date() } })
+    .catch(() => ({ count: 0 }))
+  if (!count) return
+  invalidateBusinessContext(env.workspaceId)
+  scheduleBookingSync(bookingId, env.workspaceId)
+  void pushCancellations(env.workspaceId).catch(() => undefined)
 }
 
 async function ask(env: Env, state: PickerState, step: PickerState['step'], text: string, options: PickerOption[], lead?: string): Promise<StepResult> {
@@ -444,6 +459,7 @@ function cleanDraft(d: PickerDraft, ctx: BusinessContext): PickerDraft {
     service_id: d.service_id && ctx.services.some((s) => s.id === d.service_id) ? d.service_id : null,
     staff_id: d.staff_id && ctx.staff.some((s) => s.id === d.staff_id) ? d.staff_id : null,
     product_id: d.product_id ?? null,
+    replaces: d.replaces ?? null,
   }
 }
 

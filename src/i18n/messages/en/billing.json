@@ -32,7 +32,8 @@
       "vision": "Image or PDF reading",
       "comment_reply": "Automatically answered comment",
       "unit": "{n} token(s)",
-      "playground": "Agent test message"
+      "playground": "Agent test message",
+      "reminder": "Appointment reminder sent"
     },
     "account": {
       "title": "Billing details",

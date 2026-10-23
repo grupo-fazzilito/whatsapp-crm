@@ -10,7 +10,7 @@ export interface SectionTab {
 export interface NavContext {
   t: (key: string) => string
   label: (noun: 'productPlural' | 'servicePlural') => string
-  modules: { products?: boolean; services?: boolean }
+  modules: { products?: boolean; services?: boolean; bookings?: boolean }
   isAdmin: boolean
   industry: string | null | undefined
 }
@@ -22,6 +22,7 @@ export function sectionGroups(ctx: NavContext): SectionTab[][] {
       { href: '/automations', label: ctx.t('nav.automations') },
       { href: '/flows', label: ctx.t('nav.flows') },
       { href: '/automations/comments', label: ctx.t('comments.tab') },
+      ...(ctx.modules.bookings ? [{ href: '/automations/reminders', label: ctx.t('bookings.reminders.page.tab') }] : []),
     ],
     [
       { href: '/agents', label: ctx.t('nav.agentsList') },

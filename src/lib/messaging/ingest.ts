@@ -11,6 +11,8 @@ import type { ConversationAiState } from '@/lib/ai/types'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
 import { handleBookingPickerInbound } from '@/lib/bookings/picker'
 import { isPickerReply } from '@/lib/bookings/picker-model'
+import { handleReminderReply } from '@/lib/bookings/reminder-send'
+import { parseReminderReply } from '@/lib/bookings/reminder-settings'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { cancelFollowupsForInbound } from '@/lib/automations/followups'
 import { handleCheckoutText, handleCommerceAction, handlePaymentProof, isCommerceAction, type CommerceCtx } from '@/lib/orders/chat'
@@ -419,7 +421,21 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
     if (handledVisit) return outcome
   }
 
-  // 0b) Booking picker (a flow's booking step or the inbox's "Send
+  // 0b) Reminder buttons ("Confirm" / "I need to change it").
+  if (parseReminderReply(ev.interactiveReplyId)) {
+    const handledReminder = await handleReminderReply({
+      workspaceId: ws,
+      conversationId: conversation.id,
+      contactId: contact.id,
+      replyId: ev.interactiveReplyId ?? null,
+    }).catch((err) => {
+      console.error('[ingest] reminder reply failed:', err)
+      return false
+    })
+    if (handledReminder) return outcome
+  }
+
+  // 0c) Booking picker (a flow's booking step or the inbox's "Send
   //     schedule"): the taps and answers book without the AI.
   if (conversation.booking_picker || isPickerReply(ev.interactiveReplyId)) {
     const handledPicker = await handleBookingPickerInbound({
