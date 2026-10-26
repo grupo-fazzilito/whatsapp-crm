@@ -108,11 +108,11 @@
       },
       "hubspot": {
         "name": "HubSpot",
-        "desc": "Automatically push qualified WhatsApp chats, tags, and meeting booking events into HubSpot contact timelines."
+        "desc": "Automatically push qualified WhatsApp, Instagram and Messenger chats, tags and booked meetings into HubSpot contact timelines."
       },
       "zapier": {
         "name": "Zapier",
-        "desc": "Connect WhatsApp API events to over 5,000 apps. Trigger workflows based on incoming user messages."
+        "desc": "Connect Whasalia events to over 5,000 apps. Trigger workflows from messages arriving on WhatsApp, Instagram and Messenger."
       },
       "webhooks": {
         "name": "Developer Webhooks",
@@ -132,7 +132,7 @@
     "badge": "AI Chat Agents",
     "titleLine1": "Conversational AI",
     "titleHighlight": "that Closes Deals.",
-    "subtitle": "Stop waiting for agents to type response messages. Deploy an autonomous intelligence layer directly on WhatsApp. Qualify lead budgets, identify needs, answering product catalog queries instantly.",
+    "subtitle": "Stop waiting for agents to type every reply. Put an AI agent to work on WhatsApp, Instagram and Messenger: it qualifies lead budgets, identifies needs and answers product catalog questions instantly.",
     "playground": {
       "eyebrow": "Agent Playground",
       "title": "Tailor Your AI Prompts.",

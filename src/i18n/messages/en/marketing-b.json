@@ -3,7 +3,7 @@
     "badge": "Collaboration Control",
     "titleLine1": "One Number.",
     "titleLine2": "Unlimited Agents.",
-    "subtitle": "Stop sharing physical smartphones or web logins. Enable your entire support and sales teams to work from a single unified WhatsApp Business account. Assign threads, leave private internal notes, and automate message delegation.",
+    "subtitle": "Stop sharing phones or web logins. Your whole support and sales team handles WhatsApp, Instagram and Messenger from one inbox. Assign threads, leave private internal notes and automate message routing.",
     "mock": {
       "title": "Shared Inbox Stream",
       "subtitle": "Live conversation routing",
@@ -29,8 +29,8 @@
   "mktCrm": {
     "badge": "Pipeline Operations",
     "titleLine1": "Built Specifically",
-    "titleLine2": "for WhatsApp Leads.",
-    "subtitle": "E-mails and forms are static. WhatsApp conversations are live. Our CRM tracks users, tags intent levels, maps pipeline milestones, and logs interaction histories directly from chat threads.",
+    "titleLine2": "for WhatsApp, Instagram and Messenger Leads.",
+    "subtitle": "E-mails and forms are static. Conversations on WhatsApp, Instagram and Messenger are live. Our CRM tracks users, tags intent levels, maps pipeline milestones and logs interaction histories directly from chat threads.",
     "features": {
       "revenueTitle": "Revenue Tracking",
       "revenueDesc": "Assign deal values to contacts. Track total pipeline values and forecast conversions based on historical chat milestones.",
@@ -151,7 +151,7 @@
     "badge": "article feed",
     "titleLine1": "Editorial Insights",
     "titleLine2": "for Modern Commerce.",
-    "subtitle": "Read guides on WhatsApp automation workflows, compliance safety rules, and AI sales tactics.",
+    "subtitle": "Read guides on WhatsApp, Instagram and Messenger automation, compliance rules and AI sales tactics.",
     "filters": {
       "all": "All Insights",
       "marketing": "Marketing Hacks",

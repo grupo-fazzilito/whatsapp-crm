@@ -2,7 +2,7 @@
   "mktHome": {
     "hero": {
       "badge": "🎁 CRM gratis para siempre · solo pagas la IA que usas",
-      "title": "El CRM gratis para vender y atender por WhatsApp",
+      "title": "El CRM gratis para vender y atender por WhatsApp, Instagram y Messenger",
       "subtitle": "Bandeja compartida para WhatsApp, Instagram, Messenger y tu web, agentes de IA, flujos, ventas y reservas. Todo gratis: solo pagas los tokens de IA que usas.",
       "getStarted": "Regístrate gratis",
       "learnMore": "Ver funciones"
@@ -12,7 +12,7 @@
     },
     "how": {
       "title": "Cómo funciona",
-      "subtitle": "Conecta y opera tu automatización oficial de WhatsApp en minutos.",
+      "subtitle": "Conecta WhatsApp, Instagram y Messenger con las APIs oficiales de Meta y empieza a atender en minutos.",
       "s1Title": "Conecta y verifica: API oficial de Meta",
       "s1Desc": "Conecta el número de teléfono de tu negocio mediante los procesos oficiales de Meta. Nuestras guías de cumplimiento hacen que la configuración sea sencilla y te dejan listo para atender a tus clientes de inmediato.",
       "s2Title": "Soporte al cliente con IA en piloto automático",
@@ -27,12 +27,12 @@
       "f1Title": "Control seguro de datos",
       "f1Desc": "Almacenamiento totalmente cifrado que protege los datos de tus leads.",
       "f2Title": "Agenda sincronizada al instante",
-      "f2Desc": "Permite a tus clientes consultar horarios disponibles y reservar reuniones en WhatsApp."
+      "f2Desc": "Permite a tus clientes consultar horarios disponibles y reservar por WhatsApp, Instagram o Messenger."
     },
     "proof": {
       "badge": "✨ Casos reales",
       "title": "La confianza de negocios en crecimiento",
-      "subtitle": "Escala la interacción con tus clientes y gestiona la operación de tu equipo con nuestro motor de CRM para WhatsApp que cumple las normas."
+      "subtitle": "Escala la atención a tus clientes y organiza a tu equipo con un CRM para WhatsApp, Instagram y Messenger que cumple las normas de Meta."
     },
     "testimonials": {
       "eyebrow": "Historias de éxito",
@@ -62,7 +62,7 @@
       "title": "Preguntas frecuentes",
       "subtitle": "Encuentra detalles sobre las políticas de la API, los pasos de verificación y los flujos de trabajo que cumplen las normas.",
       "q1": "¿Qué es Whasalia y cómo funciona?",
-      "a1": "Whasalia es una plataforma de CRM y soporte al cliente para WhatsApp impulsada por IA que se integra con la API oficial de WhatsApp Business. Le permite a tu equipo gestionar conversaciones en una bandeja de entrada compartida, automatizar respuestas con agentes de IA personalizados, dar seguimiento a leads en pipelines kanban y sincronizar agendas directamente por WhatsApp.",
+      "a1": "Whasalia es un CRM con IA para atender y vender por WhatsApp, Instagram y Messenger, conectado con las APIs oficiales de Meta. Tu equipo gestiona todas las conversaciones en una bandeja compartida, automatiza respuestas con agentes de IA, da seguimiento a los leads en embudos kanban y agenda citas directamente desde el chat.",
       "q2": "¿Whasalia cumple con las políticas de WhatsApp?",
       "a2": "Sí. Whasalia cumple totalmente con las políticas de Meta y de WhatsApp Business Platform. Usamos exclusivamente los endpoints oficiales de la API de WhatsApp Business. No permitimos spam de mensajes masivos, extracción de contactos ni herramientas de envíos masivos, para que el número de tu negocio mantenga una alta confiabilidad.",
       "q3": "¿Necesito una cuenta de WhatsApp Business (WABA)?",
@@ -73,7 +73,7 @@
       "a5": "Puedes subir tus lineamientos, preguntas frecuentes y archivos de servicios directamente a la plataforma. Nuestra IA interpreta la intención del usuario, responde las consultas de tus clientes con base en tu base de conocimiento y avisa a los agentes humanos cuando se necesita intervenir manualmente."
     },
     "cta": {
-      "title": "¿Listo para automatizar tu WhatsApp?",
+      "title": "¿Listo para automatizar tu WhatsApp, Instagram y Messenger?",
       "desc": "Empieza en minutos. Conecta tu cuenta de Meta Business, configura tu espacio de soporte al cliente con IA y mira cómo crece tu negocio.",
       "start": "Regístrate gratis"
     },
@@ -89,12 +89,12 @@
       "m5": "⚙️ Lead etiquetado: Enterprise · Asignado → Sarah Adams · Demo agendada"
     },
     "board": {
-      "title": "Pipeline de ventas activo en WhatsApp",
+      "title": "Embudo de ventas de WhatsApp, Instagram y Messenger",
       "subtitle": "Estado en tiempo real de la conversión de leads",
       "pipelineValue": "Valor del pipeline",
       "aiQualified": "Calificados por IA",
       "c0Title": "Leads entrantes",
-      "c0Sub": "Conversaciones nuevas de WhatsApp",
+      "c0Sub": "Conversaciones nuevas de todos tus canales",
       "c1Title": "Calificados por IA",
       "c1Sub": "Intención verificada > 80%",
       "c2Title": "Reunión agendada",

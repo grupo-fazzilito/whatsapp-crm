@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-26',
+    title: { es: 'Un CRM para WhatsApp, Instagram y Messenger', en: 'One CRM for WhatsApp, Instagram and Messenger' },
+    changes: [
+      { kind: 'improved', es: 'El sitio presenta a Whasalia como lo que es: un CRM para WhatsApp, Instagram y Messenger, no solo para WhatsApp.', en: 'The website presents Whasalia as what it is: a CRM for WhatsApp, Instagram and Messenger, not just WhatsApp.' },
+    ],
+  },
+  {
+    date: '2026-10-26',
     title: { es: 'El logo se ve bien en modo claro', en: 'The logo looks right in light mode' },
     changes: [
       { kind: 'fixed', es: 'En modo claro el logo de Whasalia aparece con letras oscuras (antes a veces salía en blanco), y el modo elegido en la web se mantiene al entrar a la app.', en: 'In light mode the Whasalia logo shows with dark text (it sometimes came out white), and the mode chosen on the website carries over into the app.' },

@@ -2,7 +2,7 @@
   "mktHome": {
     "hero": {
       "badge": "🎁 Free CRM forever · you only pay for the AI you use",
-      "title": "The free CRM to sell and serve on WhatsApp",
+      "title": "The free CRM to sell and serve on WhatsApp, Instagram and Messenger",
       "subtitle": "Shared inbox for WhatsApp, Instagram, Messenger and your website, AI agents, flows, sales and bookings. All free: you only pay for the AI tokens you use.",
       "getStarted": "Sign up free",
       "learnMore": "See features"
@@ -12,7 +12,7 @@
     },
     "how": {
       "title": "How it works",
-      "subtitle": "Link and operate your official WhatsApp automation setup in minutes.",
+      "subtitle": "Connect WhatsApp, Instagram and Messenger through Meta’s official APIs and start serving customers in minutes.",
       "s1Title": "Connect and Verify — Official Meta API",
       "s1Desc": "Connect your business phone number via official Meta processes. Our compliance guidelines make setup straightforward, preparing you for immediate customer support.",
       "s2Title": "AI Customer Support on Autopilot",
@@ -27,12 +27,12 @@
       "f1Title": "Secure Data Controls",
       "f1Desc": "Fully encrypted storage systems protecting lead data.",
       "f2Title": "Instant Booking Sync",
-      "f2Desc": "Allows clients to check slots and reserve meetings on WhatsApp."
+      "f2Desc": "Lets customers check open slots and book on WhatsApp, Instagram or Messenger."
     },
     "proof": {
       "badge": "✨ Social Proof",
       "title": "Trusted by growing businesses",
-      "subtitle": "Scale customer engagement and run team operations using our compliant WhatsApp CRM engine."
+      "subtitle": "Scale customer engagement and run your team with a CRM for WhatsApp, Instagram and Messenger that follows Meta’s rules."
     },
     "testimonials": {
       "eyebrow": "Success Stories",
@@ -62,7 +62,7 @@
       "title": "Frequently Asked Questions",
       "subtitle": "Find details regarding API guidelines, verification steps, and compliant workflows.",
       "q1": "What is Whasalia and how does it work?",
-      "a1": "Whasalia is an AI-powered WhatsApp CRM and customer support platform that integrates with the official WhatsApp Business API. It allows your team to manage conversations in a shared inbox, automate responses via custom AI agents, track leads through kanban pipelines, and sync schedules directly via WhatsApp.",
+      "a1": "Whasalia is an AI-powered CRM to serve and sell on WhatsApp, Instagram and Messenger, connected through Meta’s official APIs. Your team handles every conversation in a shared inbox, automates replies with AI agents, tracks leads in kanban pipelines and books appointments right from the chat.",
       "q2": "Is Whasalia compliant with WhatsApp policies?",
       "a2": "Yes. Whasalia is fully compliant with Meta and WhatsApp Business Platform policies. We exclusively utilize official WhatsApp Business API endpoints. We do not support bulk messaging spam, contact scraping, or blast tools, ensuring your business number maintains high reliability.",
       "q3": "Do I need a WhatsApp Business Account (WABA)?",
@@ -73,7 +73,7 @@
       "a5": "You can upload your database guidelines, FAQs, and service files directly to the platform. Our AI parses user intent, answers client inquiries using your knowledge base guidelines, and flags human agents when a manual takeover is required."
     },
     "cta": {
-      "title": "Ready to Automate your WhatsApp?",
+      "title": "Ready to automate your WhatsApp, Instagram and Messenger?",
       "desc": "Get started in minutes. Connect your Meta Business account, setup your AI customer support workspace, and watch your business scale.",
       "start": "Sign up free"
     },
@@ -89,12 +89,12 @@
       "m5": "⚙️ Lead tagged: Enterprise · Routed → Sarah Adams · Demo booked"
     },
     "board": {
-      "title": "Active WhatsApp Sales Pipeline",
+      "title": "WhatsApp, Instagram and Messenger sales pipeline",
       "subtitle": "Real-time status of lead conversions",
       "pipelineValue": "Pipeline Value",
       "aiQualified": "AI Qualified",
       "c0Title": "Lead Inbound",
-      "c0Sub": "Incoming WhatsApp Threads",
+      "c0Sub": "New conversations from all your channels",
       "c1Title": "AI Qualified",
       "c1Sub": "Intent Verified > 80%",
       "c2Title": "Meeting Booked",
