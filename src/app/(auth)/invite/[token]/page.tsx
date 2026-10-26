@@ -6,6 +6,7 @@ import { Loader2, Users } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthLogo } from "@/components/auth/auth-logo";
 
 interface Preview {
   workspace_name: string;
@@ -51,7 +52,8 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     !!preview && !!userEmail && userEmail.toLowerCase() === preview.email.toLowerCase();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--m-bg-primary)] px-4">
+    <div className="relative flex w-full flex-1 flex-col items-center justify-center gap-6 px-4 py-12 min-h-[calc(100dvh-4rem)]">
+      <AuthLogo />
       <Card className="w-full max-w-md border-[var(--m-border-primary)] bg-[var(--m-bg-glass)] backdrop-blur-xl">
         {loading ? (
           <CardContent className="flex justify-center py-12">

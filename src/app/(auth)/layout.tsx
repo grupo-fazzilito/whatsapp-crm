@@ -21,7 +21,9 @@ export const metadata: Metadata = {
 
 import { MarketingThemeProvider } from "@/components/marketing/marketing-theme-provider";
 import { I18nProvider } from "@/i18n/client";
-import { LanguageSwitcher } from "@/components/language-switcher";
+import { AuroraBackground } from "@/components/marketing/aurora-background";
+import { GlassNavbar } from "@/components/marketing/navbar";
+import { Footer } from "@/components/marketing/footer";
 import { getLocale } from "@/i18n/server";
 
 export default async function AuthLayout({ children }: { children: ReactNode }) {
@@ -29,10 +31,12 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
   return (
     <I18nProvider locale={locale}>
       <MarketingThemeProvider>
-        <div className="fixed right-4 top-4 z-50">
-          <LanguageSwitcher variant="marketing" />
-        </div>
-        {children}
+        {/* Same menu and footer as the public site. */}
+        <AuroraBackground showRadialGlows={true}>
+          <GlassNavbar />
+          <main className="flex w-full flex-1 flex-col pt-16">{children}</main>
+          <Footer />
+        </AuroraBackground>
       </MarketingThemeProvider>
     </I18nProvider>
   );
