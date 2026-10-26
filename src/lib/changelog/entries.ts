@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-26',
+    title: { es: 'Idioma también desde el celular', en: 'Language from your phone too' },
+    changes: [
+      { kind: 'improved', es: 'En el celular, el cambio de idioma (ES / EN) está en el menú de tu cuenta, arriba a la derecha.', en: 'On phones, the language switch (ES / EN) is in your account menu, top right.' },
+      { kind: 'fixed', es: 'El menú de la cuenta muestra «Perfil», «Ajustes» y «Cerrar sesión» en tu idioma, y «Ajustes» abre la página principal de ajustes.', en: 'The account menu shows “Profile”, “Settings” and “Sign out” in your language, and “Settings” opens the main settings page.' },
+    ],
+  },
+  {
+    date: '2026-10-26',
     title: { es: 'Inicio de sesión y registro con la marca Whasalia', en: 'Sign-in and sign-up with the Whasalia brand' },
     changes: [
       { kind: 'improved', es: 'Las pantallas para iniciar sesión, crear cuenta y recuperar la contraseña muestran el logo de Whasalia y el mismo menú y pie de página que el sitio.', en: 'The sign-in, sign-up and password recovery screens show the Whasalia logo and the same menu and footer as the website.' },

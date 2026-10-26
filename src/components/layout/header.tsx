@@ -87,7 +87,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
         <button
           type="button"
           onClick={onOpenSidebar}
-          aria-label="Open menu"
+          aria-label={t("nav.openMenu")}
           className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
         >
           <Menu className="h-5 w-5" />
@@ -106,7 +106,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
         <button
           type="button"
           onClick={() => setMode(mode === "light" ? "dark" : "light")}
-          aria-label={`Switch to ${mode === "light" ? "dark" : "light"} mode`}
+          aria-label={t(mode === "light" ? "nav.darkMode" : "nav.lightMode")}
           className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
         >
           {mode === "light" ? (
@@ -119,7 +119,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
         <DropdownMenu>
           <DropdownMenuTrigger
             className="flex items-center gap-2 rounded-md px-1 py-1 transition-colors hover:bg-accent focus:bg-accent focus:outline-none data-[state=open]:bg-accent sm:gap-3 sm:pl-1 sm:pr-3"
-            aria-label="Open account menu"
+            aria-label={t("nav.accountMenu")}
           >
             <Avatar className="size-8">
               {profile?.avatar_url ? (
@@ -150,6 +150,12 @@ export function Header({ onOpenSidebar }: HeaderProps) {
               </p>
             </div>
             <DropdownMenuSeparator className="bg-border" />
+            {/* On phones the header has no room for the ES / EN pill. */}
+            <div className="flex items-center justify-between gap-3 px-2 py-1.5 sm:hidden">
+              <span className="text-sm text-foreground">{t("common.language")}</span>
+              <LanguageSwitcher />
+            </div>
+            <DropdownMenuSeparator className="bg-border sm:hidden" />
             <AvailabilityMenuItem />
             <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem
@@ -161,18 +167,18 @@ export function Header({ onOpenSidebar }: HeaderProps) {
               }
             >
               <User className="size-4" />
-              Profile
+              {t("nav.profile")}
             </DropdownMenuItem>
             <DropdownMenuItem
               render={
                 <Link
-                  href="/settings?tab=whatsapp"
+                  href="/settings"
                   className="text-foreground focus:bg-accent focus:text-foreground"
                 />
               }
             >
               <SettingsIcon className="size-4" />
-              Settings
+              {t("nav.settings")}
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem
@@ -180,7 +186,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
               className="text-foreground focus:bg-accent focus:text-foreground"
             >
               <LogOut className="size-4" />
-              Sign out
+              {t("nav.signOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
