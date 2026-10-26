@@ -119,6 +119,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // The public site's toggle (MarketingThemeProvider) changes <html data-mtheme>
+  // directly; follow it so the app's state (sun / moon icon) never goes stale.
+  useEffect(() => {
+    const html = document.documentElement;
+    const observer = new MutationObserver(() => {
+      const attr = html.getAttribute("data-mtheme");
+      if (attr === "light" || attr === "dark") setModeState(attr);
+    });
+    observer.observe(html, { attributes: true, attributeFilter: ["data-mtheme"] });
+    return () => observer.disconnect();
+  }, []);
+
   // Sync theme and mode from other tabs
   useEffect(() => {
     function onStorage(e: StorageEvent) {

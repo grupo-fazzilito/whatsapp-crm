@@ -1,12 +1,10 @@
 "use client";
 
+import { Logo } from "@/components/brand/logo";
 import React from "react";
 import { Bot, Sparkles } from "lucide-react";
-import { useMarketingTheme } from "@/components/marketing/marketing-theme-provider";
 
 export function ReferenceDashboard() {
-  const { resolvedTheme } = useMarketingTheme();
-  const isLight = resolvedTheme === "light";
 
   return (
     <div className="relative w-full max-w-5xl mx-auto mt-0 px-4 md:px-0">
@@ -27,11 +25,7 @@ export function ReferenceDashboard() {
         >
           {/* Logo on Left */}
           <div className="flex items-center gap-2">
-            <img
-              src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
-              alt="Whasalia Logo"
-              className="h-7 w-auto object-contain"
-            />
+            <Logo alt="Whasalia Logo" className="h-7" />
           </div>
 
           {/* Search/Pill in Center */}

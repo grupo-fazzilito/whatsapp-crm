@@ -17,6 +17,12 @@ const MarketingThemeContext = createContext<MarketingThemeContextType>({
   setMode: () => {},
 });
 
+/** Applies the mode to <html>: data-mtheme for the site, .dark for the app's dark: styles. */
+function applyMode(active: "dark" | "light") {
+  document.documentElement.setAttribute("data-mtheme", active);
+  document.documentElement.classList.toggle("dark", active === "dark");
+}
+
 export function MarketingThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>("dark");
   const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">("dark");
@@ -27,14 +33,14 @@ export function MarketingThemeProvider({ children }: { children: React.ReactNode
     const initialMode: ThemeMode = saved === "light" || saved === "dark" ? saved : "dark";
     setModeState(initialMode);
     setResolvedTheme(initialMode === "light" ? "light" : "dark");
-    document.documentElement.setAttribute("data-mtheme", initialMode === "light" ? "light" : "dark");
+    applyMode(initialMode === "light" ? "light" : "dark");
   }, []);
 
   // Apply theme change immediately when mode changes
   useEffect(() => {
     const active: "dark" | "light" = mode === "light" ? "light" : "dark";
     setResolvedTheme(active);
-    document.documentElement.setAttribute("data-mtheme", active);
+    applyMode(active);
   }, [mode]);
 
   const setMode = (newMode: ThemeMode) => {
