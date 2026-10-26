@@ -135,7 +135,10 @@
         "error": "Error",
         "disconnected": "Disconnected"
       },
-      "business": "Business"
+      "business": "Business",
+      "deleteTitle": "Delete this client?",
+      "deleteBody": "Deletes the business with all its data (contacts, conversations, orders, bookings, channels, credits…) and the owner’s account if they have no other business. This cannot be undone.",
+      "deleteFailed": "The client could not be deleted: {reason}"
     }
   }
 }

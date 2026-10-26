@@ -183,7 +183,12 @@ export default function AdminClientsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/admin/clients?id=${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/admin/clients?id=${id}`, { method: "DELETE" }).catch(() => null);
+    if (!res?.ok) {
+      const body = (await res?.json().catch(() => null)) as { error?: string } | null;
+      window.alert(t("admin.clients.deleteFailed", { reason: body?.error || `HTTP ${res?.status ?? "—"}` }));
+      return;
+    }
     setClients(p => p.filter(c => c.id !== id));
     setDelId(null);
     if (detail?.id === id) setDetail(null);
@@ -547,8 +552,8 @@ export default function AdminClientsPage() {
                   <Trash2 className="size-6 text-red-400"/>
                 </div>
                 <div className="text-center">
-                  <h3 className="font-bold text-white">Delete Client?</h3>
-                  <p className="text-sm text-slate-400 mt-1">Permanently removes the user and all their data from Supabase. Cannot be undone.</p>
+                  <h3 className="font-bold text-white">{t("admin.clients.deleteTitle")}</h3>
+                  <p className="text-sm text-slate-400 mt-1">{t("admin.clients.deleteBody")}</p>
                 </div>
                 <div className="flex gap-3">
                   <button onClick={()=>setDelId(null)} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-sm font-semibold text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>

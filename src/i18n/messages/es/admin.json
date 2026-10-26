@@ -135,7 +135,10 @@
         "error": "Con error",
         "disconnected": "Desconectado"
       },
-      "business": "Negocio"
+      "business": "Negocio",
+      "deleteTitle": "¿Eliminar este cliente?",
+      "deleteBody": "Se borra el negocio con todos sus datos (contactos, conversaciones, pedidos, citas, canales, créditos…) y la cuenta del dueño si no tiene otro negocio. No se puede deshacer.",
+      "deleteFailed": "No se pudo eliminar el cliente: {reason}"
     }
   }
 }
