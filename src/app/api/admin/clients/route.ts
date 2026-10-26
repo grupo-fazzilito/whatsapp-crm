@@ -193,6 +193,12 @@ export async function PATCH(req: NextRequest) {
 }
 
 // DELETE /api/admin/clients?id=xxx
+/**
+ * DELETE /api/admin/clients?id=<workspace id> — deletes the business with all
+ * its data (every table cascades from workspaces) and the owner's account when
+ * it has no other business left. Deleting only the account used to leave the
+ * workspace behind, so the client came back on reload.
+ */
 export async function DELETE(req: NextRequest) {
   if (!(await isAuthed()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -201,7 +207,22 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   try {
-    await deleteUser(await resolveOwnerUserId(id));
+    const workspace = await prisma.workspaces.findUnique({ where: { id }, select: { id: true } });
+    if (!workspace) {
+      // Older rows were keyed by the owner's user id.
+      await deleteUser(id);
+      return NextResponse.json({ ok: true });
+    }
+    const owners = await prisma.workspace_members.findMany({ where: { workspace_id: id, role: "owner" }, select: { user_id: true } });
+    await prisma.workspaces.delete({ where: { id } });
+
+    for (const { user_id } of owners) {
+      const [otherWorkspaces, profile] = await Promise.all([
+        prisma.workspace_members.count({ where: { user_id } }),
+        prisma.profiles.findUnique({ where: { user_id }, select: { is_platform_admin: true } }),
+      ]);
+      if (otherWorkspaces === 0 && !profile?.is_platform_admin) await deleteUser(user_id);
+    }
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
