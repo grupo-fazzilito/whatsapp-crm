@@ -6,12 +6,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, Search, MoreVertical, Trash2, CheckCircle, XCircle, LogIn,
   X, Loader2, ChevronUp, ChevronDown, RefreshCw,
-  Wifi, WifiOff, MessageSquare, Radio, Zap, Phone,
+  WifiOff, MessageSquare, Radio, Zap, Phone,
   Building2, MapPin, ShieldCheck, ShieldOff, Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n/client";
 import { AdminShell } from "../admin-shell";
+import { ChannelIcon } from "@/components/inbox/channel-badge";
+import { CHANNEL_TYPE_LABELS } from "@/lib/channels/capabilities";
+import type { ChannelType } from "@/lib/channels/types";
 
 interface Client {
   id: string;
@@ -33,6 +36,8 @@ interface Client {
   wa_phone_id: string | null;
   wa_waba_id: string | null;
   wa_connected_at: string | null;
+  /** Every channel of the workspace (WhatsApp, Messenger, Instagram, web chat…). */
+  channels: ClientChannel[];
   clinic_name: string | null;
   clinic_type: string | null;
   clinic_city: string | null;
@@ -43,6 +48,30 @@ interface Client {
   broadcasts: number;
   automations: number;
 }
+
+interface ClientChannel {
+  type: ChannelType;
+  name: string;
+  handle: string | null;
+  status: string;
+  status_detail: string | null;
+  external_id: string;
+  waba_id: string | null;
+  connected_at: string;
+}
+
+/** Channel types shown first, in this order (the rest follow). */
+const CHANNEL_ORDER: ChannelType[] = ["whatsapp", "messenger", "instagram", "webchat", "tiktok"];
+type ChannelFilter = "all" | "none" | ChannelType;
+
+const CHANNEL_STATUS_CLS: Record<string, string> = {
+  connected: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
+  error: "bg-red-500/10 border-red-500/20 text-red-400",
+  disconnected: "bg-slate-500/10 border-slate-500/20 text-slate-400",
+};
+
+const connectedTypes = (c: Client) =>
+  CHANNEL_ORDER.filter((type) => c.channels.some((ch) => ch.type === type && ch.status === "connected"));
 
 type SortKey = "name" | "email" | "contacts" | "conversations" | "joined_at" | "last_sign_in";
 type FilterStatus = "all" | "active" | "inactive" | "banned";
@@ -66,6 +95,7 @@ export default function AdminClientsPage() {
   const [loading,  setLoading]  = useState(true);
   const [search,   setSearch]   = useState("");
   const [statusF,  setStatusF]  = useState<FilterStatus>("all");
+  const [channelF, setChannelF] = useState<ChannelFilter>("all");
   const [sortKey,  setSortKey]  = useState<SortKey>("joined_at");
   const [sortDir,  setSortDir]  = useState<"asc"|"desc">("desc");
   const [detail,   setDetail]   = useState<Client|null>(null);
@@ -116,7 +146,9 @@ export default function AdminClientsPage() {
         statusF === "active"   ? c.is_active && !c.is_banned :
         statusF === "inactive" ? !c.is_active && !c.is_banned :
         statusF === "banned"   ? c.is_banned : true;
-      return matchQ && matchS;
+      const live = connectedTypes(c);
+      const matchC = channelF === "all" ? true : channelF === "none" ? live.length === 0 : live.includes(channelF);
+      return matchQ && matchS && matchC;
     });
     return [...r].sort((a, b) => {
       const av = a[sortKey] ?? "", bv = b[sortKey] ?? "";
@@ -124,7 +156,7 @@ export default function AdminClientsPage() {
         ? av - bv : String(av).localeCompare(String(bv));
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [clients, search, statusF, sortKey, sortDir]);
+  }, [clients, search, statusF, channelF, sortKey, sortDir]);
 
   const toggleSort = (k: SortKey) => {
     if (sortKey === k) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -173,7 +205,7 @@ export default function AdminClientsPage() {
               <Users className="size-6 text-emerald-400"/> Clients
             </h1>
             <p className="mt-1 text-sm text-slate-400">
-              {clients.length} registered · {clients.filter(c=>c.is_active&&!c.is_banned).length} active · {clients.filter(c=>c.wa_connected).length} WA connected
+              {clients.length} registered · {clients.filter(c=>c.is_active&&!c.is_banned).length} active · {CHANNEL_ORDER.slice(0, 3).map((type) => `${clients.filter((c) => connectedTypes(c).includes(type)).length} ${CHANNEL_TYPE_LABELS[type]}`).join(" · ")}
             </p>
           </div>
           <button onClick={load} className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-semibold transition-colors">
@@ -195,6 +227,12 @@ export default function AdminClientsPage() {
             <option value="inactive">Unconfirmed</option>
             <option value="banned">Banned</option>
           </select>
+          <select value={channelF} onChange={e=>setChannelF(e.target.value as ChannelFilter)} aria-label={t("admin.clients.channelFilter")}
+            className="px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-800 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors">
+            <option value="all">{t("admin.clients.allChannels")}</option>
+            {CHANNEL_ORDER.map((type) => <option key={type} value={type}>{CHANNEL_TYPE_LABELS[type]}</option>)}
+            <option value="none">{t("admin.clients.noChannels")}</option>
+          </select>
         </div>
 
         {/* Table */}
@@ -210,7 +248,7 @@ export default function AdminClientsPage() {
                   <tr className="border-b border-slate-800 bg-slate-900/60">
                     {([
                       ["name","Client",true],["email","Email",true],
-                      ["status","Status",false],["wa","WhatsApp",false],
+                      ["status","Status",false],["channels",t("admin.clients.channels"),false],
                       ["contacts","Contacts",true],["conversations","Convos",true],
                       ["joined_at","Joined",true],["last_sign_in","Last Login",true],
                     ] as [SortKey|string,string,boolean][]).map(([k,label,sortable])=>(
@@ -250,10 +288,16 @@ export default function AdminClientsPage() {
                             <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full border", sb.cls)}>{sb.label}</span>
                           </td>
                           <td className="px-4 py-3">
-                            {c.wa_connected
-                              ? <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/20 text-emerald-400"><Wifi className="size-2.5"/>Connected</span>
-                              : <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-slate-500/10 border-slate-500/20 text-slate-400"><WifiOff className="size-2.5"/>None</span>
-                            }
+                            {c.channels.length === 0 ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-slate-500/10 border-slate-500/20 text-slate-400"><WifiOff className="size-2.5"/>{t("admin.clients.none")}</span>
+                            ) : (
+                              <span className="flex items-center gap-1" aria-label={connectedTypes(c).map((type) => CHANNEL_TYPE_LABELS[type]).join(", ") || t("admin.clients.none")}>
+                                {CHANNEL_ORDER.filter((type) => c.channels.some((ch) => ch.type === type)).map((type) => {
+                                  const live = c.channels.some((ch) => ch.type === type && ch.status === "connected");
+                                  return <ChannelIcon key={type} type={type} size={22} className={cn(!live && "opacity-30 grayscale")} />;
+                                })}
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-slate-400 tabular-nums">{c.contacts}</td>
                           <td className="px-4 py-3 text-slate-400 tabular-nums">{c.conversations}</td>
@@ -367,12 +411,9 @@ export default function AdminClientsPage() {
                         {(() => { const sb = statusBadge(detail); return (
                           <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full border", sb.cls)}>{sb.label}</span>
                         ); })()}
-                        {detail.wa_connected && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/20 text-emerald-400">WA Connected</span>
-                        )}
-                        {detail.clinic_name && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-teal-500/10 border-teal-500/20 text-teal-400">Healthcare</span>
-                        )}
+                        {connectedTypes(detail).map((type) => (
+                          <span key={type} className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/20 text-emerald-400">{CHANNEL_TYPE_LABELS[type]}</span>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -410,26 +451,40 @@ export default function AdminClientsPage() {
                     ))}
                   </div>
 
-                  {/* WhatsApp info */}
+                  {/* Channels */}
                   <div className="space-y-2.5">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">WhatsApp</p>
-                    {[
-                      { label:"Status",      value:detail.wa_status },
-                      { label:"Phone ID",    value:detail.wa_phone_id ?? "—" },
-                      { label:"WABA ID",     value:detail.wa_waba_id ?? "—" },
-                      { label:"Connected",   value:fmt(detail.wa_connected_at) },
-                    ].map(r=>(
-                      <div key={r.label} className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">{r.label}</span>
-                        <span className="font-medium text-white truncate max-w-[140px]">{r.value}</span>
-                      </div>
-                    ))}
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{t("admin.clients.channels")}</p>
+                    {detail.channels.length === 0 ? (
+                      <p className="text-xs text-slate-400">{t("admin.clients.noChannelsYet")}</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {[...detail.channels]
+                          .sort((a, b) => CHANNEL_ORDER.indexOf(a.type) - CHANNEL_ORDER.indexOf(b.type))
+                          .map((ch) => (
+                            <li key={`${ch.type}-${ch.external_id}`} className="rounded-xl border border-slate-800 bg-slate-800/50 p-2.5">
+                              <div className="flex items-center gap-2">
+                                <ChannelIcon type={ch.type} size={20} />
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-xs font-semibold text-white">{CHANNEL_TYPE_LABELS[ch.type]} · {ch.handle || ch.name}</span>
+                                  <span className="block truncate text-[10px] text-slate-500">
+                                    {ch.type === "whatsapp" && ch.waba_id ? `WABA ${ch.waba_id} · ` : ""}ID {ch.external_id} · {fmt(ch.connected_at)}
+                                  </span>
+                                </span>
+                                <span className={cn("shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border", CHANNEL_STATUS_CLS[ch.status] ?? CHANNEL_STATUS_CLS.disconnected)}>
+                                  {t(`admin.clients.status.${ch.status in CHANNEL_STATUS_CLS ? ch.status : "disconnected"}`)}
+                                </span>
+                              </div>
+                              {ch.status_detail && ch.status !== "connected" && <p className="mt-1.5 text-[10px] text-red-300">{ch.status_detail}</p>}
+                            </li>
+                          ))}
+                      </ul>
+                    )}
                   </div>
 
-                  {/* Healthcare clinic */}
+                  {/* Business */}
                   {detail.clinic_name && (
                     <div className="space-y-2.5">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Healthcare Clinic</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{t("admin.clients.business")}</p>
                       {[
                         { label:"Name",  value:detail.clinic_name },
                         { label:"Type",  value:detail.clinic_type ?? "—" },
