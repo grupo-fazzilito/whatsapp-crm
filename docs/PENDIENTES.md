@@ -86,7 +86,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [x] Recordatorios de citas en Automatizaciones → Recordatorios: on/off y textos propios, botones Confirmo / Cambiar fecha, plantilla de utilidad creada y enviada a Meta sola para fuera de la ventana de 24 h, sin reintentos en cadena, 1 crédito por recordatorio — 🤖 (2026-10-23, rama `feat/reminder-templates`)
 - [ ] (Mejora) Selector de citas con **WhatsApp Flows** (formulario nativo de Meta con calendario) en lugar de listas; requiere publicar cada formulario en Meta — 🤖
 - [x] Pantalla para que cada negocio cree sus **claves de API y webhooks**: Ajustes → Integraciones (crear y revocar claves, endpoints con eventos, prueba, entregas y reenvío, rotar secreto) — 🤖 (2026-10-26, rama `feat/api-keys-screen`)
-- [ ] Página pública de **documentación de la API** (endpoints de `/api/v1`, permisos, paginación, eventos de webhook y cómo verificar la firma). Hoy la pantalla solo muestra un ejemplo con `curl` — 🤖
+- [x] Página pública de **documentación de la API** en `/es/api-docs` y `/en/api-docs` (autenticación, permisos, errores, paginación, límites, todos los endpoints de `/api/v1` y los webhooks con verificación de firma), enlazada en el pie de página y desde Ajustes → Integraciones. Reemplaza la página heredada de la plantilla, que mostraba un dominio y un SDK inexistentes — 🤖 (2026-10-26, rama `feat/api-docs`)
 - [ ] Botón "Crear bot de preguntas frecuentes" que arme un menú numerado gratis desde la lista de FAQs — 🤖, opcional
 - [ ] Portfolio de Meta: verificación en dos pasos y un segundo administrador — 🧑
 - [ ] Teléfono o WhatsApp de soporte, si se quiere mostrar — 🧑

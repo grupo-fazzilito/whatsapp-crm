@@ -38,7 +38,8 @@
       "disclaimer": "\"Whasalia uses WhatsApp Business API solutions in accordance with Meta and WhatsApp Business policies. Businesses are responsible for obtaining user consent before initiating communication.\"",
       "rights": "© 2026 Whasalia, a product of {company} ({taxId}). All rights reserved.",
       "changelog": "Changelog",
-      "complaints": "Complaints Book"
+      "complaints": "Complaints Book",
+      "apiDocs": "API docs"
     },
     "meta": {
       "home": {
@@ -114,8 +115,8 @@
         "description": "Get in touch with the Whasalia team."
       },
       "apiDocs": {
-        "title": "API Docs",
-        "description": "Whasalia public API: send messages, manage contacts and receive webhooks."
+        "title": "API documentation",
+        "description": "Whasalia REST API: contacts, messages, orders, bookings and CRM, with signed webhooks."
       },
       "privacyPolicy": {
         "title": "Privacy Policy",

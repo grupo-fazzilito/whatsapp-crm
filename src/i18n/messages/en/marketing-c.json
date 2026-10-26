@@ -96,15 +96,64 @@
     "submit": "Submit Inquiry"
   },
   "mktApiDocs": {
-    "badge": "developer API",
-    "titleLine1": "Trigger Messages",
-    "titleHighlight": "with a Single POST.",
-    "subtitle": "Send transaction updates, shipping notifications, and custom alerts. Connect your webhook listeners to subscribe to delivery receipts and user responses in real-time.",
-    "authTitle": "Bearer Token Auth",
-    "authDesc": "Authorize all triggers with secure HTTPS headers.",
-    "webhookTitle": "Webhook Listeners",
-    "webhookDesc": "Subscribe to JSON payloads for read/delivered receipts.",
-    "footerStatus": "200 OK — Delivered in 240ms",
-    "apiActive": "API ACTIVE"
+    "badge": "Developer API",
+    "title": "API documentation",
+    "subtitle": "Connect Whasalia with n8n, Make, Zapier, your ERP or your own code: read and create contacts, send messages, manage orders and bookings, and get every event as it happens with webhooks.",
+    "tocLabel": "On this page",
+    "toc": {
+      "intro": "Introduction",
+      "auth": "Authentication",
+      "scopes": "Scopes",
+      "errors": "Errors",
+      "pagination": "Pagination",
+      "limits": "Rate limits",
+      "webhooks": "Webhooks"
+    },
+    "intro": {
+      "body": "It's a JSON REST API. Every route hangs from this address and only answers over HTTPS:",
+      "json": "Send `Content-Type: application/json` on POST and PATCH. Responses carry the resource in `data`.",
+      "ids": "Ids are UUIDs. Phones use international format (`+51987654321`).",
+      "dates": "Date-times are ISO 8601 in UTC. Booking dates and times use the business's time zone.",
+      "scope": "Each key belongs to one business and only sees and changes that business's data."
+    },
+    "auth": {
+      "body": "Create a key in **Settings → Integrations → API keys** (admins only) and send it in the `Authorization` header of every request. `GET /me` tests the connection:",
+      "safety": "The key is shown only once. Keep it as a secret on your server (never in a public web page or app). If it leaks, revoke it on the same screen and create another: it stops working instantly."
+    },
+    "scopes": {
+      "body": "When you create the key you choose what it can do. `read` reads everything, `write` reads and writes everything; the others grant read and write on a single resource. Use only the ones the integration needs."
+    },
+    "errors": {
+      "body": "Errors answer with the HTTP status and always the same shape. `details` (when present) points to the field or carries useful data, like alternative times."
+    },
+    "pagination": {
+      "body": "Lists return up to `limit` items (25 by default, 100 max), newest first, and a `next_cursor`. For the next page repeat the request with `cursor=<next_cursor>`; when it's `null` there are no more."
+    },
+    "limits": {
+      "body": "Each key can make 120 requests per minute. Every response carries `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`; above it you get 429 with `Retry-After` in seconds. Attempts with invalid keys are also limited per IP."
+    },
+    "webhooks": {
+      "body": "Set them up in **Settings → Integrations → Webhooks**: choose the URL (public https) and the events. Each event arrives as a POST like this:",
+      "verifyTitle": "Verify the signature",
+      "verifyBody": "Each endpoint has a secret (`whsec_…`) shown when you create or rotate it. The `X-Whasalia-Signature` header carries `t` (Unix seconds) and `v1` = HMAC-SHA256 of the text `<t>.<body>` with that secret. Compute it over the body exactly as received and reject signatures older than 5 minutes. Node.js example:",
+      "retriesTitle": "Responses and retries",
+      "retriesBody": "Answer with a 2xx status within 10 seconds (redirects count as failures). On failure we retry after 1 min, 5 min, 30 min, 2 h, 6 h and 24 h, with the same event `id`: use it to avoid processing twice. After 20 failures in a row the endpoint is disabled and admins are notified. The screen shows every delivery with its response and lets you resend it.",
+      "eventsTitle": "Events",
+      "eventsBody": "`data` carries the resources with the same fields as the API (`message`, `contact`, `order`…)."
+    },
+    "col": {
+      "field": "Field",
+      "type": "Type",
+      "description": "Description",
+      "scope": "Scope",
+      "access": "Access",
+      "code": "Code",
+      "event": "Event"
+    },
+    "query": "Query parameters",
+    "body": "Body (JSON)",
+    "required": "Required",
+    "help": "Missing something in the API?",
+    "helpLink": "Write to us"
   }
 }

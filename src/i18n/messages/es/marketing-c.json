@@ -97,14 +97,63 @@
   },
   "mktApiDocs": {
     "badge": "API para desarrolladores",
-    "titleLine1": "Envía mensajes",
-    "titleHighlight": "con un solo POST.",
-    "subtitle": "Envía actualizaciones de transacciones, notificaciones de envío y alertas personalizadas. Conecta tus webhooks para recibir confirmaciones de entrega y respuestas de usuarios en tiempo real.",
-    "authTitle": "Autenticación con Bearer Token",
-    "authDesc": "Autoriza todas las llamadas con encabezados HTTPS seguros.",
-    "webhookTitle": "Webhooks",
-    "webhookDesc": "Suscríbete a payloads JSON con confirmaciones de lectura y entrega.",
-    "footerStatus": "200 OK — Entregado en 240ms",
-    "apiActive": "API ACTIVA"
+    "title": "Documentación de la API",
+    "subtitle": "Conecta Whasalia con n8n, Make, Zapier, tu ERP o tu propio código: lee y crea contactos, envía mensajes, gestiona pedidos y reservas, y recibe cada evento al momento con webhooks.",
+    "tocLabel": "En esta página",
+    "toc": {
+      "intro": "Introducción",
+      "auth": "Autenticación",
+      "scopes": "Permisos",
+      "errors": "Errores",
+      "pagination": "Paginación",
+      "limits": "Límites",
+      "webhooks": "Webhooks"
+    },
+    "intro": {
+      "body": "Es una API REST con JSON. Todas las rutas cuelgan de esta dirección y solo responden por HTTPS:",
+      "json": "Envía `Content-Type: application/json` en los POST y PATCH. Las respuestas traen el recurso en `data`.",
+      "ids": "Los ids son UUID. Los teléfonos van en formato internacional (`+51987654321`).",
+      "dates": "Las fechas con hora son ISO 8601 en UTC. Las fechas y horas de las reservas usan la zona horaria del negocio.",
+      "scope": "Cada clave pertenece a un solo negocio y solo ve y cambia los datos de ese negocio."
+    },
+    "auth": {
+      "body": "Crea una clave en **Ajustes → Integraciones → Claves de API** (solo administradores) y envíala en la cabecera `Authorization` de cada petición. `GET /me` sirve para probar la conexión:",
+      "safety": "La clave se muestra una sola vez. Guárdala como un secreto en el servidor (nunca en una página web o app pública). Si se filtra, revócala en la misma pantalla y crea otra: deja de funcionar al instante."
+    },
+    "scopes": {
+      "body": "Al crear la clave eliges qué puede hacer. `read` lee todo, `write` lee y escribe todo; los demás dan lectura y escritura sobre un solo recurso. Usa solo los que la integración necesita."
+    },
+    "errors": {
+      "body": "Los errores responden con el código HTTP y siempre la misma forma. `details` (cuando viene) indica el campo o trae datos útiles, como horarios alternativos."
+    },
+    "pagination": {
+      "body": "Las listas devuelven hasta `limit` elementos (25 por defecto, máximo 100), los más recientes primero, y un `next_cursor`. Para la página siguiente repite la petición con `cursor=<next_cursor>`; cuando es `null` no hay más."
+    },
+    "limits": {
+      "body": "Cada clave puede hacer 120 peticiones por minuto. Cada respuesta trae `X-RateLimit-Limit`, `X-RateLimit-Remaining` y `X-RateLimit-Reset`; al pasarte recibes 429 con `Retry-After` en segundos. Los intentos con claves inválidas también se limitan por IP."
+    },
+    "webhooks": {
+      "body": "Configúralos en **Ajustes → Integraciones → Webhooks**: eliges la URL (https pública) y los eventos. Cada evento llega como un POST con este formato:",
+      "verifyTitle": "Verificar la firma",
+      "verifyBody": "Cada endpoint tiene un secreto (`whsec_…`) que ves al crearlo o al rotarlo. La cabecera `X-Whasalia-Signature` trae `t` (segundos Unix) y `v1` = HMAC-SHA256 del texto `<t>.<cuerpo>` con ese secreto. Calcúlalo sobre el cuerpo tal como llegó y rechaza firmas de más de 5 minutos. Ejemplo en Node.js:",
+      "retriesTitle": "Respuestas y reintentos",
+      "retriesBody": "Responde con un código 2xx en menos de 10 segundos (las redirecciones cuentan como fallo). Si falla, reintentamos a los 1 min, 5 min, 30 min, 2 h, 6 h y 24 h, con el mismo `id` de evento: úsalo para no procesar dos veces. Tras 20 fallos seguidos el endpoint se desactiva y avisamos a los administradores. En la pantalla ves cada entrega con su respuesta y puedes reenviarla.",
+      "eventsTitle": "Eventos",
+      "eventsBody": "`data` trae los recursos con los mismos campos que la API (`message`, `contact`, `order`…)."
+    },
+    "col": {
+      "field": "Campo",
+      "type": "Tipo",
+      "description": "Descripción",
+      "scope": "Permiso",
+      "access": "Acceso",
+      "code": "Código",
+      "event": "Evento"
+    },
+    "query": "Parámetros de consulta",
+    "body": "Cuerpo (JSON)",
+    "required": "Obligatorio",
+    "help": "¿Te falta algo en la API?",
+    "helpLink": "Escríbenos"
   }
 }

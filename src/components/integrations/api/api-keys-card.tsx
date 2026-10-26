@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useState } from 'react';
 import { toast } from 'sonner';
-import { KeyRound, Loader2, Plus, Trash2 } from 'lucide-react';
+import { ExternalLink, KeyRound, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -90,6 +90,10 @@ export function ApiKeysCard() {
             {t('integrations.keys.title')}
           </CardTitle>
           <CardDescription>{t('integrations.keys.description')}</CardDescription>
+          <a href={`/${locale === 'en' ? 'en' : 'es'}/api-docs`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-2 hover:underline">
+            {t('integrations.docsLink')}
+            <ExternalLink className="size-3.5" aria-hidden />
+          </a>
         </div>
         <Button className="shrink-0" onClick={() => setCreating(true)}>
           <Plus className="size-4" aria-hidden />
