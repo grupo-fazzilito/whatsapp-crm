@@ -162,6 +162,27 @@ export interface HandoffAiAgentNodeConfig {
   agent_id: string;
 }
 
+/**
+ * Lets the customer book by tapping (service → day → time, then the few
+ * fields the business asks for) without the AI — see
+ * `src/lib/bookings/picker.ts`. Suspends until the picker ends and
+ * continues on the exit that matches how it ended.
+ */
+export interface BookAppointmentNodeConfig {
+  /** Fixed service; empty = the customer picks it. */
+  service_id?: string;
+  /** Fixed staff member; empty = any free one (or the customer picks when the industry requires it). */
+  staff_id?: string;
+  /** Optional message sent before the picker. */
+  text?: string;
+  /** Booked (in Whasalia, Calendly or both). */
+  booked_next: string;
+  /** Calendly can't book by API on the business's plan: the booking link was sent. */
+  link_next: string;
+  /** No free times, or the customer didn't finish. */
+  not_booked_next: string;
+}
+
 // Terminal nodes carry no config — they just stop the run.
 export type EndNodeConfig = Record<string, never>;
 
@@ -183,6 +204,7 @@ export type FlowNodeConfig =
   | { node_type: "set_tag"; config: SetTagNodeConfig }
   | { node_type: "handoff"; config: HandoffNodeConfig }
   | { node_type: "handoff_ai_agent"; config: HandoffAiAgentNodeConfig }
+  | { node_type: "book_appointment"; config: BookAppointmentNodeConfig }
   | { node_type: "end"; config: EndNodeConfig };
 
 export type FlowNodeType = FlowNodeConfig["node_type"];

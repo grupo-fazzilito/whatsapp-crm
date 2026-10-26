@@ -40,7 +40,8 @@ async function calendly(url: URL, init?: RequestInit): Promise<Response> {
     if (!fake.planAllowsBooking) return json({ title: 'Permission Denied', message: 'Please upgrade your Calendly account' }, 403)
     const body = JSON.parse(String(init.body))
     fake.invitees.push(body)
-    return json({ resource: { uri: `${MOCK}/scheduled_events/EV-API/invitees/INV-API`, event: `${MOCK}/scheduled_events/EV-API`, cancel_url: 'https://calendly.com/cancellations/INV-API', reschedule_url: 'https://calendly.com/reschedulings/INV-API' } }, 201)
+    const n = fake.invitees.length > 1 ? fake.invitees.length : ''
+    return json({ resource: { uri: `${MOCK}/scheduled_events/EV-API${n}/invitees/INV-API${n}`, event: `${MOCK}/scheduled_events/EV-API${n}`, cancel_url: `https://calendly.com/cancellations/INV-API${n}`, reschedule_url: `https://calendly.com/reschedulings/INV-API${n}` } }, 201)
   }
   if (path.startsWith('/scheduled_events/') && path.endsWith('/cancellation')) {
     fake.cancelled.push(path)
@@ -114,6 +115,21 @@ describe.skipIf(!pg)('Calendly integration', async () => {
     expect(b).toMatchObject({ booking_time: '09:30', status: 'confirmed', calendly_invitee_uri: `${MOCK}/scheduled_events/EV-API/invitees/INV-API` })
     expect((await ws.db.contacts.findFirstOrThrow({ where: { id: contactId } })).email).toBe('ana@mail.pe')
     expect((await pg.prisma.calendly_connections.findUniqueOrThrow({ where: { workspace_id: ws.workspaceId } })).can_book).toBe(true)
+  })
+
+  it('books a manual booking of a linked service in Calendly, or says why it cannot', async () => {
+    const { bookManualInCalendly } = await import('@/lib/bookings/manual')
+    const row = (time: string, contact = contactId) => ({ contact_id: contact, service_id: serviceId, booking_date: day, booking_time: time, customer_name: 'Ana Pérez', duration_minutes: 30 })
+    expect(await bookManualInCalendly(ws.workspaceId, 'America/Lima', row('11:00'))).toEqual({ kind: 'error', code: 'slot' })
+    const noEmail = await ws.db.contacts.create({ data: { workspace_id: ws.workspaceId, name: 'Sin Correo', phone: '+51999000222' }, select: { id: true } })
+    expect(await bookManualInCalendly(ws.workspaceId, 'America/Lima', row('10:00', noEmail.id))).toEqual({ kind: 'error', code: 'email' })
+    const r = await bookManualInCalendly(ws.workspaceId, 'America/Lima', row('10:00'))
+    expect(r.kind).toBe('booked')
+    const b = await ws.db.bookings.findFirstOrThrow({ where: { id: (r as { bookingId: string }).bookingId } })
+    expect(b).toMatchObject({ source: 'manual', booking_time: '10:00', calendly_event_uri: `${MOCK}/scheduled_events/EV-API2` })
+    // Services without an event type are left to the normal manual flow.
+    const other = await ws.db.services.create({ data: { workspace_id: ws.workspaceId, name: 'Otro', is_active: true }, select: { id: true } })
+    expect(await bookManualInCalendly(ws.workspaceId, 'America/Lima', { ...row('10:00'), service_id: other.id })).toEqual({ kind: 'not_linked' })
   })
 
   it('sends the booking link when the plan cannot book by API, and remembers it', async () => {

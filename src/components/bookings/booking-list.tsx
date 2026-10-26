@@ -63,9 +63,9 @@ export function BookingList({ bookings, fields, ...h }: { bookings: Booking[]; f
                   </button>
                   {b.contact?.phone && <div className="text-xs text-muted-foreground">{b.contact.phone}</div>}
                   {summary && <div className="mt-1 line-clamp-1 max-w-xs text-xs italic text-muted-foreground">{summary}</div>}
-                  {b.source === 'ai' && (
+                  {(b.source === 'ai' || b.source === 'flow' || b.source === 'picker') && (
                     <span className="mt-1 inline-block rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                      {t('bookings.source.ai')}
+                      {t(`bookings.source.${b.source}`)}
                     </span>
                   )}
                 </td>

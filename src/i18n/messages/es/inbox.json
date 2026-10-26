@@ -98,7 +98,9 @@
         "payment_options": "Opciones de pago",
         "payment_method": "Método de pago",
         "payment_proof": "Pago recibido"
-      }
+      },
+      "bookingPicker": "Agenda automática",
+      "flow": "Flujo"
     },
     "media": {
       "image": "Imagen",

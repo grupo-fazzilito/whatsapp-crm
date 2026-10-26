@@ -19,7 +19,7 @@ export interface Booking {
   notes: string | null
   custom_fields: Record<string, unknown> | null
   status: BookingStatus
-  source: 'ai' | 'manual' | string
+  source: 'ai' | 'manual' | 'flow' | 'picker' | string
   conversation_id: string | null
   feedback_sent: boolean | null
   followup_sent: boolean | null

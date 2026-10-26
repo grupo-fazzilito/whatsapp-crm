@@ -27,7 +27,9 @@
     },
     "source": {
       "ai": "Agendado por IA",
-      "manual": "Manual"
+      "manual": "Manual",
+      "flow": "Flujo",
+      "picker": "Agenda del chat"
     },
     "fields": {
       "when": "Fecha y hora",
@@ -238,6 +240,62 @@
         "description": "Recuerda renovar un tratamiento",
         "body": "💊 *Recordatorio de tratamiento*\n\n¡Hola {{name}}! Tu tratamiento con {{medication_name}} (indicado el {{last_date}}) podría estar por terminarse.\n\nResponde CITA para agendar tu {{booking}} de seguimiento.\n\n— *{{business_name}}*"
       }
+    },
+    "picker": {
+      "chooseOne": "¿Qué {what} quieres agendar?",
+      "chooseStaff": "¿Con quién quieres tu {booking}?",
+      "chooseDay": "📅 Elige el día para *{what}*:",
+      "chooseTime": "🕒 Elige la hora para el {date}:",
+      "listButton": "Ver opciones",
+      "times": "{n} horarios libres",
+      "oneTime": "1 horario libre",
+      "moreTimes": "Más horarios",
+      "askField": "Para terminar, escribe: *{label}*",
+      "email": "Tu correo electrónico",
+      "invalidField": "No pude leer ese dato, inténtalo de nuevo.",
+      "booked": "✅ ¡Listo! Agendamos *{what}* para el {date} a las {time}{staff}.",
+      "withStaff": " con {name}",
+      "link": "Para terminar tu reserva, entra aquí: {url}",
+      "noSlots": "Por ahora no hay horarios libres en los próximos días.",
+      "dayFull": "Ese día ya no tiene horarios libres.",
+      "slotTaken": "Ese horario se acaba de ocupar.",
+      "didntGet": "No entendí tu respuesta. Toca una de las opciones:",
+      "gaveUp": "Dejamos la reserva para después. Escríbenos cuando quieras agendar.",
+      "expired": "Esa agenda ya no está activa. Escríbenos si quieres agendar.",
+      "failed": "No pudimos agendar tu cita. En un momento te ayuda alguien del equipo."
+    },
+    "sendSchedule": {
+      "button": "Enviar agenda",
+      "title": "Enviar agenda al cliente",
+      "description": "El cliente elige día y hora tocando opciones en el chat, sin la IA y sin gastar créditos. La cita queda en {bookings}.",
+      "calendly": "Los servicios vinculados a Calendly se reservan en Calendly.",
+      "google": "Las citas se copian al Google Calendar de quien atiende.",
+      "service": "Servicio",
+      "customerChooses": "Que el cliente elija",
+      "staff": "Quién atiende",
+      "anyStaff": "Cualquiera con horario libre",
+      "product": "Qué se visita",
+      "send": "Enviar agenda",
+      "sent": "Agenda enviada. Cuando el cliente elija, la cita aparece en el chat.",
+      "windowClosed": "Pasaron más de 24 horas desde el último mensaje del cliente: WhatsApp solo permite enviar plantillas.",
+      "bookingsOff": "Activa las reservas en la configuración del negocio para enviar la agenda.",
+      "noSlots": "No hay horarios libres en los próximos días para esta selección.",
+      "error": "No se pudo enviar la agenda."
+    },
+    "flowStep": {
+      "help": "El cliente elige día y hora tocando opciones, sin la IA y sin gastar créditos. Si el servicio está vinculado a Calendly se reserva en Calendly; si no, en tu agenda (y en Google Calendar de quien atiende, si está conectado).",
+      "text": "Mensaje antes de la agenda (opcional)",
+      "service": "Servicio",
+      "staff": "Quién atiende",
+      "booked": "Si agendó → ir a",
+      "link": "Si se envió el enlace de Calendly → ir a",
+      "notBooked": "Si no agendó → ir a"
+    },
+    "calendlyManual": {
+      "email": "Para reservar este servicio en Calendly, el contacto necesita un correo electrónico. Agrégalo en su ficha e inténtalo de nuevo.",
+      "slot": "Ese horario no está libre en Calendly. Elige otro.",
+      "plan": "Tu plan de Calendly no permite reservar desde Whasalia: la cita quedó guardada solo aquí.",
+      "reschedule": "Las citas de Calendly no se pueden mover desde aquí. Cancélala y crea una nueva."
     }
   }
 }

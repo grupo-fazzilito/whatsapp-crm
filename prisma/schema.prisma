@@ -889,6 +889,7 @@ model conversations {
   workspace_id                             String                @default(dbgenerated("active_ws()")) @db.Uuid
   channel_id                               String?               @db.Uuid
   ai_state                                 Json                  @default("{}")
+  booking_picker                           Json?
   ai_paused_until                          DateTime?             @db.Timestamptz(6)
   needs_human_since                        DateTime?             @db.Timestamptz(6)
   ai_agent_id                              String?               @db.Uuid

@@ -9,6 +9,8 @@ import type { AiAgentRow } from '@/lib/ai/types'
 import { routeInbound } from '@/lib/ai/routing'
 import type { ConversationAiState } from '@/lib/ai/types'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
+import { handleBookingPickerInbound } from '@/lib/bookings/picker'
+import { isPickerReply } from '@/lib/bookings/picker-model'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { cancelFollowupsForInbound } from '@/lib/automations/followups'
 import { handleCheckoutText, handleCommerceAction, handlePaymentProof, isCommerceAction, type CommerceCtx } from '@/lib/orders/chat'
@@ -415,6 +417,23 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
       return false
     })
     if (handledVisit) return outcome
+  }
+
+  // 0b) Booking picker (a flow's booking step or the inbox's "Send
+  //     schedule"): the taps and answers book without the AI.
+  if (conversation.booking_picker || isPickerReply(ev.interactiveReplyId)) {
+    const handledPicker = await handleBookingPickerInbound({
+      workspaceId: ws,
+      conversationId: conversation.id,
+      contactId: contact.id,
+      state: conversation.booking_picker,
+      replyId: ev.interactiveReplyId ?? null,
+      text,
+    }).catch((err) => {
+      console.error('[ingest] booking picker failed:', err)
+      return false
+    })
+    if (handledPicker) return outcome
   }
 
   // 0) Shopping: cart/checkout buttons, the answer to a checkout question

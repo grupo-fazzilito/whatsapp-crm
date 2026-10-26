@@ -24,7 +24,8 @@ export interface CreateBookingInput {
   conversationId: string | null
   aiAgentId: string | null
   draft: BookingDraft
-  source: 'ai' | 'manual'
+  /** ai = the AI agent, flow = a flow's booking step, picker = the schedule a team member sent from the inbox. */
+  source: 'ai' | 'manual' | 'flow' | 'picker'
 }
 
 /** Required booking data still missing, per industry preset. */
@@ -79,7 +80,7 @@ export async function createBookingFromDraft(
     const r = await bookWithCalendly({
       workspaceId: input.workspaceId, contactId: input.contactId, conversationId: input.conversationId, aiAgentId: input.aiAgentId,
       serviceId: service.id, link: calendly, date, time, customerName: draft.customer_name ?? null, email, timeZone: ctx.timeZone,
-      durationMinutes: duration, partySize: draft.party_size ?? null, fields: draft.fields ?? {},
+      durationMinutes: duration, partySize: draft.party_size ?? null, fields: draft.fields ?? {}, source: input.source,
     })
     if (!r.ok) return r
     invalidateBusinessContext(input.workspaceId)

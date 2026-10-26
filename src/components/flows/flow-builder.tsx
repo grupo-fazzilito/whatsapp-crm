@@ -40,6 +40,7 @@ import {
   Undo2,
   Redo2,
   Workflow,
+  CalendarClock,
   ChevronDown,
   ChevronUp,
   MessageCircle,
@@ -105,6 +106,7 @@ type NodeType =
   | "set_tag"
   | "handoff"
   | "handoff_ai_agent"
+  | "book_appointment"
   | "end";
 
 interface BuilderNode {
@@ -172,6 +174,11 @@ const NODE_META: Record<
     label: "Hand off to AI agent",
     icon: Bot,
     color: "text-violet-400",
+  },
+  book_appointment: {
+    label: "Book appointment",
+    icon: CalendarClock,
+    color: "text-sky-400",
   },
   end: { label: "End", icon: Flag, color: "text-slate-400" },
 };
@@ -309,6 +316,10 @@ function summarizeNode(
       const note = typeof cfg.note === "string" ? cfg.note : "";
       return note.length > 0 ? truncate(note) : null;
     }
+    case "book_appointment": {
+      const text = typeof cfg.text === "string" ? cfg.text : "";
+      return text.length > 0 ? truncate(text) : null;
+    }
     case "handoff_ai_agent": {
       const id = typeof cfg.agent_id === "string" ? cfg.agent_id : "";
       if (!id) return null;
@@ -363,6 +374,15 @@ function defaultConfigFor(type: NodeType): Record<string, unknown> {
       return { note: "" };
     case "handoff_ai_agent":
       return { agent_id: "" };
+    case "book_appointment":
+      return {
+        service_id: "",
+        staff_id: "",
+        text: "",
+        booked_next: "",
+        link_next: "",
+        not_booked_next: "",
+      };
     case "end":
       return {};
   }
@@ -1582,6 +1602,15 @@ function NodeConfigForm({
         />
       )}
 
+      {node.node_type === "book_appointment" && (
+        <BookAppointmentForm
+          cfg={cfg as BookAppointmentCfg}
+          allNodes={allNodes}
+          currentKey={node.node_key}
+          onUpdateConfig={onUpdateConfig}
+        />
+      )}
+
       {node.node_type === "end" && (
         <p className="text-xs text-slate-500">
           Terminal node. When the runner reaches this node the run is marked
@@ -2384,6 +2413,129 @@ function SetTagForm({
 
 // ---- Smaller field components ----
 
+// ---- book_appointment form ----
+
+interface BookAppointmentCfg {
+  service_id?: string;
+  staff_id?: string;
+  text?: string;
+  booked_next?: string;
+  link_next?: string;
+  not_booked_next?: string;
+}
+
+interface BookingOptions {
+  services: Array<{ id: string; name: string; is_active?: boolean }>;
+  staff: Array<{ id: string; name: string; service_ids: string[] }>;
+}
+
+function BookAppointmentForm({
+  cfg,
+  allNodes,
+  currentKey,
+  onUpdateConfig,
+}: {
+  cfg: BookAppointmentCfg;
+  allNodes: BuilderNode[];
+  currentKey: string;
+  onUpdateConfig: (patch: Record<string, unknown>) => void;
+}) {
+  const t = useT();
+  const [options, setOptions] = useState<BookingOptions | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/bookings/options", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : {}))
+      .catch(() => ({}))
+      .then((body: Partial<BookingOptions>) => {
+        if (!cancelled) setOptions({ services: (body.services ?? []).filter((s) => s.is_active !== false), staff: body.staff ?? [] });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const serviceId = cfg.service_id ?? "";
+  const staff = (options?.staff ?? []).filter(
+    (s) => !serviceId || s.service_ids.length === 0 || s.service_ids.includes(serviceId),
+  );
+  const selectClass =
+    "h-9 w-full rounded-md border border-slate-700 bg-slate-800 px-2 text-sm text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-slate-400">{t("bookings.flowStep.help")}</p>
+      <TextRow
+        label={t("bookings.flowStep.text")}
+        value={cfg.text ?? ""}
+        onChange={(v) => onUpdateConfig({ text: v })}
+        rows={2}
+      />
+      {options && options.services.length > 0 && (
+        <div>
+          <label htmlFor={`${currentKey}-service`} className="mb-1 block text-xs text-slate-400">
+            {t("bookings.flowStep.service")}
+          </label>
+          <select
+            id={`${currentKey}-service`}
+            value={serviceId}
+            onChange={(e) => onUpdateConfig({ service_id: e.target.value, staff_id: "" })}
+            className={selectClass}
+          >
+            <option value="">{t("bookings.sendSchedule.customerChooses")}</option>
+            {options.services.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {options && staff.length > 0 && (
+        <div>
+          <label htmlFor={`${currentKey}-staff`} className="mb-1 block text-xs text-slate-400">
+            {t("bookings.flowStep.staff")}
+          </label>
+          <select
+            id={`${currentKey}-staff`}
+            value={cfg.staff_id ?? ""}
+            onChange={(e) => onUpdateConfig({ staff_id: e.target.value })}
+            className={selectClass}
+          >
+            <option value="">{t("bookings.sendSchedule.anyStaff")}</option>
+            {staff.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <NextNodeRow
+          value={cfg.booked_next ?? ""}
+          allNodes={allNodes}
+          currentKey={currentKey}
+          onChange={(v) => onUpdateConfig({ booked_next: v })}
+          label={t("bookings.flowStep.booked")}
+        />
+        <NextNodeRow
+          value={cfg.link_next ?? ""}
+          allNodes={allNodes}
+          currentKey={currentKey}
+          onChange={(v) => onUpdateConfig({ link_next: v })}
+          label={t("bookings.flowStep.link")}
+        />
+        <NextNodeRow
+          value={cfg.not_booked_next ?? ""}
+          allNodes={allNodes}
+          currentKey={currentKey}
+          onChange={(v) => onUpdateConfig({ not_booked_next: v })}
+          label={t("bookings.flowStep.notBooked")}
+        />
+      </div>
+    </div>
+  );
+}
+
 function HandoffAiAgentForm({
   agentId,
   onChange,
@@ -2569,6 +2721,7 @@ function InsertBetweenButton({
     "set_tag",
     "handoff",
     "handoff_ai_agent",
+    "book_appointment",
     "end",
   ];
   return (
@@ -2624,6 +2777,7 @@ const NODE_DESCRIPTIONS: Record<NodeType, string> = {
   set_tag: "Add or remove a contact tag",
   handoff: "Transfer to a human agent",
   handoff_ai_agent: "Let an AI agent take over the conversation",
+  book_appointment: "The customer books by tapping day and time (no AI)",
   end: "End the flow",
 };
 
@@ -2632,7 +2786,7 @@ function AddNodeButton({ onAdd }: { onAdd: (type: NodeType) => void }) {
     { label: "Flow control", types: ["start", "condition", "end"] },
     { label: "Messages", types: ["send_message", "send_buttons", "send_list"] },
     { label: "Data", types: ["collect_input", "set_tag"] },
-    { label: "Actions", types: ["handoff", "handoff_ai_agent"] },
+    { label: "Actions", types: ["handoff", "handoff_ai_agent", "book_appointment"] },
   ];
   return (
     <DropdownMenu>

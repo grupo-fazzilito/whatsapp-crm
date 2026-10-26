@@ -688,6 +688,35 @@ function validateNode(
       break;
     }
 
+    case "book_appointment": {
+      const cfg = node.config as Record<string, string | undefined>;
+      for (const [field, label] of [
+        ["booked_next", "booked"],
+        ["link_next", "link sent"],
+        ["not_booked_next", "not booked"],
+      ] as const) {
+        const next = cfg[field];
+        if (!next) {
+          issues.push({
+            severity: "error",
+            scope: "node",
+            node_key: node.node_key,
+            field,
+            message: `Book-appointment needs a next node for "${label}".`,
+          });
+        } else if (!knownKeys.has(next)) {
+          issues.push({
+            severity: "error",
+            scope: "node",
+            node_key: node.node_key,
+            field,
+            message: `Book-appointment points to non-existent node "${next}".`,
+          });
+        }
+      }
+      break;
+    }
+
     case "handoff":
     case "end":
       // Terminal nodes have no outgoing edges; nothing to validate
@@ -758,6 +787,12 @@ function outgoingEdges(node: NodeInput): string[] {
       return (cfg.buttons ?? [])
         .map((b) => b.next_node_key)
         .filter((k): k is string => !!k);
+    }
+    case "book_appointment": {
+      const cfg = node.config as Record<string, string | undefined>;
+      return [cfg.booked_next, cfg.link_next, cfg.not_booked_next].filter(
+        (k): k is string => !!k,
+      );
     }
     case "send_list": {
       const cfg = node.config as {

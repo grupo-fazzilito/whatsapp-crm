@@ -12,6 +12,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-23',
+    title: { es: 'Agendar sin IA: desde un flujo o con un botón en la bandeja', en: 'Book without the AI: from a flow or with an inbox button' },
+    changes: [
+      { kind: 'new', es: 'Bandeja → botón «Enviar agenda» (ícono de calendario): el cliente elige el servicio, quién lo atiende, el día y la hora tocando opciones en el chat, y la cita se guarda sola. No usa la IA ni gasta créditos, ideal cuando atiende una persona.', en: 'Inbox → “Send schedule” button (calendar icon): the customer picks the service, who attends, the day and the time by tapping options in the chat, and the booking is saved on its own. It doesn’t use the AI or spend credits — ideal when a person handles the chat.' },
+      { kind: 'new', es: 'Flujos: nuevo paso «Agendar cita» con el mismo selector y tres salidas (agendó, se envió el enlace de Calendly, no agendó) para seguir el flujo.', en: 'Flows: new “Book appointment” step with the same picker and three exits (booked, Calendly link sent, not booked) to continue the flow.' },
+      { kind: 'improved', es: 'Las citas de servicios vinculados a Calendly se reservan en Calendly también desde un flujo, el botón de la bandeja o el formulario de citas; las demás se copian al Google Calendar de quien atiende.', en: 'Bookings of services linked to Calendly are booked in Calendly also from a flow, the inbox button or the bookings form; the rest are copied to the Google Calendar of whoever attends.' },
+      { kind: 'improved', es: 'En el chat, los mensajes de los flujos y de la agenda automática ya no aparecen como «Agente IA».', en: 'In the chat, messages from flows and the automatic schedule no longer show as “AI agent”.' },
+    ],
+  },
+  {
     date: '2026-10-22',
     title: { es: 'Nuevo logo, Google Calendar en Integraciones y ventanas más fluidas', en: 'New logo, Google Calendar in Integrations and smoother windows' },
     changes: [
