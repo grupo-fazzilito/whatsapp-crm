@@ -11,7 +11,8 @@
       "save": "Guardar",
       "never": "Nunca",
       "loading": "Cargando…",
-      "error": "Algo salió mal. Inténtalo de nuevo."
+      "error": "Algo salió mal. Inténtalo de nuevo.",
+      "done": "Listo"
     },
     "keys": {
       "title": "Claves de API",
@@ -56,7 +57,9 @@
         "scopes_required": "Elige al menos un permiso.",
         "too_many_keys": "Alcanzaste el máximo de claves activas.",
         "generic": "No se pudo crear la clave."
-      }
+      },
+      "usageTitle": "Cómo usarla",
+      "usageBody": "Envíala en la cabecera Authorization de cada petición a {base}. Por ejemplo, para comprobar que funciona:"
     },
     "webhooks": {
       "title": "Webhooks",
@@ -100,8 +103,15 @@
         "url_host": "El dominio no es público.",
         "events_required": "Elige al menos un evento.",
         "too_many_endpoints": "Alcanzaste el máximo de endpoints.",
-        "generic": "No se pudo guardar el endpoint."
-      }
+        "generic": "No se pudo guardar el endpoint.",
+        "endpoint_disabled": "El endpoint está desactivado. Actívalo para reenviar."
+      },
+      "allEventsShort": "Todos los eventos",
+      "eventsCount": "{count} eventos",
+      "lastSuccess": "Última entrega",
+      "lastFailure": "Último fallo",
+      "verifyTitle": "Cómo verificar la firma",
+      "verifyBody": "Calcula el HMAC-SHA256 del cuerpo recibido, sin modificarlo, con este secreto y compáralo con la cabecera. Rechaza las firmas con más de 5 minutos."
     },
     "deliveries": {
       "title": "Entregas recientes",
@@ -123,7 +133,9 @@
         "pending": "Pendiente",
         "delivered": "Entregada",
         "failed": "Fallida"
-      }
+      },
+      "noResponse": "Sin respuesta",
+      "refresh": "Actualizar"
     },
     "eventGroups": {
       "messages": "Mensajes",

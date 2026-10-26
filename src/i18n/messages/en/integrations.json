@@ -11,7 +11,8 @@
       "save": "Save",
       "never": "Never",
       "loading": "Loading…",
-      "error": "Something went wrong. Please try again."
+      "error": "Something went wrong. Please try again.",
+      "done": "Done"
     },
     "keys": {
       "title": "API keys",
@@ -56,7 +57,9 @@
         "scopes_required": "Pick at least one permission.",
         "too_many_keys": "You reached the maximum of active keys.",
         "generic": "Couldn't create the key."
-      }
+      },
+      "usageTitle": "How to use it",
+      "usageBody": "Send it in the Authorization header of every request to {base}. For example, to check that it works:"
     },
     "webhooks": {
       "title": "Webhooks",
@@ -100,8 +103,15 @@
         "url_host": "The domain is not public.",
         "events_required": "Pick at least one event.",
         "too_many_endpoints": "You reached the maximum of endpoints.",
-        "generic": "Couldn't save the endpoint."
-      }
+        "generic": "Couldn't save the endpoint.",
+        "endpoint_disabled": "The endpoint is disabled. Turn it on to resend."
+      },
+      "allEventsShort": "All events",
+      "eventsCount": "{count} events",
+      "lastSuccess": "Last delivery",
+      "lastFailure": "Last failure",
+      "verifyTitle": "How to verify the signature",
+      "verifyBody": "Compute the HMAC-SHA256 of the raw body you received with this secret and compare it with the header. Reject signatures older than 5 minutes."
     },
     "deliveries": {
       "title": "Recent deliveries",
@@ -123,7 +133,9 @@
         "pending": "Pending",
         "delivered": "Delivered",
         "failed": "Failed"
-      }
+      },
+      "noResponse": "No response",
+      "refresh": "Refresh"
     },
     "eventGroups": {
       "messages": "Messages",

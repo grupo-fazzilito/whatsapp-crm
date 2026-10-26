@@ -22,6 +22,8 @@ import { useWorkspace } from '@/hooks/use-workspace';
 import { BillingPanel } from '@/components/billing/billing-panel';
 import { CalendlyCard } from '@/components/integrations/calendly/calendly-card';
 import { GoogleCalendarCard } from '@/components/integrations/google/google-calendar-card';
+import { ApiKeysCard } from '@/components/integrations/api/api-keys-card';
+import { WebhooksCard } from '@/components/integrations/api/webhooks-card';
 
 const TAB_VALUES = [
   'profile',
@@ -218,6 +220,8 @@ export default function SettingsPage() {
           <TabsContent value="integrations" className="space-y-6">
             <GoogleCalendarCard />
             <CalendlyCard />
+            <ApiKeysCard />
+            <WebhooksCard />
           </TabsContent>
         )}
       </Tabs>

@@ -85,7 +85,8 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [x] Agendar sin IA: paso «Agendar cita» en los flujos y botón «Enviar agenda» en la bandeja (el cliente elige día y hora tocando); las citas manuales de servicios vinculados también se reservan en Calendly — 🤖 (2026-10-23, rama `feat/booking-picker`)
 - [x] Recordatorios de citas en Automatizaciones → Recordatorios: on/off y textos propios, botones Confirmo / Cambiar fecha, plantilla de utilidad creada y enviada a Meta sola para fuera de la ventana de 24 h, sin reintentos en cadena, 1 crédito por recordatorio — 🤖 (2026-10-23, rama `feat/reminder-templates`)
 - [ ] (Mejora) Selector de citas con **WhatsApp Flows** (formulario nativo de Meta con calendario) en lugar de listas; requiere publicar cada formulario en Meta — 🤖
-- [ ] Pantalla para que cada negocio cree sus **claves de API y webhooks** (la API y los textos existen, falta la pantalla; la página de Funciones ya lo menciona) — 🤖
+- [x] Pantalla para que cada negocio cree sus **claves de API y webhooks**: Ajustes → Integraciones (crear y revocar claves, endpoints con eventos, prueba, entregas y reenvío, rotar secreto) — 🤖 (2026-10-26, rama `feat/api-keys-screen`)
+- [ ] Página pública de **documentación de la API** (endpoints de `/api/v1`, permisos, paginación, eventos de webhook y cómo verificar la firma). Hoy la pantalla solo muestra un ejemplo con `curl` — 🤖
 - [ ] Botón "Crear bot de preguntas frecuentes" que arme un menú numerado gratis desde la lista de FAQs — 🤖, opcional
 - [ ] Portfolio de Meta: verificación en dos pasos y un segundo administrador — 🧑
 - [ ] Teléfono o WhatsApp de soporte, si se quiere mostrar — 🧑

@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-26',
+    title: { es: 'Claves de API y webhooks en Integraciones', en: 'API keys and webhooks in Integrations' },
+    changes: [
+      { kind: 'new', es: 'Ajustes → Integraciones → Claves de API: crea claves con solo los permisos que necesitas (contactos, mensajes, pedidos, reservas…) para conectar n8n, Make, Zapier o tu propio sistema, y revócalas cuando quieras.', en: 'Settings → Integrations → API keys: create keys with only the permissions you need (contacts, messages, orders, bookings…) to connect n8n, Make, Zapier or your own system, and revoke them whenever you want.' },
+      { kind: 'new', es: 'Ajustes → Integraciones → Webhooks: recibe en tu URL los mensajes, conversaciones, contactos, pedidos y reservas al momento. Envía una prueba, revisa cada entrega con su respuesta y reenvíala si falló.', en: 'Settings → Integrations → Webhooks: get messages, conversations, contacts, orders and bookings at your URL as they happen. Send a test, review each delivery with its response and resend it if it failed.' },
+    ],
+  },
+  {
+    date: '2026-10-26',
     title: { es: 'Correos con la marca Whasalia', en: 'Emails with the Whasalia brand' },
     changes: [
       { kind: 'fixed', es: 'Los correos con el código para registrarte o cambiar la contraseña muestran el nombre Whasalia.', en: 'The emails with the code to sign up or reset your password show the Whasalia name.' },
