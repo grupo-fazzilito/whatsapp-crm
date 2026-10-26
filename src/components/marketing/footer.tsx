@@ -6,6 +6,7 @@ import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { useI18n, useLocalePath } from "@/i18n/client";
 import { COMPANY, companyAddress } from "@/lib/company";
+import { CHANGELOG } from "@/lib/changelog/entries";
 
 export function Footer() {
   const { t, locale } = useI18n();
@@ -16,7 +17,7 @@ export function Footer() {
     { name: t("mktShell.nav.pricing"), href: lp("/pricing") },
     { name: t("mktShell.nav.aiAutomation"), href: lp("/ai-automation") },
     { name: t("mktShell.footer.useCases"), href: lp("/") },
-    { name: t("mktShell.footer.changelog"), href: lp("/changelog") },
+    ...(CHANGELOG.length ? [{ name: t("mktShell.footer.changelog"), href: lp("/changelog") }] : []),
     { name: t("mktShell.footer.apiDocs"), href: lp("/api-docs") },
   ];
 

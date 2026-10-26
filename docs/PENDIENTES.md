@@ -116,6 +116,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Revisar las 5 actualizaciones de dependabot pendientes — 🤖
 
 ---
+- [ ] **Changelog público (/changelog) en pausa**: se vació el 2026-10-26 y la página, el enlace del pie y el sitemap están ocultos mientras no tenga entradas. Cuando el sistema esté 100 % en producción, reiniciarlo con una primera entrada de lanzamiento y volver a sumar una entrada por cada cambio visible — 🧑→🤖
 
 ## Orden sugerido
 
