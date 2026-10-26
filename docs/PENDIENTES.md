@@ -17,8 +17,10 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 
 ## 2. Correo
 
-- [ ] Verificar `whasalia.com` en Resend (registros DNS en Namecheap, en el subdominio `send` para no chocar con Private Email). **Bloquea el registro de clientes con email**: hoy los códigos salen de `onboarding@resend.dev`, que solo entrega al dueño de la cuenta Resend — 🧑→🤖
-- [ ] Cambiar el remitente a `Whasalia <no-reply@whasalia.com>` — 🤖 (después del anterior)
+- [x] Se deja Resend y se usa **MailerSend** (API HTTPS, porque Railway Hobby bloquea SMTP). El código ya envía por MailerSend con remitente `Whasalia <no-reply@whasalia.com>` — 🤖 (2026-10-26, rama `feat/mailersend`)
+- [ ] Crear la cuenta de MailerSend y verificar el dominio `whasalia.com` (registros SPF/DKIM/Return-Path en Namecheap; no tocar los MX ni el DKIM de Private Email). **Bloquea el registro de clientes con email** — 🧑
+- [ ] Crear un token de API (permiso «Email: acceso total») y ponerlo en Railway como `MAILERSEND_API_KEY`; quitar `SMTP_*` y `RESEND_API_KEY` si están. Remitente opcional en `MAIL_FROM` (por defecto `no-reply@whasalia.com`) — 🧑→🤖
+- [ ] Probar en producción: registro con email, recuperar contraseña e invitación al equipo — 🤖
 - [x] Correo del sitio cambiado a `support@whasalia.com` (contacto, pie de página, políticas, Libro de Reclamaciones y avisos de reclamos) — 🤖 (2026-10-14)
 - [x] Buzón `support@whasalia.com` en Namecheap Private Email; DNS: raíz como ALIAS a Railway, MX, SPF, DKIM (`privateemail._domainkey`) y DMARC — 🧑 (2026-10-14)
 
@@ -58,7 +60,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Avisos con Whasalia cerrado (web push con service worker) o por correo — 🤖 (si se pide)
 - [x] **Super admin**: solo entra por `/admin-panel/login` (el login normal la rechaza) y nunca ve el CRM de un cliente; «Entrar como cliente» en Panel de admin → Clientes (sesión de 1 h, sin rastro para el cliente) con registro interno en Panel de admin → Access log — 🤖 (2026-10-22, rama `feat/admin-impersonation`)
 - [x] **Notificaciones del super admin** (campanita del panel con sonido y aviso del escritorio; interruptores por evento en Ajustes → General): usuario/negocio nuevo, tickets, reclamos, pagos, tokens agotados/bajos, canal conectado — 🤖 (2026-10-22, rama `feat/admin-notifications`)
-- [ ] Notificaciones del super admin **por correo** a support@whasalia.com (pago fallido, reclamo, ticket…), cuando Resend esté configurado — 🤖
+- [ ] Notificaciones del super admin **por correo** a support@whasalia.com (pago fallido, reclamo, ticket…), cuando MailerSend esté configurado — 🤖
 - [ ] Borrar la tabla `portfolio_items` (el «Showcase Portfolio» de plantilla se eliminó el 2026-10-22) tras comprobar en producción que no tiene datos que guardar — 🤖
 
 ## 5. Precios: Free Forever + tokens de IA
