@@ -138,7 +138,15 @@
       "business": "Negocio",
       "deleteTitle": "¿Eliminar este cliente?",
       "deleteBody": "Se borra el negocio con todos sus datos (contactos, conversaciones, pedidos, citas, canales, créditos…) y la cuenta del dueño si no tiene otro negocio. No se puede deshacer.",
-      "deleteFailed": "No se pudo eliminar el cliente: {reason}"
+      "deleteFailed": "No se pudo eliminar el cliente: {reason}",
+      "passwordLabel": "Escribe tu contraseña de administrador para confirmar",
+      "cancel": "Cancelar",
+      "deleteConfirm": "Eliminar",
+      "errors": {
+        "password_required": "Escribe tu contraseña.",
+        "wrong_password": "La contraseña no es correcta.",
+        "too_many_attempts": "Demasiados intentos. Espera 15 minutos."
+      }
     }
   }
 }

@@ -100,6 +100,9 @@ export default function AdminClientsPage() {
   const [sortDir,  setSortDir]  = useState<"asc"|"desc">("desc");
   const [detail,   setDetail]   = useState<Client|null>(null);
   const [delId,    setDelId]    = useState<string|null>(null);
+  const [delPass,  setDelPass]  = useState("");
+  const [delErr,   setDelErr]   = useState<string|null>(null);
+  const [delBusy,  setDelBusy]  = useState(false);
   const [openMenu, setOpenMenu] = useState<string|null>(null);
   const [menuPos,  setMenuPos]  = useState<{top:number;right:number}>({top:0,right:0});
   const [toggling, setToggling] = useState<string|null>(null);
@@ -182,15 +185,33 @@ export default function AdminClientsPage() {
     setToggling(null);
   };
 
+  const closeDelete = () => {
+    if (delBusy) return;
+    setDelId(null);
+    setDelPass("");
+    setDelErr(null);
+  };
+
   const handleDelete = async (id: string) => {
-    const res = await fetch(`/api/admin/clients?id=${id}`, { method: "DELETE" }).catch(() => null);
+    if (!delPass) return setDelErr(t("admin.clients.errors.password_required"));
+    setDelBusy(true);
+    setDelErr(null);
+    const res = await fetch(`/api/admin/clients?id=${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: delPass }),
+    }).catch(() => null);
+    setDelBusy(false);
     if (!res?.ok) {
       const body = (await res?.json().catch(() => null)) as { error?: string } | null;
-      window.alert(t("admin.clients.deleteFailed", { reason: body?.error || `HTTP ${res?.status ?? "—"}` }));
+      const key = `admin.clients.errors.${body?.error ?? ""}`;
+      const known = t(key);
+      setDelErr(known !== key ? known : t("admin.clients.deleteFailed", { reason: body?.error || `HTTP ${res?.status ?? "—"}` }));
       return;
     }
     setClients(p => p.filter(c => c.id !== id));
     setDelId(null);
+    setDelPass("");
     if (detail?.id === id) setDetail(null);
   };
 
@@ -545,7 +566,7 @@ export default function AdminClientsPage() {
           {delId && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
-                className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={()=>setDelId(null)}/>
+                className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={closeDelete}/>
               <motion.div initial={{opacity:0,x:40}} animate={{opacity:1,x:0}} exit={{opacity:0,x:40}} transition={{duration:0.2,ease:"easeInOut"}}
                 className="relative w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl space-y-4">
                 <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
@@ -553,12 +574,44 @@ export default function AdminClientsPage() {
                 </div>
                 <div className="text-center">
                   <h3 className="font-bold text-white">{t("admin.clients.deleteTitle")}</h3>
+                  {(() => {
+                    const c = clients.find((x) => x.id === delId);
+                    return c ? <p className="mt-1 text-sm font-semibold text-red-300">{c.clinic_name || c.name} · {c.email}</p> : null;
+                  })()}
                   <p className="text-sm text-slate-400 mt-1">{t("admin.clients.deleteBody")}</p>
                 </div>
-                <div className="flex gap-3">
-                  <button onClick={()=>setDelId(null)} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-sm font-semibold text-slate-400 hover:bg-slate-800 transition-colors">Cancel</button>
-                  <button onClick={()=>handleDelete(delId)} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-400 transition-colors">Delete</button>
-                </div>
+                <form
+                  className="space-y-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void handleDelete(delId);
+                  }}
+                >
+                  <div>
+                    <label htmlFor="delete-admin-password" className="mb-1.5 block text-xs font-semibold text-slate-300">
+                      {t("admin.clients.passwordLabel")}
+                    </label>
+                    <input
+                      id="delete-admin-password"
+                      type="password"
+                      autoComplete="current-password"
+                      autoFocus
+                      value={delPass}
+                      onChange={(e) => setDelPass(e.target.value)}
+                      aria-invalid={!!delErr}
+                      aria-describedby={delErr ? "delete-admin-error" : undefined}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-red-500 focus:outline-none"
+                    />
+                    {delErr && <p id="delete-admin-error" role="alert" className="mt-1.5 text-xs text-red-300">{delErr}</p>}
+                  </div>
+                  <div className="flex gap-3">
+                    <button type="button" onClick={closeDelete} disabled={delBusy} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-sm font-semibold text-slate-400 hover:bg-slate-800 transition-colors disabled:opacity-50">{t("admin.clients.cancel")}</button>
+                    <button type="submit" disabled={delBusy || !delPass} className="flex flex-1 items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-400 transition-colors disabled:opacity-50">
+                      {delBusy && <Loader2 className="size-4 animate-spin" />}
+                      {t("admin.clients.deleteConfirm")}
+                    </button>
+                  </div>
+                </form>
               </motion.div>
             </div>
           )}

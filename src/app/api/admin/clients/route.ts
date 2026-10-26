@@ -2,6 +2,9 @@ import { isPlatformAdmin } from "@/lib/admin/guard";
 import { NextRequest, NextResponse } from "next/server";
 import { deleteUser, listUsersForAdmin, setBanned } from "@/lib/auth/users";
 import { prisma } from "@/lib/db/prisma";
+import { getSessionUser } from "@/lib/auth/session";
+import { verifyPassword } from "@/lib/auth/password";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // Accounts (list, ban, delete) via src/lib/auth/users; data via the platform Prisma client.
 
@@ -206,6 +209,15 @@ export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
+  // Irreversible: the signed-in admin confirms with their own password.
+  const { password } = (await req.json().catch(() => ({}))) as { password?: unknown };
+  if (typeof password !== "string" || !password) return NextResponse.json({ error: "password_required" }, { status: 400 });
+  const admin = await getSessionUser();
+  if (!admin || admin.impersonatedBy) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limit = checkRateLimit(`admin-delete:${admin.id}`, { limit: 5, windowMs: 15 * 60_000 });
+  if (!limit.success) return NextResponse.json({ error: "too_many_attempts" }, { status: 429 });
+  if (!(await passwordMatches(admin.id, password))) return NextResponse.json({ error: "wrong_password" }, { status: 403 });
+
   try {
     const workspace = await prisma.workspaces.findUnique({ where: { id }, select: { id: true } });
     if (!workspace) {
@@ -228,4 +240,12 @@ export async function DELETE(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true });
+}
+
+/** True when `password` is that user's own (email) password. */
+async function passwordMatches(userId: string, password: string): Promise<boolean> {
+  const account = await prisma.auth_accounts
+    .findFirst({ where: { user_id: userId, provider_id: "credential" }, select: { password: true } })
+    .catch(() => null);
+  return !!account?.password && (await verifyPassword({ hash: account.password, password }).catch(() => false));
 }

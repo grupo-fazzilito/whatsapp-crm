@@ -138,7 +138,15 @@
       "business": "Business",
       "deleteTitle": "Delete this client?",
       "deleteBody": "Deletes the business with all its data (contacts, conversations, orders, bookings, channels, credits…) and the owner’s account if they have no other business. This cannot be undone.",
-      "deleteFailed": "The client could not be deleted: {reason}"
+      "deleteFailed": "The client could not be deleted: {reason}",
+      "passwordLabel": "Type your admin password to confirm",
+      "cancel": "Cancel",
+      "deleteConfirm": "Delete",
+      "errors": {
+        "password_required": "Type your password.",
+        "wrong_password": "The password is not correct.",
+        "too_many_attempts": "Too many attempts. Wait 15 minutes."
+      }
     }
   }
 }
