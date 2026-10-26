@@ -26,7 +26,7 @@
       "privacy": "Privacy Policy",
       "terms": "Terms & Conditions",
       "refund": "Refund Policy",
-      "about": "Whasalia is a premium AI-powered WhatsApp CRM and customer support automation platform. Automate business communication, configure smart chatbots, organize leads, and sync calendar reminders using the official WhatsApp Business API.",
+      "about": "Whasalia is an AI-powered CRM for WhatsApp, Instagram and Messenger. Handle every channel in one inbox, set up AI agents, organize your leads and book appointments with reminders, using Meta’s official APIs.",
       "partner": "Official WhatsApp Business API",
       "quickLinks": "Quick Links",
       "trust": "Trust Signals",
@@ -68,7 +68,7 @@
       },
       "crm": {
         "title": "CRM",
-        "description": "Turn WhatsApp conversations into deals with pipelines, contact profiles, tags and follow-ups."
+        "description": "Turn WhatsApp, Instagram and Messenger conversations into deals with pipelines, contact profiles, tags and follow-ups."
       },
       "analytics": {
         "title": "Analytics",
@@ -88,11 +88,11 @@
       },
       "customerStories": {
         "title": "Customer Stories",
-        "description": "How businesses use Whasalia to answer faster and sell more on WhatsApp."
+        "description": "How businesses use Whasalia to answer faster and sell more on WhatsApp, Instagram and Messenger."
       },
       "blog": {
         "title": "Blog",
-        "description": "Guides and tips to sell and support customers on WhatsApp with AI."
+        "description": "Guides and tips to sell and support customers on WhatsApp, Instagram and Messenger with AI."
       },
       "about": {
         "title": "About",

@@ -108,11 +108,11 @@
       },
       "hubspot": {
         "name": "HubSpot",
-        "desc": "Envía automáticamente los chats de WhatsApp calificados, las etiquetas y las citas agendadas al historial de contactos de HubSpot."
+        "desc": "Envía automáticamente los chats calificados de WhatsApp, Instagram y Messenger, las etiquetas y las citas agendadas al historial de contactos de HubSpot."
       },
       "zapier": {
         "name": "Zapier",
-        "desc": "Conecta los eventos de la API de WhatsApp con más de 5,000 apps. Activa flujos de trabajo a partir de los mensajes entrantes."
+        "desc": "Conecta los eventos de Whasalia con más de 5,000 apps. Activa flujos de trabajo con los mensajes que llegan por WhatsApp, Instagram y Messenger."
       },
       "webhooks": {
         "name": "Webhooks para desarrolladores",
@@ -132,7 +132,7 @@
     "badge": "Agentes de chat con IA",
     "titleLine1": "IA conversacional",
     "titleHighlight": "que cierra ventas.",
-    "subtitle": "Deja de esperar a que tus agentes escriban cada respuesta. Despliega una capa de inteligencia autónoma directamente en WhatsApp. Califica el presupuesto de tus leads, identifica sus necesidades y responde al instante consultas sobre tu catálogo de productos.",
+    "subtitle": "Deja de esperar a que tus agentes escriban cada respuesta. Pon un agente de IA a atender en WhatsApp, Instagram y Messenger: califica el presupuesto de tus leads, identifica sus necesidades y responde al instante sobre tu catálogo de productos.",
     "playground": {
       "eyebrow": "Laboratorio de agentes",
       "title": "Personaliza tus prompts de IA.",

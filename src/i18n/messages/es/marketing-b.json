@@ -3,7 +3,7 @@
     "badge": "Control de colaboración",
     "titleLine1": "Un solo número.",
     "titleLine2": "Agentes ilimitados.",
-    "subtitle": "Deja de compartir celulares o sesiones web. Permite que todos tus equipos de soporte y ventas trabajen desde una sola cuenta unificada de WhatsApp Business. Asigna conversaciones, deja notas internas privadas y automatiza la delegación de mensajes.",
+    "subtitle": "Deja de compartir celulares o sesiones web. Todo tu equipo de soporte y ventas atiende WhatsApp, Instagram y Messenger desde una sola bandeja. Asigna conversaciones, deja notas internas privadas y automatiza la delegación de mensajes.",
     "mock": {
       "title": "Flujo de bandeja compartida",
       "subtitle": "Enrutamiento de conversaciones en vivo",
@@ -29,8 +29,8 @@
   "mktCrm": {
     "badge": "Operaciones de pipeline",
     "titleLine1": "Creado específicamente",
-    "titleLine2": "para leads de WhatsApp.",
-    "subtitle": "Los correos y formularios son estáticos. Las conversaciones de WhatsApp son en vivo. Nuestro CRM da seguimiento a usuarios, etiqueta niveles de intención, mapea hitos del pipeline y registra el historial de interacciones directamente desde los chats.",
+    "titleLine2": "para leads de WhatsApp, Instagram y Messenger.",
+    "subtitle": "Los correos y formularios son estáticos. Las conversaciones en WhatsApp, Instagram y Messenger son en vivo. Nuestro CRM da seguimiento a usuarios, etiqueta niveles de intención, mapea hitos del pipeline y registra el historial de interacciones directamente desde los chats.",
     "features": {
       "revenueTitle": "Seguimiento de ingresos",
       "revenueDesc": "Asigna valores de negocio a tus contactos. Da seguimiento al valor total del pipeline y pronostica conversiones con base en los hitos históricos de chat.",
@@ -151,7 +151,7 @@
     "badge": "artículos",
     "titleLine1": "Ideas editoriales",
     "titleLine2": "para el comercio moderno.",
-    "subtitle": "Lee guías sobre flujos de automatización en WhatsApp, reglas de cumplimiento y tácticas de ventas con IA.",
+    "subtitle": "Lee guías sobre automatización en WhatsApp, Instagram y Messenger, reglas de cumplimiento y tácticas de ventas con IA.",
     "filters": {
       "all": "Todos los artículos",
       "marketing": "Trucos de marketing",
