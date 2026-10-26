@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-26',
+    title: { es: 'El logo se ve bien en modo claro', en: 'The logo looks right in light mode' },
+    changes: [
+      { kind: 'fixed', es: 'En modo claro el logo de Whasalia aparece con letras oscuras (antes a veces salía en blanco), y el modo elegido en la web se mantiene al entrar a la app.', en: 'In light mode the Whasalia logo shows with dark text (it sometimes came out white), and the mode chosen on the website carries over into the app.' },
+    ],
+  },
+  {
+    date: '2026-10-26',
     title: { es: 'Idioma también desde el celular', en: 'Language from your phone too' },
     changes: [
       { kind: 'improved', es: 'En el celular, el cambio de idioma (ES / EN) está en el menú de tu cuenta, arriba a la derecha.', en: 'On phones, the language switch (ES / EN) is in your account menu, top right.' },

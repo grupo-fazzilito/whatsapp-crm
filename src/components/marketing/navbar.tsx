@@ -9,6 +9,7 @@ import { useMarketingTheme } from "@/components/marketing/marketing-theme-provid
 import { ThemeToggle } from "./theme-toggle";
 import { MagneticButton } from "./magnetic-button";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/brand/logo";
 import { useI18n, useLocalePath } from "@/i18n/client";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
@@ -119,11 +120,7 @@ export function GlassNavbar() {
         >
           {/* Brand */}
           <Link href={lp("/")} className="flex items-center gap-2 group shrink-0">
-            <img
-              src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
-              alt="Whasalia"
-              className="h-10 w-auto object-contain group-hover:scale-110 transition-transform"
-            />
+            <Logo className="h-10 group-hover:scale-110 transition-transform" />
           </Link>
 
           {/* Desktop nav */}

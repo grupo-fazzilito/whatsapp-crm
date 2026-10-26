@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/brand/logo";
 import { useAuth } from "@/hooks/use-auth";
 import { useInboxCounts } from "@/hooks/use-total-unread";
-import { useTheme } from "@/hooks/use-theme";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useT } from "@/i18n/client";
 import { WorkspaceSwitcher } from "./workspace-switcher";
@@ -148,8 +148,6 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     } catch {}
   };
   const { unread: totalUnread, attention: needsAttention } = useInboxCounts();
-  const { mode } = useTheme();
-  const isLight = mode === "light";
 
   // Close the drawer when route changes — users opened it to navigate,
   // so once they pick a destination the drawer should get out of the way.
@@ -213,11 +211,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           )}
         >
           <Link href="/dashboard" className="flex items-center gap-2" aria-label="Whasalia">
-            <img
-              src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
-              alt="Whasalia Logo"
-              className={cn("h-10 w-auto object-contain", collapsed && "lg:hidden")}
-            />
+            <Logo alt="Whasalia Logo" className={cn("h-10", collapsed && "lg:hidden [[data-mtheme=light]_&]:lg:hidden")} />
             {/* Collapsed menu: just the Whasalia icon. */}
             <img src="/images/logo/favicon.png" alt="" aria-hidden="true" className={cn("hidden h-8 w-8 rounded-lg", collapsed && "lg:block")} />
           </Link>

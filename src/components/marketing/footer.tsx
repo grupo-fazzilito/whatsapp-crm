@@ -1,17 +1,15 @@
 "use client";
 
+import { Logo } from "@/components/brand/logo";
 import React from "react";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
-import { useMarketingTheme } from "@/components/marketing/marketing-theme-provider";
 import { useI18n, useLocalePath } from "@/i18n/client";
 import { COMPANY, companyAddress } from "@/lib/company";
 
 export function Footer() {
-  const { resolvedTheme } = useMarketingTheme();
   const { t, locale } = useI18n();
   const lp = useLocalePath();
-  const isLight = resolvedTheme === "light";
 
   const productLinks = [
     { name: t("mktShell.nav.features"), href: lp("/features") },
@@ -40,11 +38,7 @@ export function Footer() {
         {/* Brand Column */}
         <div className="col-span-1 md:col-span-2 space-y-4">
           <Link href={lp("/")} className="inline-block">
-            <img
-              src={isLight ? "/images/logo/whasalia-logo-light.png" : "/images/logo/whasalia-logo.png"}
-              alt="Whasalia"
-              className="h-10 w-auto object-contain"
-            />
+            <Logo className="h-10" />
           </Link>
           <p className="text-xs text-[var(--m-text-tertiary)] leading-relaxed max-w-sm">
             {t("mktShell.footer.about")}
