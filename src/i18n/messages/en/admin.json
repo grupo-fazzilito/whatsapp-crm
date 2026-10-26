@@ -122,6 +122,20 @@
           "label": "A business connected a channel"
         }
       }
+    },
+    "clients": {
+      "channels": "Channels",
+      "channelFilter": "Filter by channel",
+      "allChannels": "All channels",
+      "noChannels": "No connected channels",
+      "none": "None",
+      "noChannelsYet": "No channel connected yet.",
+      "status": {
+        "connected": "Connected",
+        "error": "Error",
+        "disconnected": "Disconnected"
+      },
+      "business": "Business"
     }
   }
 }

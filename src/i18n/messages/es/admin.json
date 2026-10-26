@@ -122,6 +122,20 @@
           "label": "Un negocio conectó un canal"
         }
       }
+    },
+    "clients": {
+      "channels": "Canales",
+      "channelFilter": "Filtrar por canal",
+      "allChannels": "Todos los canales",
+      "noChannels": "Sin canales conectados",
+      "none": "Ninguno",
+      "noChannelsYet": "Todavía no conectó ningún canal.",
+      "status": {
+        "connected": "Conectado",
+        "error": "Con error",
+        "disconnected": "Desconectado"
+      },
+      "business": "Negocio"
     }
   }
 }

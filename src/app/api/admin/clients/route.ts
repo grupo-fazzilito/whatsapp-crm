@@ -60,7 +60,7 @@ export async function GET() {
       safe(prisma.profiles.findMany({ select: { user_id: true, full_name: true, email: true, avatar_url: true, role: true, created_at: true } })),
       safe(prisma.contacts.groupBy({ by: ["workspace_id"], where: { workspace_id: { in: wsIds } }, _count: { _all: true } })),
       safe(prisma.conversations.groupBy({ by: ["workspace_id", "status"], where: { workspace_id: { in: wsIds } }, _count: { _all: true } })),
-      safe(prisma.channels.findMany({ select: { workspace_id: true, type: true, status: true, external_id: true, settings: true, created_at: true }, where: { workspace_id: { in: wsIds } }, orderBy: { created_at: "asc" } })),
+      safe(prisma.channels.findMany({ select: { workspace_id: true, type: true, name: true, display_handle: true, status: true, status_detail: true, external_id: true, settings: true, created_at: true }, where: { workspace_id: { in: wsIds } }, orderBy: { created_at: "asc" } })),
       safe(prisma.broadcasts.groupBy({ by: ["workspace_id"], where: { workspace_id: { in: wsIds } }, _count: { _all: true } })),
       safe(prisma.automations.groupBy({ by: ["workspace_id"], where: { workspace_id: { in: wsIds } }, _count: { _all: true } })),
       // Business profile now lives on the workspace row itself.
@@ -76,8 +76,22 @@ export async function GET() {
   // plus how many channels of any type it has.
   const waMap = new Map<string, { status: string; external_id: string; settings: Record<string, unknown>; created_at: string }>();
   const channelCount = new Map<string, number>();
+  // Every channel of the workspace (WhatsApp, Messenger, Instagram, web chat…), oldest first.
+  const channelsByWs = new Map<string, { type: string; name: string; handle: string | null; status: string; status_detail: string | null; external_id: string; waba_id: string | null; connected_at: string }[]>();
   for (const ch of (waConfigs.data ?? [])) {
     channelCount.set(ch.workspace_id, (channelCount.get(ch.workspace_id) ?? 0) + 1);
+    const list = channelsByWs.get(ch.workspace_id) ?? [];
+    list.push({
+      type: ch.type,
+      name: ch.name,
+      handle: ch.display_handle ?? null,
+      status: ch.status,
+      status_detail: ch.status_detail ?? null,
+      external_id: ch.external_id,
+      waba_id: ((ch.settings ?? {}) as Record<string, unknown>).waba_id as string | null ?? null,
+      connected_at: ch.created_at as unknown as string,
+    });
+    channelsByWs.set(ch.workspace_id, list);
     if (ch.type !== "whatsapp") continue;
     const prev = waMap.get(ch.workspace_id);
     if (!prev || (prev.status !== "connected" && ch.status === "connected"))
@@ -140,6 +154,7 @@ export async function GET() {
       wa_waba_id:      (wa?.settings?.waba_id as string | undefined) ?? null,
       wa_connected_at: wa?.created_at ?? null,
       channels_count:  channelCount.get(w.id) ?? 0,
+      channels:        channelsByWs.get(w.id) ?? [],
       // Healthcare
       clinic_name:     clinic?.clinic_name ?? null,
       clinic_type:     clinic?.clinic_type ?? null,
