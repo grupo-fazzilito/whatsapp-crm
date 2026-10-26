@@ -119,6 +119,11 @@ export function BookingDetailsDialog({
                 {t('bookings.messagesUi.title')}
               </h4>
               <MessageButtons booking={b} sending={sending} onSend={onSend} />
+              {b.reminder_error && (
+                <p className="text-xs text-amber-800 dark:text-amber-300">
+                  {t('bookings.reminders.lastError', { reason: t(`bookings.reminders.error.${b.reminder_error}`) })}
+                </p>
+              )}
               {b.conversation_id && (
                 <Link href={`/inbox?c=${b.conversation_id}`} className={buttonVariants({ size: 'sm', variant: 'ghost' })}>
                   {t('bookings.actions.openChat')}

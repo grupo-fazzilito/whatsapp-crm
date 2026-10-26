@@ -81,6 +81,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [x] Integración con **Calendly** (una cuenta por negocio; la IA reserva directo o envía enlace; citas y cancelaciones en ambos sentidos) — 🤖 (2026-10-14, rama `feat/calendly`)
 - [x] Crear la app OAuth en developer.calendly.com y pegar Client ID, Client secret y Webhook signing key en Superadmin → Settings → Calendly — 🧑 (2026-10-23)
 - [x] Agendar sin IA: paso «Agendar cita» en los flujos y botón «Enviar agenda» en la bandeja (el cliente elige día y hora tocando); las citas manuales de servicios vinculados también se reservan en Calendly — 🤖 (2026-10-23, rama `feat/booking-picker`)
+- [x] Recordatorios de citas en Automatizaciones → Recordatorios: on/off y textos propios, botones Confirmo / Cambiar fecha, plantilla de utilidad creada y enviada a Meta sola para fuera de la ventana de 24 h, sin reintentos en cadena, 1 crédito por recordatorio — 🤖 (2026-10-23, rama `feat/reminder-templates`)
 - [ ] (Mejora) Selector de citas con **WhatsApp Flows** (formulario nativo de Meta con calendario) en lugar de listas; requiere publicar cada formulario en Meta — 🤖
 - [ ] Pantalla para que cada negocio cree sus **claves de API y webhooks** (la API y los textos existen, falta la pantalla; la página de Funciones ya lo menciona) — 🤖
 - [ ] Botón "Crear bot de preguntas frecuentes" que arme un menú numerado gratis desde la lista de FAQs — 🤖, opcional

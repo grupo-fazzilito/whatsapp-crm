@@ -262,7 +262,8 @@
       "didntGet": "No entendí tu respuesta. Toca una de las opciones:",
       "gaveUp": "Dejamos la reserva para después. Escríbenos cuando quieras agendar.",
       "expired": "Esa agenda ya no está activa. Escríbenos si quieres agendar.",
-      "failed": "No pudimos agendar tu cita. En un momento te ayuda alguien del equipo."
+      "failed": "No pudimos agendar tu cita. En un momento te ayuda alguien del equipo.",
+      "rebooked": "✅ ¡Listo, cambiamos la fecha! *{what}* el {date} a las {time}{staff}."
     },
     "sendSchedule": {
       "button": "Enviar agenda",
@@ -296,6 +297,63 @@
       "slot": "Ese horario no está libre en Calendly. Elige otro.",
       "plan": "Tu plan de Calendly no permite reservar desde Whasalia: la cita quedó guardada solo aquí.",
       "reschedule": "Las citas de Calendly no se pueden mover desde aquí. Cancélala y crea una nueva."
+    },
+    "reminders": {
+      "reply": {
+        "gone": "Esa reserva ya no está activa. Escríbenos si quieres agendar de nuevo.",
+        "confirmed": "¡Gracias por confirmar! Te esperamos.",
+        "changeHuman": "Claro, en un momento alguien del equipo te ayuda a cambiar la fecha."
+      },
+      "error": {
+        "off": "Este recordatorio está desactivado.",
+        "no_contact": "La cita no tiene un contacto.",
+        "no_credits": "No hay créditos suficientes: los recordatorios cuestan 1 crédito.",
+        "no_channel": "El contacto no tiene un canal conectado para escribirle.",
+        "window_closed": "Pasaron más de 24 horas desde el último mensaje del cliente y este canal no admite plantillas.",
+        "template_missing": "Pasaron más de 24 horas desde el último mensaje del cliente y la plantilla de recordatorio todavía no se creó en Meta.",
+        "template_pending": "Pasaron más de 24 horas desde el último mensaje del cliente y Meta todavía está revisando la plantilla de recordatorio.",
+        "template_rejected": "Pasaron más de 24 horas desde el último mensaje del cliente y Meta rechazó la plantilla de recordatorio.",
+        "send_failed": "WhatsApp no aceptó el mensaje."
+      },
+      "lastError": "Último recordatorio no enviado: {reason}",
+      "page": {
+        "tab": "Recordatorios",
+        "title": "Recordatorios de {bookings}",
+        "description": "Se envían solos antes de cada {booking} (confirmados o pendientes) con dos botones: «Confirmo», que marca la asistencia como confirmada, y «Cambiar fecha», que le muestra al cliente los horarios libres para elegir otro; al elegirlo, el horario anterior se cancela solo.",
+        "cost": "Cada recordatorio enviado cuesta 1 crédito.",
+        "kind": {
+          "24h": "24 horas antes",
+          "4h": "4 horas antes",
+          "2h": "2 horas antes"
+        },
+        "kindHelp": "Si se agenda con poca anticipación, solo sale el recordatorio más cercano.",
+        "customText": "Texto propio (opcional)",
+        "defaultText": "Vacío = texto predeterminado:",
+        "placeholders": "Puedes usar: {list}",
+        "useSuggested": "Escribir mi propio texto",
+        "reset": "Volver al predeterminado",
+        "save": "Guardar",
+        "saved": "Recordatorios guardados.",
+        "template": {
+          "title": "Plantilla de WhatsApp",
+          "description": "WhatsApp solo deja enviar texto libre si el cliente escribió en las últimas 24 horas. Si no, el recordatorio sale con esta plantilla aprobada por Meta (con los mismos dos botones). Whasalia la crea y la envía a revisión sola.",
+          "status": {
+            "none": "Se creará en unos minutos",
+            "Draft": "No se pudo enviar a Meta; se reintenta cada día",
+            "Pending": "En revisión de Meta",
+            "Approved": "Aprobada",
+            "Rejected": "Rechazada por Meta"
+          },
+          "noWhatsapp": "Conecta un número de WhatsApp para que se cree la plantilla.",
+          "open": "Ver plantilla"
+        },
+        "readOnly": "Solo los administradores pueden cambiar los recordatorios."
+      },
+      "suggested": {
+        "24h": "⏰ ¡Hola {nombre}! Te recordamos tu {cita} de {servicio}: *{fecha}* a las *{hora}*.\n\n— {negocio}",
+        "4h": "🔔 ¡Hola {nombre}! Tu {cita} es hoy a las *{hora}*. ¡Te esperamos!\n\n— {negocio}",
+        "2h": "🔔 ¡Hola {nombre}! Tu {cita} es a las *{hora}*, en unas 2 horas. ¡Te esperamos!\n\n— {negocio}"
+      }
     }
   }
 }

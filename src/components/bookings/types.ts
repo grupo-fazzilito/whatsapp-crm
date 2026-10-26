@@ -20,6 +20,8 @@ export interface Booking {
   custom_fields: Record<string, unknown> | null
   status: BookingStatus
   source: 'ai' | 'manual' | 'flow' | 'picker' | string
+  /** Why the last automatic reminder wasn't sent (see reminder-send.ts). */
+  reminder_error?: string | null
   conversation_id: string | null
   feedback_sent: boolean | null
   followup_sent: boolean | null

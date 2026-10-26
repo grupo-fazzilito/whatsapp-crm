@@ -262,7 +262,8 @@
       "didntGet": "I didn't get that. Tap one of the options:",
       "gaveUp": "Let's leave the booking for later. Message us whenever you want to book.",
       "expired": "That schedule is no longer active. Message us if you want to book.",
-      "failed": "We couldn't book your appointment. Someone from the team will help you shortly."
+      "failed": "We couldn't book your appointment. Someone from the team will help you shortly.",
+      "rebooked": "✅ Done, we changed the date! *{what}* on {date} at {time}{staff}."
     },
     "sendSchedule": {
       "button": "Send schedule",
@@ -296,6 +297,63 @@
       "slot": "That time isn't free in Calendly. Pick another one.",
       "plan": "Your Calendly plan doesn't allow booking from Whasalia: the booking was saved here only.",
       "reschedule": "Calendly bookings can't be moved from here. Cancel it and create a new one."
+    },
+    "reminders": {
+      "reply": {
+        "gone": "That booking is no longer active. Message us if you want to book again.",
+        "confirmed": "Thanks for confirming! See you then.",
+        "changeHuman": "Sure, someone from the team will help you change the date shortly."
+      },
+      "error": {
+        "off": "This reminder is turned off.",
+        "no_contact": "The booking has no contact.",
+        "no_credits": "Not enough credits: reminders cost 1 credit.",
+        "no_channel": "The contact has no connected channel to message.",
+        "window_closed": "More than 24 hours since the customer's last message and this channel doesn't support templates.",
+        "template_missing": "More than 24 hours since the customer's last message and the reminder template isn't created in Meta yet.",
+        "template_pending": "More than 24 hours since the customer's last message and Meta is still reviewing the reminder template.",
+        "template_rejected": "More than 24 hours since the customer's last message and Meta rejected the reminder template.",
+        "send_failed": "WhatsApp didn't accept the message."
+      },
+      "lastError": "Last reminder not sent: {reason}",
+      "page": {
+        "tab": "Reminders",
+        "title": "{bookings} reminders",
+        "description": "Sent on their own before every {booking} (confirmed or pending) with two buttons: “I confirm”, which marks attendance as confirmed, and “Change date”, which shows the customer the free times to pick another; once picked, the previous time is cancelled on its own.",
+        "cost": "Each reminder sent costs 1 credit.",
+        "kind": {
+          "24h": "24 hours before",
+          "4h": "4 hours before",
+          "2h": "2 hours before"
+        },
+        "kindHelp": "When booked at short notice, only the closest reminder goes out.",
+        "customText": "Your own text (optional)",
+        "defaultText": "Empty = default text:",
+        "placeholders": "You can use: {list}",
+        "useSuggested": "Write my own text",
+        "reset": "Back to the default",
+        "save": "Save",
+        "saved": "Reminders saved.",
+        "template": {
+          "title": "WhatsApp template",
+          "description": "WhatsApp only allows free text if the customer wrote in the last 24 hours. Otherwise the reminder goes out with this Meta-approved template (with the same two buttons). Whasalia creates it and sends it for review on its own.",
+          "status": {
+            "none": "Will be created in a few minutes",
+            "Draft": "Couldn't be sent to Meta; retried daily",
+            "Pending": "In review by Meta",
+            "Approved": "Approved",
+            "Rejected": "Rejected by Meta"
+          },
+          "noWhatsapp": "Connect a WhatsApp number so the template can be created.",
+          "open": "View template"
+        },
+        "readOnly": "Only admins can change the reminders."
+      },
+      "suggested": {
+        "24h": "⏰ Hi {nombre}! A reminder of your {cita} for {servicio}: *{fecha}* at *{hora}*.\n\n— {negocio}",
+        "4h": "🔔 Hi {nombre}! Your {cita} is today at *{hora}*. See you!\n\n— {negocio}",
+        "2h": "🔔 Hi {nombre}! Your {cita} is at *{hora}*, in about 2 hours. See you!\n\n— {negocio}"
+      }
     }
   }
 }

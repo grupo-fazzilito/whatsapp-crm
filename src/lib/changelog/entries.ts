@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-23',
+    title: { es: 'Recordatorios de citas que siempre llegan', en: 'Booking reminders that always arrive' },
+    changes: [
+      { kind: 'new', es: 'Automatizaciones → Recordatorios: activa o desactiva los recordatorios de 24 h, 4 h y 2 h antes, y escribe tu propio texto con {nombre}, {fecha}, {hora} y más.', en: 'Automations → Reminders: turn the 24 h, 4 h and 2 h reminders on or off and write your own text with {nombre}, {fecha}, {hora} and more.' },
+      { kind: 'new', es: 'Los recordatorios traen dos botones: «Confirmo» confirma la asistencia y «Cambiar fecha» le muestra al cliente los horarios libres; al elegir otro, el anterior se cancela solo (también en Calendly y Google Calendar).', en: 'Reminders come with two buttons: “I confirm” confirms attendance and “Change date” shows the customer the free times; picking another cancels the old one (also in Calendly and Google Calendar).' },
+      { kind: 'fixed', es: 'WhatsApp: si el cliente no escribió en las últimas 24 horas, el recordatorio sale con una plantilla aprobada por Meta, que Whasalia crea y envía a revisión sola. Antes no llegaba y se reintentaba sin parar.', en: 'WhatsApp: when the customer hasn’t written in the last 24 hours, the reminder goes out with a Meta-approved template that Whasalia creates and submits on its own. Before, it didn’t arrive and kept retrying.' },
+      { kind: 'improved', es: 'Si un recordatorio no puede salir, el motivo aparece en la cita. Cada recordatorio enviado cuesta 1 crédito.', en: 'When a reminder can’t go out, the reason shows on the booking. Each reminder sent costs 1 credit.' },
+    ],
+  },
+  {
+    date: '2026-10-23',
     title: { es: 'Agendar sin IA: desde un flujo o con un botón en la bandeja', en: 'Book without the AI: from a flow or with an inbox button' },
     changes: [
       { kind: 'new', es: 'Bandeja → botón «Enviar agenda» (ícono de calendario): el cliente elige el servicio, quién lo atiende, el día y la hora tocando opciones en el chat, y la cita se guarda sola. No usa la IA ni gasta créditos, ideal cuando atiende una persona.', en: 'Inbox → “Send schedule” button (calendar icon): the customer picks the service, who attends, the day and the time by tapping options in the chat, and the booking is saved on its own. It doesn’t use the AI or spend credits — ideal when a person handles the chat.' },

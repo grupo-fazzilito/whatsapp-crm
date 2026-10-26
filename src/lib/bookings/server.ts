@@ -9,6 +9,8 @@ import type { Workspace } from '@/lib/workspace/types'
 import { buildBookingMessage, type BookingMessageKind } from './messages'
 import { selectDueReminders, utcDate, type ReminderCandidate } from './reminders'
 import { afterViewingReminder } from '@/lib/real-estate/leads/visits'
+import { sendBookingReminder } from './reminder-send'
+import { ensureReminderTemplates } from './reminder-template'
 
 type WorkspaceLite = Pick<Workspace, 'id' | 'name' | 'industry' | 'locale' | 'timezone' | 'settings'>
 
@@ -147,8 +149,9 @@ export async function notifyFromRequest(
 }
 
 /**
- * Sends due reminders for every workspace. Each booking is judged in its
- * workspace's time zone. Returns how many were sent / skipped.
+ * Sends due reminders for every workspace (see reminder-send.ts). Each
+ * booking is judged in its workspace's time zone. Returns how many were
+ * sent / skipped.
  */
 export async function processBookingReminders(now = new Date()): Promise<{ processed: number; skipped: number }> {
   // Platform cron over every workspace.
@@ -176,21 +179,26 @@ export async function processBookingReminders(now = new Date()): Promise<{ proce
   let skipped = 0
   for (const due of selectDueReminders(rows, now)) {
     const b = due.booking
-    const res = await notifyBooking(`reminder_${due.kind}`, b, b.workspace!, { reminder: due.kind })
-    if (!res.ok) {
-      console.error(`[bookings] reminder ${due.kind} failed for ${b.id}:`, res.error)
-      skipped++
-      continue // flags stay false so the next run retries
-    }
+    const res = await sendBookingReminder(b, b.workspace!, due.kind, bookingMessageText(`reminder_${due.kind}`, b, b.workspace!))
+    // Tried once: the flags move on either way, with the reason when it didn't go out.
     try {
-      await tenantDb(b.workspace_id).bookings.updateMany({ where: { id: b.id }, data: due.updates })
+      await tenantDb(b.workspace_id).bookings.updateMany({
+        where: { id: b.id },
+        data: { ...due.updates, reminder_error: res.ok || res.reason === 'off' ? null : res.reason },
+      })
     } catch (upErr) {
       console.error(`[bookings] reminder flags update failed for ${b.id}:`, upErr instanceof Error ? upErr.message : upErr)
+    }
+    if (!res.ok) {
+      skipped++
+      continue
     }
     // Real-estate viewings: the property's map pin with the last reminder.
     if (b.workspace?.industry === 'real_estate') await afterViewingReminder(b.workspace_id, b.id, due.hoursUntil)
     processed++
   }
+  // Businesses without their reminder template get it created and sent to Meta.
+  await ensureReminderTemplates(now).catch((err) => console.error('[bookings] reminder templates failed:', err instanceof Error ? err.message : err))
   return { processed, skipped }
 }
 

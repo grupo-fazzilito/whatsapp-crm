@@ -344,6 +344,7 @@ model bookings {
   viewing_location_sent_at      DateTime?             @db.Timestamptz(6)
   viewing_feedback_sent_at      DateTime?             @db.Timestamptz(6)
   viewing_feedback              String?
+  reminder_error                String?
   contacts                      contacts              @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "appointments_contact_id_fkey")
   staff                         staff?                @relation(fields: [staff_id], references: [id], onUpdate: NoAction, map: "appointments_doctor_id_fkey")
   workspaces                    workspaces            @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "appointments_workspace_id_fkey")

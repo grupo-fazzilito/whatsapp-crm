@@ -9,7 +9,7 @@ import type { Prisma } from '@/generated/prisma/client'
  * PATCH /api/business/workspace (admins) — business setup of the active workspace.
  *   { name?, business_type_detail?, description?, phone?, email?, website?, address?, city?, state?,
  *     postal_code?, google_map_link?, country?, currency?, timezone?, locale?, industry?, date_exceptions?,
- *     settings?: { modules?, labels?, booking_capacity?, orders?, product_attributes? } }
+ *     settings?: { modules?, labels?, booking_capacity?, orders?, product_attributes?, booking_reminders? } }
  *   `settings` keys are merged into the latest stored settings (orders is merged one level deeper).
  *   → { ok }
  */

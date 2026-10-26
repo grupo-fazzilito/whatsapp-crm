@@ -31,6 +31,8 @@ export interface PickerDraft {
   customer_name?: string | null
   party_size?: number | null
   fields?: Record<string, string | number | null>
+  /** Booking this one replaces (the reminder's "Change date"): cancelled once the new one is booked. */
+  replaces?: string | null
 }
 
 export interface PickerState {
