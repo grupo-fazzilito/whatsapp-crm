@@ -1,5 +1,6 @@
 "use client";
 
+import { notFound } from "next/navigation";
 import { History } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { CHANGELOG, type ChangeKind } from "@/lib/changelog/entries";
@@ -13,6 +14,7 @@ const KIND_STYLE: Record<ChangeKind, string> = {
 
 /** Public changelog: every improvement shipped, newest first. */
 export default function ChangelogPage() {
+  if (!CHANGELOG.length) notFound();
   const { t, locale } = useI18n();
   const lang = locale === "en" ? "en" : "es";
   const fmt = new Intl.DateTimeFormat(lang === "en" ? "en-US" : "es-PE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
