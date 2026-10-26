@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-26',
+    title: { es: 'Documentación de la API', en: 'API documentation' },
+    changes: [
+      { kind: 'new', es: 'Nueva página de documentación de la API (enlace en el pie de página): cómo autenticarte, permisos, errores, todos los endpoints con ejemplos y cómo recibir y verificar los webhooks.', en: 'New API documentation page (link in the footer): how to authenticate, scopes, errors, every endpoint with examples and how to receive and verify webhooks.' },
+    ],
+  },
+  {
+    date: '2026-10-26',
     title: { es: 'Claves de API y webhooks en Integraciones', en: 'API keys and webhooks in Integrations' },
     changes: [
       { kind: 'new', es: 'Ajustes → Integraciones → Claves de API: crea claves con solo los permisos que necesitas (contactos, mensajes, pedidos, reservas…) para conectar n8n, Make, Zapier o tu propio sistema, y revócalas cuando quieras.', en: 'Settings → Integrations → API keys: create keys with only the permissions you need (contacts, messages, orders, bookings…) to connect n8n, Make, Zapier or your own system, and revoke them whenever you want.' },

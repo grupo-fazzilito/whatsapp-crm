@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useState } from 'react';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronRight, KeyRound, ListChecks, Loader2, Pencil, Plus, RefreshCw, Send, Trash2, Webhook } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, KeyRound, ListChecks, Loader2, Pencil, Plus, RefreshCw, Send, Trash2, Webhook } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -164,6 +164,10 @@ export function WebhooksCard() {
             {t('integrations.webhooks.title')}
           </CardTitle>
           <CardDescription>{t('integrations.webhooks.description')}</CardDescription>
+          <a href={`/${locale === 'en' ? 'en' : 'es'}/api-docs#webhooks`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-2 hover:underline">
+            {t('integrations.docsLink')}
+            <ExternalLink className="size-3.5" aria-hidden />
+          </a>
         </div>
         <Button className="shrink-0" onClick={() => setEditing('new')}>
           <Plus className="size-4" aria-hidden />
