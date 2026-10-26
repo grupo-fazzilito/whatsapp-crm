@@ -39,7 +39,7 @@ migración falla, el despliegue se detiene y la versión anterior sigue activa.
 | `META_APP_ID`, `META_LOGIN_CONFIG_ID` | Botón "Continuar con Facebook" para conectar Messenger e Instagram. |
 | `META_VERIFY_TOKEN` | Token de verificación del webhook de Meta para toda la plataforma. |
 | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, `AI_PROVIDER_ORDER` | Claves de IA. Las del panel de superadmin tienen prioridad. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Correo: códigos de acceso, invitaciones, tickets de soporte. Sin SMTP los correos no salen. |
+| `MAILERSEND_API_KEY`, `MAIL_FROM` (opcional, por defecto `no-reply@whasalia.com`) | Correo por la API de MailerSend: códigos de acceso, invitaciones, tickets de soporte. Sin clave los correos no salen (`SMTP_*` queda como alternativa, pero Railway Hobby bloquea SMTP). |
 | `SUPPORT_EMAIL` | Destino de los tickets nuevos (el panel de superadmin tiene prioridad). |
 | `PLATFORM_ADMIN_EMAILS` | Correos que reciben el panel de superadmin al iniciar sesión. |
 | `PAYMENT_LATAM_*` | Credenciales de Payment Latam (el panel de superadmin tiene prioridad). |

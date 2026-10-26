@@ -12,6 +12,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-26',
+    title: { es: 'Correos con la marca Whasalia', en: 'Emails with the Whasalia brand' },
+    changes: [
+      { kind: 'fixed', es: 'Los correos con el código para registrarte o cambiar la contraseña muestran el nombre Whasalia.', en: 'The emails with the code to sign up or reset your password show the Whasalia name.' },
+    ],
+  },
+  {
     date: '2026-10-23',
     title: { es: 'Recordatorios de citas que siempre llegan', en: 'Booking reminders that always arrive' },
     changes: [
