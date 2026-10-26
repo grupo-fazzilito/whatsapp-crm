@@ -1,5 +1,6 @@
 "use client";
 
+import { AuthLogo } from "@/components/auth/auth-logo";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -266,20 +267,13 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center bg-[var(--m-bg-primary)] px-4 overflow-hidden select-none">
+    <div className="relative flex w-full flex-1 flex-col items-center justify-center gap-6 px-4 py-12 min-h-[calc(100dvh-4rem)]">
       {/* Decorative Radial Glow Backdrops */}
       <InteractiveGrid gridSize={40} className="opacity-20" />
       <div className="absolute top-[20%] left-[20%] w-[50%] h-[50%] rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[20%] right-[20%] w-[50%] h-[50%] rounded-full bg-teal-500/5 blur-[120px] pointer-events-none" />
 
-      {/* Floating Home Link */}
-      <Link
-        href="/"
-        className="absolute top-6 left-6 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--m-text-tertiary)] hover:text-[var(--m-text-primary)] transition-colors bg-[var(--m-bg-secondary)]/60 border border-[var(--m-border-glass)] px-3 py-1.5 rounded-lg backdrop-blur z-10"
-      >
-        <ArrowLeft className="size-3.5" /> {t("authPages.common.backHome")}
-      </Link>
-
+      <AuthLogo />
       <Card className="w-full max-w-md border-[var(--m-border-primary)] bg-[var(--m-bg-glass)] shadow-[var(--m-shadow-card)] backdrop-blur-xl relative z-10 p-2 overflow-hidden transition-all duration-300">
         
         {/* Step Progress Bar */}

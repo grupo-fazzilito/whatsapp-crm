@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-26',
+    title: { es: 'Inicio de sesión y registro con la marca Whasalia', en: 'Sign-in and sign-up with the Whasalia brand' },
+    changes: [
+      { kind: 'improved', es: 'Las pantallas para iniciar sesión, crear cuenta y recuperar la contraseña muestran el logo de Whasalia y el mismo menú y pie de página que el sitio.', en: 'The sign-in, sign-up and password recovery screens show the Whasalia logo and the same menu and footer as the website.' },
+    ],
+  },
+  {
+    date: '2026-10-26',
     title: { es: 'Documentación de la API', en: 'API documentation' },
     changes: [
       { kind: 'new', es: 'Nueva página de documentación de la API (enlace en el pie de página): cómo autenticarte, permisos, errores, todos los endpoints con ejemplos y cómo recibir y verificar los webhooks.', en: 'New API documentation page (link in the footer): how to authenticate, scopes, errors, every endpoint with examples and how to receive and verify webhooks.' },

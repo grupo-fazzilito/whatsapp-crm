@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthLogo } from "@/components/auth/auth-logo";
 import { ArrowLeft, Sparkles, CheckCircle, KeyRound, Loader2, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { InteractiveGrid } from "@/components/marketing/interactive-grid";
 import { useTheme } from "@/hooks/use-theme";
@@ -307,18 +308,12 @@ export function SignupForm({ providers, socialError }: { providers: SocialProvid
   };
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center bg-[var(--m-bg-primary)] px-4 overflow-hidden select-none">
+    <div className="relative flex w-full flex-1 flex-col items-center justify-center gap-6 px-4 py-12 min-h-[calc(100dvh-4rem)]">
       <InteractiveGrid gridSize={40} className="opacity-20" />
       <div className="absolute top-[20%] left-[20%] w-[50%] h-[50%] rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[20%] right-[20%] w-[50%] h-[50%] rounded-full bg-teal-500/5 blur-[120px] pointer-events-none" />
 
-      <Link
-        href="/"
-        className="absolute top-6 left-6 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--m-text-tertiary)] hover:text-[var(--m-text-primary)] transition-colors bg-[var(--m-bg-secondary)]/60 border border-[var(--m-border-glass)] px-3 py-1.5 rounded-lg backdrop-blur"
-      >
-        <ArrowLeft className="size-3.5" /> {t("authPages.common.backHome")}
-      </Link>
-
+      <AuthLogo />
       <Card className="w-full max-w-lg border-[var(--m-border-primary)] bg-[var(--m-bg-glass)] shadow-[var(--m-shadow-card)] backdrop-blur-xl relative z-10 p-2 overflow-hidden transition-all duration-300">
         {/* Step Progress Bar */}
         <div className="px-6 pt-4 pb-2 border-b border-[var(--m-border-primary)]/40 bg-[var(--m-bg-primary)]/50 rounded-t-xl">
