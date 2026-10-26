@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { getSessionCookie } from 'better-auth/cookies'
 import { isPlatformAdmin } from '@/lib/admin/guard'
+import { getSessionUser } from '@/lib/auth/session'
 import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from '@/i18n/config'
 import { isMarketingPath, localizedPath, splitLocale } from '@/i18n/marketing-routes'
 
@@ -54,6 +55,17 @@ export async function proxy(request: NextRequest) {
 
   // Platform admin panel: a session whose profile is_platform_admin.
   // Checked in-process (a fetch to our own /api/me fails behind Railway's proxy).
+  if (path.startsWith('/admin-panel') && signedIn) {
+    // Still inside a customer's account ("Entrar como cliente"): close that
+    // visit and come back as the admin instead of bouncing to the login.
+    const user = await getSessionUser(request.headers).catch(() => null)
+    if (user?.impersonatedBy) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/api/admin/return'
+      url.search = path === '/admin-panel/login' ? '' : `?next=${encodeURIComponent(path)}`
+      return NextResponse.redirect(url)
+    }
+  }
   if (path.startsWith('/admin-panel') && path !== '/admin-panel/login') {
     const isAdmin = signedIn && (await isPlatformAdmin(request.headers).catch(() => false))
     if (!isAdmin) {
