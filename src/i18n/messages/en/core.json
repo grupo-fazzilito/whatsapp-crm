@@ -42,7 +42,11 @@
     "agentsList": "Agents",
     "sections": "Sections",
     "collapseMenu": "Collapse menu",
-    "expandMenu": "Expand menu"
+    "expandMenu": "Expand menu",
+    "openMenu": "Open menu",
+    "accountMenu": "Account menu",
+    "darkMode": "Switch to dark mode",
+    "lightMode": "Switch to light mode"
   },
   "workspace": {
     "switch": "Switch business",

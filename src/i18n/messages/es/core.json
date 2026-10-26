@@ -42,7 +42,11 @@
     "agentsList": "Agentes",
     "sections": "Secciones",
     "collapseMenu": "Contraer menú",
-    "expandMenu": "Expandir menú"
+    "expandMenu": "Expandir menú",
+    "openMenu": "Abrir menú",
+    "accountMenu": "Menú de la cuenta",
+    "darkMode": "Cambiar a modo oscuro",
+    "lightMode": "Cambiar a modo claro"
   },
   "workspace": {
     "switch": "Cambiar de negocio",
