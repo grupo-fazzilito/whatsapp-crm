@@ -397,12 +397,15 @@ export function WhatsAppSignup({ agents, onCreated, onManual, onDone }: Props) {
         type="button"
         onClick={launch}
         disabled={!sdk || busy}
-        aria-describedby={status ? 'wa-signup-status' : undefined}
-        className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#1877F2] px-4 text-sm font-medium text-white hover:bg-[#166fe0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
+        aria-describedby={status ? 'wa-signup-hint wa-signup-status' : 'wa-signup-hint'}
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#25D366] px-4 text-sm font-medium text-white hover:bg-[#1ebe5b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
       >
         {busy || !sdk ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <ExternalLink className="size-4" aria-hidden />}
         {t('metawa.signup.connect')}
       </button>
+      <p id="wa-signup-hint" className="text-xs text-muted-foreground">
+        {t('metawa.signup.connectHint')}
+      </p>
       <p id="wa-signup-status" aria-live="polite" className="min-h-4 text-xs text-muted-foreground">
         {status ?? ''}
       </p>
