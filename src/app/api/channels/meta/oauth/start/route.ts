@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { getMetaConfig, metaAppReady } from '@/lib/platform/meta'
 import { META_SCOPES, metaRedirectUri, sign } from '../../../_lib/shared'
+import { publicOrigin } from '@/lib/site-origin'
 
 /**
  * GET /api/channels/meta/oauth/start — admin. Sends the browser to
@@ -14,11 +15,11 @@ import { META_SCOPES, metaRedirectUri, sign } from '../../../_lib/shared'
 export async function GET(request: NextRequest) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) {
-    return NextResponse.redirect(new URL('/channels?connect=meta&error=forbidden', request.url))
+    return NextResponse.redirect(new URL('/channels?connect=meta&error=forbidden', publicOrigin(request)))
   }
   const cfg = await getMetaConfig()
   if (!metaAppReady(cfg)) {
-    return NextResponse.redirect(new URL('/channels?connect=meta&error=not_configured', request.url))
+    return NextResponse.redirect(new URL('/channels?connect=meta&error=not_configured', publicOrigin(request)))
   }
 
   const state = sign({
