@@ -9,6 +9,7 @@ import {
   verifySigned,
   type MetaCandidatePage,
 } from '../../../_lib/shared'
+import { publicOrigin } from '@/lib/site-origin'
 
 /**
  * GET /api/channels/meta/oauth/callback — Facebook redirects here.
@@ -39,7 +40,7 @@ interface AccountsResponse {
 }
 
 function back(request: NextRequest, params: Record<string, string>) {
-  const url = new URL('/channels', request.url)
+  const url = new URL('/channels', publicOrigin(request))
   url.searchParams.set('connect', 'meta')
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v)
   return NextResponse.redirect(url)

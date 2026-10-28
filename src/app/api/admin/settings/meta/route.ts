@@ -8,12 +8,13 @@ import {
   updateMetaSettings,
   type MetaSettingsUpdate,
 } from '@/lib/platform/meta'
+import { publicOrigin } from '@/lib/site-origin'
 
 // Platform Meta app (admin panel): app id, app secret (write-only),
 // webhook verify token, Embedded Signup / Login configuration ids, Graph version.
 
 function origin(req: NextRequest) {
-  return process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin
+  return publicOrigin(req)
 }
 
 export async function GET(req: NextRequest) {

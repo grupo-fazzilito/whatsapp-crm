@@ -4,6 +4,7 @@ import { requireWorkspace } from '@/lib/workspace/context'
 import { hasRole, isUuid } from '@/lib/workspace/constants'
 import { newInviteToken } from '@/lib/workspace/invitations'
 import { sendEmail } from '@/lib/email/send'
+import { publicOrigin } from '@/lib/site-origin'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const INVITATION_COLUMNS = { id: true, workspace_id: true, email: true, role: true, expires_at: true, accepted_at: true, created_at: true } as const
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin
+  const origin = publicOrigin(req)
   const link = `${origin}/invite/${token}`
   const es = g.ctx.workspace.locale === 'es'
   const subject = es

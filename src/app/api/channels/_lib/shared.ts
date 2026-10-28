@@ -6,6 +6,7 @@ import { isPrismaError } from '@/lib/db/errors'
 import { isUuid } from '@/lib/workspace/constants'
 import type { ChannelRow } from '@/lib/channels/types'
 import { getMetaConfig, metaAppReady } from '@/lib/platform/meta'
+import { publicOrigin } from '@/lib/site-origin'
 
 // Helpers shared by the /api/channels routes (private folder: not a route).
 
@@ -238,6 +239,6 @@ export const META_SCOPES = [
 ]
 
 /** Must be identical in the dialog request and the code exchange. */
-export function metaRedirectUri(request: { nextUrl: URL }) {
-  return `${request.nextUrl.origin}/api/channels/meta/oauth/callback`
+export function metaRedirectUri(request: { url: string }) {
+  return `${publicOrigin(request)}/api/channels/meta/oauth/callback`
 }
