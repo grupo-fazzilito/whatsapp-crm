@@ -79,7 +79,7 @@ Un video por canal y uno de comentarios. El mismo video se adjunta a cada permis
 4. En Whasalia aparece **Choose what to connect** con las páginas (aquí se ve `pages_show_list`). Marcar la página → **Connect selected**.
 5. El canal Messenger aparece conectado. Al conectarlo, la app suscribe la página a los webhooks (`pages_manage_metadata`).
 6. Desde el perfil del cliente, mandar un mensaje a la página por Messenger.
-7. En Whasalia → **Inbox** aparece la conversación con el ícono de Messenger. Responder.
+7. En Whasalia → **Inbox** aparece la conversación con el ícono de Messenger y el **nombre del cliente** (lo cubre la función *Business Asset User Profile Access*: adjuntar este video también a ella). Responder.
 8. Mostrar la respuesta en Messenger del cliente.
 
 **Texto para el formulario:**
@@ -101,7 +101,7 @@ Un video por canal y uno de comentarios. El mismo video se adjunta a cada permis
    1. Se ve la cuenta de Instagram con su @usuario (`instagram_basic`).
    2. Marcarla → **Connect selected**.
 5. Desde la cuenta de Instagram del cliente (celular), mandar un DM a la cuenta del negocio.
-6. En Whasalia → **Inbox** aparece la conversación con el ícono de Instagram. Responder.
+6. En Whasalia → **Inbox** aparece la conversación con el ícono de Instagram y el nombre o @usuario del cliente. Responder.
 7. Mostrar la respuesta en el Instagram del cliente.
 
 **Texto para el formulario:**

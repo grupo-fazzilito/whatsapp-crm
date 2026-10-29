@@ -100,3 +100,37 @@ function makeAdapter(type: Extract<ChannelType, 'messenger' | 'instagram'>): Cha
 
 export const messengerAdapter = makeAdapter('messenger')
 export const instagramAdapter = makeAdapter('instagram')
+
+/**
+ * Who a PSID / IGSID is: Meta's webhooks carry only the id. Uses the User
+ * Profile API with the page token; null when Meta doesn't share it (missing
+ * permission, privacy settings), so the caller keeps its fallback name.
+ */
+export async function fetchMetaProfile(
+  type: Extract<ChannelType, 'messenger' | 'instagram'>,
+  token: string,
+  userId: string,
+): Promise<{ name: string | null; handle: string | null } | null> {
+  const fields = type === 'messenger' ? 'first_name,last_name' : 'name,username'
+  try {
+    const res = await fetch(`${GRAPH}/${encodeURIComponent(userId)}?fields=${fields}&access_token=${encodeURIComponent(token)}`, {
+      signal: AbortSignal.timeout(5000),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      console.warn(`[${type}] profile lookup failed:`, data?.error?.message ?? res.status)
+      return null
+    }
+    const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
+    if (type === 'messenger') {
+      const name = [str(data.first_name), str(data.last_name)].filter(Boolean).join(' ') || null
+      return name ? { name, handle: null } : null
+    }
+    const name = str(data.name)
+    const handle = str(data.username)
+    return name || handle ? { name, handle } : null
+  } catch (err) {
+    console.warn(`[${type}] profile lookup failed:`, err instanceof Error ? err.message : err)
+    return null
+  }
+}

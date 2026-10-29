@@ -4,6 +4,7 @@ import { tenantDb } from '@/lib/db/tenant'
 import { isPrismaError } from '@/lib/db/errors'
 import { phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { waMediaProxyUrl } from '@/lib/channels/parsers/whatsapp'
+import { fetchMetaProfile } from '@/lib/channels/adapters/meta-messaging'
 import type { InboundEvent, LoadedChannel } from '@/lib/channels'
 import type { AiAgentRow } from '@/lib/ai/types'
 import { routeInbound } from '@/lib/ai/routing'
@@ -111,6 +112,7 @@ export async function findOrCreateContact(
   // Prefer the phone's contact: it may have a history the BSUID one lacks.
   const identity = known.find((k) => k.external_id === from.externalId) ?? known[0]
   if (identity) {
+    await nameFromMetaProfile(channel, identity.contact_id, from)
     await linkIdentities(channel, identity.contact_id, from, keys.filter((k) => !known.some((x) => x.external_id === k)))
     return { id: identity.contact_id, wasCreated: false }
   }
@@ -125,8 +127,8 @@ export async function findOrCreateContact(
   }
 
   if (!contactId) {
-    const fallbackName =
-      from.name || from.handle || from.phone || `${channel.type} ${from.externalId.slice(-4)}`
+    if (!from.name && !from.handle) from = { ...from, ...(await metaProfile(channel, from.externalId)) }
+    const fallbackName = from.name || from.handle || from.phone || placeholderName(channel, from.externalId)
     try {
       const created = await db.contacts.create({
         data: { workspace_id: ws, name: fallbackName, phone: from.phone ?? null },
@@ -165,6 +167,41 @@ export async function findOrCreateContact(
   }
   await linkIdentities(channel, contactId!, from, keys.filter((k) => k !== from.externalId))
   return { id: contactId!, wasCreated }
+}
+
+/** Name given to a contact we know only by id ("instagram 6875"). */
+function placeholderName(channel: LoadedChannel, externalId: string): string {
+  return `${channel.type} ${externalId.slice(-4)}`
+}
+
+/** Messenger / Instagram profile of the sender; empty when unavailable. */
+async function metaProfile(channel: LoadedChannel, externalId: string): Promise<{ name?: string; handle?: string }> {
+  if (channel.type !== 'messenger' && channel.type !== 'instagram') return {}
+  const token = channel.secrets.access_token
+  if (!token) return {}
+  const profile = await fetchMetaProfile(channel.type, token, externalId)
+  return { ...(profile?.name ? { name: profile.name } : {}), ...(profile?.handle ? { handle: profile.handle } : {}) }
+}
+
+/**
+ * A contact still carrying the placeholder name gets their real one from
+ * Meta on their next message. A name set by hand is never touched.
+ */
+async function nameFromMetaProfile(channel: LoadedChannel, contactId: string, from: MessageEvent['from']) {
+  if (channel.type !== 'messenger' && channel.type !== 'instagram') return
+  const db = tenantDb(channel.workspace_id)
+  const placeholder = placeholderName(channel, from.externalId)
+  const contact = await db.contacts.findFirst({ where: { id: contactId }, select: { name: true } }).catch(() => null)
+  if (!contact || (contact.name && contact.name !== placeholder)) return
+  const profile = await metaProfile(channel, from.externalId)
+  const name = profile.name || profile.handle
+  if (!name) return
+  await db.contacts.updateMany({ where: { id: contactId, name: contact.name }, data: { name } }).catch(() => {})
+  if (profile.handle) {
+    await db.contact_identities
+      .updateMany({ where: { contact_id: contactId, channel_type: channel.type, external_id: from.externalId, handle: null }, data: { handle: profile.handle } })
+      .catch(() => {})
+  }
 }
 
 /**
