@@ -79,6 +79,7 @@
     },
     "meta": {
       "oauthIntro": "Log in with Facebook and pick the pages and Instagram accounts to connect. Instagram must be a professional account linked to a page.",
+      "instagramAccess": "Before connecting, in the Instagram app (on the business account) go to Settings → Messages and story replies → Connected tools and turn on “Allow access to messages”. Without it, direct messages won’t reach Whasalia.",
       "continueWithFacebook": "Continue with Facebook",
       "manualInstead": "I'd rather connect manually with a page token",
       "useOauth": "Connect with Facebook instead",

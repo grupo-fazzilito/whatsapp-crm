@@ -79,6 +79,7 @@
     },
     "meta": {
       "oauthIntro": "Inicia sesión con Facebook y elige las páginas y cuentas de Instagram que quieres conectar. Instagram debe ser una cuenta profesional vinculada a una página.",
+      "instagramAccess": "Antes de conectar, en la app de Instagram (con la cuenta del negocio) ve a Configuración → Mensajes y respuestas a historias → Herramientas conectadas y activa «Permitir acceso a los mensajes». Sin esto, los mensajes directos no llegan a Whasalia.",
       "continueWithFacebook": "Continuar con Facebook",
       "manualInstead": "Prefiero conectar manualmente con un token de página",
       "useOauth": "Conectar con Facebook en su lugar",
