@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Info, Loader2 } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import type { ChannelType } from '@/lib/channels/types';
 import { Button } from '@/components/ui/button';
@@ -186,6 +186,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
             ) : isMeta && !manualMeta ? (
               <div className="grid gap-3">
                 <p className="text-sm text-muted-foreground">{t('channels.meta.oauthIntro')}</p>
+                {type === 'instagram' && <InstagramAccessNote />}
                 <button
                   type="button"
                   disabled={!features.metaOAuth}
@@ -258,6 +259,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
 
                 {(type === 'messenger' || type === 'instagram') && (
                   <>
+                    {type === 'instagram' && <InstagramAccessNote />}
                     {type === 'instagram' && (
                       <Field id="ch-ig" label={t('channels.meta.instagramId')}>
                         <Input id="ch-ig" required inputMode="numeric" value={instagramId} onChange={(e) => setInstagramId(e.target.value.trim())} />
@@ -366,6 +368,17 @@ function Field({ id, label, hint, children }: { id: string; label: string; hint?
       <Label htmlFor={id}>{label}</Label>
       {children}
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
+/** Without this Instagram setting Meta never delivers DMs to any app. */
+function InstagramAccessNote() {
+  const t = useT();
+  return (
+    <div role="note" className="flex gap-2 rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+      <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+      <p>{t('channels.meta.instagramAccess')}</p>
     </div>
   );
 }
