@@ -89,6 +89,7 @@
       "manualHelp": "Configura el webhook de tu app de Meta (objetos «page» e «instagram», campo «messages») con esta URL. Suscribiremos la página automáticamente.",
       "pickTitle": "Elige qué conectar",
       "pickDescription": "Selecciona las páginas (Messenger) y cuentas de Instagram que quieres atender desde aquí.",
+      "selectAll": "Seleccionar todo ({count})",
       "expired": "La sesión de Facebook expiró o no se encontraron páginas. Vuelve a intentarlo desde «Conectar canal».",
       "noInstagram": "Sin cuenta de Instagram profesional vinculada.",
       "connectSelected": "Conectar seleccionados",
