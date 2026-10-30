@@ -11,6 +11,8 @@
     "empty": "Todavía no tienes reglas. Crea una, por ejemplo: cuando comenten «precio», responder «¡Te escribimos por privado!» y enviar el precio por mensaje.",
     "anyComment": "Cualquier comentario",
     "allAccounts": "Todas las cuentas",
+    "detached": "Cuenta de {type} eliminada",
+    "detachedHint": "Esta regla no responde porque su cuenta se eliminó. Vuelve a conectar esa cuenta en Canales y se reactiva sola, o edítala y elige otra cuenta.",
     "allPosts": "todas las publicaciones",
     "onePost": "una publicación",
     "publicCount": "{count} respuestas públicas",

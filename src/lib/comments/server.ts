@@ -24,7 +24,8 @@ export async function handleComment(channel: LoadedChannel, ev: CommentEvent): P
   if (ev.from.id === channel.external_id || ev.from.id === channel.settings.page_id) return 'no_rule'
 
   const rules = await db.comment_rules.findMany({
-    where: { enabled: true, OR: [{ channel_id: null }, { channel_id: channel.id }] },
+    // A detached rule (its account was deleted) has no channel but isn't "every account".
+    where: { enabled: true, detached_external_id: null, OR: [{ channel_id: null }, { channel_id: channel.id }] },
     select: { id: true, channel_id: true, post_id: true, keywords: true, enabled: true, position: true, public_replies: true, private_message: true },
   })
   const rule = pickRule(rules, { channelId: channel.id, postId: ev.postId, text: ev.text })

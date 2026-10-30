@@ -28,7 +28,17 @@ export async function PATCH(request: Request, { params }: Ctx) {
   if (rule.channel_id && (!isUuid(rule.channel_id) || !(await channelAllowed(workspace.id, rule.channel_id)))) {
     return NextResponse.json({ error: 'channel' }, { status: 400 })
   }
-  const r = await db.comment_rules.updateMany({ where: { id }, data: { ...rule, post_id: rule.channel_id ? rule.post_id : null, updated_at: now } })
+  const r = await db.comment_rules.updateMany({
+    where: { id },
+    data: {
+      ...rule,
+      post_id: rule.channel_id ? rule.post_id : null,
+      // Saving it with an account (or "every account") attaches it again.
+      detached_channel_type: null,
+      detached_external_id: null,
+      updated_at: now,
+    },
+  })
   return r.count ? NextResponse.json({ ok: true }) : NextResponse.json({ error: 'Not found' }, { status: 404 })
 }
 

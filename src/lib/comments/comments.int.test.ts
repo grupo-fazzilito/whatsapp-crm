@@ -122,6 +122,15 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
     expect(await handleComment(await channel(), ev('C8', 'precio', 'U4'))).toBe('replied')
   })
 
+  it('does not run a rule whose account was deleted, as if it were for every account', async () => {
+    await ws.db.comment_rules.updateMany({ data: { channel_id: null, detached_channel_type: 'instagram', detached_external_id: 'IG-GONE' } })
+    const before = calls.length
+    expect(await handleComment(await channel(), ev('D1', 'precio', 'U6'))).toBe('no_rule')
+    expect(calls.length).toBe(before)
+    await ws.db.comment_rules.updateMany({ data: { detached_channel_type: null, detached_external_id: null } })
+    expect(await handleComment(await channel(), ev('D2', 'precio', 'U6'))).toBe('replied')
+  })
+
   it('stops answering when the tokens run out, and logs the comment', async () => {
     await spendCredits({ workspaceId: ws.workspaceId, amount: await creditBalance(ws.workspaceId), action: 'test' })
     const before = calls.length

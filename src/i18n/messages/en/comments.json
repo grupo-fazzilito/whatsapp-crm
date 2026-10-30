@@ -11,6 +11,8 @@
     "empty": "No rules yet. Create one, for example: when someone comments “price”, reply “We sent you a DM!” and send the price privately.",
     "anyComment": "Any comment",
     "allAccounts": "All accounts",
+    "detached": "Deleted {type} account",
+    "detachedHint": "This rule isn't answering because its account was deleted. Connect that account again in Channels and it resumes on its own, or edit it and pick another account.",
     "allPosts": "all posts",
     "onePost": "one post",
     "publicCount": "{count} public replies",
