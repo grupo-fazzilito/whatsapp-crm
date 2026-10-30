@@ -29,6 +29,8 @@ interface Rule {
   enabled: boolean;
   replies_count: number;
   last_triggered_at: string | null;
+  /** Set when its account was deleted: the rule doesn't run until it's reconnected or edited. */
+  detached_channel_type: "instagram" | "messenger" | null;
 }
 
 interface CommentChannel {
@@ -246,7 +248,12 @@ export default function CommentRulesPage() {
                       <div className="min-w-0">
                         <h2 className="truncate font-semibold text-foreground">{rule.name}</h2>
                         <p className="text-xs text-muted-foreground">
-                          {rule.channel_id ? channelLabel(ch) : t("comments.allAccounts")} ·{" "}
+                          {rule.detached_channel_type
+                            ? t("comments.detached", { type: t(`channels.type.${rule.detached_channel_type}`) })
+                            : rule.channel_id
+                              ? channelLabel(ch)
+                              : t("comments.allAccounts")}{" "}
+                          ·{" "}
                           {rule.post_id ? `${t("comments.onePost")}${rule.post_label ? `: “${rule.post_label}”` : ""}` : t("comments.allPosts")}
                         </p>
                       </div>
@@ -257,6 +264,9 @@ export default function CommentRulesPage() {
                         aria-label={`${t("comments.enabled")}: ${rule.name}`}
                       />
                     </div>
+                    {rule.detached_channel_type && (
+                      <p className="rounded-md bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-700 dark:text-amber-400">{t("comments.detachedHint")}</p>
+                    )}
                     <div className="flex flex-wrap gap-1.5">
                       {rule.keywords.length === 0 ? (
                         <Badge variant="secondary">{t("comments.anyComment")}</Badge>
