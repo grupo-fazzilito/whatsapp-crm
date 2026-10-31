@@ -34,8 +34,8 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
   const { saveChannelSecrets, loadChannel } = await import('@/lib/channels/store')
   const ws = await pg.workspace()
   let channelId = ''
-  const ev = (commentId: string, text: string, from = 'U1', postId = 'M1'): CommentEvent => ({
-    channelType: 'instagram', channelExternalId: 'IG-TEST-1', commentId, postId, parentId: null, from: { id: from, name: 'ana.pe' }, text,
+  const ev = (commentId: string, text: string, from = 'U1', postId = 'M1', parentId: string | null = null): CommentEvent => ({
+    channelType: 'instagram', channelExternalId: 'IG-TEST-1', commentId, postId, parentId, from: { id: from, name: 'ana.pe' }, text,
   })
   const channel = async () => (await loadChannel(ws.workspaceId, channelId))!
 
@@ -89,9 +89,12 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
   it('leaves comments without a keyword alone, and its own replies too', async () => {
     const before = calls.length
     expect(await handleComment(await channel(), ev('C4', 'qué bonito', 'U2'))).toBe('no_rule')
-    expect(await handleComment(await channel(), ev('C5', 'precio', 'PAGE-1'))).toBe('no_rule')
+    expect(await handleComment(await channel(), ev('C5', 'precio', 'PAGE-1', 'M1', 'C1'))).toBe('no_rule')
+    // Our public answer to C1, delivered back by the webhook.
+    const ours = (await ws.db.comment_replies.findFirstOrThrow({ where: { comment_id: 'C1' } })).public_reply_id!
+    expect(await handleComment(await channel(), ev(ours, 'precio', 'PAGE-1'))).toBe('no_rule')
     expect(calls.length).toBe(before)
-    expect(await ws.db.comment_replies.count({ where: { comment_id: { in: ['C4', 'C5'] } } })).toBe(0)
+    expect(await ws.db.comment_replies.count({ where: { comment_id: { in: ['C4', 'C5', ours] } } })).toBe(0)
   })
 
   it('records a partial reply when the private message fails', async () => {
@@ -129,6 +132,11 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
     expect(calls.length).toBe(before)
     await ws.db.comment_rules.updateMany({ data: { detached_channel_type: null, detached_external_id: null } })
     expect(await handleComment(await channel(), ev('D2', 'precio', 'U6'))).toBe('replied')
+  })
+
+  it('answers the account itself when it comments on its own post', async () => {
+    expect(await handleComment(await channel(), ev('O1', 'precio', 'PAGE-1', 'M3'))).toBe('replied')
+    expect(calls.find((c) => c.url.endsWith('/O1/replies'))).toBeTruthy()
   })
 
   it('stops answering when the tokens run out, and logs the comment', async () => {
