@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { fillReply, matchesKeywords, parseCommentWebhook, parseRuleInput, pickPublicReply, pickRule } from './model'
 
 describe('webhook parsing', () => {
-  it('reads Instagram comments and leaves out the account’s own replies', () => {
+  it('reads Instagram comments and leaves out the account’s own replies under a comment', () => {
     const events = parseCommentWebhook({
       object: 'instagram',
       entry: [{
@@ -10,14 +10,19 @@ describe('webhook parsing', () => {
         changes: [
           { field: 'comments', value: { id: 'C1', text: 'Precio?', from: { id: 'U1', username: 'ana.pe' }, media: { id: 'M1', media_product_type: 'REELS' } } },
           { field: 'comments', value: { id: 'C2', text: 'Te escribimos', from: { id: 'IG1', username: 'tienda' }, media: { id: 'M1' }, parent_id: 'C1' } },
+          { field: 'comments', value: { id: 'C3', text: 'precio', from: { id: 'IG1', username: 'tienda' }, media: { id: 'M1' } } },
           { field: 'mentions', value: { media_id: 'X' } },
         ],
       }],
     })
-    expect(events).toEqual([{ channelType: 'instagram', channelExternalId: 'IG1', commentId: 'C1', postId: 'M1', parentId: null, from: { id: 'U1', name: 'ana.pe' }, text: 'Precio?' }])
+    expect(events).toEqual([
+      { channelType: 'instagram', channelExternalId: 'IG1', commentId: 'C1', postId: 'M1', parentId: null, from: { id: 'U1', name: 'ana.pe' }, text: 'Precio?' },
+      // The account commenting on its own post is answered too.
+      { channelType: 'instagram', channelExternalId: 'IG1', commentId: 'C3', postId: 'M1', parentId: null, from: { id: 'IG1', name: 'tienda' }, text: 'precio' },
+    ])
   })
 
-  it('reads new Facebook comments only (not edits, likes or the page itself)', () => {
+  it('reads new Facebook comments only (not edits, likes or the page’s replies under a comment)', () => {
     const events = parseCommentWebhook({
       object: 'page',
       entry: [{
@@ -27,10 +32,14 @@ describe('webhook parsing', () => {
           { field: 'feed', value: { item: 'comment', verb: 'edited', comment_id: 'P1_C2', post_id: 'P1_POST', from: { id: 'U2' }, message: 'info' } },
           { field: 'feed', value: { item: 'reaction', verb: 'add', post_id: 'P1_POST', from: { id: 'U3' } } },
           { field: 'feed', value: { item: 'comment', verb: 'add', comment_id: 'P1_C3', post_id: 'P1_POST', parent_id: 'P1_C1', from: { id: 'P1', name: 'Tienda' }, message: 'gracias' } },
+          { field: 'feed', value: { item: 'comment', verb: 'add', comment_id: 'P1_C4', post_id: 'P1_POST', parent_id: 'P1_POST', from: { id: 'P1', name: 'Tienda' }, message: 'precio' } },
         ],
       }],
     })
-    expect(events).toEqual([{ channelType: 'messenger', channelExternalId: 'P1', commentId: 'P1_C1', postId: 'P1_POST', parentId: null, from: { id: 'U2', name: 'Luis Rojas' }, text: 'info' }])
+    expect(events).toEqual([
+      { channelType: 'messenger', channelExternalId: 'P1', commentId: 'P1_C1', postId: 'P1_POST', parentId: null, from: { id: 'U2', name: 'Luis Rojas' }, text: 'info' },
+      { channelType: 'messenger', channelExternalId: 'P1', commentId: 'P1_C4', postId: 'P1_POST', parentId: null, from: { id: 'P1', name: 'Tienda' }, text: 'precio' },
+    ])
   })
 
   it('ignores other objects and message-only payloads', () => {

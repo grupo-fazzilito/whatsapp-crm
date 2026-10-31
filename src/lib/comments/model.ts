@@ -44,7 +44,8 @@ export function parseCommentWebhook(body: CommentWebhookBody): CommentEvent[] {
         if (change.field !== 'comments') continue
         const from = v.from as { id?: string; username?: string } | undefined
         const commentId = str(v.id)
-        if (!commentId || !from?.id || from.id === entry.id) continue
+        // The account's own replies under a comment are Whasalia's public answers (or a person's), never a lead.
+        if (!commentId || !from?.id || (from.id === entry.id && v.parent_id)) continue
         out.push({
           channelType: type,
           channelExternalId: entry.id,
@@ -58,9 +59,9 @@ export function parseCommentWebhook(body: CommentWebhookBody): CommentEvent[] {
         if (change.field !== 'feed' || v.item !== 'comment' || v.verb !== 'add') continue
         const from = v.from as { id?: string; name?: string } | undefined
         const commentId = str(v.comment_id)
-        if (!commentId || !from?.id || from.id === entry.id) continue
         const postId = str(v.post_id)
         const parentId = str(v.parent_id)
+        if (!commentId || !from?.id || (from.id === entry.id && parentId && parentId !== postId)) continue
         out.push({
           channelType: type,
           channelExternalId: entry.id,

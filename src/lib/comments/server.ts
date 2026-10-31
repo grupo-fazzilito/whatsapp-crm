@@ -20,8 +20,11 @@ export type CommentOutcome = 'no_rule' | 'duplicate' | 'skipped' | 'no_tokens' |
  */
 export async function handleComment(channel: LoadedChannel, ev: CommentEvent): Promise<CommentOutcome> {
   const db = tenantDb(channel.workspace_id)
-  // Our own page answering on Instagram, or the page commenting as itself.
-  if (ev.from.id === channel.external_id || ev.from.id === channel.settings.page_id) return 'no_rule'
+  // The account itself may comment on its posts and be answered (handy to try a rule), but its
+  // replies under a comment are our own public answers: answering them would loop.
+  const own = ev.from.id === channel.external_id || ev.from.id === channel.settings.page_id
+  if (own && ev.parentId) return 'no_rule'
+  if (own && (await db.comment_replies.findFirst({ where: { channel_id: channel.id, public_reply_id: ev.commentId }, select: { id: true } }))) return 'no_rule'
 
   const rules = await db.comment_rules.findMany({
     // A detached rule (its account was deleted) has no channel but isn't "every account".
