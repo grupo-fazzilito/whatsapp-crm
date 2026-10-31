@@ -29,6 +29,25 @@ interface Payment {
   workspace: { name: string } | null;
 }
 
+interface HistoryEntry {
+  id: string;
+  kind: string;
+  credits: number;
+  action: string | null;
+  note: string | null;
+  created_at: string;
+  by: string | null;
+  payment: { amount: number; order: string | null } | null;
+}
+
+interface History {
+  ledger: HistoryEntry[];
+  lots: { id: string; source: string; credits_total: number; credits_remaining: number; expires_at: string; note: string | null }[];
+}
+
+// Actions with a label in billing.costs; anything else (e.g. adjustments) shows as is.
+const COST_ACTIONS = ["reply", "followup", "summary", "suggest", "transcription", "vision", "comment_reply", "playground", "reminder"];
+
 interface Overview {
   totals: { sales_month: number; credits_used_month: number; ai_cost_usd_month: number; credits_outstanding: number };
   workspaces: Row[];
@@ -47,6 +66,9 @@ export default function AdminBillingPage() {
   const [form, setForm] = useState({ credits: "", note: "" });
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<Row | null>(null);
+  const [history, setHistory] = useState<History | null>(null);
+  const [withUsage, setWithUsage] = useState(false);
 
   const nf = new Intl.NumberFormat(locale === "en" ? "en-US" : "es-PE");
   const pen = (n: number) => `S/ ${new Intl.NumberFormat(locale === "en" ? "en-US" : "es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
@@ -62,6 +84,22 @@ export default function AdminBillingPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!viewing) return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset while the next history loads
+    setHistory(null);
+    fetch(`/api/admin/billing/${viewing.id}?usage=${withUsage ? 1 : 0}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d: History) => !cancelled && setHistory(d))
+      .catch(() => !cancelled && setHistory({ ledger: [], lots: [] }));
+    return () => {
+      cancelled = true;
+    };
+  }, [viewing, withUsage]);
+
+  const dt = (iso: string) => new Date(iso).toLocaleString(locale === "en" ? "en-US" : "es-PE");
 
   const submit = async () => {
     if (!adjusting) return;
@@ -138,7 +176,14 @@ export default function AdminBillingPage() {
                       <td className="px-4 py-3 tabular-nums text-slate-200">{pen(w.sales_month)}</td>
                       <td className="px-4 py-3 tabular-nums text-slate-200">{nf.format(w.credits_used_month)}</td>
                       <td className="px-4 py-3 tabular-nums text-slate-200">{usd(w.ai_cost_usd_month)}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right whitespace-nowrap space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => setViewing(w)}
+                          className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                        >
+                          {t("billingAdmin.history")}
+                        </button>
                         <button
                           type="button"
                           onClick={() => {
@@ -182,6 +227,85 @@ export default function AdminBillingPage() {
             </section>
           </>
         )}
+
+        <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>{viewing ? t("billingAdmin.historyTitle", { name: viewing.name }) : ""}</DialogTitle>
+            </DialogHeader>
+            {!history ? (
+              <Loader2 className="size-5 animate-spin text-slate-400" aria-label={t("common.loading")} />
+            ) : (
+              <div className="space-y-5">
+                <section aria-labelledby="live-lots" className="space-y-2">
+                  <h3 id="live-lots" className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t("billingAdmin.liveLots")}</h3>
+                  {history.lots.length === 0 ? (
+                    <p className="text-sm text-slate-400">{t("billingAdmin.noLots")}</p>
+                  ) : (
+                    <ul className="divide-y divide-slate-800 rounded-xl border border-slate-800 text-sm">
+                      {history.lots.map((l) => (
+                        <li key={l.id} className="flex items-center justify-between gap-4 px-3 py-2">
+                          <span className="min-w-0 text-slate-200">
+                            {t(`billing.usage.kind.${l.source}`)}
+                            {l.note && <span className="text-slate-400"> · {l.note}</span>}
+                          </span>
+                          <span className="shrink-0 text-xs text-slate-400 tabular-nums">
+                            {t("billingAdmin.lotLeft", { left: nf.format(l.credits_remaining), total: nf.format(l.credits_total), date: new Date(l.expires_at).toLocaleDateString(locale === "en" ? "en-US" : "es-PE") })}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+
+                <section aria-labelledby="ledger" className="space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 id="ledger" className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t("billingAdmin.movements")}</h3>
+                    <label className="flex items-center gap-2 text-xs text-slate-300">
+                      <input type="checkbox" checked={withUsage} onChange={(e) => setWithUsage(e.target.checked)} className="size-4 accent-emerald-500" />
+                      {t("billingAdmin.includeUsage")}
+                    </label>
+                  </div>
+                  {history.ledger.length === 0 ? (
+                    <p className="text-sm text-slate-400">{t("billingAdmin.noMovements")}</p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-xl border border-slate-800">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-800">
+                            {[t("billingAdmin.colDate"), t("billingAdmin.colType"), t("billingAdmin.colTokens"), t("billingAdmin.colReason"), t("billingAdmin.colBy")].map((h) => (
+                              <th key={h} scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-400 whitespace-nowrap">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {history.ledger.map((l) => (
+                            <tr key={l.id} className="border-b border-slate-800/60 last:border-0 align-top">
+                              <td className="px-3 py-2 whitespace-nowrap text-slate-300">{dt(l.created_at)}</td>
+                              <td className="px-3 py-2 text-slate-200">
+                                {t(`billing.usage.kind.${l.kind}`)}
+                                {l.action && <span className="text-slate-400"> · {COST_ACTIONS.includes(l.action) ? t(`billing.costs.${l.action}`) : l.action}</span>}
+                              </td>
+                              <td className={cn("px-3 py-2 tabular-nums font-medium whitespace-nowrap", l.credits > 0 ? "text-emerald-400" : "text-slate-300")}>
+                                {l.credits > 0 ? "+" : ""}
+                                {nf.format(l.credits)}
+                              </td>
+                              <td className="px-3 py-2 text-slate-300">
+                                {l.note ?? ""}
+                                {l.payment && <span className="text-slate-400">{l.note ? " · " : ""}{pen(l.payment.amount)}{l.payment.order ? ` · ${l.payment.order}` : ""}</span>}
+                              </td>
+                              <td className="px-3 py-2 text-slate-300">{l.by ?? t("billingAdmin.bySystem")}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </section>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={!!adjusting} onOpenChange={(o) => !o && setAdjusting(null)}>
           <DialogContent>
