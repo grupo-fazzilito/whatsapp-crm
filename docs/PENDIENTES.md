@@ -42,7 +42,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Revisión de permisos avanzados (`whatsapp_business_messaging`, `pages_messaging`, `instagram_manage_messages`…) con video por permiso — 🧑 graba / 🤖 guion listo en `docs/meta-app-review.md`
 - [x] **Respuestas a comentarios por palabra clave** (Instagram y Facebook): Automatizaciones → Comentarios; respuesta pública + mensaje privado que abre el chat en la bandeja — 🤖 (2026-10-14, rama `feat/comment-replies`)
 - [ ] Para que funcione con clientes reales: en la app de Meta agregar a la revisión `instagram_manage_comments`, `pages_read_engagement`, `pages_read_user_content` y `pages_manage_engagement` (video: comentar «precio» → respuesta pública + mensaje privado); si se usa una configuración de Facebook Login for Business, agregar esos permisos a la configuración — 🧑
-- [ ] En la app de Meta → Webhooks: objeto **Instagram** suscrito al campo `comments` y objeto **Page** al campo `feed` — 🧑
+- [x] En la app de Meta → Webhooks: objeto **Instagram** suscrito al campo `comments` y objeto **Page** al campo `feed` — 🧑 (hecho el 2026-10-31; los comentarios de Instagram ya llegan, los de Facebook no se envían mientras la app está en modo Desarrollo)
 - [ ] Los negocios que ya conectaron Instagram/Facebook deben volver a conectar la cuenta para dar el permiso de comentarios — 🧑 (avisar)
 - [x] **Clientes de WhatsApp con nombre de usuario (BSUID)**: se reciben y se responden aunque Meta no comparta el teléfono; cambios de número o de BSUID unen al mismo contacto — 🤖 (2026-10-20, rama `feat/whatsapp-bsuid`)
 - [ ] Opcional: reservar el nombre de usuario de empresa de Whasalia en WhatsApp Manager (abierto desde el 29-jun-2026) — 🧑
@@ -92,6 +92,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Teléfono o WhatsApp de soporte, si se quiere mostrar — 🧑
 - [x] **Libro de Reclamaciones virtual**: formulario en `/es/libro-de-reclamaciones`, enlace en el pie de cada página, constancia por correo, respuestas desde Superadmin → Complaints con plazo de 15 días hábiles — 🤖 (2026-10-14, rama `feat/complaints-book`, falta fusionar)
 - [ ] Responder cada reclamación en Superadmin → Complaints dentro de 15 días hábiles (llega aviso a `support@whasalia.com`; requiere el buzón del punto 2) — 🧑
+- [ ] **Registro de actividad por cuenta** en Superadmin (pestaña por negocio): inicios de sesión, miembros invitados o eliminados, canales conectados o borrados, cambios de configuración, ajustes de tokens y acciones de los admins sobre esa cuenta. Necesita una tabla nueva; solo registra desde que se instale. El historial de tokens por negocio ya existe (Superadmin → Tokens → Historial, 2026-10-31) — 🤖
 
 ## 7. Registro y configuración asistida
 
