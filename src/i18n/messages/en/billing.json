@@ -159,7 +159,21 @@
     "adjustSave": "Apply",
     "latestPayments": "Latest payments",
     "noPayments": "No payments yet.",
-    "exchange": "Exchange rate for the margin (S/ per US$)"
+    "exchange": "Exchange rate for the margin (S/ per US$)",
+    "history": "History",
+    "historyTitle": "Token history for {name}",
+    "liveLots": "Live tokens",
+    "noLots": "No live tokens.",
+    "lotLeft": "{left} of {total} left · expires {date}",
+    "movements": "Movements",
+    "includeUsage": "Include AI usage",
+    "noMovements": "No movements.",
+    "colDate": "Date",
+    "colType": "Type",
+    "colTokens": "Tokens",
+    "colReason": "Reason",
+    "colBy": "Done by",
+    "bySystem": "System"
   },
   "metaUsage": {
     "tab": "WhatsApp (Meta)",
