@@ -93,6 +93,13 @@ export default function PrivacyPolicyPage() {
           </p>
         </section>
 
+        <section className="space-y-3">
+          <h3 className="text-lg font-bold text-[var(--m-text-heading)]">{t("mktPrivacy.authorities.title")}</h3>
+          <p>
+            {t("mktPrivacy.authorities.body")}
+          </p>
+        </section>
+
         <section className="space-y-3 text-center pt-8 border-t border-[var(--m-border-primary)]/50">
           <h3 className="text-lg font-bold text-[var(--m-text-heading)]">{t("mktPrivacy.s10.title")}</h3>
           <p>

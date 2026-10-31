@@ -2,7 +2,7 @@
   "mktPrivacy": {
     "badge": "Legal Document",
     "title": "Privacy Policy",
-    "updated": "Last updated: June 23, 2026",
+    "updated": "Last updated: October 31, 2026",
     "intro": "This Privacy Policy (the \"Policy\") describes how Whasalia (\"we\", \"us\", or \"our\") collects, uses, maintains, and discloses information from users of our Platform. By accessing or using the Whasalia SaaS platform, you consent to the practices described in this Policy. If you do not agree, please do not use the Platform.",
     "s1": {
       "title": "1. User Data Collection",
@@ -45,8 +45,12 @@
       "title": "9. Third-Party Integrations",
       "body": "Whasalia integrates with third-party software (such as e-commerce systems, spreadsheet tools, and messaging networks). We are not responsible for the privacy policies of these external platforms. We advise checking their independent terms before configuring webhook endpoints or sync permissions."
     },
+    "authorities": {
+      "title": "10. Requests from Public Authorities",
+      "body": "We only disclose personal data to a public authority when the law requires us to. We review every request to confirm that it is lawful and valid; if we consider it unlawful or excessive, we challenge it through the available legal channels. When we must respond, we disclose only the minimum information needed to comply with the request. We keep a record of each request, our response, the authority that made it and its legal basis. Where the law allows it, we notify the affected business before disclosing its data."
+    },
     "s10": {
-      "title": "10. Contact & Regulatory Information",
+      "title": "11. Contact & Regulatory Information",
       "body": "For questions or requests regarding your data, contact Whasalia:",
       "emailLabel": "Email:"
     }
