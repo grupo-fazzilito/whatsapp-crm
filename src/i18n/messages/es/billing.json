@@ -97,7 +97,7 @@
     "banner": {
       "depleted": "Sin tokens de IA: tus agentes están en pausa.",
       "low": "Te quedan {n} tokens de IA.",
-      "action": "Recargar"
+      "action": "Comprar tokens"
     },
     "dashboard": {
       "title": "Tokens de IA",
@@ -110,6 +110,9 @@
     "plan": {
       "label": "Tu plan:",
       "free": "Gratis para siempre. Solo pagas los tokens de IA."
+    },
+    "dialog": {
+      "balance": "Tu saldo actual es de {n} tokens."
     }
   },
   "billingAdmin": {

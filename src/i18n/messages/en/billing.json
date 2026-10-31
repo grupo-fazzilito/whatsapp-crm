@@ -97,7 +97,7 @@
     "banner": {
       "depleted": "Out of AI tokens: your agents are paused.",
       "low": "{n} AI tokens left.",
-      "action": "Top up"
+      "action": "Buy tokens"
     },
     "dashboard": {
       "title": "AI tokens",
@@ -110,6 +110,9 @@
     "plan": {
       "label": "Your plan:",
       "free": "Free forever. You only pay for AI tokens."
+    },
+    "dialog": {
+      "balance": "Your current balance is {n} tokens."
     }
   },
   "billingAdmin": {
