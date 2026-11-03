@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { CHANNEL_STYLE, selectClass, widgetSnippet, type AgentOption, type ChannelDTO } from './channel-types';
+import { CHANNEL_STYLE, selectClass, telegramLink, widgetSnippet, type AgentOption, type ChannelDTO } from './channel-types';
 import { CopyField } from './copy-field';
 import { readWelcomeMenu } from './welcome-menu-dialog';
 import { MarketingMessagesBox } from './marketing-messages-box';
@@ -150,6 +150,12 @@ export function ChannelCard({ channel, agents, isAdmin, origin, onAgentChange, o
         {channel.type === 'whatsapp' && <CallingBox channel={channel} isAdmin={isAdmin} />}
 
         {channel.type === 'whatsapp' && <MarketingMessagesBox channel={channel} isAdmin={isAdmin} />}
+
+        {channel.type === 'telegram' && telegramLink(channel) && (
+          <div className="mt-auto">
+            <CopyField label={t('channels.telegram.link')} value={telegramLink(channel)!} />
+          </div>
+        )}
 
         {channel.type === 'webchat' && (
           <div className="mt-auto">

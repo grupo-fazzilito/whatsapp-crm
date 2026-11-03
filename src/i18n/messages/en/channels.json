@@ -2,7 +2,7 @@
   "channels": {
     "navTitle": "Channels",
     "title": "Channels",
-    "description": "Connect your WhatsApp numbers, Instagram, Messenger and your website chat. Each channel can have its own AI agent.",
+    "description": "Connect your WhatsApp numbers, Instagram, Messenger, Telegram and your website chat. Each channel can have its own AI agent.",
     "connectButton": "Connect channel",
     "readOnly": "Only admins can connect or change channels.",
     "empty": {
@@ -26,14 +26,16 @@
       "instagram": "Instagram",
       "messenger": "Messenger",
       "webchat": "Web chat",
-      "tiktok": "TikTok"
+      "tiktok": "TikTok",
+      "telegram": "Telegram"
     },
     "typeHint": {
       "whatsapp": "Your WhatsApp Business number: alongside the phone app (coexistence) or API only. You can connect several.",
       "instagram": "Direct messages of a professional Instagram account.",
       "messenger": "Messages to your Facebook page.",
       "webchat": "A floating chat for your website.",
-      "tiktok": "Direct messages of your TikTok business account."
+      "tiktok": "Direct messages of your TikTok business account.",
+      "telegram": "Your business's Telegram bot. Free, no approvals needed."
     },
     "status": {
       "connected": "Connected",
@@ -167,6 +169,17 @@
         "NOT_ELIGIBLE": "Not available",
         "UNKNOWN": "Not checked"
       }
+    },
+    "telegram": {
+      "stepsTitle": "How to create your bot (2 minutes)",
+      "step1": "In Telegram, open @BotFather and send /newbot.",
+      "step2": "Give it a name (e.g. \"Ana's Store\") and a username ending in \"bot\" (e.g. AnasStoreBot).",
+      "step3": "BotFather replies with a token. Copy it and paste it here.",
+      "openBotFather": "Open @BotFather",
+      "token": "Bot token",
+      "tokenHelp": "It looks like 123456789:AAH… We store it encrypted. If the bot was connected to another tool, it will stop receiving messages there.",
+      "doneDescription": "Customers can now message your bot. Share this link on your website and social media.",
+      "link": "Your bot's link"
     }
   }
 }

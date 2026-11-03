@@ -100,13 +100,22 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 
 ## 8. TikTok (mensajes directos)
 
-- [ ] Crear cuenta de desarrollador y registrar la app "Whasalia" en business-api.tiktok.com/portal/apps, con permisos Account user, Get account media y Account comment — 🧑. **Rechazada el 2026-10-14 por "seguridad del dominio"** (dominio nuevo, sin correo propio). Ya hay correo con SPF/DKIM/DMARC: cambiar el correo de la cuenta a `support@whasalia.com`, abrir un ticket de desarrollador pidiendo nueva revisión y usar `https://whasalia.com/en/privacy-policy` y `https://whasalia.com/en/terms-of-service` en el texto de uso
+- [ ] Crear cuenta de desarrollador y registrar la app "Whasalia" en business-api.tiktok.com/portal/apps, con permisos Account user, Get account media y Account comment — 🧑. **Rechazada el 2026-10-14 por "seguridad del dominio"**. Soporte (2026-10-23) pidió un Business Center verificado: **creado y verificado el 2026-11-03** con la Ficha RUC; se le envió el Business Center ID a soporte y se reenvió el perfil de desarrollador corregido. Falta su respuesta
 - [ ] Solicitar el producto **Business Messaging API** con el texto de caso de uso que preparó Claude; esperar aprobación de TikTok — 🧑
 - [ ] Tras la aprobación: activar el permiso "TikTok Accounts", poner la Redirect URL `https://whasalia.com/api/integrations/tiktok/callback` y pasar App ID y App Secret — 🧑→🤖
 - [ ] Construir la conexión: botón "Conectar TikTok" por negocio (OAuth), recibir mensajes (webhook firmado), responder texto e imagen dentro de las 48 h, agente de IA y bandeja — 🤖 (empieza con la documentación oficial; se prueba al tener la app aprobada)
 - [ ] Respuestas públicas a comentarios de TikTok por palabra clave (permisos **Account comment** y **Get account media**; TikTok no permite mensaje privado desde un comentario) — 🤖 (cuando la app esté aprobada)
 - [ ] Tras la aprobación: volver a mencionar TikTok en la web (portada, features y precios; se quitó el "TikTok, próximamente" el 2026-10-15 porque los revisores rechazan sitios con "coming soon") — 🤖
 - [ ] Cuenta de TikTok **Business** de prueba, fuera de la UE/Reino Unido, con "recibir mensajes de todos" activado — 🧑
+
+## 8b. Telegram
+
+- [x] Bot de Telegram como canal (Bot API oficial, gratis): el negocio pega el token de @BotFather en Canales → Telegram; texto, fotos, archivos, botones, carrusel, ubicación, agente de IA y bandeja — 🤖 (2026-11-03)
+- [x] Pedir el número con el botón "Compartir mi número" de Telegram después de un pedido o una reserva por chat, si el contacto no tiene teléfono — 🤖
+- [ ] **Telegram Business**: que el bot conteste los chats de la cuenta personal del negocio (updates `business_connection` / `business_message`; el dueño necesita Telegram Premium) — 🤖
+- [ ] Difusiones por Telegram (a quien ya le escribió al bot), con límites para evitar spam — 🤖
+- [ ] Unir el contacto de Telegram con el de WhatsApp cuando el cliente comparte un número que ya existe (hoy solo se guarda el número en el contacto de Telegram) — 🤖
+- [ ] Probar con un bot real en producción (crear uno en @BotFather y conectarlo) — 🧑
 
 ## 9. Mantenimiento
 

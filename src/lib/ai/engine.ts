@@ -1,4 +1,5 @@
 import 'server-only'
+import { askTelegramPhone } from '@/lib/channels/telegram-phone'
 import { canSpend, spend } from '@/lib/billing/credits'
 import { messageTextForAi } from './assist/core'
 import { tenantDb } from '@/lib/db/tenant'
@@ -31,6 +32,7 @@ const CHANNEL_LABEL: Record<string, string> = {
   instagram: 'Instagram Direct',
   messenger: 'Facebook Messenger',
   tiktok: 'TikTok',
+  telegram: 'Telegram',
   webchat: 'the website chat',
 }
 
@@ -485,6 +487,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
         await reply(input, agent, msg)
         // Viewing of a listing: deal → "Visita agendada" + map pin.
         if (draft.product_id) await onViewingConfirmed(input.workspaceId, result.bookingId, { sendLocation: true, aiAgentId: agent.id })
+        await askTelegramPhone({ workspaceId: input.workspaceId, conversationId: input.conversationId, lang, aiAgentId: agent.id })
         await log(input, agent, msg, 'booking', out.confidence ?? 1)
         return true
       }
