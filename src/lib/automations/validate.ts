@@ -328,7 +328,7 @@ function targetChannelTypes(triggerType: string, triggerConfig: unknown, channel
 }
 
 function channelName(t: ChannelType): string {
-  return { whatsapp: 'WhatsApp', instagram: 'Instagram', messenger: 'Messenger', tiktok: 'TikTok', webchat: 'Web chat' }[t] ?? t
+  return { whatsapp: 'WhatsApp', instagram: 'Instagram', messenger: 'Messenger', tiktok: 'TikTok', telegram: 'Telegram', webchat: 'Web chat' }[t] ?? t
 }
 
 function nonEmpty(v: unknown): boolean {

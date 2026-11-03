@@ -21,6 +21,7 @@ const BADGE_BG: Record<ChannelType, string> = {
     "bg-[linear-gradient(45deg,#F58529_0%,#DD2A7B_50%,#8134AF_80%,#515BD4_100%)] text-white",
   messenger: "bg-[#0084FF] text-white",
   tiktok: "bg-black text-white ring-1 ring-white/30",
+  telegram: "bg-[#229ED9] text-white",
   webchat: "bg-slate-500 text-white",
 };
 
@@ -64,6 +65,12 @@ function Glyph({ type, className }: { type: ChannelType; className?: string }) {
         <svg {...common}>
           <path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5" />
           <path d="M14 3c.4 2.6 2.2 4.4 5 4.6" />
+        </svg>
+      );
+    case "telegram":
+      return (
+        <svg {...common}>
+          <path d="M21 4L3 11l6 2.5M21 4l-3 16-6.5-5.5M21 4L9 13.5v5l2.5-3.5" />
         </svg>
       );
     case "webchat":

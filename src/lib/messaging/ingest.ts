@@ -4,6 +4,7 @@ import { tenantDb } from '@/lib/db/tenant'
 import { isPrismaError } from '@/lib/db/errors'
 import { phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { waMediaProxyUrl } from '@/lib/channels/parsers/whatsapp'
+import { TG_FILE_PREFIX } from '@/lib/channels/parsers/telegram'
 import { fetchMetaProfile } from '@/lib/channels/adapters/meta-messaging'
 import type { InboundEvent, LoadedChannel } from '@/lib/channels'
 import type { AiAgentRow } from '@/lib/ai/types'
@@ -375,9 +376,12 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
     if (dup) return { contactId: contact.id, conversationId: conversation.id, messageId: dup.id, duplicate: true }
   }
 
+  // Provider file ids need the channel's token: served through the media proxy.
   const mediaUrl = ev.mediaUrl?.startsWith('wa-media:')
     ? waMediaProxyUrl(channel.id, ev.mediaUrl.slice('wa-media:'.length))
-    : ev.mediaUrl ?? null
+    : ev.mediaUrl?.startsWith(TG_FILE_PREFIX)
+      ? waMediaProxyUrl(channel.id, ev.mediaUrl.slice(TG_FILE_PREFIX.length))
+      : ev.mediaUrl ?? null
 
   const priorInbound = await db.messages
     .count({ where: { conversation_id: conversation.id, sender_type: 'customer' } })

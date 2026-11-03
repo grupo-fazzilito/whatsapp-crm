@@ -1,4 +1,4 @@
-import { Camera, Globe, MessageCircle, MessagesSquare, Music2, type LucideIcon } from 'lucide-react';
+import { Camera, Globe, MessageCircle, MessagesSquare, Music2, Send, type LucideIcon } from 'lucide-react';
 import type { ChannelRow, ChannelType } from '@/lib/channels/types';
 
 /** What GET /api/channels returns per channel (never secrets). */
@@ -18,7 +18,7 @@ export interface AgentOption {
   enabled: boolean;
 }
 
-export const CHANNEL_ORDER: ChannelType[] = ['whatsapp', 'instagram', 'messenger', 'webchat', 'tiktok'];
+export const CHANNEL_ORDER: ChannelType[] = ['whatsapp', 'instagram', 'messenger', 'telegram', 'webchat', 'tiktok'];
 
 export const CHANNEL_STYLE: Record<ChannelType, { label: string; icon: LucideIcon; tile: string }> = {
   whatsapp: { label: 'WhatsApp', icon: MessageCircle, tile: 'bg-emerald-500 text-white' },
@@ -28,6 +28,7 @@ export const CHANNEL_STYLE: Record<ChannelType, { label: string; icon: LucideIco
     tile: 'bg-gradient-to-br from-amber-400 via-pink-500 to-purple-600 text-white',
   },
   messenger: { label: 'Messenger', icon: MessagesSquare, tile: 'bg-gradient-to-br from-sky-500 to-violet-500 text-white' },
+  telegram: { label: 'Telegram', icon: Send, tile: 'bg-[#229ED9] text-white' },
   webchat: { label: 'Web chat', icon: Globe, tile: 'bg-slate-700 text-white dark:bg-slate-600' },
   tiktok: { label: 'TikTok', icon: Music2, tile: 'bg-black text-white ring-1 ring-white/10' },
 };
@@ -43,6 +44,12 @@ export async function apiJson<T = Record<string, unknown>>(url: string, init?: R
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as { error?: string }).error ?? `HTTP ${res.status}`);
   return data as T;
+}
+
+/** t.me link of a connected bot (null until Telegram told us its username). */
+export function telegramLink(channel: ChannelDTO): string | null {
+  const username = (channel.settings?.username as string | undefined) ?? channel.display_handle?.replace(/^@/, '');
+  return username ? `https://t.me/${username}` : null;
 }
 
 export function widgetSnippet(origin: string, key: string) {

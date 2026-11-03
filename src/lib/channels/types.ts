@@ -1,4 +1,4 @@
-export const CHANNEL_TYPES = ['whatsapp', 'messenger', 'instagram', 'tiktok', 'webchat'] as const
+export const CHANNEL_TYPES = ['whatsapp', 'messenger', 'instagram', 'tiktok', 'telegram', 'webchat'] as const
 export type ChannelType = (typeof CHANNEL_TYPES)[number]
 
 export interface ChannelRow {

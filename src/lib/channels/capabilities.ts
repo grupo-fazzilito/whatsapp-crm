@@ -8,6 +8,7 @@ export const CHANNEL_CAPABILITIES: Record<ChannelType, ChannelCapabilities> = {
   messenger: { templates: false, reactions: false, interactive: true, replyWindowHours: 24, media: true },
   instagram: { templates: false, reactions: true, interactive: true, replyWindowHours: 24, media: true },
   tiktok: { templates: false, reactions: false, interactive: false, replyWindowHours: 48, media: false },
+  telegram: { templates: false, reactions: false, interactive: true, replyWindowHours: null, media: true },
   webchat: { templates: false, reactions: false, interactive: true, replyWindowHours: null, media: true },
 }
 
@@ -21,6 +22,7 @@ export const CHANNEL_TYPE_LABELS: Record<ChannelType, string> = {
   messenger: 'Messenger',
   instagram: 'Instagram',
   tiktok: 'TikTok',
+  telegram: 'Telegram',
   webchat: 'Web chat',
 }
 

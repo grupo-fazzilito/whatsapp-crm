@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { verifyPhoneNumber } from '@/lib/whatsapp/meta-api'
 import { tiktokEnabled } from '@/lib/channels/adapters/tiktok'
+import { botIdFromToken, looksLikeBotToken } from '@/lib/channels/adapters/telegram'
+import { getBot, newWebhookSecret, setBotWebhook, telegramWebhookUrl } from '@/lib/channels/telegram-server'
+import { publicOrigin } from '@/lib/site-origin'
 import { getMetaConfig, metaAppReady } from '@/lib/platform/meta'
 import { CHANNEL_TYPES, type ChannelType } from '@/lib/channels/types'
 import {
@@ -30,6 +33,7 @@ import { newWidgetKey, parseWebchatSettings, webchatHandle } from './_lib/webcha
  * it verifies that app's webhook signatures. Stored encrypted, never returned.
  *   webchat   {name, purpose?, settings:{color,title,greeting,position,allowed_origins,prechat_fields}}
  *   tiktok    {name, purpose?, business_id, access_token}   (TIKTOK_MESSAGING_ENABLED=true only)
+ *   telegram  {name, purpose?, bot_token}   (token from @BotFather; Whasalia sets the bot's webhook)
  * Optional on every type: ai_agent_id.
  * `?skip_verify=1` skips provider verification outside production (tests).
  */
@@ -194,6 +198,36 @@ export async function POST(request: Request) {
         externalId: newWidgetKey(),
         displayHandle: webchatHandle(parsed.settings),
         settings: { ...parsed.settings },
+      }
+      break
+    }
+
+    case 'telegram': {
+      const botToken = str(body.bot_token, 100)
+      if (!botToken || !looksLikeBotToken(botToken)) return bad('bot_token looks invalid (copy the whole token @BotFather gave you, like 123456789:AAH…)')
+      let botId = botIdFromToken(botToken)
+      let username: string | null = null
+      let statusDetail: string | null = null
+      const webhookSecret = newWebhookSecret()
+      if (!skip) {
+        try {
+          const bot = await getBot(botToken)
+          botId = bot.id
+          username = bot.username
+        } catch (err) {
+          return bad(`Could not verify the bot with Telegram: ${err instanceof Error ? err.message : 'unknown error'}`)
+        }
+        const hookErr = await setBotWebhook(botToken, telegramWebhookUrl(publicOrigin(request), botId), webhookSecret)
+        if (hookErr) statusDetail = `Webhook setup failed: ${hookErr}`
+      }
+      input = {
+        ...base,
+        externalId: botId,
+        displayHandle: username ? `@${username}` : null,
+        status: statusDetail ? 'error' : 'connected',
+        statusDetail,
+        settings: { username },
+        secrets: { access_token: botToken, webhook_secret: webhookSecret },
       }
       break
     }

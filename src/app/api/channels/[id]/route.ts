@@ -7,6 +7,9 @@ import { loadChannel, saveChannelSecrets } from '@/lib/channels/store'
 import { verifyPhoneNumber } from '@/lib/whatsapp/meta-api'
 import { isUuid } from '@/lib/workspace/constants'
 import { GRAPH, PUBLIC_SELECT, assertAgentInWorkspace, bad, skipVerify, str } from '../_lib/shared'
+import { looksLikeBotToken } from '@/lib/channels/adapters/telegram'
+import { deleteBotWebhook, getBot, newWebhookSecret, setBotWebhook, telegramWebhookUrl } from '@/lib/channels/telegram-server'
+import { publicOrigin } from '@/lib/site-origin'
 import { parseWebchatSettings, webchatHandle, type WebchatSettings } from '../_lib/webchat'
 import { parseWelcomeMenu } from '../_lib/welcome-menu'
 import type { WelcomeMenu } from '@/lib/ai/types'
@@ -106,7 +109,7 @@ export async function PATCH(request: Request, { params }: Params) {
   const verifyToken = str(body.verify_token, 200)
   // Own Meta app (manual setup): its App Secret verifies that app's webhooks. null removes it.
   const appSecret = body.app_secret === null ? null : str(body.app_secret, 200)
-  if ((appSecret || verifyToken) && (channel.type === 'webchat' || channel.type === 'tiktok')) return bad('This channel type has no Meta webhook credentials')
+  if ((appSecret || verifyToken) && (channel.type === 'webchat' || channel.type === 'tiktok' || channel.type === 'telegram')) return bad('This channel type has no Meta webhook credentials')
   if (accessToken && channel.type === 'webchat') return bad('webchat channels have no access token')
   if (accessToken && channel.type === 'whatsapp' && !skipVerify(request)) {
     try {
@@ -116,9 +119,27 @@ export async function PATCH(request: Request, { params }: Params) {
       return bad(`Could not verify the new token with Meta: ${err instanceof Error ? err.message : 'unknown error'}`)
     }
   }
+  // Telegram: a new token (revoked in @BotFather) must be the same bot; the webhook is set again.
+  let webhookSecret: string | undefined
+  if (accessToken && channel.type === 'telegram') {
+    if (!looksLikeBotToken(accessToken)) return bad('access_token looks invalid (copy the whole token @BotFather gave you)')
+    webhookSecret = newWebhookSecret()
+    if (!skipVerify(request)) {
+      try {
+        const bot = await getBot(accessToken)
+        if (bot.id !== channel.external_id) return bad('This token belongs to another bot. Connect it as a new channel instead.')
+        patch.display_handle = bot.username ? `@${bot.username}` : channel.display_handle
+      } catch (err) {
+        return bad(`Could not verify the new token with Telegram: ${err instanceof Error ? err.message : 'unknown error'}`)
+      }
+      const hookErr = await setBotWebhook(accessToken, telegramWebhookUrl(publicOrigin(request), channel.external_id), webhookSecret)
+      if (hookErr) return bad(`Telegram did not accept the webhook: ${hookErr}`)
+    }
+  }
   if (accessToken || verifyToken || 'app_secret' in body) {
     try {
       await saveChannelSecrets(id, {
+        ...(webhookSecret ? { webhook_secret: webhookSecret } : {}),
         access_token: accessToken ?? undefined,
         verify_token: verifyToken ?? undefined,
         ...('app_secret' in body ? { app_secret: appSecret } : {}),
@@ -166,6 +187,9 @@ export async function DELETE(_request: Request, { params }: Params) {
   } catch (error) {
     return bad(error instanceof Error ? error.message : 'Could not delete the channel', 500)
   }
+
+  // The bot stops sending updates here (it can be connected again later).
+  if (channel.type === 'telegram' && channel.secrets.access_token) await deleteBotWebhook(channel.secrets.access_token)
 
   // Stop Meta from sending us this page's events when nothing else uses it.
   const pageId = channel.type === 'messenger' ? channel.external_id : (channel.settings?.page_id as string | undefined)

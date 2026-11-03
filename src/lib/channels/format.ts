@@ -8,12 +8,14 @@ export const TEXT_LIMITS: Record<ChannelType, number> = {
   messenger: 2000,
   instagram: 1000,
   tiktok: 1000,
+  // Below 4096: the HTML formatting added when sending takes room too.
+  telegram: 3800,
   webchat: 4096,
 }
 
-/** Channels that render WhatsApp-style *bold* _italic_ ~strike~ markup. */
+/** Channels that render WhatsApp-style *bold* _italic_ ~strike~ markup (Telegram: converted to HTML when sent). */
 export function supportsMarkup(type: ChannelType): boolean {
-  return type === 'whatsapp' || type === 'webchat'
+  return type === 'whatsapp' || type === 'webchat' || type === 'telegram'
 }
 
 /** "*Hola* _Ana_ ~x~ ```code```" → "Hola Ana x code" (channels that show text literally). */

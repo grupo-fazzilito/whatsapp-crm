@@ -30,6 +30,7 @@ const CHANNEL_LABEL: Record<string, string> = {
   instagram: 'Instagram Direct',
   messenger: 'Facebook Messenger',
   tiktok: 'TikTok',
+  telegram: 'Telegram',
   webchat: 'the website chat',
 }
 

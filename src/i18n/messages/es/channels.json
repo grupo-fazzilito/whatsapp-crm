@@ -2,7 +2,7 @@
   "channels": {
     "navTitle": "Canales",
     "title": "Canales",
-    "description": "Conecta tus números de WhatsApp, Instagram, Messenger y el chat de tu sitio web. Cada canal puede tener su propio agente de IA.",
+    "description": "Conecta tus números de WhatsApp, Instagram, Messenger, Telegram y el chat de tu sitio web. Cada canal puede tener su propio agente de IA.",
     "connectButton": "Conectar canal",
     "readOnly": "Solo los administradores pueden conectar o modificar canales.",
     "empty": {
@@ -26,14 +26,16 @@
       "instagram": "Instagram",
       "messenger": "Messenger",
       "webchat": "Chat web",
-      "tiktok": "TikTok"
+      "tiktok": "TikTok",
+      "telegram": "Telegram"
     },
     "typeHint": {
       "whatsapp": "Tu número de WhatsApp Business: junto con la app del celular (coexistencia) o solo por la API. Puedes conectar varios.",
       "instagram": "Mensajes directos de una cuenta profesional de Instagram.",
       "messenger": "Mensajes de tu página de Facebook.",
       "webchat": "Un chat flotante para tu sitio web.",
-      "tiktok": "Mensajes directos de tu cuenta de empresa de TikTok."
+      "tiktok": "Mensajes directos de tu cuenta de empresa de TikTok.",
+      "telegram": "Un bot de Telegram de tu negocio. Gratis y sin aprobaciones."
     },
     "status": {
       "connected": "Conectado",
@@ -167,6 +169,17 @@
         "NOT_ELIGIBLE": "No disponible",
         "UNKNOWN": "Sin comprobar"
       }
+    },
+    "telegram": {
+      "stepsTitle": "Cómo crear tu bot (2 minutos)",
+      "step1": "En Telegram, abre @BotFather y escribe /newbot.",
+      "step2": "Ponle un nombre (por ejemplo «Tienda Ana») y un usuario que termine en «bot» (por ejemplo TiendaAnaBot).",
+      "step3": "BotFather te responde con un token. Cópialo y pégalo aquí.",
+      "openBotFather": "Abrir @BotFather",
+      "token": "Token del bot",
+      "tokenHelp": "Se ve así: 123456789:AAH… Lo guardamos cifrado. Si el bot estaba conectado a otro programa, dejará de recibir mensajes allí.",
+      "doneDescription": "Tus clientes ya pueden escribirle a tu bot. Comparte este enlace en tu web y redes sociales.",
+      "link": "Enlace de tu bot"
     }
   }
 }

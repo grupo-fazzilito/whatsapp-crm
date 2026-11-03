@@ -178,7 +178,7 @@ export interface ContactIdentity {
   id: string;
   workspace_id: string;
   contact_id: string;
-  channel_type: 'whatsapp' | 'messenger' | 'instagram' | 'tiktok' | 'webchat';
+  channel_type: 'whatsapp' | 'messenger' | 'instagram' | 'tiktok' | 'telegram' | 'webchat';
   external_id: string;
   handle?: string | null;
   created_at?: string;

@@ -3,7 +3,7 @@
     "hero": {
       "badge": "🎁 CRM gratis para siempre · solo pagas la IA que usas",
       "title": "El CRM gratis para vender y atender por WhatsApp, Instagram y Messenger",
-      "subtitle": "Bandeja compartida para WhatsApp, Instagram, Messenger y tu web, agentes de IA, flujos, ventas y reservas. Todo gratis: solo pagas los tokens de IA que usas.",
+      "subtitle": "Bandeja compartida para WhatsApp, Instagram, Messenger, Telegram y tu web, agentes de IA, flujos, ventas y reservas. Todo gratis: solo pagas los tokens de IA que usas.",
       "getStarted": "Regístrate gratis",
       "learnMore": "Ver funciones"
     },
@@ -12,7 +12,7 @@
     },
     "how": {
       "title": "Cómo funciona",
-      "subtitle": "Conecta WhatsApp, Instagram y Messenger con las APIs oficiales de Meta y empieza a atender en minutos.",
+      "subtitle": "Conecta WhatsApp, Instagram y Messenger con las APIs oficiales de Meta, suma tu bot de Telegram y empieza a atender en minutos.",
       "s1Title": "Conecta y verifica: API oficial de Meta",
       "s1Desc": "Conecta el número de teléfono de tu negocio mediante los procesos oficiales de Meta. Nuestras guías de cumplimiento hacen que la configuración sea sencilla y te dejan listo para atender a tus clientes de inmediato.",
       "s2Title": "Soporte al cliente con IA en piloto automático",

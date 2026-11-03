@@ -61,7 +61,7 @@ interface ClientChannel {
 }
 
 /** Channel types shown first, in this order (the rest follow). */
-const CHANNEL_ORDER: ChannelType[] = ["whatsapp", "messenger", "instagram", "webchat", "tiktok"];
+const CHANNEL_ORDER: ChannelType[] = ["whatsapp", "messenger", "instagram", "telegram", "webchat", "tiktok"];
 type ChannelFilter = "all" | "none" | ChannelType;
 
 const CHANNEL_STATUS_CLS: Record<string, string> = {

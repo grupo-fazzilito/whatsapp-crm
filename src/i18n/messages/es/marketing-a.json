@@ -3,11 +3,11 @@
     "badge": "funcionalidades",
     "titleLine1": "Todas tus conversaciones,",
     "titleHighlight": "en un solo lugar",
-    "subtitle": "WhatsApp, Instagram, Messenger y el chat de tu web en una bandeja compartida, con agentes de IA, respuestas automáticas a comentarios de Facebook e Instagram, flujos, difusiones, ventas y reservas. Sin escribir código.",
+    "subtitle": "WhatsApp, Instagram, Messenger, Telegram y el chat de tu web en una bandeja compartida, con agentes de IA, respuestas automáticas a comentarios de Facebook e Instagram, flujos, difusiones, ventas y reservas. Sin escribir código.",
     "caps": {
       "inbox": {
         "name": "Bandeja compartida multicanal",
-        "desc": "Atiende WhatsApp, Instagram, Messenger y el chat de tu sitio web desde un solo lugar. Asigna conversaciones a tu equipo, deja notas internas y menciona a un compañero."
+        "desc": "Atiende WhatsApp, Instagram, Messenger, Telegram y el chat de tu sitio web desde un solo lugar. Asigna conversaciones a tu equipo, deja notas internas y menciona a un compañero."
       },
       "agents": {
         "name": "Agentes de IA",
@@ -58,7 +58,7 @@
       "title": "Cómo funciona",
       "subtitle": "Empezar con Whasalia toma minutos.",
       "s1Title": "Conecta tus canales",
-      "s1Desc": "Conecta WhatsApp, Instagram y Messenger con tu cuenta de Facebook en unos clics, y agrega el chat a tu web pegando un código.",
+      "s1Desc": "Conecta WhatsApp, Instagram y Messenger con tu cuenta de Facebook en unos clics, tu bot de Telegram pegando su token, y agrega el chat a tu web pegando un código.",
       "s2Title": "Configura cómo responder",
       "s2Desc": "Carga tus horarios, servicios y preguntas frecuentes. Elige si responde un menú gratuito, un agente de IA o tu equipo.",
       "s3Title": "Mide y mejora",
@@ -167,7 +167,7 @@
       "note": "Sin tarjeta y sin periodo de prueba."
     },
     "features": {
-      "channels": "Bandeja compartida para WhatsApp, Instagram, Messenger y chat web",
+      "channels": "Bandeja compartida para WhatsApp, Instagram, Messenger, Telegram y chat web",
       "crm": "Contactos, embudos de venta, etiquetas y tareas",
       "automations": "Flujos, automatizaciones y difusiones con plantillas aprobadas por Meta",
       "comments": "Respuestas automáticas a comentarios de Facebook e Instagram, 1 token por comentario",

@@ -1,4 +1,5 @@
 import 'server-only'
+import { askTelegramPhone } from '@/lib/channels/telegram-phone'
 import { Prisma } from '@/generated/prisma/client'
 import { tenantDb } from '@/lib/db/tenant'
 import { sendMessage } from '@/lib/messaging/send'
@@ -276,7 +277,9 @@ async function book(env: Env, state: PickerState): Promise<StepResult> {
       time: d.time!,
       staff: result.staffName ? t('bookings.picker.withStaff', { name: result.staffName }) : '',
     })
-    return finish(env, state, 'booked', text, { booking_id: result.bookingId })
+    const done = await finish(env, state, 'booked', text, { booking_id: result.bookingId })
+    await askTelegramPhone({ workspaceId: env.workspaceId, conversationId: env.conversationId, lang: env.lang })
+    return done
   }
   switch (result.reason) {
     case 'link':

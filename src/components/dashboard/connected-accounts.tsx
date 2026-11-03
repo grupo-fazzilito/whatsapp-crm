@@ -17,7 +17,7 @@ interface Channel {
   display_handle?: string | null;
 }
 
-const TYPES: ChannelType[] = ['whatsapp', 'instagram', 'messenger', 'webchat'];
+const TYPES: ChannelType[] = ['whatsapp', 'instagram', 'messenger', 'telegram', 'webchat'];
 
 const BADGE: Record<string, string> = {
   connected: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300',

@@ -15,6 +15,7 @@ import {
   CHANNEL_STYLE,
   apiJson,
   selectClass,
+  telegramLink,
   widgetSnippet,
   type AgentOption,
   type ChannelDTO,
@@ -60,6 +61,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
   const [pageId, setPageId] = useState('');
   const [instagramId, setInstagramId] = useState('');
   const [businessId, setBusinessId] = useState('');
+  const [botToken, setBotToken] = useState('');
   const [webchat, setWebchat] = useState<WebchatForm>(DEFAULT_WEBCHAT_FORM);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -79,6 +81,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
     setPageId('');
     setInstagramId('');
     setBusinessId('');
+    setBotToken('');
     setWebchat(DEFAULT_WEBCHAT_FORM);
   };
 
@@ -104,6 +107,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
     if (type === 'messenger') Object.assign(body, { page_id: pageId, access_token: accessToken, app_secret: appSecret || null });
     if (type === 'instagram') Object.assign(body, { instagram_id: instagramId, page_id: pageId, access_token: accessToken, app_secret: appSecret || null });
     if (type === 'tiktok') Object.assign(body, { business_id: businessId, access_token: accessToken });
+    if (type === 'telegram') body.bot_token = botToken.trim();
     if (type === 'webchat') body.settings = webchatSettingsPayload({ ...webchat, title: webchat.title || name });
 
     setSaving(true);
@@ -114,7 +118,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
       });
       toast.success(t('channels.connected', { name: data.channel.name }));
       onCreated();
-      if (type === 'whatsapp' || type === 'webchat') {
+      if (type === 'whatsapp' || type === 'webchat' || type === 'telegram') {
         setStep({ kind: 'done', channel: data.channel, verifyToken: data.verify_token });
       } else {
         close(false);
@@ -295,6 +299,8 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
                   </>
                 )}
 
+                {type === 'telegram' && <TelegramBotFields value={botToken} onChange={setBotToken} />}
+
                 {type === 'webchat' && <WebchatSettingsFields value={webchat} onChange={setWebchat} />}
 
                 <Field id="ch-agent" label={t('channels.form.agent')}>
@@ -328,11 +334,17 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
             <DialogHeader>
               <DialogTitle>{t('channels.done.title', { name: step.channel.name })}</DialogTitle>
               <DialogDescription>
-                {step.channel.type === 'webchat' ? t('channels.done.webchat') : t('channels.done.whatsapp')}
+                {step.channel.type === 'webchat'
+                  ? t('channels.done.webchat')
+                  : step.channel.type === 'telegram'
+                    ? t('channels.telegram.doneDescription')
+                    : t('channels.done.whatsapp')}
               </DialogDescription>
             </DialogHeader>
             {step.channel.type === 'webchat' ? (
               <CopyField multiline label={t('channels.webchat.snippet')} value={widgetSnippet(origin, step.channel.external_id)} />
+            ) : step.channel.type === 'telegram' ? (
+              telegramLink(step.channel) && <CopyField label={t('channels.telegram.link')} value={telegramLink(step.channel)!} />
             ) : (
               <div className="grid gap-3">
                 <CopyField label={t('channels.webhookUrl')} value={webhookUrl} />
@@ -349,6 +361,44 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** BotFather steps + the token field. */
+function TelegramBotFields({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const t = useT();
+  return (
+    <>
+      <div className="grid gap-2 rounded-md border border-border bg-muted/30 p-3 text-sm">
+        <p className="font-medium text-foreground">{t('channels.telegram.stepsTitle')}</p>
+        <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
+          <li>{t('channels.telegram.step1')}</li>
+          <li>{t('channels.telegram.step2')}</li>
+          <li>{t('channels.telegram.step3')}</li>
+        </ol>
+        <a
+          href="https://t.me/BotFather"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 justify-self-start text-xs font-medium text-primary underline underline-offset-2"
+        >
+          <ExternalLink className="size-3.5" aria-hidden />
+          {t('channels.telegram.openBotFather')}
+        </a>
+      </div>
+      <Field id="ch-tgtoken" label={t('channels.telegram.token')} hint={t('channels.telegram.tokenHelp')}>
+        <Input
+          id="ch-tgtoken"
+          required
+          type="password"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="123456789:AAH…"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      </Field>
+    </>
   );
 }
 

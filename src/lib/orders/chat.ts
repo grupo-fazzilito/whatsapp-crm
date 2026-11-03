@@ -1,4 +1,5 @@
 import 'server-only'
+import { askTelegramPhone } from '@/lib/channels/telegram-phone'
 import { tenantDb } from '@/lib/db/tenant'
 import { sendMessage } from '@/lib/messaging/send'
 import { getPreset, resolveIndustry } from '@/lib/industries'
@@ -353,6 +354,7 @@ export async function confirmFromChat(ctx: CommerceCtx, source: 'ai' | 'chat_but
   // Team needs to act on it.
   await tenantDb(ctx.workspace.id).conversations.updateMany({ where: { id: ctx.conversationId }, data: { status: 'open' } })
   await sendPaymentOptions(ctx, result.order.id)
+  await askTelegramPhone({ workspaceId: ctx.workspace.id, conversationId: ctx.conversationId, lang, aiAgentId: ctx.aiAgentId })
 }
 
 // ------------------------------------------------------------
