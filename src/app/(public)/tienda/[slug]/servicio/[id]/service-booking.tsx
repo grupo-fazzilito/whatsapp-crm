@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarCheck, Loader2 } from 'lucide-react';
+import { CalendarCheck, ImageUp, Loader2, Store } from 'lucide-react';
 import type { StorePaymentMethod } from '@/lib/store/server';
 import type { StoreService, StoreServiceField } from '@/lib/store/services';
+import { isPayNowMethod, PAY_ON_SITE, PROOF_MAX_BYTES } from '@/lib/store/service-checkout';
 import { fill } from '@/lib/store/texts';
 import { useStore } from '../../cart';
 
@@ -34,7 +35,11 @@ export function ServiceBooking({ service, preview, dialCode, payments, fields }:
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [values, setValues] = useState<Record<string, string>>({});
-  const [paymentId, setPaymentId] = useState(payments[0]?.id ?? '');
+  // Paid now with a proof (Yape, Plin, transfer), or at the business.
+  const payNow = payments.filter((p) => isPayNowMethod(p.type));
+  const [paymentId, setPaymentId] = useState(payNow[0]?.id ?? PAY_ON_SITE);
+  const [proof, setProof] = useState<File | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [website, setWebsite] = useState('');
   const [sending, setSending] = useState(false);
@@ -42,6 +47,23 @@ export function ServiceBooking({ service, preview, dialCode, payments, fields }:
   const errorRef = useRef<HTMLParagraphElement>(null);
   const base = `/api/public/store/${encodeURIComponent(config.slug)}`;
   const needsPayment = service.price > 0;
+  const method = needsPayment ? payNow.find((p) => p.id === paymentId) ?? null : null;
+
+  useEffect(() => {
+    if (!proof) return;
+    const url = URL.createObjectURL(proof);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- preview of the chosen file
+    setProofPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [proof]);
+
+  const pickProof = (file: File | undefined) => {
+    setError(null);
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return setError(t.serviceErrors.proof_type);
+    if (file.size > PROOF_MAX_BYTES) return setError(t.serviceErrors.proof_size);
+    setProof(file);
+  };
 
   const dayFmt = new Intl.DateTimeFormat(config.locale === 'en' ? 'en-US' : 'es-PE', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
   const longFmt = new Intl.DateTimeFormat(config.locale === 'en' ? 'en-US' : 'es-PE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
@@ -89,10 +111,10 @@ export function ServiceBooking({ service, preview, dialCode, payments, fields }:
     if (preview || sending) return;
     setSending(true);
     setError(null);
-    const res = await fetch(`${base}/service-orders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const form = new FormData();
+    form.set(
+      'data',
+      JSON.stringify({
         service_id: service.id,
         staff_id: staffId || null,
         date,
@@ -103,7 +125,9 @@ export function ServiceBooking({ service, preview, dialCode, payments, fields }:
         notes,
         website,
       }),
-    }).catch(() => null);
+    );
+    if (method && proof) form.set('proof', proof);
+    const res = await fetch(`${base}/service-orders`, { method: 'POST', body: form }).catch(() => null);
     const body = (await res?.json().catch(() => ({}))) as { url?: string; error?: string; alternatives?: string[] };
     if (res?.status === 201 && body.url) {
       router.push(body.url);
@@ -127,7 +151,7 @@ export function ServiceBooking({ service, preview, dialCode, payments, fields }:
   const chip = (active: boolean) =>
     `rounded-full border px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${active ? 'text-white' : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50'}`;
   const chipStyle = (active: boolean) => (active ? { background: config.accent, borderColor: config.accent } : undefined);
-  const ready = (!schedule || (date && time)) && (!needsPayment || paymentId);
+  const ready = (!schedule || (date && time)) && (!method || proof);
 
   return (
     <form onSubmit={submit} noValidate className="min-w-0 space-y-5 rounded-3xl bg-white p-5 ring-1 ring-slate-200 lg:sticky lg:top-24">
@@ -229,15 +253,57 @@ export function ServiceBooking({ service, preview, dialCode, payments, fields }:
       {needsPayment && (
         <fieldset className="min-w-0 space-y-2 border-t border-slate-100 pt-4">
           <legend className="mb-2 text-sm font-semibold">{t.payment}</legend>
-          {payments.map((p) => (
+          {[...payNow.map((p) => ({ id: p.id, name: p.name, hint: null as string | null })), { id: PAY_ON_SITE, name: t.payOnSite, hint: t.payOnSiteHint }].map((p) => (
             <label key={p.id} className="flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 hover:bg-slate-50" style={paymentId === p.id ? { borderColor: config.accent, boxShadow: `inset 0 0 0 1px ${config.accent}` } : { borderColor: '#e2e8f0' }}>
               <input type="radio" name="sv-pay" checked={paymentId === p.id} onChange={() => setPaymentId(p.id)} className="size-4" style={{ accentColor: config.accent }} />
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium text-slate-900">{p.name}</span>
-                {p.instructions && <span className="block text-xs text-slate-500">{p.instructions}</span>}
+                <span className="flex items-center gap-1.5 text-sm font-medium text-slate-900">
+                  {p.id === PAY_ON_SITE && <Store className="size-4 text-slate-500" aria-hidden />}
+                  {p.name}
+                </span>
+                {p.hint && <span className="block text-xs text-slate-500">{p.hint}</span>}
               </span>
             </label>
           ))}
+
+          {method && (
+            <div className="space-y-3 rounded-2xl bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-slate-900">{fill(t.payNowWith, { amount: money(service.price), method: method.name })}</p>
+              {method.qr_image_url && (
+                // eslint-disable-next-line @next/next/no-img-element -- QR image from storage
+                <img src={method.qr_image_url} alt={method.name} className="mx-auto w-full max-w-56 rounded-xl bg-white ring-1 ring-slate-200" />
+              )}
+              {method.instructions && <p className="whitespace-pre-line text-sm text-slate-700">{method.instructions}</p>}
+              <div>
+                <label
+                  htmlFor="sv-proof"
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white p-3 text-sm text-slate-700 hover:border-slate-400 focus-within:ring-2 focus-within:ring-slate-400"
+                >
+                  {proofPreview && proof ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- local preview
+                    <img src={proofPreview} alt="" className="size-14 shrink-0 rounded-lg object-cover ring-1 ring-slate-200" />
+                  ) : (
+                    <ImageUp className="size-6 shrink-0 text-slate-400" aria-hidden />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{proof ? proof.name : t.proofLabel}</span>
+                    <span className="block text-xs text-slate-500">{proof ? t.proofChange : t.proofHint}</span>
+                  </span>
+                  <input
+                    id="sv-proof"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    required
+                    onChange={(e) => {
+                      pickProof(e.target.files?.[0]);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+          )}
         </fieldset>
       )}
 

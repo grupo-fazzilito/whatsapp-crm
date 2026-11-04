@@ -7,7 +7,10 @@ import { freeSlotsForBusiness, freeSlotsForStaff, upcomingDates, type SlotQuery 
 import { isIsoDate, zonedNow } from '@/lib/ai/time'
 import { createBookingFromDraft } from '@/lib/ai/bookings'
 import { contactFor, loadCheckoutOptions, notifyTeam, type PublicStore, type StoreWorkspace } from './server'
-import type { ServiceCheckoutInput } from './service-checkout'
+import { uploadObject } from '@/lib/storage'
+import { encodePath } from '@/lib/storage/paths'
+import { isPayNowMethod, type ServiceCheckoutInput } from './service-checkout'
+import { storeTexts } from './texts'
 
 // Services of the online store: listed from the Services module, bought one
 // at a time. "schedule" services take a day and time at checkout and create
@@ -114,22 +117,42 @@ export async function serviceSlots(
 
 export type PlaceServiceResult =
   | { ok: true; number: number; token: string; total: number }
-  | { ok: false; error: 'unavailable' | 'slot_taken' | 'closed' | 'past' | 'payment' | 'fields' | 'failed'; alternatives?: string[]; missing?: string[] }
+  | { ok: false; error: 'unavailable' | 'slot_taken' | 'closed' | 'past' | 'payment' | 'proof' | 'fields' | 'failed'; alternatives?: string[]; missing?: string[] }
+
+/** A checked payment proof image (see proofImageType). */
+export interface ProofFile {
+  body: Buffer
+  contentType: 'image/jpeg' | 'image/png' | 'image/webp'
+}
+
+/** Keeps the proof in the private attachments bucket; the team's order sheet signs it to show it. */
+async function saveProof(wsId: string, proof: ProofFile): Promise<string> {
+  const ext = proof.contentType === 'image/png' ? 'png' : proof.contentType === 'image/webp' ? 'webp' : 'jpg'
+  const path = `${wsId}/payment-proofs/${crypto.randomUUID()}.${ext}`
+  await uploadObject('attachments', path, proof.body, proof.contentType)
+  return `/api/files/attachments/${encodePath(path)}`
+}
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
-export async function placeServiceOrder(store: PublicStore, input: ServiceCheckoutInput): Promise<PlaceServiceResult> {
+/**
+ * A paid service is paid now (Yape, Plin, transfer: the proof comes with the
+ * order) or at the business. Free services need neither.
+ */
+export async function placeServiceOrder(store: PublicStore, input: ServiceCheckoutInput, proof: ProofFile | null): Promise<PlaceServiceResult> {
   const ws = store.workspace
   const db = tenantDb(ws.id)
   const service = (await loadStoreServices(ws, input.service_id))[0]
   if (!service) return { ok: false, error: 'unavailable' }
 
   const total = round2(service.price)
-  let payment: { id: string; name: string; requires_proof: boolean } | null = null
-  if (total > 0) {
+  let payment: { id: string; name: string } | null = null
+  const onSite = total > 0 && input.pay_on_site
+  if (total > 0 && !onSite) {
     const { payments } = await loadCheckoutOptions(ws.id)
-    payment = payments.find((p) => p.id === input.payment_method_id) ?? null
+    payment = payments.find((p) => p.id === input.payment_method_id && isPayNowMethod(p.type)) ?? null
     if (!payment) return { ok: false, error: 'payment' }
+    if (!proof) return { ok: false, error: 'proof' }
   }
 
   // The industry's booking data (age, party size…).
@@ -172,6 +195,15 @@ export async function placeServiceOrder(store: PublicStore, input: ServiceChecko
     when = `${d}/${m}/${y} ${input.time}${r.staffName ? ` · ${r.staffName}` : ''}`
   }
 
+  // The booking is taken: a failed upload leaves the order waiting for the proof (sent by WhatsApp).
+  let proofUrl: string | null = null
+  if (payment && proof) {
+    proofUrl = await saveProof(ws.id, proof).catch((err) => {
+      console.error('[store] proof upload failed:', err instanceof Error ? err.message : err)
+      return null
+    })
+  }
+
   const token = crypto.randomBytes(18).toString('base64url')
   const order = await db.orders.create({
     data: {
@@ -188,8 +220,9 @@ export async function placeServiceOrder(store: PublicStore, input: ServiceChecko
       delivery_fee: 0,
       total,
       payment_method_id: payment?.id ?? null,
-      payment_method_name: payment?.name ?? null,
-      payment_status: total > 0 && payment?.requires_proof ? 'awaiting_proof' : total > 0 ? 'unpaid' : 'paid',
+      payment_method_name: payment?.name ?? (onSite ? storeTexts(ws.locale).payOnSite : null),
+      payment_status: total === 0 ? 'paid' : onSite ? 'unpaid' : proofUrl ? 'proof_received' : 'awaiting_proof',
+      payment_proof_url: proofUrl,
       source: 'store',
       public_token: token,
       booking_id: bookingId,
@@ -210,6 +243,7 @@ export async function placeServiceOrder(store: PublicStore, input: ServiceChecko
     },
   })
   await db.order_events.create({ data: { workspace_id: ws.id, order_id: order.id, type: 'created', to_value: 'pending', note: 'store' } })
+  if (proofUrl) await db.order_events.create({ data: { workspace_id: ws.id, order_id: order.id, type: 'payment', from_value: 'awaiting_proof', to_value: 'proof_received' } })
   const number = Number(order.number)
   await notifyTeam(ws, order.id, number, input.customer.name, total).catch((err) => console.error('[store] notify failed:', err instanceof Error ? err.message : err))
   return { ok: true, number, token, total }

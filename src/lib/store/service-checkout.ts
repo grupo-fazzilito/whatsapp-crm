@@ -8,12 +8,34 @@ export interface ServiceCheckoutInput {
   time: string | null
   customer: { name: string; phone: string; email: string | null; document: string | null }
   payment_method_id: string | null
+  /** The customer pays at the business (no proof). */
+  pay_on_site: boolean
   /** Industry booking data (age, party size…), by key. */
   fields: Record<string, string | number>
   notes: string | null
 }
 
 export type ServiceCheckoutError = 'service' | 'slot' | 'name' | 'phone' | 'email' | 'document' | 'fields'
+
+/** Payment choice "pay at the business" (not a payment method row). */
+export const PAY_ON_SITE = 'on_site'
+
+/** Methods paid before the appointment, with a proof (Yape, Plin, transfers). */
+export function isPayNowMethod(type: string): boolean {
+  return type === 'qr' || type === 'bank_transfer'
+}
+
+export const PROOF_MAX_BYTES = 8 * 1024 * 1024
+
+/** Image type of a payment proof from its first bytes (JPEG, PNG, WebP), or null. */
+export function proofImageType(bytes: Uint8Array): 'image/jpeg' | 'image/png' | 'image/webp' | null {
+  if (bytes.length < 12) return null
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg'
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png'
+  const ascii = (a: number, b: number) => String.fromCharCode(...bytes.slice(a, b))
+  if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return 'image/webp'
+  return null
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const text = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().replace(/\s+/g, ' ').slice(0, max) : '')
@@ -59,6 +81,7 @@ export function parseServiceCheckout(
       time: needsSlot ? time : null,
       customer: { name, phone, email: email || null, document: doc || null },
       payment_method_id: typeof body.payment_method_id === 'string' && UUID.test(body.payment_method_id) ? body.payment_method_id : null,
+      pay_on_site: body.payment_method_id === PAY_ON_SITE,
       fields,
       notes: text(body.notes, 500) || null,
     },
