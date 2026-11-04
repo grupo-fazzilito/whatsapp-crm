@@ -126,6 +126,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [x] Servicios en la tienda (módulo Servicios): foto, «mostrar en la tienda» y, por servicio, si el cliente reserva día y hora al comprar (crea la cita con el pedido) o se coordina después — 🤖 (2026-11-04)
 - [x] Servicios pagados al reservar: con Yape, Plin o transferencia el cliente ve el QR y sube el comprobante en el mismo paso (sin comprobante no se reserva); o elige «Pagar en el local» — 🤖 (2026-11-04, rama `feat/service-pay-now`)
 - [x] Dirección de la tienda editable (Tienda online → General → «Cambiar dirección», ej. whasalia.com/tienda/barberia-leo): sugerencia desde el nombre, aviso si está tomada; los links anteriores de la tienda y de propiedades redirigen a la nueva — 🤖 (2026-11-04, rama `feat/store-address`)
+- [x] Visibilidad del stock en la tienda (ocultar, mostrar la cantidad o solo «¡Casi agotado!» bajo X unidades), en general y por producto; botón «Notifícame disponibilidad» en agotados (se puede apagar en general y por producto) que registra al cliente y abre su WhatsApp con el mensaje al negocio; módulo **Lista de espera** con «Avisar» por WhatsApp (texto en la ventana de 24 h, plantilla «Notificar llegada de stock» fuera de ella, que Whasalia deja lista y el negocio solo envía a Meta) — 🤖 (2026-11-04, rama `feat/stock-waitlist`)
 - [ ] Opción para que el negocio desactive «Pagar en el local» en sus servicios (hoy siempre se ofrece) — 🤖
 - [ ] Pago con tarjeta en línea al reservar (pasarela) — 🤖
 - [ ] Pedidos por chat (IA y botones) con los mismos perfiles de envío y cargos: preguntar la zona y calcular el envío por peso (hoy usan el costo fijo de Pedidos y pagos) — 🤖
@@ -134,6 +135,8 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Que el agente de IA comparta el enlace de la tienda o de un producto cuando el cliente lo pida — 🤖
 - [ ] Planificador de publicaciones (Instagram, Facebook, TikTok) con descripciones hechas por la IA y el enlace a la tienda; necesita `instagram_content_publish` y `pages_manage_posts` (segundo App Review de Meta) y la Content Posting API de TikTok — 🤖 / 🧑
 - [ ] Sincronizar el catálogo con el catálogo de Meta (WhatsApp e Instagram Shopping, permiso `catalog_management`) — 🤖 / 🧑
+  - Whasalia → Meta: (a) feed de productos por negocio que se pega una vez en Commerce Manager (sin App Review) o (b) Catalog API en tiempo real (`catalog_management`, App Review). Whasalia queda como fuente de verdad
+  - Meta → Whasalia: los pedidos del carrito de WhatsApp (mensaje `order` del webhook) se crean en Pedidos y descuentan stock; los cambios hechos en Commerce Manager solo por lectura periódica (Meta no avisa)
 - [ ] "Estado preparado": mandar cada día al dueño la imagen y el texto para su estado de WhatsApp (no hay API oficial de estados) — 🤖
 
 ## 9. Mantenimiento

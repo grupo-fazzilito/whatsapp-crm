@@ -1,4 +1,5 @@
 // Online store settings, stored in workspaces.settings.store. Pure.
+import { DEFAULT_LOW_THRESHOLD, DEFAULT_STOCK_DISPLAY, parseStockDisplay, parseThreshold, type StockDisplay, type StockRules } from './stock-display'
 
 export interface StoreSettings {
   /** The public store is published (only allowed when the store is ready). */
@@ -18,6 +19,11 @@ export interface StoreSettings {
   checkout_note: string | null
   /** Extra charges added to every order (or chosen by the customer). */
   fees: StoreFee[]
+  /** General stock rule (each product may override it). */
+  stock_display: StockDisplay
+  low_stock_threshold: number
+  /** "Notify me" on sold-out products. */
+  waitlist_enabled: boolean
 }
 
 export const DEFAULT_ACCENT = '#059669'
@@ -32,6 +38,9 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   pickup_address: null,
   checkout_note: null,
   fees: [],
+  stock_display: DEFAULT_STOCK_DISPLAY,
+  low_stock_threshold: DEFAULT_LOW_THRESHOLD,
+  waitlist_enabled: true,
 }
 
 const text = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null)
@@ -52,7 +61,15 @@ export function storeSettings(raw: unknown): StoreSettings {
     pickup_address: text(r.pickup_address, 240),
     checkout_note: text(r.checkout_note, 400),
     fees: parseFees(r.fees),
+    stock_display: parseStockDisplay(r.stock_display) ?? DEFAULT_STOCK_DISPLAY,
+    low_stock_threshold: parseThreshold(r.low_stock_threshold) ?? DEFAULT_LOW_THRESHOLD,
+    waitlist_enabled: r.waitlist_enabled !== false,
   }
+}
+
+/** The store's general stock rule. */
+export function storeStockRules(s: Pick<StoreSettings, 'stock_display' | 'low_stock_threshold' | 'waitlist_enabled'>): StockRules {
+  return { display: s.stock_display, threshold: s.low_stock_threshold, waitlist: s.waitlist_enabled }
 }
 
 export interface StoreReadiness {

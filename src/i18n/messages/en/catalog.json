@@ -207,6 +207,27 @@
       "searched": "Searched the catalog: {query}",
       "shown": "Photos it would send"
     },
-    "import": "Import"
+    "import": "Import",
+    "storeStock": {
+      "title": "In the online store",
+      "display": "Show stock",
+      "inherit": "As in the store (general setting)",
+      "hidden": "Hide",
+      "exact": "Show the amount",
+      "low": "Only “Almost gone!”",
+      "threshold": "When fewer than",
+      "thresholdPlaceholder": "As in the store",
+      "waitlist": "“Notify me when available” button",
+      "waitlistOn": "Show",
+      "waitlistOff": "Don't show",
+      "thresholdError": "Enter a whole number from 1."
+    },
+    "waitlist": {
+      "badge": "{n} waiting",
+      "readyTitle": "In stock: you can notify {n}",
+      "banner": "There's new stock of products your customers are waiting for: {products} product(s), {people} people to notify.",
+      "go": "Go to Waitlist",
+      "restocked": "{n} people are waiting for this product. Notify them from the Waitlist."
+    }
   }
 }

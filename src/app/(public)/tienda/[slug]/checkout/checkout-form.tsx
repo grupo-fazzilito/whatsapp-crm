@@ -95,7 +95,8 @@ export function CheckoutForm({ preview, dialCode, pickup, note, shipping, paymen
   const total = fee === null ? null : Math.round((subtotal + fee + extras.total) * 100) / 100;
 
   const errorText = (e: { code: string; name?: string; available?: number }) => {
-    const tpl = (t.errors as Record<string, string>)[e.code] ?? t.errors.failed;
+    const code = e.code === 'stock' && e.available === undefined ? 'stockHidden' : e.code;
+    const tpl = (t.errors as Record<string, string>)[code] ?? t.errors.failed;
     return fill(tpl, { name: e.name ?? '', available: e.available ?? 0 });
   };
 

@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 import {
+  BellRing,
   ChevronLeft,
   ChevronRight,
   FolderTree,
@@ -38,6 +40,7 @@ import { ListingStatusBadge } from './listing-extras';
 import { ListingPublicSettings } from './listing-public-settings';
 import { listingStatusOf } from '@/lib/real-estate/listing/status';
 import { PAGE_SIZE, formatAttribute, type Category, type Product } from './types';
+import type { WaitlistSummary } from '@/lib/waitlist/server';
 
 type View = 'grid' | 'list';
 type Status = 'all' | 'active' | 'inactive';
@@ -174,10 +177,32 @@ export function CatalogManager() {
     if (workspace) loadProducts();
   }, [workspace, loadProducts]);
 
+  // Waitlist (online store): who is waiting for each product.
+  const storeOn = !!modules.orders && !!modules.products;
+  const [waiting, setWaiting] = useState<WaitlistSummary | null>(null);
+  const loadWaiting = useCallback(async () => {
+    if (!storeOn) return null;
+    const res = await fetch('/api/waitlist/summary', { cache: 'no-store' }).catch(() => null);
+    const data = res?.ok ? ((await res.json()) as WaitlistSummary) : null;
+    setWaiting(data);
+    return data;
+  }, [storeOn]);
+  useEffect(() => {
+    void loadWaiting();
+  }, [loadWaiting]);
+
   const reloadAll = () => {
     loadProducts();
     loadCategories();
     checkAny();
+    void loadWaiting();
+  };
+
+  /** After a save: the product has stock again and people are waiting for it. */
+  const tellWaiting = async (productId: string | null) => {
+    const data = await loadWaiting();
+    const n = productId ? (data?.products[productId]?.ready ?? 0) : 0;
+    if (n > 0) toast.info(t('catalog.waitlist.restocked', { n }), { action: { label: t('catalog.waitlist.go'), onClick: () => window.location.assign('/waitlist') }, duration: 10000 });
   };
 
   const catById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
@@ -263,7 +288,32 @@ export function CatalogManager() {
       </span>
     );
 
-  const stockView = (p: Product) =>
+  const waitBadge = (p: Product) => {
+    const w = waiting?.products[p.id];
+    if (!w?.waiting) return null;
+    return (
+      <Link
+        href="/waitlist"
+        className={cn(
+          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+          w.ready ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground',
+        )}
+        title={w.ready ? t('catalog.waitlist.readyTitle', { n: w.ready }) : undefined}
+      >
+        <BellRing className="size-3" aria-hidden />
+        {t('catalog.waitlist.badge', { n: w.waiting })}
+      </Link>
+    );
+  };
+
+  const stockView = (p: Product) => (
+    <span className="inline-flex flex-wrap items-center gap-1.5">
+      {stockOnly(p)}
+      {waitBadge(p)}
+    </span>
+  );
+
+  const stockOnly = (p: Product) =>
     !p.track_stock ? (
       <span className="text-xs text-muted-foreground">{t('catalog.stock.untracked')}</span>
     ) : (p.stock ?? 0) <= 0 ? (
@@ -343,6 +393,15 @@ export function CatalogManager() {
         }
       />
       {!isAdmin && <Notice>{t('catalog.readOnly')}</Notice>}
+      {!!waiting?.readyPeople && (
+        <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-100">
+          <BellRing className="size-5 shrink-0" aria-hidden />
+          <p className="min-w-0 flex-1">{t('catalog.waitlist.banner', { products: waiting.readyProducts, people: waiting.readyPeople })}</p>
+          <Button size="sm" render={<Link href="/waitlist" />}>
+            {t('catalog.waitlist.go')}
+          </Button>
+        </div>
+      )}
       {!modules.products && <Notice>{t('catalog.moduleOff', { module: plural })}</Notice>}
 
       {hasAny === false && !filtersOn ? (
@@ -706,8 +765,10 @@ export function CatalogManager() {
           onClose={() => setEditing(undefined)}
           onCategoryCreated={() => loadCategories()}
           onSaved={() => {
+            const id = editing?.id ?? null;
             setEditing(undefined);
             reloadAll();
+            void tellWaiting(id);
           }}
         />
       )}

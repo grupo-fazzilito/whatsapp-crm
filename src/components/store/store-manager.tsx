@@ -18,6 +18,8 @@ import { LoadingBlock, Notice, PageHeader } from '@/components/business/shared';
 import { CopyField } from '@/components/channels/copy-field';
 import { ShippingProfiles } from './shipping-profiles';
 import { SlugEditor } from './slug-editor';
+import { STOCK_DISPLAYS, type StockDisplay } from '@/lib/store/stock-display';
+import { WaitlistTemplateNotice } from '@/components/waitlist/template-notice';
 
 export interface StoreState {
   settings: StoreSettings;
@@ -101,6 +103,7 @@ function GeneralTab({ state, readOnly, onSaved, onGoShipping }: { state: StoreSt
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [thresholdText, setThresholdText] = useState(String(state.settings.low_stock_threshold));
   const fileRef = useRef<HTMLInputElement>(null);
   const s = state.settings;
   const ready = state.missing.length === 0;
@@ -253,6 +256,50 @@ function GeneralTab({ state, readOnly, onSaved, onGoShipping }: { state: StoreSt
             <Label htmlFor="store-note">{t('store.checkoutNote')}</Label>
             <Textarea id="store-note" rows={2} maxLength={400} disabled={readOnly} value={form.checkout_note ?? ''} placeholder={t('store.checkoutNotePlaceholder')} onChange={(e) => setForm({ ...form, checkout_note: e.target.value })} />
           </div>
+        </section>
+
+        <section className={card} aria-labelledby="store-stock">
+          <div>
+            <h2 id="store-stock" className="text-base font-semibold">{t('store.stock.title')}</h2>
+            <p className="text-sm text-muted-foreground">{t('store.stock.description')}</p>
+          </div>
+          <fieldset className="grid gap-2">
+            <legend className="mb-1 text-sm font-medium">{t('store.stock.display')}</legend>
+            {STOCK_DISPLAYS.map((d: StockDisplay) => (
+              <label key={d} className="flex items-center gap-2 text-sm">
+                <input type="radio" name="store-stock-display" value={d} checked={form.stock_display === d} disabled={readOnly} onChange={() => setForm({ ...form, stock_display: d })} className="size-4 accent-primary" />
+                {t(`store.stock.${d}`)}
+              </label>
+            ))}
+          </fieldset>
+          {form.stock_display === 'low' && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <Label htmlFor="store-stock-threshold">{t('store.stock.threshold')}</Label>
+              <Input
+                id="store-stock-threshold"
+                type="number"
+                min={1}
+                step={1}
+                className="w-24"
+                disabled={readOnly}
+                value={thresholdText}
+                onChange={(e) => {
+                  setThresholdText(e.target.value);
+                  const n = Number(e.target.value);
+                  if (Number.isInteger(n) && n >= 1) setForm({ ...form, low_stock_threshold: n });
+                }}
+              />
+              <span className="text-muted-foreground">{t('store.stock.thresholdUnit')}</span>
+            </div>
+          )}
+          <div className="flex items-start gap-3">
+            <Switch id="store-waitlist" checked={form.waitlist_enabled} disabled={readOnly} onCheckedChange={(v) => setForm({ ...form, waitlist_enabled: !!v })} aria-describedby="store-waitlist-hint" />
+            <div>
+              <Label htmlFor="store-waitlist">{t('store.stock.waitlist')}</Label>
+              <p id="store-waitlist-hint" className="text-xs text-muted-foreground">{t('store.stock.waitlistHint')}</p>
+            </div>
+          </div>
+          {s.waitlist_enabled && <WaitlistTemplateNotice context="store" />}
         </section>
 
         <FeesEditor fees={form.fees} readOnly={readOnly} onChange={(fees) => setForm({ ...form, fees })} />

@@ -22,6 +22,7 @@ import { ImageManager, type ImageItem } from './image-manager';
 import { VariantsEditor, toVariantDraft, type VariantDraft } from './variants-editor';
 import { LISTING_EXTRA_KEYS, ListingExtras, validateListingExtras } from './listing-extras';
 import { isHiddenStatus, listingStatusOf } from '@/lib/real-estate/listing/status';
+import { WaitlistTemplateNotice } from '@/components/waitlist/template-notice';
 import { CATALOG_BUCKET, VARIANT_INDUSTRIES, type Category, type Product, type Variant } from './types';
 
 interface Props {
@@ -63,6 +64,10 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
     weight_kg: product?.weight_kg != null ? String(Number(product.weight_kg)) : '',
     is_featured: product?.is_featured ?? false,
     is_active: product?.is_active ?? true,
+    // '' = the store's general setting (stored as NULL).
+    stock_display: product?.stock_display ?? '',
+    low_stock_threshold: product?.low_stock_threshold != null ? String(product.low_stock_threshold) : '',
+    waitlist: product?.waitlist_enabled == null ? '' : product.waitlist_enabled ? 'on' : 'off',
   });
   const set = <K extends keyof typeof draft>(k: K, v: (typeof draft)[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const [tags, setTags] = useState<string[]>(product?.tags ?? []);
@@ -77,6 +82,8 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Stock rules of the online store (only when the store exists).
+  const storeOn = !!modules.orders && !!modules.products;
   const variantsDefault = VARIANT_INDUSTRIES.includes(workspace?.industry ?? '');
   // Real estate: map / media / public link get their own section, and
   // sold or rented listings are always inactive (DB trigger, migration 036).
@@ -154,6 +161,8 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
     const weight = numOrNull(draft.weight_kg);
     if (weight !== null && !(weight >= 0)) errs.weight_kg = t('catalog.error.price');
     if (draft.track_stock && (stock === null || !Number.isInteger(stock) || stock < 0)) errs.stock = t('catalog.error.stock');
+    const threshold = numOrNull(draft.low_stock_threshold);
+    if (draft.stock_display === 'low' && threshold !== null && !(Number.isInteger(threshold) && threshold >= 1)) errs.low_stock_threshold = t('catalog.storeStock.thresholdError');
     const validated = validateAttributes(fields, attrs);
     const { values } = validated;
     const aErrs = isRealEstate ? { ...validated.errors, ...validateListingExtras(attrs) } : validated.errors;
@@ -206,6 +215,13 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
         weight_kg: numOrNull(draft.weight_kg),
         is_featured: draft.is_featured,
         is_active: draft.is_active && !listingHidden,
+        ...(storeOn
+          ? {
+              stock_display: draft.stock_display || null,
+              low_stock_threshold: draft.stock_display === 'low' ? numOrNull(draft.low_stock_threshold) : null,
+              waitlist_enabled: draft.waitlist === '' ? null : draft.waitlist === 'on',
+            }
+          : {}),
         tags,
         images: urls,
         attributes: values,
@@ -467,6 +483,48 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
                   </div>
                 )}
               </div>
+              {storeOn && draft.track_stock && (
+                <fieldset className="grid gap-3 rounded-lg border border-border p-3">
+                  <legend className="px-1 text-sm font-medium text-foreground">{t('catalog.storeStock.title')}</legend>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="pe-stock-display">{t('catalog.storeStock.display')}</Label>
+                      <select id="pe-stock-display" className={selectClass} disabled={readOnly} value={draft.stock_display} onChange={(e) => set('stock_display', e.target.value)}>
+                        <option value="">{t('catalog.storeStock.inherit')}</option>
+                        <option value="hidden">{t('catalog.storeStock.hidden')}</option>
+                        <option value="exact">{t('catalog.storeStock.exact')}</option>
+                        <option value="low">{t('catalog.storeStock.low')}</option>
+                      </select>
+                    </div>
+                    {draft.stock_display === 'low' && (
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="pe-stock-threshold">{t('catalog.storeStock.threshold')}</Label>
+                        <Input
+                          id="pe-stock-threshold"
+                          type="number"
+                          min={1}
+                          step={1}
+                          placeholder={t('catalog.storeStock.thresholdPlaceholder')}
+                          value={draft.low_stock_threshold}
+                          disabled={readOnly}
+                          aria-invalid={!!errors.low_stock_threshold}
+                          onChange={(e) => set('low_stock_threshold', e.target.value)}
+                        />
+                        {fieldError('low_stock_threshold')}
+                      </div>
+                    )}
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="pe-waitlist">{t('catalog.storeStock.waitlist')}</Label>
+                      <select id="pe-waitlist" className={selectClass} disabled={readOnly} value={draft.waitlist} onChange={(e) => set('waitlist', e.target.value)}>
+                        <option value="">{t('catalog.storeStock.inherit')}</option>
+                        <option value="on">{t('catalog.storeStock.waitlistOn')}</option>
+                        <option value="off">{t('catalog.storeStock.waitlistOff')}</option>
+                      </select>
+                    </div>
+                  </div>
+                  {draft.waitlist === 'on' && <WaitlistTemplateNotice context="store" />}
+                </fieldset>
+              )}
             </section>
 
             <section className="grid gap-3" aria-labelledby="pe-sec-images">

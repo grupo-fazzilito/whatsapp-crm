@@ -35,6 +35,10 @@ export interface Product {
   is_active: boolean;
   is_featured: boolean;
   sort_order: number;
+  /** Store stock rule; null = the store's general setting. */
+  stock_display?: string | null;
+  low_stock_threshold?: number | null;
+  waitlist_enabled?: boolean | null;
   /** From the `product_variants(count)` embed. */
   product_variants?: { count: number }[];
 }

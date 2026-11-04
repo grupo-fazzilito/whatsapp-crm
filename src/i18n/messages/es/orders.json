@@ -398,6 +398,67 @@
         "taken": "Esa dirección ya la usa otro negocio.",
         "failed": "No se pudo guardar. Inténtalo de nuevo."
       }
+    },
+    "stock": {
+      "title": "Stock y lista de espera",
+      "description": "Cómo ve el cliente las existencias de los productos que controlan stock. Cada producto puede tener su propia regla.",
+      "display": "Mostrar el stock",
+      "hidden": "Ocultar (solo «Agotado» cuando no queda nada)",
+      "exact": "Mostrar la cantidad (ej. «Quedan 7»)",
+      "low": "Solo «¡Casi agotado!» cuando queden pocas unidades",
+      "threshold": "Mostrar «¡Casi agotado!» cuando queden menos de",
+      "thresholdUnit": "unidades",
+      "waitlist": "Botón «Notifícame disponibilidad» en productos agotados",
+      "waitlistHint": "El cliente deja su WhatsApp, queda en la Lista de espera y se abre su WhatsApp con un mensaje para ti."
+    }
+  },
+  "waitlist": {
+    "navTitle": "Lista de espera",
+    "title": "Lista de espera",
+    "description": "Clientes que pidieron que les avises cuando vuelva a haber stock de un producto. Cuando lo repongas, toca «Avisar» y les llega un WhatsApp.",
+    "tabs": {
+      "waiting": "Esperando",
+      "notified": "Avisados"
+    },
+    "empty": "Nadie está esperando un producto por ahora. Cuando un cliente toque «Notifícame disponibilidad» en un producto agotado, aparecerá aquí.",
+    "emptyNotified": "Aún no has avisado a nadie.",
+    "people": "{n} en espera",
+    "inStock": "Hay stock: {n}",
+    "inStockUntracked": "Disponible",
+    "noStock": "Sin stock todavía",
+    "inactive": "Producto desactivado",
+    "notifyAll": "Avisar a todos",
+    "notify": "Avisar",
+    "remove": "Quitar de la lista",
+    "removed": "Quitado de la lista.",
+    "since": "Desde {date}",
+    "notifiedAt": "Avisado el {date}",
+    "openChat": "Abrir chat",
+    "editProduct": "Editar producto",
+    "sent": "Avisados: {n}.",
+    "someFailed": "No se pudo avisar a {n}: {reason}.",
+    "error": "No se pudo completar. Inténtalo de nuevo.",
+    "template": {
+      "title": "Plantilla «Notificar llegada de stock»",
+      "why": "WhatsApp solo permite escribir libremente hasta 24 h después del último mensaje del cliente. Pasado ese tiempo, el aviso sale con esta plantilla aprobada por Meta.",
+      "draft": "Está lista: solo falta enviarla a Meta para su aprobación.",
+      "pending": "Enviada a Meta, en revisión. Mientras tanto solo se puede avisar a quien te escribió en las últimas 24 h.",
+      "approved": "Aprobada por Meta.",
+      "rejected": "Meta la rechazó: {reason}",
+      "submit": "Enviar a Meta",
+      "submitted": "Plantilla enviada a Meta para su aprobación.",
+      "noWhatsApp": "Conecta un número de WhatsApp en Canales para poder enviarla a Meta.",
+      "open": "Ver plantilla",
+      "needed": "Activaste «Notifícame disponibilidad», pero la plantilla «Notificar llegada de stock» aún no está aprobada. Envíala a Meta para poder avisar a los clientes después de 24 h."
+    },
+    "reason": {
+      "no_stock": "el producto aún no tiene stock",
+      "no_channel": "no hay un número de WhatsApp conectado",
+      "window_closed": "pasaron más de 24 h desde su último mensaje",
+      "template_missing": "falta la plantilla «Notificar llegada de stock»",
+      "template_pending": "la plantilla aún no está aprobada por Meta",
+      "template_rejected": "Meta rechazó la plantilla",
+      "send_failed": "WhatsApp no aceptó el mensaje"
     }
   }
 }

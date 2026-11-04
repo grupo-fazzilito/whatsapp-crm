@@ -7,6 +7,7 @@ import type { StoreCategory, StoreProduct } from '@/lib/store/server';
 import type { StoreService } from '@/lib/store/services';
 import { fill } from '@/lib/store/texts';
 import { LineImage, useStore } from './cart';
+import { NotifyMe } from './notify-me';
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -104,6 +105,8 @@ function ProductCard({ product: p }: { product: StoreProduct }) {
   const soldOut = p.variants.length ? p.variants.every((v) => v.available === 0) : p.available === 0;
   const href = `/tienda/${encodeURIComponent(config.slug)}/producto/${p.id}`;
   const fromPrice = p.variants.length ? Math.min(...p.variants.map((v) => v.price)) : p.price;
+  const label = p.variants.length ? null : p.stock_label;
+  const lowStock = !!label && (label.kind === 'low' || label.low);
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200 transition-shadow hover:shadow-md">
       <Link href={href} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset" style={{ ['--tw-ring-color' as string]: config.accent }}>
@@ -111,6 +114,8 @@ function ProductCard({ product: p }: { product: StoreProduct }) {
           <LineImage src={p.images[0] ?? null} alt={p.name} className="aspect-square w-full" />
           {soldOut ? (
             <span className="absolute left-2 top-2 rounded-full bg-slate-900/80 px-2 py-0.5 text-[11px] font-semibold text-white">{t.soldOut}</span>
+          ) : lowStock ? (
+            <span className="absolute left-2 top-2 rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-semibold text-white">{t.almostGone}</span>
           ) : p.is_featured ? (
             <span className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-semibold text-white" style={{ background: config.accent }}>{t.featured}</span>
           ) : null}
@@ -121,8 +126,14 @@ function ProductCard({ product: p }: { product: StoreProduct }) {
             <span className="font-semibold text-slate-900">{money(fromPrice)}</span>
             {p.compare_at_price && p.compare_at_price > fromPrice && <span className="text-xs text-slate-400 line-through">{money(p.compare_at_price)}</span>}
           </p>
+          {label?.kind === 'exact' && <p className={`text-xs ${label.low ? 'text-amber-700' : 'text-slate-500'}`}>{fill(t.left, { n: label.n })}</p>}
         </div>
       </Link>
+      {soldOut && p.waitlist && (
+        <div className="mt-auto px-3 pb-3">
+          <NotifyMe product={p} compact />
+        </div>
+      )}
       {!soldOut && (
         <div className="mt-auto px-3 pb-3">
           {p.variants.length ? (

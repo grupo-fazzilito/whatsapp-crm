@@ -138,3 +138,42 @@ describe('service checkout', () => {
     expect(proofImageType(new TextEncoder().encode('<svg onload=alert(1)>'))).toBeNull()
   })
 })
+
+describe('stock display and waitlist', () => {
+  it('uses the product rule over the store rule', async () => {
+    const { productStockRules } = await import('./stock-display')
+    const store = { display: 'low' as const, threshold: 5, waitlist: true }
+    expect(productStockRules(store, { stock_display: null, low_stock_threshold: null, waitlist_enabled: null })).toEqual(store)
+    expect(productStockRules(store, { stock_display: 'exact', low_stock_threshold: 3, waitlist_enabled: false })).toEqual({ display: 'exact', threshold: 3, waitlist: false })
+    expect(productStockRules(store, { stock_display: 'nope', low_stock_threshold: 0, waitlist_enabled: null })).toEqual(store)
+    expect(storeSettings({})).toMatchObject({ stock_display: 'low', low_stock_threshold: 5, waitlist_enabled: true })
+    expect(storeSettings({ stock_display: 'hidden', low_stock_threshold: '8', waitlist_enabled: false })).toMatchObject({ stock_display: 'hidden', low_stock_threshold: 8, waitlist_enabled: false })
+  })
+
+  it('shows the label and only tells the real amount when the store shows it', async () => {
+    const { stockLabel, publicAvailable } = await import('./stock-display')
+    const low = { display: 'low' as const, threshold: 5, waitlist: true }
+    const exact = { ...low, display: 'exact' as const }
+    const hidden = { ...low, display: 'hidden' as const }
+    expect(stockLabel(low, 4)).toEqual({ kind: 'low' })
+    expect(stockLabel(low, 5)).toBeNull()
+    expect(stockLabel(low, 0)).toBeNull()
+    expect(stockLabel(exact, 12)).toEqual({ kind: 'exact', n: 12, low: false })
+    expect(stockLabel(exact, 2)).toEqual({ kind: 'exact', n: 2, low: true })
+    expect(stockLabel(hidden, 1)).toBeNull()
+    expect(stockLabel(exact, null)).toBeNull()
+    expect([publicAvailable(exact, 7), publicAvailable(low, 3), publicAvailable(hidden, 3), publicAvailable(hidden, 0), publicAvailable(low, null)]).toEqual([7, null, null, 0, null])
+  })
+
+  it('reads the notify-me form and builds the WhatsApp message', async () => {
+    const { parseWaitlistInput, waitlistWhatsAppUrl, waitlistItemName } = await import('./waitlist-input')
+    expect(parseWaitlistInput({ product_id: P, phone: '987 654 321', name: '  Ana   Pérez ' }, '+51')).toEqual({ ok: true, input: { product_id: P, variant_id: null, name: 'Ana Pérez', phone: '51987654321' } })
+    expect(parseWaitlistInput({ product_id: P, variant_id: V, phone: '+51987654321' }, '+51')).toMatchObject({ ok: true, input: { variant_id: V, name: null } })
+    expect(parseWaitlistInput({ product_id: P, phone: '12' }, '+51')).toEqual({ ok: false, error: 'phone' })
+    expect(parseWaitlistInput({ product_id: 'x', phone: '987654321' }, '+51')).toEqual({ ok: false, error: 'product' })
+    expect(parseWaitlistInput({ product_id: P, variant_id: 'x', phone: '987654321' }, '+51')).toEqual({ ok: false, error: 'product' })
+    const url = waitlistWhatsAppUrl('51911222333', 'es', waitlistItemName('Polo', 'Talla M'), 'Ana', 'https://x.com/p')
+    expect(url.startsWith('https://wa.me/51911222333?text=')).toBe(true)
+    expect(decodeURIComponent(url.split('text=')[1])).toBe('Hola, soy Ana. Quiero que me avisen cuando haya stock de «Polo (Talla M)». https://x.com/p')
+  })
+})

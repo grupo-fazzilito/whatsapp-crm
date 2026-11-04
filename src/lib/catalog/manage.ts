@@ -5,6 +5,7 @@ import { isPrismaError } from '@/lib/db/errors'
 import { removeObjects } from '@/lib/storage'
 import { storagePathFromUrl } from '@/lib/storage/paths'
 import { isUuid } from '@/lib/workspace/constants'
+import { parseStockDisplay, parseThreshold, type StockDisplay } from '@/lib/store/stock-display'
 import type { AttributeField } from '@/lib/industries'
 
 // Catalog management for the dashboard (products, variants, categories).
@@ -140,6 +141,10 @@ export interface ProductInput {
   attributes: Record<string, unknown>
   /** Kg, for weight-based shipping. Undefined = leave as it is (callers that don't send it). */
   weight_kg?: number | null
+  /** Store stock rule of this product; null = the store's general rule. Undefined = leave as it is. */
+  stock_display?: StockDisplay | null
+  low_stock_threshold?: number | null
+  waitlist_enabled?: boolean | null
 }
 
 export interface VariantInput {
@@ -173,6 +178,11 @@ export function parseProduct(raw: unknown): ProductInput | null {
   if (raw.attributes !== undefined && !isPlainObject(raw.attributes)) return null
   const weight = 'weight_kg' in raw ? num(raw.weight_kg) : undefined
   if ('weight_kg' in raw && (weight === undefined || (weight !== null && (weight < 0 || weight > 100_000)))) return null
+  const display = raw.stock_display == null || raw.stock_display === '' ? null : parseStockDisplay(raw.stock_display)
+  if ('stock_display' in raw && display === null && raw.stock_display != null && raw.stock_display !== '') return null
+  const threshold = raw.low_stock_threshold == null || raw.low_stock_threshold === '' ? null : parseThreshold(raw.low_stock_threshold)
+  if ('low_stock_threshold' in raw && threshold === null && raw.low_stock_threshold != null && raw.low_stock_threshold !== '') return null
+  if ('waitlist_enabled' in raw && raw.waitlist_enabled !== null && typeof raw.waitlist_enabled !== 'boolean') return null
   return {
     name,
     description: str(raw.description, 5000),
@@ -189,6 +199,9 @@ export function parseProduct(raw: unknown): ProductInput | null {
     images: raw.images as string[],
     attributes: (raw.attributes as Record<string, unknown>) ?? {},
     ...(weight !== undefined ? { weight_kg: weight === null ? null : Math.round(weight * 1000) / 1000 } : {}),
+    ...('stock_display' in raw ? { stock_display: display } : {}),
+    ...('low_stock_threshold' in raw ? { low_stock_threshold: threshold } : {}),
+    ...('waitlist_enabled' in raw ? { waitlist_enabled: raw.waitlist_enabled as boolean | null } : {}),
   }
 }
 
