@@ -104,8 +104,10 @@ describe('shipping paid at destination and extra charges', () => {
       { id: 'pack', name: 'Empaquetado', amount: 3, required: true },
       { id: 'gift', name: 'Envoltura de regalo', amount: 5.5, required: false },
     ])
-    expect(orderFees(fees, [])).toEqual({ lines: [{ name: 'Empaquetado', amount: 3 }], total: 3 })
-    expect(orderFees(fees, ['gift', 'nope'])).toEqual({ lines: [{ name: 'Empaquetado', amount: 3 }, { name: 'Envoltura de regalo', amount: 5.5 }], total: 8.5 })
+    expect(orderFees(fees, [], 'delivery')).toEqual({ lines: [{ name: 'Empaquetado', amount: 3 }], total: 3 })
+    expect(orderFees(fees, ['gift', 'nope'], 'delivery')).toEqual({ lines: [{ name: 'Empaquetado', amount: 3 }, { name: 'Envoltura de regalo', amount: 5.5 }], total: 8.5 })
+    // Store pickup pays no extra charges.
+    expect(orderFees(fees, ['gift'], 'pickup')).toEqual({ lines: [], total: 0 })
     expect(storeSettings({ fees }).fees).toHaveLength(2)
   })
 })
