@@ -117,6 +117,18 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Unir el contacto de Telegram con el de WhatsApp cuando el cliente comparte un número que ya existe (hoy solo se guarda el número en el contacto de Telegram) — 🤖
 - [ ] Probar con un bot real en producción (crear uno en @BotFather y conectarlo) — 🧑
 
+## 8c. Tienda online y venta en redes
+
+- [x] Tienda pública por negocio (`/tienda/<slug>`): catálogo con búsqueda y categorías, ficha de producto con variantes, carrito lateral (drawer), checkout con datos del cliente, entrega y pago, y página del pedido con el QR y "Enviar comprobante por WhatsApp" — 🤖 (2026-11-04)
+- [x] Perfiles de envío (gratis, precio fijo por envío, por rangos de peso; "gratis desde" opcional) y recojo en tienda; la tienda solo se publica con envío, método de pago y productos. Peso (kg) en productos y variantes — 🤖
+- [ ] Pedidos por chat (IA y botones) con los mismos perfiles de envío: preguntar la zona y calcular el envío por peso (hoy usan el costo fijo de Pedidos y pagos) — 🤖
+- [ ] Pago con tarjeta en la tienda (cada negocio con su propia cuenta en la pasarela) — 🤖 / 🧑
+- [ ] Lista de departamentos / provincias / distritos del Perú en el checkout (hoy son campos de texto) — 🤖
+- [ ] Que el agente de IA comparta el enlace de la tienda o de un producto cuando el cliente lo pida — 🤖
+- [ ] Planificador de publicaciones (Instagram, Facebook, TikTok) con descripciones hechas por la IA y el enlace a la tienda; necesita `instagram_content_publish` y `pages_manage_posts` (segundo App Review de Meta) y la Content Posting API de TikTok — 🤖 / 🧑
+- [ ] Sincronizar el catálogo con el catálogo de Meta (WhatsApp e Instagram Shopping, permiso `catalog_management`) — 🤖 / 🧑
+- [ ] "Estado preparado": mandar cada día al dueño la imagen y el texto para su estado de WhatsApp (no hay API oficial de estados) — 🤖
+
 ## 9. Mantenimiento
 
 - [x] Quitada la importación desde Mercado Libre y portales inmobiliarios; queda solo Catálogo → Importar (CSV / Excel) — 🤖 (2026-10-14, rama `feat/remove-portal-imports`)

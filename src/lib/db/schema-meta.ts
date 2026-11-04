@@ -1109,6 +1109,10 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "discount": "decimal",
     "total": "decimal",
     "paid_at": "timestamp",
+    "weight_kg": "decimal",
+    "shipping_profiles": {
+      "rel": "shipping_profiles"
+    },
     "created_at": "timestamp",
     "updated_at": "timestamp",
     "order_events": {
@@ -1253,6 +1257,7 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
   },
   "product_variants": {
     "price": "decimal",
+    "weight_kg": "decimal",
     "created_at": "timestamp",
     "updated_at": "timestamp",
     "cart_items": {
@@ -1275,6 +1280,7 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "updated_at": "timestamp",
     "external_synced_at": "timestamp",
     "external_missing_since": "timestamp",
+    "weight_kg": "decimal",
     "bookings": {
       "rel": "bookings"
     },
@@ -1973,6 +1979,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "payment_methods": {
       "rel": "payment_methods"
     },
+    "shipping_profiles": {
+      "rel": "shipping_profiles"
+    },
     "pipeline_stages": {
       "rel": "pipeline_stages"
     },
@@ -2099,6 +2108,18 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "updated_at": "timestamp",
     "platform_webhook_endpoints": {
       "rel": "platform_webhook_endpoints"
+    }
+  },
+  "shipping_profiles": {
+    "flat_price": "decimal",
+    "free_over": "decimal",
+    "created_at": "timestamp",
+    "updated_at": "timestamp",
+    "orders": {
+      "rel": "orders"
+    },
+    "workspaces": {
+      "rel": "workspaces"
     }
   }
 }

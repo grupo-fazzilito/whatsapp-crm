@@ -81,7 +81,9 @@
       "active": "Activo",
       "activeHint": "Visible para la IA y tus clientes.",
       "featured": "Destacado",
-      "featuredHint": "La IA lo ofrece primero."
+      "featuredHint": "La IA lo ofrece primero.",
+      "weight": "Peso (kg)",
+      "weightHint": "Se usa para el costo de envío por peso en la tienda online. Ej. 0.25"
     },
     "editor": {
       "description": "La IA usa estos datos para recomendar y responder sobre este {item}.",
@@ -139,7 +141,8 @@
       "pricePlaceholder": "Igual al principal",
       "add": "Agregar variante",
       "remove": "Quitar variante {n}",
-      "count": "Variantes: {count}"
+      "count": "Variantes: {count}",
+      "weightPlaceholder": "Del producto"
     },
     "categories": {
       "button": "Categorías",

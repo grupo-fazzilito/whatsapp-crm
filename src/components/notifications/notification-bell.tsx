@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
-import { AtSign, ArrowRightLeft, Bell, BellRing, CheckCheck, Hand, UserCheck, Info, Coins, Volume2, VolumeX } from "lucide-react";
+import { AtSign, ArrowRightLeft, Bell, BellRing, CheckCheck, Hand, UserCheck, Info, Coins, ShoppingBag, Volume2, VolumeX } from "lucide-react";
 import { useRealtimeChanges } from "@/lib/realtime/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -31,6 +31,7 @@ const TYPE_ICON = {
   system: Info,
   billing: Coins,
   handover: Hand,
+  order: ShoppingBag,
 } as const;
 
 /** Header bell: unread count, live updates, mark read, jump to the conversation. */

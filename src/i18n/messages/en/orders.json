@@ -47,7 +47,8 @@
       "ai": "AI assistant",
       "chat_buttons": "Chat buttons",
       "manual": "Entered by the team",
-      "webchat": "Web chat"
+      "webchat": "Web chat",
+      "store": "Online store"
     },
     "channel": {
       "whatsapp": "WhatsApp",
@@ -128,7 +129,8 @@
       "notify": "Notify the customer",
       "noConversation": "This order has no conversation, so the customer can't be notified.",
       "cancelReason": "Reason (optional, sent to the customer)",
-      "cancelReasonPlaceholder": "E.g. we ran out of stock"
+      "cancelReasonPlaceholder": "E.g. we ran out of stock",
+      "document": "ID"
     },
     "timeline": {
       "created": "Order created · {source}",
@@ -243,6 +245,119 @@
       "deleteDescription": "\"{name}\" will no longer be shown to customers. Past orders keep its name.",
       "deleteConfirm": "Delete",
       "deleted": "Payment method deleted"
+    }
+  },
+  "store": {
+    "navTitle": "Online store",
+    "title": "Online store",
+    "description": "Your catalog as a web store: customers fill their cart, enter their details and the order lands in Orders.",
+    "tabs": {
+      "general": "General",
+      "shipping": "Shipping"
+    },
+    "readOnly": "Only admins can change the store.",
+    "publish": {
+      "title": "Publish store",
+      "on": "Your store is published",
+      "off": "Your store is not published",
+      "hint": "Until you publish it, only your team can see it (preview).",
+      "done": "Store published",
+      "hidden": "Store unpublished"
+    },
+    "link": "Your store link",
+    "open": "Open store",
+    "preview": "See preview",
+    "ready": {
+      "title": "To publish your store you still need:",
+      "ordersModule": "Turn on orders (Business setup → Orders & payments).",
+      "shipping": "An active shipping profile or store pickup.",
+      "payment": "An active payment method (Business setup → Orders & payments).",
+      "products": "At least one active product with a price.",
+      "goShipping": "Create a shipping profile",
+      "goSetup": "Go to Business setup",
+      "goCatalog": "Go to the catalog"
+    },
+    "look": {
+      "title": "Look",
+      "tagline": "Store tagline",
+      "taglinePlaceholder": "E.g. Handmade clothing from Lima",
+      "banner": "Cover image",
+      "bannerHint": "Wide, for example 1600 × 400 px.",
+      "upload": "Upload image",
+      "remove": "Remove",
+      "accent": "Main color",
+      "whatsapp": "Store WhatsApp",
+      "whatsappHint": "With country code, e.g. 51987654321. Empty = the business phone."
+    },
+    "pickup": {
+      "title": "Store pickup",
+      "enable": "Let customers pick up their order",
+      "address": "Pickup address",
+      "addressPlaceholder": "E.g. 123 Main St (Mon–Sat, 10 to 7)"
+    },
+    "checkoutNote": "Checkout note",
+    "checkoutNotePlaceholder": "E.g. We ship Monday to Friday.",
+    "save": "Save",
+    "saved": "Store saved",
+    "error": "Could not save.",
+    "shipping": {
+      "title": "Shipping profiles",
+      "description": "Set what shipping costs. Customers pick one at checkout.",
+      "add": "New profile",
+      "empty": "No shipping profiles yet. Create at least one (or turn on store pickup) to publish your store.",
+      "inactive": "Inactive",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": "Delete the profile “{name}”?",
+      "deleted": "Profile deleted",
+      "saved": "Profile saved",
+      "type": {
+        "free": "Free",
+        "flat": "Flat price per order",
+        "weight": "By weight"
+      },
+      "typeHint": {
+        "free": "Shipping costs nothing.",
+        "flat": "One price per order, no matter how many products.",
+        "weight": "The price depends on the order’s total weight (the products’ weights added up)."
+      },
+      "summary": {
+        "free": "Free",
+        "flat": "{price} per order",
+        "weight": "{n} weight ranges"
+      },
+      "freeOver": "Free from {amount}",
+      "name": "Name",
+      "namePlaceholder": "E.g. Downtown",
+      "price": "Shipping price",
+      "eta": "Delivery time (optional)",
+      "etaPlaceholder": "E.g. 24 to 48 hours",
+      "freeOverLabel": "Free shipping from (optional)",
+      "freeOverHint": "When the subtotal reaches this amount, shipping is free.",
+      "active": "Active",
+      "rates": "Weight ranges",
+      "upTo": "Up to (kg)",
+      "andAbove": "and above",
+      "ratePrice": "Price",
+      "addRate": "Add range",
+      "removeRate": "Remove range",
+      "ratesHint": "Leave the last range’s “up to” empty to cover any heavier weight. Otherwise heavier orders can’t use this option.",
+      "from": "From {kg} kg",
+      "missingWeight": "{n} active products have no weight: they count as 0 kg for weight-based shipping.",
+      "fixWeights": "Check the catalog",
+      "errors": {
+        "name": "Enter a name.",
+        "type": "Choose a type.",
+        "flat_price": "Enter the shipping price.",
+        "rates": "Check the ranges: each needs a price and a weight above 0.",
+        "rate_order": "Ranges must go from low to high, and only the last one may be open.",
+        "free_over": "The free-shipping amount is not valid.",
+        "last_profile": "Your store is published and this is its only shipping option. Create another or turn on pickup first.",
+        "too_many": "You reached the maximum number of profiles."
+      },
+      "cancel": "Cancel",
+      "saveProfile": "Save profile",
+      "typeLegend": "Shipping type"
     }
   }
 }

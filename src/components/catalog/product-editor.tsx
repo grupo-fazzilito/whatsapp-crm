@@ -46,7 +46,7 @@ const numOrNull = (s: string) => (s.trim() === '' ? null : Number(s));
 
 export function ProductEditor({ product, categories, fields, readOnly, onClose, onSaved, onCategoryCreated }: Props) {
   const t = useT();
-  const { workspace, label } = useWorkspace();
+  const { workspace, label, modules } = useWorkspace();
   const noun = label('product');
   const [draft, setDraft] = useState({
     name: product?.name ?? '',
@@ -60,6 +60,7 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
     sku: product?.sku ?? '',
     track_stock: product?.track_stock ?? false,
     stock: product?.stock != null ? String(product.stock) : '',
+    weight_kg: product?.weight_kg != null ? String(Number(product.weight_kg)) : '',
     is_featured: product?.is_featured ?? false,
     is_active: product?.is_active ?? true,
   });
@@ -150,6 +151,8 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
     const compare = numOrNull(draft.compare_at_price);
     if (compare !== null && !(compare >= 0)) errs.compare_at_price = t('catalog.error.price');
     const stock = draft.track_stock ? numOrNull(draft.stock) : null;
+    const weight = numOrNull(draft.weight_kg);
+    if (weight !== null && !(weight >= 0)) errs.weight_kg = t('catalog.error.price');
     if (draft.track_stock && (stock === null || !Number.isInteger(stock) || stock < 0)) errs.stock = t('catalog.error.stock');
     const validated = validateAttributes(fields, attrs);
     const { values } = validated;
@@ -200,6 +203,7 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
         sku: trimOrNull(draft.sku),
         track_stock: draft.track_stock,
         stock,
+        weight_kg: numOrNull(draft.weight_kg),
         is_featured: draft.is_featured,
         is_active: draft.is_active && !listingHidden,
         tags,
@@ -214,6 +218,7 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
         sku: trimOrNull(v.sku),
         price: numOrNull(v.price),
         stock: draft.track_stock ? numOrNull(v.stock) : null,
+        weight_kg: numOrNull(v.weight_kg),
         is_active: v.is_active,
         sort_order: i,
       }));
@@ -421,6 +426,24 @@ export function ProductEditor({ product, categories, fields, readOnly, onClose, 
                   <Input id="pe-sku" maxLength={80} value={draft.sku} disabled={readOnly} onChange={(e) => set('sku', e.target.value)} />
                 </div>
               </div>
+              {modules.orders && (
+                <div className="grid gap-1.5 sm:w-1/3">
+                  <Label htmlFor="pe-weight">{t('catalog.field.weight')}</Label>
+                  <Input
+                    id="pe-weight"
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={draft.weight_kg}
+                    disabled={readOnly}
+                    aria-invalid={!!errors.weight_kg}
+                    aria-describedby="pe-weight-hint"
+                    onChange={(e) => set('weight_kg', e.target.value)}
+                  />
+                  <p id="pe-weight-hint" className="text-xs text-muted-foreground">{t('catalog.field.weightHint')}</p>
+                  {fieldError('weight_kg')}
+                </div>
+              )}
               <div className="grid gap-4 sm:grid-cols-3">
                 <label className="flex items-center gap-2 text-sm text-foreground sm:col-span-2">
                   <Switch checked={draft.track_stock} disabled={readOnly} onCheckedChange={(v) => set('track_stock', v)} />
