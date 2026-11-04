@@ -456,6 +456,7 @@ export interface PublicOrder {
   created_at: string | null
   items: { name: string; quantity: number; total: number }[]
   payment: StorePaymentMethod | null
+  pay_on_site: boolean
   /** Service orders: the appointment made at checkout. */
   booking: { date: string; time: string; staff: string | null; status: string | null } | null
 }
@@ -483,6 +484,7 @@ export async function loadPublicOrder(store: PublicStore, token: string): Promis
       total: true,
       created_at: true,
       payment_method_id: true,
+      payment_method_name: true,
       bookings: { select: { booking_date: true, booking_time: true, status: true, staff: { select: { name: true } } } },
       order_items: { select: { name: true, quantity: true, total: true }, orderBy: { sort_order: 'asc' } },
     },
@@ -511,6 +513,8 @@ export async function loadPublicOrder(store: PublicStore, token: string): Promis
     created_at: o.created_at ? new Date(o.created_at).toISOString() : null,
     items: o.order_items.map((i) => ({ name: i.name, quantity: i.quantity, total: Number(i.total) })),
     payment,
+    /** A store service paid at the business. */
+    pay_on_site: o.fulfillment === 'service' && Number(o.total) > 0 && !o.payment_method_id && !!o.payment_method_name,
     booking: o.bookings
       ? { date: isoDay(o.bookings.booking_date), time: String(o.bookings.booking_time).slice(0, 5), staff: o.bookings.staff?.name ?? null, status: o.bookings.status ?? null }
       : null,

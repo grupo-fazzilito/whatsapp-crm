@@ -123,4 +123,18 @@ describe('service checkout', () => {
     expect(parseServiceCheckout({ ...body, date: '2026-11-10', time: '10:30' }, '+51', true)).toMatchObject({ ok: true, input: { date: '2026-11-10', time: '10:30' } })
     expect(parseServiceCheckout({ ...body, service_id: 'x' }, '+51', false)).toEqual({ ok: false, error: 'service' })
   })
+
+  it('pays now with a proof or at the business', async () => {
+    const { parseServiceCheckout, isPayNowMethod, proofImageType, PAY_ON_SITE } = await import('./service-checkout')
+    const body = { service_id: P, customer: { name: 'Luis Rojas', phone: '912345678' } }
+    expect(parseServiceCheckout({ ...body, payment_method_id: PAY_ON_SITE }, '+51', false)).toMatchObject({ ok: true, input: { pay_on_site: true, payment_method_id: null } })
+    expect(parseServiceCheckout({ ...body, payment_method_id: P }, '+51', false)).toMatchObject({ ok: true, input: { pay_on_site: false, payment_method_id: P } })
+    expect(['qr', 'bank_transfer', 'cash', 'card_on_delivery', 'other'].filter(isPayNowMethod)).toEqual(['qr', 'bank_transfer'])
+    const pad = (head: number[]) => new Uint8Array([...head, ...new Array(12).fill(0)])
+    expect(proofImageType(pad([0xff, 0xd8, 0xff, 0xe0]))).toBe('image/jpeg')
+    expect(proofImageType(pad([0x89, 0x50, 0x4e, 0x47]))).toBe('image/png')
+    expect(proofImageType(new TextEncoder().encode('RIFF\0\0\0\0WEBPVP8 '))).toBe('image/webp')
+    expect(proofImageType(new TextEncoder().encode('%PDF-1.7 not an image'))).toBeNull()
+    expect(proofImageType(new TextEncoder().encode('<svg onload=alert(1)>'))).toBeNull()
+  })
 })

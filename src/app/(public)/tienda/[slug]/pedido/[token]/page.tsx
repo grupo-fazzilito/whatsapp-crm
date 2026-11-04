@@ -37,7 +37,14 @@ export default async function StoreOrderPage({ params }: Props) {
         </p>
       </section>
 
-      {order.payment && order.payment_status !== 'paid' && order.status !== 'cancelled' && (
+      {order.status !== 'cancelled' && order.payment_status === 'proof_received' && (
+        <p role="status" className="rounded-2xl bg-emerald-50 px-5 py-4 text-sm text-emerald-900 ring-1 ring-emerald-200">{t.proofReceivedNote}</p>
+      )}
+      {order.status !== 'cancelled' && order.pay_on_site && order.payment_status === 'unpaid' && (
+        <p className="rounded-2xl bg-white px-5 py-4 text-sm text-slate-700 ring-1 ring-slate-200">{fill(t.payOnSiteNote, { amount: money(order.total) })}</p>
+      )}
+
+      {order.payment && (order.payment_status === 'unpaid' || order.payment_status === 'awaiting_proof') && order.status !== 'cancelled' && (
         <section className="space-y-4 rounded-3xl bg-white p-6 ring-1 ring-slate-200" aria-labelledby="pay-title">
           <h2 id="pay-title" className="text-base font-semibold">{t.howToPay}</h2>
           <p className="text-lg font-bold">{fill(t.payTotal, { amount: money(order.total) })} · {order.payment.name}</p>
