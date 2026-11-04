@@ -2099,6 +2099,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "platform_notifications": {
       "rel": "platform_notifications"
+    },
+    "workspace_slug_redirects": {
+      "rel": "workspace_slug_redirects"
     }
   },
   "platform_webhook_endpoints": {
@@ -2131,6 +2134,12 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "orders": {
       "rel": "orders"
     },
+    "workspaces": {
+      "rel": "workspaces"
+    }
+  },
+  "workspace_slug_redirects": {
+    "created_at": "timestamp",
     "workspaces": {
       "rel": "workspaces"
     }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { followSlug } from '@/lib/store/follow-slug';
 import { loadStore, loadStoreCatalog } from '@/lib/store/server';
 import { siteUrl } from '@/lib/real-estate/listing/url';
 import { storePath } from '@/lib/store/settings';
@@ -28,6 +29,7 @@ export default async function StorePage({ params }: Props) {
   const { slug } = await params;
   const s = await loadStore(slug);
   if (!s) notFound();
+  followSlug(slug, s.workspace.slug, '');
   const [{ products, categories }, services] = await Promise.all([loadStoreCatalog(s.workspace), loadStoreServices(s.workspace)]);
   const intro = s.store.tagline ?? s.workspace.description;
   return (

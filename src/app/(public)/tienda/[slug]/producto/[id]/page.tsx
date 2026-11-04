@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { followSlug } from '@/lib/store/follow-slug';
 import { ChevronLeft } from 'lucide-react';
 import { isUuid } from '@/lib/workspace/constants';
 import { loadStore, loadStoreCatalog, storeMoney } from '@/lib/store/server';
@@ -41,6 +42,7 @@ export default async function StoreProductPage({ params }: Props) {
   const { slug, id } = await params;
   const data = await load(slug, id);
   if (!data) notFound();
+  followSlug(slug, data.s.workspace.slug, `/producto/${id}`);
   const { s, product } = data;
   const t = storeTexts(s.workspace.locale);
   return (

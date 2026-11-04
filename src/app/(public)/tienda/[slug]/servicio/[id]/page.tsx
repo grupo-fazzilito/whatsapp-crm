@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { followSlug } from '@/lib/store/follow-slug';
 import { ChevronLeft, Clock } from 'lucide-react';
 import { isUuid } from '@/lib/workspace/constants';
 import { loadCheckoutOptions, loadStore, storeMoney } from '@/lib/store/server';
@@ -41,6 +42,7 @@ export default async function StoreServicePage({ params }: Props) {
   const { slug, id } = await params;
   const data = await load(slug, id);
   if (!data) notFound();
+  followSlug(slug, data.s.workspace.slug, `/servicio/${id}`);
   const { s, service } = data;
   const t = storeTexts(s.workspace.locale);
   const money = storeMoney(s.workspace);

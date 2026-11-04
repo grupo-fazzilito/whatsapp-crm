@@ -1,6 +1,6 @@
 import 'server-only'
+import { findWorkspaceBySlug } from '@/lib/workspace/slug-server'
 import { cache } from 'react'
-import { prisma } from '@/lib/db/prisma'
 import { tenantDb } from '@/lib/db/tenant'
 import { isUuid } from '@/lib/workspace/constants'
 import { countryDefaults } from '@/lib/workspace/countries'
@@ -63,12 +63,8 @@ export function realEstateSettings(settings: WorkspaceSettings | null | undefine
 export const loadPublicListing = cache(async (slug: string, productId: string): Promise<PublicListing | null> => {
   if (!slug || slug.length > 120 || !isUuid(productId)) return null
   // Public page: the workspace is only known by its slug (platform lookup).
-  const ws = await prisma.workspaces
-    .findFirst({
-      select: { id: true, name: true, slug: true, industry: true, locale: true, country: true, currency: true, logo_url: true, phone: true, settings: true },
-      where: { slug },
-    })
-    .catch(() => null)
+  // An old slug finds the workspace too; the page redirects to ws.slug.
+  const ws = await findWorkspaceBySlug(slug, { id: true, name: true, slug: true, industry: true, locale: true, country: true, currency: true, logo_url: true, phone: true, settings: true }).catch(() => null)
   if (!ws || ws.industry !== 'real_estate') return null
 
   const db = tenantDb(ws.id)

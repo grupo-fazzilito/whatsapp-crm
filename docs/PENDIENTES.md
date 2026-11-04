@@ -125,6 +125,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [x] Perfil "Pago de envío en destino" (el cliente paga el envío al courier) y cargos adicionales por pedido, obligatorios u opcionales (ej. empaquetado, envoltura de regalo) — 🤖 (2026-11-04)
 - [x] Servicios en la tienda (módulo Servicios): foto, «mostrar en la tienda» y, por servicio, si el cliente reserva día y hora al comprar (crea la cita con el pedido) o se coordina después — 🤖 (2026-11-04)
 - [x] Servicios pagados al reservar: con Yape, Plin o transferencia el cliente ve el QR y sube el comprobante en el mismo paso (sin comprobante no se reserva); o elige «Pagar en el local» — 🤖 (2026-11-04, rama `feat/service-pay-now`)
+- [x] Dirección de la tienda editable (Tienda online → General → «Cambiar dirección», ej. whasalia.com/tienda/barberia-leo): sugerencia desde el nombre, aviso si está tomada; los links anteriores de la tienda y de propiedades redirigen a la nueva — 🤖 (2026-11-04, rama `feat/store-address`)
 - [ ] Opción para que el negocio desactive «Pagar en el local» en sus servicios (hoy siempre se ofrece) — 🤖
 - [ ] Pago con tarjeta en línea al reservar (pasarela) — 🤖
 - [ ] Pedidos por chat (IA y botones) con los mismos perfiles de envío y cargos: preguntar la zona y calcular el envío por peso (hoy usan el costo fijo de Pedidos y pagos) — 🤖

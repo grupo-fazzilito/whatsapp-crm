@@ -17,6 +17,7 @@ import { MAX_FEES, type ReadinessKey, type StoreFee, type StoreReadiness, type S
 import { LoadingBlock, Notice, PageHeader } from '@/components/business/shared';
 import { CopyField } from '@/components/channels/copy-field';
 import { ShippingProfiles } from './shipping-profiles';
+import { SlugEditor } from './slug-editor';
 
 export interface StoreState {
   settings: StoreSettings;
@@ -190,6 +191,7 @@ function GeneralTab({ state, readOnly, onSaved, onGoShipping }: { state: StoreSt
             <ExternalLink className="size-4" aria-hidden /> {s.enabled ? t('store.open') : t('store.preview')}
           </Button>
         </div>
+        <SlugEditor url={state.url} readOnly={readOnly} onSaved={(url) => onSaved({ ...state, url })} />
       </section>
 
       <form onSubmit={save} className="space-y-5">
