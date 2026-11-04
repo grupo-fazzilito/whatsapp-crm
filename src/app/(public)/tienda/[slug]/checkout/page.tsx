@@ -23,6 +23,7 @@ export default async function CheckoutPage({ params }: Props) {
       dialCode={s.dialCode}
       pickup={s.store.pickup_enabled ? { address: s.store.pickup_address ?? s.workspace.name } : null}
       note={s.store.checkout_note}
+      fees={s.store.fees}
       shipping={shipping.map((p) => ({ id: p.id, name: p.name, type: p.type, eta: p.eta, free_over: p.free_over }))}
       payments={payments}
     />

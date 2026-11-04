@@ -66,9 +66,13 @@ export default async function StoreOrderPage({ params }: Props) {
         </ul>
         <dl className="space-y-1.5 border-t border-slate-100 pt-3 text-sm">
           <div className="flex justify-between"><dt className="text-slate-600">{t.subtotal}</dt><dd className="tabular-nums">{money(order.subtotal)}</dd></div>
-          <div className="flex justify-between"><dt className="text-slate-600">{t.shipping}{order.shipping_name ? ` · ${order.shipping_name}` : ''}</dt><dd className="tabular-nums">{order.delivery_fee === 0 ? t.free : money(order.delivery_fee)}</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-600">{t.shipping}{order.shipping_name ? ` · ${order.shipping_name}` : ''}</dt><dd className="tabular-nums">{order.shipping_on_delivery ? t.onDelivery : order.delivery_fee === 0 ? t.free : money(order.delivery_fee)}</dd></div>
+          {order.fees.map((f, k) => (
+            <div key={k} className="flex justify-between"><dt className="text-slate-600">{f.name}</dt><dd className="tabular-nums">{money(f.amount)}</dd></div>
+          ))}
           <div className="flex justify-between text-base font-bold"><dt>{t.total}</dt><dd className="tabular-nums">{money(order.total)}</dd></div>
         </dl>
+        {order.shipping_on_delivery && <p className="text-xs text-slate-500">{t.onDeliveryHint}</p>}
         <p className="border-t border-slate-100 pt-3 text-sm text-slate-700">
           <span className="font-medium">{t.deliverTo}:</span> {order.fulfillment === 'pickup' ? fill(t.pickupAt, { address: s.store.pickup_address ?? s.workspace.name }) : order.address}
         </p>

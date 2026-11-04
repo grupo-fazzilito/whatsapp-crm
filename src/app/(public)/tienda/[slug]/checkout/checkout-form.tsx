@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Lock, MapPin, Store, Truck } from 'lucide-react';
 import type { StorePaymentMethod } from '@/lib/store/server';
 import type { ShippingType } from '@/lib/store/shipping';
+import { orderFees, type StoreFee } from '@/lib/store/settings';
 import { fill } from '@/lib/store/texts';
 import { LineImage, useStore } from '../cart';
 
@@ -24,12 +25,13 @@ interface Props {
   note: string | null;
   shipping: ShippingOption[];
   payments: StorePaymentMethod[];
+  fees: StoreFee[];
 }
 
 interface Quote {
   subtotal: number;
   weight_kg: number;
-  shipping: { id: string; fee: number | null }[];
+  shipping: { id: string; fee: number | null; on_delivery?: boolean }[];
 }
 
 type QuoteError = { error: string; name?: string; available?: number };
@@ -38,7 +40,7 @@ const field = 'h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 te
 const label = 'mb-1.5 block text-sm font-medium text-slate-800';
 const card = 'space-y-4 rounded-2xl bg-white p-5 ring-1 ring-slate-200';
 
-export function CheckoutForm({ preview, dialCode, pickup, note, shipping, payments }: Props) {
+export function CheckoutForm({ preview, dialCode, pickup, note, shipping, payments, fees }: Props) {
   const { lines, ready, t, money, config, clear } = useStore();
   const router = useRouter();
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -53,6 +55,7 @@ export function CheckoutForm({ preview, dialCode, pickup, note, shipping, paymen
   const [address, setAddress] = useState({ department: '', province: '', district: '', line: '', reference: '' });
   const [paymentId, setPaymentId] = useState(payments[0]?.id ?? '');
   const [notes, setNotes] = useState('');
+  const [pickedFees, setPickedFees] = useState<string[]>([]);
   const [website, setWebsite] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<{ code: string; name?: string; available?: number } | null>(null);
@@ -84,8 +87,11 @@ export function CheckoutForm({ preview, dialCode, pickup, note, shipping, paymen
   }, [items, ready, config.slug]);
 
   const fee = fulfillment === 'pickup' ? 0 : (quote?.shipping.find((s) => s.id === profileId)?.fee ?? null);
+  const onDelivery = fulfillment === 'delivery' && !!shipping.find((s) => s.id === profileId && s.type === 'on_delivery');
+  const extras = orderFees(fees, pickedFees);
+  const optionalFees = fees.filter((f) => !f.required);
   const subtotal = quote?.subtotal ?? 0;
-  const total = fee === null ? null : Math.round((subtotal + fee) * 100) / 100;
+  const total = fee === null ? null : Math.round((subtotal + fee + extras.total) * 100) / 100;
 
   const errorText = (e: { code: string; name?: string; available?: number }) => {
     const tpl = (t.errors as Record<string, string>)[e.code] ?? t.errors.failed;
@@ -107,6 +113,7 @@ export function CheckoutForm({ preview, dialCode, pickup, note, shipping, paymen
         shipping_profile_id: fulfillment === 'delivery' ? profileId : null,
         address: fulfillment === 'delivery' ? address : null,
         payment_method_id: paymentId,
+        fee_ids: pickedFees,
         notes,
         website,
       }),
@@ -191,8 +198,8 @@ export function CheckoutForm({ preview, dialCode, pickup, note, shipping, paymen
                   }}
                   icon={<Truck className="size-5" aria-hidden />}
                   title={s.name}
-                  detail={[s.eta, s.free_over !== null && s.type !== 'free' ? fill(t.freeOver, { amount: money(s.free_over) }) : null].filter(Boolean).join(' · ')}
-                  right={tooHeavy ? t.tooHeavy : q ? (q.fee === 0 ? t.free : money(q.fee!)) : '…'}
+                  detail={[s.eta, s.type === 'on_delivery' ? t.onDeliveryHint : null, s.free_over !== null && s.type !== 'free' && s.type !== 'on_delivery' ? fill(t.freeOver, { amount: money(s.free_over) }) : null].filter(Boolean).join(' · ')}
+                  right={tooHeavy ? t.tooHeavy : s.type === 'on_delivery' ? t.onDelivery : q ? (q.fee === 0 ? t.free : money(q.fee!)) : '…'}
                 />
               );
             })}
@@ -247,6 +254,24 @@ export function CheckoutForm({ preview, dialCode, pickup, note, shipping, paymen
               <Option key={p.id} name="co-pay" checked={paymentId === p.id} onChange={() => setPaymentId(p.id)} title={p.name} detail={p.instructions ?? ''} />
             ))}
           </div>
+          {optionalFees.length > 0 && (
+            <fieldset className="space-y-2">
+              <legend className="mb-1 text-sm font-medium text-slate-800">{t.extras}</legend>
+              {optionalFees.map((f) => (
+                <label key={f.id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3.5 hover:bg-slate-50">
+                  <input
+                    type="checkbox"
+                    checked={pickedFees.includes(f.id)}
+                    onChange={(e) => setPickedFees((p) => (e.target.checked ? [...p, f.id] : p.filter((x) => x !== f.id)))}
+                    className="size-4 shrink-0"
+                    style={{ accentColor: config.accent }}
+                  />
+                  <span className="flex-1 text-sm font-medium text-slate-900">{f.name}</span>
+                  <span className="text-sm font-semibold tabular-nums">+{money(f.amount)}</span>
+                </label>
+              ))}
+            </fieldset>
+          )}
           <div>
             <label htmlFor="co-notes" className={label}>{t.notes}</label>
             <textarea id="co-notes" rows={2} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} className={`${field} h-auto py-2.5`} />
@@ -274,7 +299,10 @@ export function CheckoutForm({ preview, dialCode, pickup, note, shipping, paymen
         </ul>
         <dl className="space-y-2 border-t border-slate-100 pt-3 text-sm">
           <div className="flex justify-between"><dt className="text-slate-600">{t.subtotal}</dt><dd className="tabular-nums">{quote ? money(subtotal) : '…'}</dd></div>
-          <div className="flex justify-between"><dt className="text-slate-600">{t.shipping}</dt><dd className="tabular-nums">{fee === null ? '—' : fee === 0 ? t.free : money(fee)}</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-600">{t.shipping}</dt><dd className="tabular-nums">{onDelivery ? t.onDelivery : fee === null ? '—' : fee === 0 ? t.free : money(fee)}</dd></div>
+          {extras.lines.map((l) => (
+            <div key={l.name} className="flex justify-between"><dt className="text-slate-600">{l.name}</dt><dd className="tabular-nums">{money(l.amount)}</dd></div>
+          ))}
           <div className="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>{t.total}</dt><dd className="tabular-nums">{total === null ? '—' : money(total)}</dd></div>
         </dl>
         {quoteError && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{errorText({ code: quoteError.error, name: quoteError.name, available: quoteError.available })}</p>}

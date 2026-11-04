@@ -1,7 +1,10 @@
 // Shipping profiles of the online store. Pure: shared by the settings
 // editor, the checkout (preview) and the server (the price that counts).
 
-export type ShippingType = 'free' | 'flat' | 'weight'
+/** on_delivery: the store charges nothing; the customer pays the courier on delivery. */
+export type ShippingType = 'free' | 'flat' | 'weight' | 'on_delivery'
+
+export const SHIPPING_TYPES: ShippingType[] = ['free', 'flat', 'weight', 'on_delivery']
 
 export interface WeightRate {
   /** Upper bound of the range in kg (inclusive); null = "and above". */
@@ -37,7 +40,7 @@ export function parseShippingInput(body: Record<string, unknown>): { ok: true; p
   const name = typeof body.name === 'string' ? body.name.trim().slice(0, 80) : ''
   if (!name) return { ok: false, error: 'name' }
   const type = body.type
-  if (type !== 'free' && type !== 'flat' && type !== 'weight') return { ok: false, error: 'type' }
+  if (!SHIPPING_TYPES.includes(type as ShippingType)) return { ok: false, error: 'type' }
 
   let flat_price: number | null = null
   if (type === 'flat') {
@@ -65,7 +68,7 @@ export function parseShippingInput(body: Record<string, unknown>): { ok: true; p
     }
   }
 
-  const free_over = type === 'free' ? null : money(body.free_over)
+  const free_over = type === 'free' || type === 'on_delivery' ? null : money(body.free_over)
   if (Number.isNaN(free_over)) return { ok: false, error: 'free_over' }
 
   const eta = typeof body.eta === 'string' && body.eta.trim() ? body.eta.trim().slice(0, 80) : null
@@ -74,7 +77,7 @@ export function parseShippingInput(body: Record<string, unknown>): { ok: true; p
     ok: true,
     profile: {
       name,
-      type,
+      type: type as ShippingType,
       flat_price,
       rates,
       free_over,
@@ -104,7 +107,7 @@ export function toShippingProfile(row: {
   return {
     id: row.id,
     name: row.name,
-    type: (['free', 'flat', 'weight'].includes(row.type) ? row.type : 'flat') as ShippingType,
+    type: (SHIPPING_TYPES.includes(row.type as ShippingType) ? row.type : 'flat') as ShippingType,
     flat_price: num(row.flat_price),
     rates,
     free_over: num(row.free_over),
@@ -114,7 +117,8 @@ export function toShippingProfile(row: {
   }
 }
 
-export type ShippingQuote = { ok: true; fee: number; freeReason: 'profile' | 'free_over' | null } | { ok: false; reason: 'too_heavy' }
+/** onDelivery: fee 0 here, paid to the courier on delivery. */
+export type ShippingQuote = { ok: true; fee: number; freeReason: 'profile' | 'free_over' | null; onDelivery?: true } | { ok: false; reason: 'too_heavy' }
 
 /**
  * Delivery fee of an order: free profiles cost 0, flat ones their price,
@@ -123,6 +127,7 @@ export type ShippingQuote = { ok: true; fee: number; freeReason: 'profile' | 'fr
  */
 export function quoteShipping(profile: Pick<ShippingProfile, 'type' | 'flat_price' | 'rates' | 'free_over'>, subtotal: number, weightKg: number): ShippingQuote {
   if (profile.type === 'free') return { ok: true, fee: 0, freeReason: 'profile' }
+  if (profile.type === 'on_delivery') return { ok: true, fee: 0, freeReason: null, onDelivery: true }
   let fee: number
   if (profile.type === 'flat') fee = profile.flat_price ?? 0
   else {

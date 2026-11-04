@@ -121,7 +121,8 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 
 - [x] Tienda pública por negocio (`/tienda/<slug>`): catálogo con búsqueda y categorías, ficha de producto con variantes, carrito lateral (drawer), checkout con datos del cliente, entrega y pago, y página del pedido con el QR y "Enviar comprobante por WhatsApp" — 🤖 (2026-11-04)
 - [x] Perfiles de envío (gratis, precio fijo por envío, por rangos de peso; "gratis desde" opcional) y recojo en tienda; la tienda solo se publica con envío, método de pago y productos. Peso (kg) en productos y variantes — 🤖
-- [ ] Pedidos por chat (IA y botones) con los mismos perfiles de envío: preguntar la zona y calcular el envío por peso (hoy usan el costo fijo de Pedidos y pagos) — 🤖
+- [x] Perfil "Pago de envío en destino" (el cliente paga el envío al courier) y cargos adicionales por pedido, obligatorios u opcionales (ej. empaquetado, envoltura de regalo) — 🤖 (2026-11-04)
+- [ ] Pedidos por chat (IA y botones) con los mismos perfiles de envío y cargos: preguntar la zona y calcular el envío por peso (hoy usan el costo fijo de Pedidos y pagos) — 🤖
 - [ ] Pago con tarjeta en la tienda (cada negocio con su propia cuenta en la pasarela) — 🤖 / 🧑
 - [ ] Lista de departamentos / provincias / distritos del Perú en el checkout (hoy son campos de texto) — 🤖
 - [ ] Que el agente de IA comparta el enlace de la tienda o de un producto cuando el cliente lo pida — 🤖

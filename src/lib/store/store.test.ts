@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { orderWeight, parseShippingInput, quoteShipping } from './shipping'
 import { addressLine, checkoutPhone, parseCheckoutInput, parseItems } from './checkout'
-import { missingForStore, storeSettings } from './settings'
+import { missingForStore, orderFees, parseFees, storeSettings } from './settings'
 
 const P = '11111111-2222-4333-8444-555555555555'
 const V = '66666666-7777-4888-9999-000000000000'
@@ -84,5 +84,28 @@ describe('store settings', () => {
   it('fills defaults and lists what blocks publishing', () => {
     expect(storeSettings({ accent: 'red', whatsapp: '+51 987 654 321', enabled: true })).toMatchObject({ enabled: true, accent: '#059669', whatsapp: '51987654321' })
     expect(missingForStore({ ordersModule: true, shipping: false, payment: true, products: false })).toEqual(['shipping', 'products'])
+  })
+})
+
+describe('shipping paid at destination and extra charges', () => {
+  it('charges nothing for on-delivery shipping and drops its prices', () => {
+    expect(parseShippingInput({ name: 'Shalom', type: 'on_delivery', flat_price: 9, free_over: 50 })).toMatchObject({ ok: true, profile: { type: 'on_delivery', flat_price: null, free_over: null, rates: [] } })
+    expect(quoteShipping({ type: 'on_delivery', flat_price: null, free_over: null, rates: [] }, 100, 50)).toEqual({ ok: true, fee: 0, freeReason: null, onDelivery: true })
+  })
+
+  it('keeps valid charges and adds the required plus the picked ones', () => {
+    const fees = parseFees([
+      { id: 'pack', name: ' Empaquetado ', amount: '3', required: true },
+      { id: 'gift', name: 'Envoltura de regalo', amount: 5.5, required: false },
+      { id: 'bad', name: '', amount: 2 },
+      { id: 'zero', name: 'Cero', amount: 0 },
+    ])
+    expect(fees).toEqual([
+      { id: 'pack', name: 'Empaquetado', amount: 3, required: true },
+      { id: 'gift', name: 'Envoltura de regalo', amount: 5.5, required: false },
+    ])
+    expect(orderFees(fees, [])).toEqual({ lines: [{ name: 'Empaquetado', amount: 3 }], total: 3 })
+    expect(orderFees(fees, ['gift', 'nope'])).toEqual({ lines: [{ name: 'Empaquetado', amount: 3 }, { name: 'Envoltura de regalo', amount: 5.5 }], total: 8.5 })
+    expect(storeSettings({ fees }).fees).toHaveLength(2)
   })
 })

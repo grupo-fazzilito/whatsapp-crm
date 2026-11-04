@@ -130,7 +130,8 @@
       "noConversation": "This order has no conversation, so the customer can't be notified.",
       "cancelReason": "Reason (optional, sent to the customer)",
       "cancelReasonPlaceholder": "E.g. we ran out of stock",
-      "document": "ID"
+      "document": "ID",
+      "shippingOnDelivery": "Shipping: paid by the customer on delivery"
     },
     "timeline": {
       "created": "Order created · {source}",
@@ -314,17 +315,20 @@
       "type": {
         "free": "Free",
         "flat": "Flat price per order",
-        "weight": "By weight"
+        "weight": "By weight",
+        "on_delivery": "Shipping paid at destination"
       },
       "typeHint": {
         "free": "Shipping costs nothing.",
         "flat": "One price per order, no matter how many products.",
-        "weight": "The price depends on the order’s total weight (the products’ weights added up)."
+        "weight": "The price depends on the order’s total weight (the products’ weights added up).",
+        "on_delivery": "The store doesn’t charge for shipping: the customer pays the courier when the order arrives."
       },
       "summary": {
         "free": "Free",
         "flat": "{price} per order",
-        "weight": "{n} weight ranges"
+        "weight": "{n} weight ranges",
+        "on_delivery": "Customer pays shipping on delivery"
       },
       "freeOver": "Free from {amount}",
       "name": "Name",
@@ -358,6 +362,19 @@
       "cancel": "Cancel",
       "saveProfile": "Save profile",
       "typeLegend": "Shipping type"
+    },
+    "fees": {
+      "title": "Extra charges",
+      "description": "Fixed amounts added to the order, such as packaging. If optional, the customer ticks it at checkout.",
+      "empty": "No extra charges.",
+      "add": "Add charge",
+      "name": "Concept",
+      "namePlaceholder": "E.g. Packaging",
+      "amount": "Amount",
+      "required": "Required",
+      "optional": "Optional (customer chooses)",
+      "remove": "Remove charge",
+      "max": "You can have up to {n} charges."
     }
   }
 }

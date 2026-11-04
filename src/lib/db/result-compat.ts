@@ -284,6 +284,7 @@ export const resultCompat = Prisma.defineExtension({
       total: { needs: { total: true }, compute: (r) => r.total.toNumber() },
       paid_at: { needs: { paid_at: true }, compute: (r) => r.paid_at === null ? null : r.paid_at.toISOString() },
       weight_kg: { needs: { weight_kg: true }, compute: (r) => r.weight_kg === null ? null : r.weight_kg.toNumber() },
+      fees_total: { needs: { fees_total: true }, compute: (r) => r.fees_total.toNumber() },
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
     },

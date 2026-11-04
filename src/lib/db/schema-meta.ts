@@ -1110,6 +1110,7 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "total": "decimal",
     "paid_at": "timestamp",
     "weight_kg": "decimal",
+    "fees_total": "decimal",
     "shipping_profiles": {
       "rel": "shipping_profiles"
     },
