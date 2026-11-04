@@ -29,6 +29,7 @@ import {
   Bot,
   Package,
   ShoppingBag,
+  Store,
   ListTodo,
   BarChart3,
   HousePlus,
@@ -113,6 +114,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         ? [{ href: "/business/services", label: label("servicePlural"), icon: BriefcaseBusiness }]
         : []),
     ...(modules.orders ? [{ href: "/orders", label: t("orders.navTitle"), icon: ShoppingBag, badge: pendingOrders }] : []),
+    ...(modules.orders && modules.products ? [{ href: "/store", label: t("store.navTitle"), icon: Store }] : []),
     ...(modules.staff ? [{ href: "/business/staff", label: label("staffPlural"), icon: UserRound }] : []),
     ...(workspace?.industry === "real_estate" ? [{ href: "/captures", label: t("realestate.captures.navTitle"), icon: HousePlus }] : []),
   ];

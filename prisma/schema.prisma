@@ -1410,46 +1410,54 @@ model order_items {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model orders {
-  id                  String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  workspace_id        String           @default(dbgenerated("active_ws()")) @db.Uuid
-  number              BigInt           @default(0)
-  contact_id          String?          @db.Uuid
-  conversation_id     String?          @db.Uuid
-  channel_id          String?          @db.Uuid
-  cart_id             String?          @db.Uuid
-  status              String           @default("pending")
-  fulfillment         String           @default("pickup")
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id        String             @default(dbgenerated("active_ws()")) @db.Uuid
+  number              BigInt             @default(0)
+  contact_id          String?            @db.Uuid
+  conversation_id     String?            @db.Uuid
+  channel_id          String?            @db.Uuid
+  cart_id             String?            @db.Uuid
+  status              String             @default("pending")
+  fulfillment         String             @default("pickup")
   customer_name       String?
   customer_phone      String?
   address             String?
   address_reference   String?
   notes               String?
-  currency            String           @default("USD")
-  subtotal            Decimal          @default(0) @db.Decimal(14, 2)
-  delivery_fee        Decimal          @default(0) @db.Decimal(14, 2)
-  discount            Decimal          @default(0) @db.Decimal(14, 2)
-  total               Decimal          @default(0) @db.Decimal(14, 2)
-  payment_status      String           @default("unpaid")
-  payment_method_id   String?          @db.Uuid
+  currency            String             @default("USD")
+  subtotal            Decimal            @default(0) @db.Decimal(14, 2)
+  delivery_fee        Decimal            @default(0) @db.Decimal(14, 2)
+  discount            Decimal            @default(0) @db.Decimal(14, 2)
+  total               Decimal            @default(0) @db.Decimal(14, 2)
+  payment_status      String             @default("unpaid")
+  payment_method_id   String?            @db.Uuid
   payment_method_name String?
   payment_proof_url   String?
-  paid_at             DateTime?        @db.Timestamptz(6)
-  stock_reserved      Boolean          @default(false)
-  source              String           @default("manual")
-  ai_agent_id         String?          @db.Uuid
-  created_by          String?          @default(dbgenerated("app_user_id()")) @db.Uuid
-  created_at          DateTime?        @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime?        @default(now()) @db.Timestamptz(6)
+  paid_at             DateTime?          @db.Timestamptz(6)
+  stock_reserved      Boolean            @default(false)
+  source              String             @default("manual")
+  ai_agent_id         String?            @db.Uuid
+  customer_email      String?
+  customer_document   String?
+  shipping_profile_id String?            @db.Uuid
+  shipping_name       String?
+  shipping_address    Json?
+  weight_kg           Decimal?           @db.Decimal(10, 3)
+  public_token        String?            @unique
+  shipping_profiles   shipping_profiles? @relation(fields: [shipping_profile_id], references: [id], onUpdate: NoAction)
+  created_by          String?            @default(dbgenerated("app_user_id()")) @db.Uuid
+  created_at          DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?          @default(now()) @db.Timestamptz(6)
   order_events        order_events[]
   order_items         order_items[]
-  ai_agents           ai_agents?       @relation(fields: [ai_agent_id], references: [id], onUpdate: NoAction)
-  carts               carts?           @relation(fields: [cart_id], references: [id], onUpdate: NoAction)
-  channels            channels?        @relation(fields: [channel_id], references: [id], onUpdate: NoAction)
-  contacts            contacts?        @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
-  conversations       conversations?   @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
-  users               users?           @relation(fields: [created_by], references: [id], onUpdate: NoAction)
-  payment_methods     payment_methods? @relation(fields: [payment_method_id], references: [id], onUpdate: NoAction, map: "orders_payment_method_fkey")
-  workspaces          workspaces       @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  ai_agents           ai_agents?         @relation(fields: [ai_agent_id], references: [id], onUpdate: NoAction)
+  carts               carts?             @relation(fields: [cart_id], references: [id], onUpdate: NoAction)
+  channels            channels?          @relation(fields: [channel_id], references: [id], onUpdate: NoAction)
+  contacts            contacts?          @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  conversations       conversations?     @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
+  users               users?             @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  payment_methods     payment_methods?   @relation(fields: [payment_method_id], references: [id], onUpdate: NoAction, map: "orders_payment_method_fkey")
+  workspaces          workspaces         @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([workspace_id, number])
   @@index([conversation_id], map: "idx_orders_conversation")
@@ -1650,6 +1658,7 @@ model product_variants {
   sku          String?
   price        Decimal?      @db.Decimal(14, 2)
   stock        Int?
+  weight_kg    Decimal?      @db.Decimal(10, 3)
   is_active    Boolean       @default(true)
   sort_order   Int           @default(0)
   created_at   DateTime?     @default(now()) @db.Timestamptz(6)
@@ -1690,6 +1699,7 @@ model products {
   external_synced_at     DateTime?                @db.Timestamptz(6)
   external_missing_since DateTime?                @db.Timestamptz(6)
   currency               String?
+  weight_kg              Decimal?                 @db.Decimal(10, 3)
   bookings               bookings[]
   cart_items             cart_items[]
   lead_property_alerts   lead_property_alerts[]
@@ -2324,6 +2334,7 @@ model workspaces {
   orders                        orders[]
   patient_intake                patient_intake[]
   payment_methods               payment_methods[]
+  shipping_profiles             shipping_profiles[]
   pipeline_stages               pipeline_stages[]
   pipelines                     pipelines[]
   portal_connections            portal_connections[]
@@ -2409,4 +2420,23 @@ model platform_webhook_deliveries {
   @@index([created_at], map: "idx_platform_webhook_deliveries_created")
   @@index([next_attempt_at], map: "idx_platform_webhook_deliveries_due", where: raw("(status = 'pending'::text)"))
   @@index([endpoint_id, created_at(sort: Desc)], map: "idx_platform_webhook_deliveries_endpoint")
+}
+
+model shipping_profiles {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @db.Uuid
+  name         String
+  type         String
+  flat_price   Decimal?   @db.Decimal(12, 2)
+  rates        Json       @default("[]")
+  free_over    Decimal?   @db.Decimal(12, 2)
+  eta          String?
+  is_active    Boolean    @default(true)
+  sort_order   Int        @default(0)
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime   @default(now()) @db.Timestamptz(6)
+  orders       orders[]
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id, is_active, sort_order], map: "idx_shipping_profiles_ws")
 }

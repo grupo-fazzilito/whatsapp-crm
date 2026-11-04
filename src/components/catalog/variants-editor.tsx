@@ -17,6 +17,7 @@ export interface VariantDraft {
   sku: string;
   price: string;
   stock: string;
+  weight_kg: string;
   is_active: boolean;
 }
 
@@ -32,12 +33,13 @@ export function toVariantDraft(v: Variant): VariantDraft {
     sku: v.sku ?? '',
     price: v.price != null ? String(v.price) : '',
     stock: v.stock != null ? String(v.stock) : '',
+    weight_kg: v.weight_kg != null ? String(Number(v.weight_kg)) : '',
     is_active: v.is_active,
   };
 }
 
 export function newVariantDraft(): VariantDraft {
-  return { key: nextKey(), name: '', options: [{ k: '', v: '' }], sku: '', price: '', stock: '', is_active: true };
+  return { key: nextKey(), name: '', options: [{ k: '', v: '' }], sku: '', price: '', stock: '', weight_kg: '', is_active: true };
 }
 
 interface Props {
@@ -140,7 +142,7 @@ export function VariantsEditor({ variants, readOnly, currency, trackStock, onCha
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="grid gap-1">
                 <label htmlFor={`${p}-sku`} className="text-xs font-medium text-muted-foreground">
                   SKU
@@ -175,6 +177,21 @@ export function VariantsEditor({ variants, readOnly, currency, trackStock, onCha
                   disabled={readOnly || !trackStock}
                   placeholder={trackStock ? '' : '—'}
                   onChange={(e) => update(v.key, { stock: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-1">
+                <label htmlFor={`${p}-weight`} className="text-xs font-medium text-muted-foreground">
+                  {t('catalog.field.weight')}
+                </label>
+                <Input
+                  id={`${p}-weight`}
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={v.weight_kg}
+                  disabled={readOnly}
+                  placeholder={t('catalog.variants.weightPlaceholder')}
+                  onChange={(e) => update(v.key, { weight_kg: e.target.value })}
                 />
               </div>
             </div>

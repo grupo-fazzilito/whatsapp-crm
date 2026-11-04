@@ -81,7 +81,9 @@
       "active": "Active",
       "activeHint": "Visible to the AI and your customers.",
       "featured": "Featured",
-      "featuredHint": "The AI offers it first."
+      "featuredHint": "The AI offers it first.",
+      "weight": "Weight (kg)",
+      "weightHint": "Used for weight-based shipping in the online store. E.g. 0.25"
     },
     "editor": {
       "description": "The AI uses this data to recommend and answer about this {item}.",
@@ -139,7 +141,8 @@
       "pricePlaceholder": "Same as main",
       "add": "Add variant",
       "remove": "Remove variant {n}",
-      "count": "Variants: {count}"
+      "count": "Variants: {count}",
+      "weightPlaceholder": "Product’s"
     },
     "categories": {
       "button": "Categories",

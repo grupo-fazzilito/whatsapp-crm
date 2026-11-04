@@ -138,6 +138,8 @@ export interface ProductInput {
   tags: string[]
   images: string[]
   attributes: Record<string, unknown>
+  /** Kg, for weight-based shipping. Undefined = leave as it is (callers that don't send it). */
+  weight_kg?: number | null
 }
 
 export interface VariantInput {
@@ -149,6 +151,8 @@ export interface VariantInput {
   stock: number | null
   is_active: boolean
   sort_order: number
+  /** Kg; null = the product's weight. Undefined = leave as it is. */
+  weight_kg?: number | null
 }
 
 export function parseProduct(raw: unknown): ProductInput | null {
@@ -167,6 +171,8 @@ export function parseProduct(raw: unknown): ProductInput | null {
   if (!Array.isArray(raw.images) || raw.images.length > MAX_IMAGES || !raw.images.every((u) => typeof u === 'string' && u.length > 0 && u.length <= 2000)) return null
   if (!Array.isArray(raw.tags) || !raw.tags.every((t) => typeof t === 'string')) return null
   if (raw.attributes !== undefined && !isPlainObject(raw.attributes)) return null
+  const weight = 'weight_kg' in raw ? num(raw.weight_kg) : undefined
+  if ('weight_kg' in raw && (weight === undefined || (weight !== null && (weight < 0 || weight > 100_000)))) return null
   return {
     name,
     description: str(raw.description, 5000),
@@ -182,6 +188,7 @@ export function parseProduct(raw: unknown): ProductInput | null {
     tags: [...new Set((raw.tags as string[]).map((t) => t.trim().slice(0, 40)).filter(Boolean))].slice(0, MAX_TAGS),
     images: raw.images as string[],
     attributes: (raw.attributes as Record<string, unknown>) ?? {},
+    ...(weight !== undefined ? { weight_kg: weight === null ? null : Math.round(weight * 1000) / 1000 } : {}),
   }
 }
 
@@ -197,6 +204,8 @@ export function parseVariants(raw: unknown): VariantInput[] | null {
     if (!name || price === undefined || (price !== null && price < 0)) return null
     if (stock === undefined || (stock !== null && (!Number.isInteger(stock) || stock < 0))) return null
     if (v.id != null && (typeof v.id !== 'string' || !isUuid(v.id))) return null
+    const weight = 'weight_kg' in v ? num(v.weight_kg) : undefined
+    if ('weight_kg' in v && (weight === undefined || (weight !== null && (weight < 0 || weight > 100_000)))) return null
     const options: Record<string, string> = {}
     if (isPlainObject(v.options)) for (const [k, val] of Object.entries(v.options)) if (typeof val === 'string') options[k.slice(0, 60)] = val.slice(0, 120)
     out.push({
@@ -208,6 +217,7 @@ export function parseVariants(raw: unknown): VariantInput[] | null {
       stock,
       is_active: v.is_active !== false,
       sort_order: typeof v.sort_order === 'number' && Number.isInteger(v.sort_order) ? v.sort_order : i,
+      ...(weight !== undefined ? { weight_kg: weight === null ? null : Math.round(weight * 1000) / 1000 } : {}),
     })
   }
   return out
@@ -269,7 +279,7 @@ export async function saveProduct(
   const removed = removedVariantIds.filter((v) => known.has(v))
   if (removed.length) await db.product_variants.deleteMany({ where: { id: { in: removed }, product_id: id } })
   for (const v of variants) {
-    const row = { name: v.name, options: v.options, sku: v.sku, price: v.price, stock: product.track_stock ? v.stock : null, is_active: v.is_active, sort_order: v.sort_order }
+    const row = { name: v.name, options: v.options, sku: v.sku, price: v.price, stock: product.track_stock ? v.stock : null, is_active: v.is_active, sort_order: v.sort_order, ...(v.weight_kg !== undefined ? { weight_kg: v.weight_kg } : {}) }
     if (v.id) {
       if (!known.has(v.id)) return { ok: false, error: 'invalid_variant', status: 400 }
       await db.product_variants.updateMany({ where: { id: v.id, product_id: id }, data: row })

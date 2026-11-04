@@ -47,7 +47,8 @@
       "ai": "Asistente IA",
       "chat_buttons": "Botones del chat",
       "manual": "Registrado por el equipo",
-      "webchat": "Chat web"
+      "webchat": "Chat web",
+      "store": "Tienda online"
     },
     "channel": {
       "whatsapp": "WhatsApp",
@@ -128,7 +129,8 @@
       "notify": "Notificar al cliente",
       "noConversation": "Este pedido no tiene conversación, no se puede notificar al cliente.",
       "cancelReason": "Motivo (opcional, se envía al cliente)",
-      "cancelReasonPlaceholder": "Ej.: nos quedamos sin stock"
+      "cancelReasonPlaceholder": "Ej.: nos quedamos sin stock",
+      "document": "Documento"
     },
     "timeline": {
       "created": "Pedido creado · {source}",
@@ -243,6 +245,119 @@
       "deleteDescription": "«{name}» dejará de mostrarse a los clientes. Los pedidos anteriores conservan su nombre.",
       "deleteConfirm": "Eliminar",
       "deleted": "Método de pago eliminado"
+    }
+  },
+  "store": {
+    "navTitle": "Tienda online",
+    "title": "Tienda online",
+    "description": "Tu catálogo como tienda web: tus clientes arman su carrito, completan sus datos y el pedido llega a Pedidos.",
+    "tabs": {
+      "general": "General",
+      "shipping": "Envíos"
+    },
+    "readOnly": "Solo los administradores pueden cambiar la tienda.",
+    "publish": {
+      "title": "Publicar tienda",
+      "on": "Tu tienda está publicada",
+      "off": "Tu tienda no está publicada",
+      "hint": "Mientras no la publiques, solo tu equipo puede verla (vista previa).",
+      "done": "Tienda publicada",
+      "hidden": "Tienda despublicada"
+    },
+    "link": "Enlace de tu tienda",
+    "open": "Abrir tienda",
+    "preview": "Ver vista previa",
+    "ready": {
+      "title": "Para publicar tu tienda falta:",
+      "ordersModule": "Activar los pedidos (Configuración del negocio → Pedidos y pagos).",
+      "shipping": "Un perfil de envío activo o el recojo en tienda.",
+      "payment": "Un método de pago activo (Configuración del negocio → Pedidos y pagos).",
+      "products": "Al menos un producto activo con precio.",
+      "goShipping": "Crear perfil de envío",
+      "goSetup": "Ir a Configuración del negocio",
+      "goCatalog": "Ir al catálogo"
+    },
+    "look": {
+      "title": "Aspecto",
+      "tagline": "Frase de la tienda",
+      "taglinePlaceholder": "Ej. Ropa hecha a mano en Lima",
+      "banner": "Imagen de portada",
+      "bannerHint": "Horizontal, por ejemplo 1600 × 400 px.",
+      "upload": "Subir imagen",
+      "remove": "Quitar",
+      "accent": "Color principal",
+      "whatsapp": "WhatsApp de la tienda",
+      "whatsappHint": "Con código de país, ej. 51987654321. Si lo dejas vacío usamos el teléfono del negocio."
+    },
+    "pickup": {
+      "title": "Recojo en tienda",
+      "enable": "Permitir que el cliente recoja su pedido",
+      "address": "Dirección de recojo",
+      "addressPlaceholder": "Ej. Av. Larco 123, Miraflores (lunes a sábado, 10 a 7)"
+    },
+    "checkoutNote": "Nota en el checkout",
+    "checkoutNotePlaceholder": "Ej. Despachamos de lunes a viernes.",
+    "save": "Guardar",
+    "saved": "Tienda guardada",
+    "error": "No se pudo guardar.",
+    "shipping": {
+      "title": "Perfiles de envío",
+      "description": "Define cuánto cuesta el envío. El cliente elige uno en el checkout.",
+      "add": "Nuevo perfil",
+      "empty": "Aún no tienes perfiles de envío. Crea al menos uno (o activa el recojo en tienda) para publicar tu tienda.",
+      "inactive": "Inactivo",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "deleteConfirm": "¿Eliminar el perfil «{name}»?",
+      "deleted": "Perfil eliminado",
+      "saved": "Perfil guardado",
+      "type": {
+        "free": "Gratis",
+        "flat": "Precio fijo por envío",
+        "weight": "Por peso"
+      },
+      "typeHint": {
+        "free": "El envío no tiene costo.",
+        "flat": "Un solo precio por pedido, sin importar cuántos productos lleve.",
+        "weight": "El precio depende del peso total del pedido (suma de los pesos de los productos)."
+      },
+      "summary": {
+        "free": "Gratis",
+        "flat": "{price} por envío",
+        "weight": "{n} rangos de peso"
+      },
+      "freeOver": "Gratis desde {amount}",
+      "name": "Nombre",
+      "namePlaceholder": "Ej. Lima Metropolitana",
+      "price": "Precio del envío",
+      "eta": "Tiempo de entrega (opcional)",
+      "etaPlaceholder": "Ej. 24 a 48 horas",
+      "freeOverLabel": "Envío gratis desde (opcional)",
+      "freeOverHint": "Si el subtotal llega a este monto, el envío es gratis.",
+      "active": "Activo",
+      "rates": "Rangos de peso",
+      "upTo": "Hasta (kg)",
+      "andAbove": "y más",
+      "ratePrice": "Precio",
+      "addRate": "Agregar rango",
+      "removeRate": "Quitar rango",
+      "ratesHint": "Deja vacío el «hasta» del último rango para cubrir cualquier peso mayor. Si no, los pedidos más pesados no podrán usar este envío.",
+      "from": "Desde {kg} kg",
+      "missingWeight": "{n} productos activos no tienen peso: cuentan como 0 kg en los envíos por peso.",
+      "fixWeights": "Revisar en el catálogo",
+      "errors": {
+        "name": "Escribe un nombre.",
+        "type": "Elige un tipo.",
+        "flat_price": "Escribe el precio del envío.",
+        "rates": "Revisa los rangos: cada uno necesita un precio y un peso mayor a 0.",
+        "rate_order": "Los rangos deben ir de menor a mayor, y solo el último puede quedar sin límite.",
+        "free_over": "El monto para envío gratis no es válido.",
+        "last_profile": "Tu tienda está publicada y este es su único envío. Crea otro o activa el recojo antes.",
+        "too_many": "Llegaste al máximo de perfiles."
+      },
+      "cancel": "Cancelar",
+      "saveProfile": "Guardar perfil",
+      "typeLegend": "Tipo de envío"
     }
   }
 }

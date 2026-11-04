@@ -283,6 +283,7 @@ export const resultCompat = Prisma.defineExtension({
       discount: { needs: { discount: true }, compute: (r) => r.discount.toNumber() },
       total: { needs: { total: true }, compute: (r) => r.total.toNumber() },
       paid_at: { needs: { paid_at: true }, compute: (r) => r.paid_at === null ? null : r.paid_at.toISOString() },
+      weight_kg: { needs: { weight_kg: true }, compute: (r) => r.weight_kg === null ? null : r.weight_kg.toNumber() },
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
     },
@@ -328,6 +329,7 @@ export const resultCompat = Prisma.defineExtension({
     },
     product_variants: {
       price: { needs: { price: true }, compute: (r) => r.price === null ? null : r.price.toNumber() },
+      weight_kg: { needs: { weight_kg: true }, compute: (r) => r.weight_kg === null ? null : r.weight_kg.toNumber() },
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
     },
@@ -338,6 +340,7 @@ export const resultCompat = Prisma.defineExtension({
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
       external_synced_at: { needs: { external_synced_at: true }, compute: (r) => r.external_synced_at === null ? null : r.external_synced_at.toISOString() },
       external_missing_since: { needs: { external_missing_since: true }, compute: (r) => r.external_missing_since === null ? null : r.external_missing_since.toISOString() },
+      weight_kg: { needs: { weight_kg: true }, compute: (r) => r.weight_kg === null ? null : r.weight_kg.toNumber() },
     },
     profiles: {
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
@@ -463,6 +466,12 @@ export const resultCompat = Prisma.defineExtension({
     platform_webhook_deliveries: {
       next_attempt_at: { needs: { next_attempt_at: true }, compute: (r) => r.next_attempt_at === null ? null : r.next_attempt_at.toISOString() },
       last_attempt_at: { needs: { last_attempt_at: true }, compute: (r) => r.last_attempt_at === null ? null : r.last_attempt_at.toISOString() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
+    shipping_profiles: {
+      flat_price: { needs: { flat_price: true }, compute: (r) => r.flat_price === null ? null : r.flat_price.toNumber() },
+      free_over: { needs: { free_over: true }, compute: (r) => r.free_over === null ? null : r.free_over.toNumber() },
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
     },

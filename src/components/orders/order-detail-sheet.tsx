@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Ban, CheckCircle2, ExternalLink, ImageOff, Loader2, MessageSquare, Phone } from 'lucide-react';
+import { Ban, CheckCircle2, ExternalLink, ImageOff, Loader2, Mail, MessageSquare, Phone } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { formatMoney, moneyLocale } from '@/lib/workspace/countries';
@@ -214,6 +214,17 @@ function DetailBody({ orderId, refreshKey, onChanged }: { orderId: string; refre
               {phone}
             </a>
           )}
+          {order.customer_email && (
+            <a href={`mailto:${order.customer_email}`} className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+              <Mail className="size-3.5" />
+              {order.customer_email}
+            </a>
+          )}
+          {order.customer_document && (
+            <p className="text-sm text-muted-foreground">
+              {t('orders.detail.document')}: {order.customer_document}
+            </p>
+          )}
           {order.conversation_id && (
             <Link href={`/inbox?c=${order.conversation_id}`} className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary hover:underline">
               <MessageSquare className="size-3.5" />
@@ -225,7 +236,11 @@ function DetailBody({ orderId, refreshKey, onChanged }: { orderId: string; refre
         {/* Fulfillment */}
         <section className="grid gap-1">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('orders.detail.fulfillment')}</h3>
-          <p className="text-sm text-foreground">{t(`orders.fulfillment.${order.fulfillment}`)}</p>
+          <p className="text-sm text-foreground">
+            {t(`orders.fulfillment.${order.fulfillment}`)}
+            {order.shipping_name ? ` · ${order.shipping_name}` : ''}
+            {order.weight_kg != null && Number(order.weight_kg) > 0 ? ` · ${Number(order.weight_kg)} kg` : ''}
+          </p>
           {order.address && <p className="text-sm text-foreground">{order.address}</p>}
           {order.address_reference && (
             <p className="text-sm text-muted-foreground">

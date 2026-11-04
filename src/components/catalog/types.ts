@@ -27,6 +27,8 @@ export interface Product {
   sku: string | null;
   stock: number | null;
   track_stock: boolean;
+  /** Kg, for weight-based shipping (decimal; may arrive as a string). */
+  weight_kg?: number | string | null;
   images: string[];
   tags: string[];
   attributes: Record<string, AttributeValue>;
@@ -45,6 +47,8 @@ export interface Variant {
   sku: string | null;
   price: number | null;
   stock: number | null;
+  /** Kg; null = the product's weight. */
+  weight_kg?: number | string | null;
   is_active: boolean;
   sort_order: number;
 }
