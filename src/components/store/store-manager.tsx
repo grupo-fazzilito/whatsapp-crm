@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { AlertTriangle, CheckCircle2, ExternalLink, ImagePlus, Loader2, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ExternalLink, ImagePlus, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { uploadFile } from '@/lib/storage/client';
-import type { ReadinessKey, StoreReadiness, StoreSettings } from '@/lib/store/settings';
+import { MAX_FEES, type ReadinessKey, type StoreFee, type StoreReadiness, type StoreSettings } from '@/lib/store/settings';
 import { LoadingBlock, Notice, PageHeader } from '@/components/business/shared';
 import { CopyField } from '@/components/channels/copy-field';
 import { ShippingProfiles } from './shipping-profiles';
@@ -253,6 +253,8 @@ function GeneralTab({ state, readOnly, onSaved, onGoShipping }: { state: StoreSt
           </div>
         </section>
 
+        <FeesEditor fees={form.fees} readOnly={readOnly} onChange={(fees) => setForm({ ...form, fees })} />
+
         {!readOnly && (
           <Button type="submit" disabled={saving}>
             {saving && <Loader2 className="size-4 animate-spin" aria-hidden />}
@@ -261,5 +263,68 @@ function GeneralTab({ state, readOnly, onSaved, onGoShipping }: { state: StoreSt
         )}
       </form>
     </div>
+  );
+}
+
+const newFeeId = () => Math.random().toString(36).slice(2, 10);
+
+/** Packaging, gift wrap…: a fixed amount per order, required or picked by the customer. */
+function FeesEditor({ fees, readOnly, onChange }: { fees: StoreFee[]; readOnly: boolean; onChange: (fees: StoreFee[]) => void }) {
+  const t = useT();
+  // Amounts are edited as text so "3." can be typed; saved as numbers.
+  const [amounts, setAmounts] = useState<Record<string, string>>(() => Object.fromEntries(fees.map((f) => [f.id, String(f.amount)])));
+  const update = (id: string, patch: Partial<StoreFee>) => onChange(fees.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  return (
+    <section className={card} aria-labelledby="store-fees">
+      <div>
+        <h2 id="store-fees" className="text-base font-semibold">{t('store.fees.title')}</h2>
+        <p className="text-sm text-muted-foreground">{t('store.fees.description')}</p>
+      </div>
+      {fees.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t('store.fees.empty')}</p>
+      ) : (
+        <ul className="grid gap-3">
+          {fees.map((f, i) => (
+            <li key={f.id} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[1fr_140px_230px_auto] sm:items-end">
+              <div className="grid gap-1.5">
+                <Label htmlFor={`fee-name-${f.id}`}>{t('store.fees.name')}</Label>
+                <Input id={`fee-name-${f.id}`} maxLength={40} disabled={readOnly} value={f.name} placeholder={t('store.fees.namePlaceholder')} onChange={(e) => update(f.id, { name: e.target.value })} />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor={`fee-amount-${f.id}`}>{t('store.fees.amount')}</Label>
+                <Input
+                  id={`fee-amount-${f.id}`}
+                  inputMode="decimal"
+                  disabled={readOnly}
+                  value={amounts[f.id] ?? String(f.amount || '')}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(',', '.');
+                    setAmounts((a) => ({ ...a, [f.id]: v }));
+                    update(f.id, { amount: Number(v) || 0 });
+                  }}
+                />
+              </div>
+              <label className="flex items-center gap-2 pb-2 text-sm">
+                <Switch checked={f.required} disabled={readOnly} onCheckedChange={(v) => update(f.id, { required: !!v })} aria-label={`${t('store.fees.required')}: ${f.name || i + 1}`} />
+                {f.required ? t('store.fees.required') : t('store.fees.optional')}
+              </label>
+              {!readOnly && (
+                <Button type="button" variant="ghost" size="icon-sm" className="mb-1" aria-label={`${t('store.fees.remove')}: ${f.name || i + 1}`} onClick={() => onChange(fees.filter((x) => x.id !== f.id))}>
+                  <X className="size-4" aria-hidden />
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {!readOnly &&
+        (fees.length < MAX_FEES ? (
+          <Button type="button" variant="outline" size="sm" onClick={() => onChange([...fees, { id: newFeeId(), name: '', amount: 0, required: true }])}>
+            <Plus className="size-4" aria-hidden /> {t('store.fees.add')}
+          </Button>
+        ) : (
+          <p className="text-xs text-muted-foreground">{t('store.fees.max', { n: MAX_FEES })}</p>
+        ))}
+    </section>
   );
 }

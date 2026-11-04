@@ -23,6 +23,8 @@ export interface CheckoutInput {
   address: CheckoutAddress | null
   payment_method_id: string
   notes: string | null
+  /** Optional extra charges the customer ticked (ids from the store settings). */
+  fee_ids: string[]
 }
 
 export type CheckoutError =
@@ -116,6 +118,7 @@ export function parseCheckoutInput(body: Record<string, unknown> | null, dialCod
       address,
       payment_method_id,
       notes: text(body.notes, 500) || null,
+      fee_ids: Array.isArray(body.fee_ids) ? (body.fee_ids as unknown[]).filter((x): x is string => typeof x === 'string' && x.length <= 16).slice(0, 10) : [],
     },
   }
 }

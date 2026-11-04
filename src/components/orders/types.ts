@@ -47,6 +47,10 @@ export interface OrderRow {
   customer_document?: string | null;
   shipping_name?: string | null;
   weight_kg?: number | string | null;
+  shipping_on_delivery?: boolean;
+  /** Store extra charges (packaging…), included in total. */
+  extra_fees?: { name: string; amount: number | string }[];
+  fees_total?: number | string;
   created_at: string;
   updated_at: string;
   contact?: { name: string | null; phone: string | null } | null;

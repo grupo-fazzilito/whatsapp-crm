@@ -11,7 +11,7 @@ import { cartCurrencyConflict } from '@/lib/catalog/currency'
 import { phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { emailConfigured, sendEmail } from '@/lib/email/send'
 import type { WorkspaceSettings } from '@/lib/workspace/types'
-import { storeSettings, type StoreReadiness, type StoreSettings } from './settings'
+import { orderFees, storeSettings, type StoreReadiness, type StoreSettings } from './settings'
 import { orderWeight, quoteShipping, toShippingProfile, type ShippingProfile } from './shipping'
 import { addressLine, type CheckoutInput, type CheckoutItem } from './checkout'
 
@@ -314,9 +314,11 @@ export async function placeStoreOrder(store: PublicStore, input: CheckoutInput):
   const minOrder = Math.max(0, Number((ws.settings?.orders as { min_order?: number } | undefined)?.min_order ?? 0) || 0)
   if (minOrder && priced.subtotal < minOrder) return { ok: false, error: 'min_order' }
 
+  const fees = orderFees(store.store.fees, input.fee_ids)
+  const onDelivery = profile?.type === 'on_delivery'
   const contactId = await contactFor(ws.id, input.customer.name, input.customer.phone, input.customer.email)
   const token = crypto.randomBytes(18).toString('base64url')
-  const total = round2(priced.subtotal + fee)
+  const total = round2(priced.subtotal + fee + fees.total)
   const order = await db.orders.create({
     data: {
       workspace_id: ws.id,
@@ -336,6 +338,9 @@ export async function placeStoreOrder(store: PublicStore, input: CheckoutInput):
       currency: ws.currency,
       subtotal: priced.subtotal,
       delivery_fee: fee,
+      shipping_on_delivery: onDelivery,
+      extra_fees: fees.lines,
+      fees_total: fees.total,
       total,
       payment_method_id: payment.id,
       payment_method_name: payment.name,
@@ -366,7 +371,7 @@ export async function placeStoreOrder(store: PublicStore, input: CheckoutInput):
   const number = Number(order.number)
   await notifyTeam(ws, order.id, number, input.customer.name, total).catch((err) => console.error('[store] notify failed:', err instanceof Error ? err.message : err))
   if (input.customer.email) {
-    await emailCustomer(store, input, { number, token, total, fee, subtotal: priced.subtotal, lines: priced.lines, payment }).catch((err) =>
+    await emailCustomer(store, input, { number, token, total, fee, onDelivery, fees: fees.lines, subtotal: priced.subtotal, lines: priced.lines, payment }).catch((err) =>
       console.error('[store] email failed:', err instanceof Error ? err.message : err),
     )
   }
@@ -400,7 +405,7 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 async function emailCustomer(
   store: PublicStore,
   input: CheckoutInput,
-  o: { number: number; token: string; total: number; fee: number; subtotal: number; lines: PricedLine[]; payment: StorePaymentMethod },
+  o: { number: number; token: string; total: number; fee: number; onDelivery: boolean; fees: { name: string; amount: number }[]; subtotal: number; lines: PricedLine[]; payment: StorePaymentMethod },
 ) {
   if (!emailConfigured() || !input.customer.email) return
   const ws = store.workspace
@@ -412,13 +417,16 @@ async function emailCustomer(
     .map((l) => `<tr><td style="padding:4px 0">${l.quantity} × ${esc(l.variantName ? `${l.name} (${l.variantName})` : l.name)}</td><td style="padding:4px 0;text-align:right">${esc(money(l.unitPrice * l.quantity))}</td></tr>`)
     .join('')
   const t = en
-    ? { subject: `Your order #${o.number} at ${ws.name}`, hi: `Hi ${input.customer.name}, we received your order.`, ship: 'Shipping', total: 'Total', pay: 'Payment', view: 'See your order and how to pay' }
-    : { subject: `Tu pedido #${o.number} en ${ws.name}`, hi: `Hola ${input.customer.name}, recibimos tu pedido.`, ship: 'Envío', total: 'Total', pay: 'Pago', view: 'Ver tu pedido y cómo pagar' }
+    ? { subject: `Your order #${o.number} at ${ws.name}`, hi: `Hi ${input.customer.name}, we received your order.`, ship: 'Shipping', onDelivery: 'paid on delivery', total: 'Total', pay: 'Payment', view: 'See your order and how to pay' }
+    : { subject: `Tu pedido #${o.number} en ${ws.name}`, hi: `Hola ${input.customer.name}, recibimos tu pedido.`, ship: 'Envío', onDelivery: 'se paga en destino', total: 'Total', pay: 'Pago', view: 'Ver tu pedido y cómo pagar' }
+  const feeRows = o.fees
+    .map((f) => `<tr><td style="padding:4px 0">${esc(f.name)}</td><td style="padding:4px 0;text-align:right">${esc(money(f.amount))}</td></tr>`)
+    .join('')
   const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0f172a">
 <h2 style="margin:0 0 8px">${esc(ws.name)} · #${o.number}</h2>
 <p>${esc(t.hi)}</p>
 <table style="width:100%;border-collapse:collapse;font-size:14px">${rows}
-<tr><td style="padding:4px 0;border-top:1px solid #e2e8f0">${t.ship}</td><td style="padding:4px 0;text-align:right;border-top:1px solid #e2e8f0">${esc(money(o.fee))}</td></tr>
+<tr><td style="padding:4px 0;border-top:1px solid #e2e8f0">${t.ship}</td><td style="padding:4px 0;text-align:right;border-top:1px solid #e2e8f0">${o.onDelivery ? t.onDelivery : esc(money(o.fee))}</td></tr>${feeRows}
 <tr><td style="padding:4px 0"><b>${t.total}</b></td><td style="padding:4px 0;text-align:right"><b>${esc(money(o.total))}</b></td></tr></table>
 <p>${t.pay}: ${esc(o.payment.name)}${o.payment.instructions ? `<br>${esc(o.payment.instructions)}` : ''}</p>
 <p><a href="${esc(link)}" style="display:inline-block;background:${store.store.accent};color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">${t.view}</a></p>
@@ -439,6 +447,8 @@ export interface PublicOrder {
   shipping_name: string | null
   subtotal: number
   delivery_fee: number
+  shipping_on_delivery: boolean
+  fees: { name: string; amount: number }[]
   total: number
   created_at: string | null
   items: { name: string; quantity: number; total: number }[]
@@ -460,6 +470,8 @@ export async function loadPublicOrder(store: PublicStore, token: string): Promis
       shipping_name: true,
       subtotal: true,
       delivery_fee: true,
+      shipping_on_delivery: true,
+      extra_fees: true,
       total: true,
       created_at: true,
       payment_method_id: true,
@@ -484,6 +496,8 @@ export async function loadPublicOrder(store: PublicStore, token: string): Promis
     shipping_name: o.shipping_name,
     subtotal: Number(o.subtotal),
     delivery_fee: Number(o.delivery_fee),
+    shipping_on_delivery: o.shipping_on_delivery,
+    fees: Array.isArray(o.extra_fees) ? (o.extra_fees as { name: string; amount: number }[]).map((f) => ({ name: String(f.name), amount: Number(f.amount) || 0 })) : [],
     total: Number(o.total),
     created_at: o.created_at ? new Date(o.created_at).toISOString() : null,
     items: o.order_items.map((i) => ({ name: i.name, quantity: i.quantity, total: Number(i.total) })),

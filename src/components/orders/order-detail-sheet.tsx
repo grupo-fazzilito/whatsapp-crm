@@ -285,6 +285,18 @@ function DetailBody({ orderId, refreshKey, onChanged }: { orderId: string; refre
                 <dd className="tabular-nums">{money(order.delivery_fee)}</dd>
               </div>
             )}
+            {order.shipping_on_delivery && (
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">{t('orders.detail.shippingOnDelivery')}</dt>
+                <dd />
+              </div>
+            )}
+            {(order.extra_fees ?? []).map((f, i) => (
+              <div key={i} className="flex justify-between">
+                <dt className="text-muted-foreground">{f.name}</dt>
+                <dd className="tabular-nums">{money(Number(f.amount))}</dd>
+              </div>
+            ))}
             {Number(order.discount) > 0 && (
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">{t('orders.detail.discount')}</dt>

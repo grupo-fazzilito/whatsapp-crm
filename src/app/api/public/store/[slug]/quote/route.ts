@@ -30,7 +30,7 @@ export async function POST(request: Request, { params }: Ctx) {
     weight_kg: priced.weightKg,
     shipping: shipping.map((p) => {
       const q = quoteShipping(p, priced.subtotal, priced.weightKg)
-      return { id: p.id, fee: q.ok ? q.fee : null, free_reason: q.ok ? q.freeReason : null }
+      return { id: p.id, fee: q.ok ? q.fee : null, free_reason: q.ok ? q.freeReason : null, on_delivery: q.ok && !!q.onDelivery }
     }),
   })
 }

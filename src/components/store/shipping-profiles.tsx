@@ -56,10 +56,12 @@ export function ShippingProfiles({ readOnly, missingWeight, onChanged }: Props) 
     const base =
       p.type === 'free'
         ? t('store.shipping.summary.free')
-        : p.type === 'flat'
+        : p.type === 'on_delivery'
+          ? t('store.shipping.summary.on_delivery')
+          : p.type === 'flat'
           ? t('store.shipping.summary.flat', { price: money(p.flat_price ?? 0) })
           : t('store.shipping.summary.weight', { n: p.rates.length });
-    return [base, p.free_over !== null && p.type !== 'free' ? t('store.shipping.freeOver', { amount: money(p.free_over) }) : null, p.eta].filter(Boolean).join(' · ');
+    return [base, p.free_over !== null && p.type !== 'free' && p.type !== 'on_delivery' ? t('store.shipping.freeOver', { amount: money(p.free_over) }) : null, p.eta].filter(Boolean).join(' · ');
   };
 
   return (
@@ -186,7 +188,7 @@ function ShippingEditor({ profile, currency, onClose, onSaved }: { profile: Ship
       type,
       flat_price: type === 'flat' ? flat : null,
       rates: type === 'weight' ? rates.map((r) => ({ up_to_kg: r.up_to_kg.trim() === '' ? null : r.up_to_kg, price: r.price })) : [],
-      free_over: type === 'free' ? null : freeOver,
+      free_over: type === 'free' || type === 'on_delivery' ? null : freeOver,
       eta,
       is_active: active,
       sort_order: profile?.sort_order ?? 0,
@@ -204,7 +206,7 @@ function ShippingEditor({ profile, currency, onClose, onSaved }: { profile: Ship
     } else setError(t(`store.shipping.errors.${data?.error ?? 'name'}`));
   };
 
-  const types: ShippingType[] = ['free', 'flat', 'weight'];
+  const types: ShippingType[] = ['flat', 'weight', 'free', 'on_delivery'];
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
@@ -221,7 +223,7 @@ function ShippingEditor({ profile, currency, onClose, onSaved }: { profile: Ship
 
           <fieldset className="grid gap-2">
             <legend className="mb-1 text-sm font-medium">{t('store.shipping.typeLegend')}</legend>
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2">
               {types.map((k) => (
                 <label key={k} className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm ${type === k ? 'border-primary bg-primary/5' : 'border-border hover:bg-accent'}`}>
                   <input type="radio" name="sp-type" value={k} checked={type === k} onChange={() => setType(k)} className="accent-[var(--primary)]" />
@@ -274,7 +276,7 @@ function ShippingEditor({ profile, currency, onClose, onSaved }: { profile: Ship
             </fieldset>
           )}
 
-          {type !== 'free' && (
+          {type !== 'free' && type !== 'on_delivery' && (
             <div className="grid gap-1.5 sm:w-1/2">
               <Label htmlFor="sp-free">{t('store.shipping.freeOverLabel')} ({currency})</Label>
               <Input id="sp-free" inputMode="decimal" value={freeOver} onChange={(e) => setFreeOver(e.target.value.replace(',', '.'))} aria-describedby="sp-free-hint" />

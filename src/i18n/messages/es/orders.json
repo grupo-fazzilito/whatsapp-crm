@@ -130,7 +130,8 @@
       "noConversation": "Este pedido no tiene conversación, no se puede notificar al cliente.",
       "cancelReason": "Motivo (opcional, se envía al cliente)",
       "cancelReasonPlaceholder": "Ej.: nos quedamos sin stock",
-      "document": "Documento"
+      "document": "Documento",
+      "shippingOnDelivery": "Envío: lo paga el cliente al recibir"
     },
     "timeline": {
       "created": "Pedido creado · {source}",
@@ -314,17 +315,20 @@
       "type": {
         "free": "Gratis",
         "flat": "Precio fijo por envío",
-        "weight": "Por peso"
+        "weight": "Por peso",
+        "on_delivery": "Pago de envío en destino"
       },
       "typeHint": {
         "free": "El envío no tiene costo.",
         "flat": "Un solo precio por pedido, sin importar cuántos productos lleve.",
-        "weight": "El precio depende del peso total del pedido (suma de los pesos de los productos)."
+        "weight": "El precio depende del peso total del pedido (suma de los pesos de los productos).",
+        "on_delivery": "La tienda no cobra el envío: el cliente se lo paga al courier o a la agencia cuando recibe el pedido."
       },
       "summary": {
         "free": "Gratis",
         "flat": "{price} por envío",
-        "weight": "{n} rangos de peso"
+        "weight": "{n} rangos de peso",
+        "on_delivery": "El cliente paga el envío al recibir"
       },
       "freeOver": "Gratis desde {amount}",
       "name": "Nombre",
@@ -358,6 +362,19 @@
       "cancel": "Cancelar",
       "saveProfile": "Guardar perfil",
       "typeLegend": "Tipo de envío"
+    },
+    "fees": {
+      "title": "Cargos adicionales",
+      "description": "Montos fijos que se suman al pedido, como el empaquetado. Si es opcional, el cliente lo marca en el checkout.",
+      "empty": "Sin cargos adicionales.",
+      "add": "Agregar cargo",
+      "name": "Concepto",
+      "namePlaceholder": "Ej. Empaquetado",
+      "amount": "Monto",
+      "required": "Obligatorio",
+      "optional": "Opcional (el cliente lo elige)",
+      "remove": "Quitar cargo",
+      "max": "Puedes tener hasta {n} cargos."
     }
   }
 }
