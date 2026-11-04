@@ -112,7 +112,8 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 
 - [x] Bot de Telegram como canal (Bot API oficial, gratis): el negocio pega el token de @BotFather en Canales → Telegram; texto, fotos, archivos, botones, carrusel, ubicación, agente de IA y bandeja — 🤖 (2026-11-03)
 - [x] Pedir el número con el botón "Compartir mi número" de Telegram después de un pedido o una reserva por chat, si el contacto no tiene teléfono — 🤖
-- [ ] **Telegram Business**: que el bot conteste los chats de la cuenta personal del negocio (updates `business_connection` / `business_message`; el dueño necesita Telegram Premium) — 🤖
+- [x] **Telegram Business**: el bot contesta los chats de la cuenta personal del dueño (Telegram Premium) como un canal aparte «Cuenta personal»; lo que el dueño escribe desde su app se ve en la Bandeja y pausa a la IA; botón «Actualizar conexión» para bots conectados antes — 🤖 (2026-11-04)
+- [ ] Probar Telegram Business con una cuenta Premium real — 🧑
 - [ ] Difusiones por Telegram (a quien ya le escribió al bot), con límites para evitar spam — 🤖
 - [ ] Unir el contacto de Telegram con el de WhatsApp cuando el cliente comparte un número que ya existe (hoy solo se guarda el número en el contacto de Telegram) — 🤖
 - [ ] Probar con un bot real en producción (crear uno en @BotFather y conectarlo) — 🧑

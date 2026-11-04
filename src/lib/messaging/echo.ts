@@ -1,6 +1,7 @@
 import 'server-only'
 import { tenantDb } from '@/lib/db/tenant'
 import { waMediaProxyUrl, type CoexBatch, type CoexMessage } from '@/lib/channels/parsers/whatsapp'
+import { TG_FILE_PREFIX } from '@/lib/channels/parsers/telegram'
 import type { LoadedChannel } from '@/lib/channels'
 import { findOrCreateContact, findOrCreateConversation } from './ingest'
 
@@ -41,13 +42,15 @@ const PHONE_STATUS: Record<string, 'sent' | 'delivered' | 'read'> = {
 
 export function mediaUrlFor(channelId: string, url: string | null | undefined): string | null {
   if (!url) return null
-  return url.startsWith('wa-media:') ? waMediaProxyUrl(channelId, url.slice('wa-media:'.length)) : url
+  if (url.startsWith('wa-media:')) return waMediaProxyUrl(channelId, url.slice('wa-media:'.length))
+  if (url.startsWith(TG_FILE_PREFIX)) return waMediaProxyUrl(channelId, url.slice(TG_FILE_PREFIX.length))
+  return url
 }
 
 /** messages row for a mirrored message (no ids that need DB lookups). */
 export function coexMessageRow(
   m: CoexMessage,
-  ctx: { workspaceId: string; conversationId: string; channelId: string; history: boolean },
+  ctx: { workspaceId: string; conversationId: string; channelId: string; history: boolean; source?: string },
 ) {
   const status = m.fromBusiness ? (PHONE_STATUS[m.phoneStatus ?? ''] ?? (ctx.history ? 'delivered' : 'sent')) : ctx.history ? 'read' : 'delivered'
   return {
@@ -62,7 +65,7 @@ export function coexMessageRow(
     status,
     created_at: new Date(m.timestamp).toISOString(),
     interactive_reply_id: m.content.interactiveReplyId ?? null,
-    metadata: ctx.history ? { source: COEX_SOURCE, history: true } : { source: COEX_SOURCE },
+    metadata: ctx.history ? { source: COEX_SOURCE, history: true } : { source: ctx.source ?? COEX_SOURCE },
   }
 }
 
@@ -93,7 +96,11 @@ function preview(m: CoexMessage): string {
 }
 
 async function threadFor(channel: LoadedChannel, customer: string) {
-  const contact = await findOrCreateContact(channel, { externalId: customer, phone: customer, handle: customer, name: null })
+  // WhatsApp customers are their phone; Telegram ones are a chat id (no phone).
+  const contact = await findOrCreateContact(
+    channel,
+    channel.type === 'telegram' ? { externalId: customer, name: null } : { externalId: customer, phone: customer, handle: customer, name: null },
+  )
   if (!contact) return null
   const conversation = await findOrCreateConversation(channel, contact.id)
   if (!conversation) return null
@@ -138,7 +145,7 @@ export async function storeEchoes(channel: LoadedChannel, echoes: CoexMessage[])
     if (!fresh.length) continue
     const replies = await replyTargets(ws, conversation.id, fresh.map((m) => m.replyToExternalId))
     const rows = fresh.map((m) => ({
-      ...coexMessageRow(m, { workspaceId: ws, conversationId: conversation.id, channelId: channel.id, history: false }),
+      ...coexMessageRow(m, { workspaceId: ws, conversationId: conversation.id, channelId: channel.id, history: false, source: channel.type === 'telegram' ? 'telegram_business_app' : COEX_SOURCE }),
       reply_to_message_id: m.replyToExternalId ? replies.get(m.replyToExternalId) ?? null : null,
     }))
     try {

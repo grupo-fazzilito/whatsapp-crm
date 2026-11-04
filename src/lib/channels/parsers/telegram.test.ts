@@ -76,3 +76,35 @@ describe('telegram updates', () => {
     expect(parseTgMessageKey('wamid.X')).toBeNull()
   })
 })
+
+describe('telegram business', () => {
+  const owner = { id: 900, first_name: 'Ana', username: 'ana_tienda' }
+  const customer = { id: 555, first_name: 'Luis' }
+  const chat = { id: 555, type: 'private' }
+
+  it('reads the connection', () => {
+    const conn = { id: 'BC1', user: owner, user_chat_id: 900, date: 1, rights: { can_reply: true }, is_enabled: true }
+    expect(parseTelegramUpdate('999', { update_id: 1, business_connection: conn })).toMatchObject({ connection: conn, events: [], echo: null })
+  })
+
+  it('sends customer messages to the business-account channel', () => {
+    const { events } = parseTelegramUpdate('999', { update_id: 2, business_message: { message_id: 5, business_connection_id: 'BC1', from: customer, chat, date: 10, text: 'precio?' } })
+    expect(events[0]).toMatchObject({ channelExternalId: '999:BC1', from: { externalId: '555', name: 'Luis' }, externalMessageId: '555_5', text: 'precio?' })
+  })
+
+  it('treats what the owner writes as an echo, and skips what the bot sent', () => {
+    const echo = parseTelegramUpdate('999', { update_id: 3, business_message: { message_id: 6, business_connection_id: 'BC1', from: owner, chat, date: 11, text: 'Cuesta 30' } })
+    expect(echo.events).toEqual([])
+    expect(echo.echo).toMatchObject({ channelExternalId: '999:BC1', message: { externalMessageId: '555_6', customer: '555', fromBusiness: true, content: { contentType: 'text', text: 'Cuesta 30' } } })
+    const ours = parseTelegramUpdate('999', { update_id: 4, business_message: { message_id: 7, business_connection_id: 'BC1', from: owner, sender_business_bot: { id: 999, is_bot: true }, chat, date: 12, text: 'Hola' } })
+    expect(ours).toMatchObject({ events: [], echo: null })
+  })
+
+  it('routes button taps on business messages to that channel', () => {
+    const { events } = parseTelegramUpdate('999', {
+      update_id: 5,
+      callback_query: { id: 'CB', from: customer, data: 'cart:checkout', message: { message_id: 8, business_connection_id: 'BC1', chat, date: 1 } },
+    })
+    expect(events[0]).toMatchObject({ channelExternalId: '999:BC1', interactiveReplyId: 'cart:checkout' })
+  })
+})

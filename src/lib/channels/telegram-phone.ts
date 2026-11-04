@@ -1,7 +1,7 @@
 import 'server-only'
 import { tenantDb } from '@/lib/db/tenant'
 import { sendMessage } from '@/lib/messaging/send'
-import { SHARE_PHONE_ID } from './adapters/telegram'
+import { SHARE_PHONE_ID, businessConnectionId } from './adapters/telegram'
 
 const TEXT = {
   es: { ask: 'Para coordinar contigo, ¿nos compartes tu número? Toca el botón de abajo.', button: '📱 Compartir mi número' },
@@ -16,9 +16,11 @@ const TEXT = {
 export async function askTelegramPhone(input: { workspaceId: string; conversationId: string; lang: 'es' | 'en'; aiAgentId?: string | null }) {
   const db = tenantDb(input.workspaceId)
   const conv = await db.conversations
-    .findFirst({ where: { id: input.conversationId }, select: { channels: { select: { type: true } }, contacts: { select: { phone: true } } } })
+    .findFirst({ where: { id: input.conversationId }, select: { channels: { select: { type: true, settings: true } }, contacts: { select: { phone: true } } } })
     .catch(() => null)
   if (conv?.channels?.type !== 'telegram' || conv.contacts?.phone) return
+  // Telegram Business: the share-contact button can't be sent from a personal account.
+  if (businessConnectionId(conv.channels.settings as Record<string, unknown>)) return
   const t = TEXT[input.lang] ?? TEXT.es
   await sendMessage({
     workspaceId: input.workspaceId,

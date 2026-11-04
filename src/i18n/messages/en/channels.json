@@ -179,7 +179,20 @@
       "token": "Bot token",
       "tokenHelp": "It looks like 123456789:AAH… We store it encrypted. If the bot was connected to another tool, it will stop receiving messages there.",
       "doneDescription": "Customers can now message your bot. Share this link on your website and social media.",
-      "link": "Your bot's link"
+      "link": "Your bot's link",
+      "business": {
+        "title": "Reply from your personal account (Telegram Business)",
+        "intro": "With Telegram Premium, this bot can answer the chats of your personal Telegram account. Those chats reach the inbox as a separate channel.",
+        "step1": "In @BotFather, open {bot} → Bot Settings → Business Mode and turn it on.",
+        "step2": "In your Telegram: Settings → Telegram Business → Chatbots, add {bot} and choose which chats it handles.",
+        "step3": "Done: the “Personal account” channel appears. If you connected the bot before this feature, press “Update connection” first.",
+        "note": "What you type on your phone also shows in the inbox and pauses the AI in that chat. The bot only sees new messages, not earlier chats.",
+        "resync": "Update connection",
+        "resynced": "Connection updated",
+        "replyNotAllowed": "The bot isn’t allowed to reply. In Telegram → Telegram Business → Chatbots, turn on “Reply to messages”.",
+        "channelNote": "Answers from your personal account through your bot. Replies go out with your name.",
+        "accountLink": "Your account link"
+      }
     }
   }
 }
