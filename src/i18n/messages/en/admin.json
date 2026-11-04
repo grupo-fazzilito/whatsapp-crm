@@ -147,6 +147,34 @@
         "wrong_password": "The password is not correct.",
         "too_many_attempts": "Too many attempts. Wait 15 minutes."
       }
+    },
+    "menu": {
+      "label": "Account menu",
+      "admin": "Super admin",
+      "profile": "Profile",
+      "accessLog": "Access log",
+      "logout": "Sign out"
+    },
+    "profile": {
+      "title": "Profile",
+      "description": "Your super admin name and password.",
+      "data": "Details",
+      "name": "Name",
+      "email": "Email",
+      "emailHint": "Your email is your sign-in username; it can’t be changed here.",
+      "save": "Save",
+      "saved": "Profile saved",
+      "error": "Could not save. Please try again.",
+      "password": "Password",
+      "passwordHint": "At least {n} characters. Other open sessions will be signed out.",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Repeat the new password",
+      "changePassword": "Change password",
+      "passwordSaved": "Password updated",
+      "passwordShort": "The password must be at least {n} characters.",
+      "passwordMismatch": "The new passwords don’t match.",
+      "passwordWrong": "The current password is incorrect."
     }
   }
 }

@@ -5,9 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Shield, Users, BarChart2, Settings, LogOut,
-  Menu, X, ChevronRight, Building2, Coins, LifeBuoy, Webhook, BookOpen, KeyRound,
+  Menu, X, ChevronRight, Building2, Coins, LifeBuoy, Webhook, BookOpen, KeyRound, UserRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/client";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { AdminNotificationBell } from "./notification-bell";
 
 const NAV = [
@@ -17,17 +21,70 @@ const NAV = [
   { href: "/admin-panel/support",  label: "Support",   icon: LifeBuoy   },
   { href: "/admin-panel/complaints", label: "Complaints", icon: BookOpen },
   { href: "/admin-panel/webhooks", label: "Webhooks",  icon: Webhook    },
-  { href: "/admin-panel/access",   label: "Access log", icon: KeyRound  },
   { href: "/admin-panel/settings", label: "Settings",  icon: Settings   },
 ];
 
+async function logout() {
+  await fetch("/api/admin/login", { method: "DELETE" }).catch(() => null);
+  window.location.href = "/admin-panel/login";
+}
+
+/** Avatar menu: the admin's profile, the access log and sign out. */
+function UserMenu() {
+  const { t } = useI18n();
+  const [me, setMe] = useState<{ name: string; email: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = () =>
+      fetch("/api/admin/profile", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => !cancelled && d && setMe(d))
+        .catch(() => {});
+    void load();
+    window.addEventListener("admin-profile-updated", load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("admin-profile-updated", load);
+    };
+  }, []);
+
+  const initial = (me?.name || me?.email || "A").trim().charAt(0).toUpperCase();
+  const item = "gap-2.5 px-2 py-1.5 text-slate-200 focus:bg-slate-800 focus:text-white";
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={t("admin.menu.label")}
+        title={t("admin.menu.label")}
+        className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 transition-colors"
+      >
+        {initial}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={6} className="min-w-60 border border-slate-800 bg-slate-900 text-slate-200">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="px-2 py-1.5">
+            <span className="block truncate text-sm font-semibold text-white">{me?.name || t("admin.menu.admin")}</span>
+            {me?.email && <span className="block truncate text-xs font-normal text-slate-400">{me.email}</span>}
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator className="bg-slate-800" />
+        <DropdownMenuItem className={item} render={<Link href="/admin-panel/profile" />}>
+          <UserRound className="size-4" aria-hidden /> {t("admin.menu.profile")}
+        </DropdownMenuItem>
+        <DropdownMenuItem className={item} render={<Link href="/admin-panel/access" />}>
+          <KeyRound className="size-4" aria-hidden /> {t("admin.menu.accessLog")}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="bg-slate-800" />
+        <DropdownMenuItem className={cn(item, "text-red-400 focus:text-red-300")} onClick={() => void logout()}>
+          <LogOut className="size-4" aria-hidden /> {t("admin.menu.logout")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
-
-  const handleLogout = async () => {
-    await fetch("/api/admin/login", { method: "DELETE" });
-    window.location.href = "/admin-panel/login";
-  };
 
   return (
     <>
@@ -80,14 +137,6 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="border-t border-slate-800 p-3">
-          <button onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-red-400 transition-colors">
-            <LogOut className="size-4" />
-            Sign Out
-          </button>
-        </div>
       </aside>
     </>
   );
@@ -123,9 +172,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             <AdminNotificationBell />
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs font-bold">
-              A
-            </div>
+            <UserMenu />
           </div>
         </header>
 

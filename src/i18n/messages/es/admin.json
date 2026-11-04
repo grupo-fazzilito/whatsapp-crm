@@ -147,6 +147,34 @@
         "wrong_password": "La contraseña no es correcta.",
         "too_many_attempts": "Demasiados intentos. Espera 15 minutos."
       }
+    },
+    "menu": {
+      "label": "Menú de la cuenta",
+      "admin": "Superadmin",
+      "profile": "Perfil",
+      "accessLog": "Registro de accesos",
+      "logout": "Cerrar sesión"
+    },
+    "profile": {
+      "title": "Perfil",
+      "description": "Tu nombre y tu contraseña de superadmin.",
+      "data": "Datos",
+      "name": "Nombre",
+      "email": "Correo",
+      "emailHint": "El correo es el usuario con el que entras; no se puede cambiar desde aquí.",
+      "save": "Guardar",
+      "saved": "Perfil guardado",
+      "error": "No se pudo guardar. Inténtalo de nuevo.",
+      "password": "Contraseña",
+      "passwordHint": "Al menos {n} caracteres. Las demás sesiones abiertas se cerrarán.",
+      "currentPassword": "Contraseña actual",
+      "newPassword": "Nueva contraseña",
+      "confirmPassword": "Repite la nueva contraseña",
+      "changePassword": "Cambiar contraseña",
+      "passwordSaved": "Contraseña actualizada",
+      "passwordShort": "La contraseña debe tener al menos {n} caracteres.",
+      "passwordMismatch": "Las contraseñas nuevas no coinciden.",
+      "passwordWrong": "La contraseña actual no es correcta."
     }
   }
 }
