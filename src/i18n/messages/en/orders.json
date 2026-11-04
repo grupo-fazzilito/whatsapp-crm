@@ -41,7 +41,8 @@
     "fulfillment": {
       "pickup": "Pickup",
       "delivery": "Delivery",
-      "dine_in": "Dine-in"
+      "dine_in": "Dine-in",
+      "service": "Service"
     },
     "source": {
       "ai": "AI assistant",
@@ -102,7 +103,8 @@
       "cancel": "Cancel order",
       "confirmCancel": "Yes, cancel order",
       "back": "Back",
-      "markPaid": "Mark as paid"
+      "markPaid": "Mark as paid",
+      "serviceDone": "Mark as done"
     },
     "detail": {
       "title": "Order details",
@@ -273,7 +275,7 @@
       "ordersModule": "Turn on orders (Business setup → Orders & payments).",
       "shipping": "An active shipping profile or store pickup.",
       "payment": "An active payment method (Business setup → Orders & payments).",
-      "products": "At least one active product with a price.",
+      "products": "At least one active product with a price or a service shown in the store.",
       "goShipping": "Create a shipping profile",
       "goSetup": "Go to Business setup",
       "goCatalog": "Go to the catalog"

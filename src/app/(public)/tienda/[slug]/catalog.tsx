@@ -2,13 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search } from 'lucide-react';
+import { CalendarCheck, Clock, Plus, Search, Sparkles } from 'lucide-react';
 import type { StoreCategory, StoreProduct } from '@/lib/store/server';
+import type { StoreService } from '@/lib/store/services';
+import { fill } from '@/lib/store/texts';
 import { LineImage, useStore } from './cart';
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-export function StoreCatalog({ products, categories }: { products: StoreProduct[]; categories: StoreCategory[] }) {
+export function StoreCatalog({ products, categories, services }: { products: StoreProduct[]; categories: StoreCategory[]; services: StoreService[] }) {
   const { t } = useStore();
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<string | null>(null);
@@ -17,20 +19,24 @@ export function StoreCatalog({ products, categories }: { products: StoreProduct[
     const needle = norm(q.trim());
     return products.filter((p) => (!cat || p.category_id === cat) && (!needle || norm(`${p.name} ${p.description ?? ''}`).includes(needle)));
   }, [products, q, cat]);
+  const shownServices = useMemo(() => {
+    const needle = norm(q.trim());
+    return cat ? [] : services.filter((s) => !needle || norm(`${s.name} ${s.description ?? ''} ${s.category ?? ''}`).includes(needle));
+  }, [services, q, cat]);
 
-  if (!products.length) return <p className="rounded-2xl bg-white p-10 text-center text-slate-600 ring-1 ring-slate-200">{t.emptyStore}</p>;
+  if (!products.length && !services.length) return <p className="rounded-2xl bg-white p-10 text-center text-slate-600 ring-1 ring-slate-200">{t.emptyStore}</p>;
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <label className="relative block sm:w-72">
-          <span className="sr-only">{t.search}</span>
+          <span className="sr-only">{products.length ? t.search : t.searchServices}</span>
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden />
           <input
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={t.search}
+            placeholder={products.length ? t.search : t.searchServices}
             className="h-11 w-full rounded-full border border-slate-200 bg-white pl-9 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none"
           />
         </label>
@@ -44,16 +50,35 @@ export function StoreCatalog({ products, categories }: { products: StoreProduct[
         )}
       </div>
 
-      {shown.length === 0 ? (
+      {shown.length === 0 && shownServices.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-600">{t.noProducts}</p>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-          {shown.map((p) => (
-            <li key={p.id}>
-              <ProductCard product={p} />
-            </li>
-          ))}
-        </ul>
+        <>
+          {shown.length > 0 && (
+            <section aria-labelledby="store-products" className="space-y-3">
+              {services.length > 0 && <h2 id="store-products" className="text-lg font-semibold">{t.products}</h2>}
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                {shown.map((p) => (
+                  <li key={p.id}>
+                    <ProductCard product={p} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {shownServices.length > 0 && (
+            <section aria-labelledby="store-services" className="space-y-3">
+              {products.length > 0 && <h2 id="store-services" className="text-lg font-semibold">{t.services}</h2>}
+              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {shownServices.map((s) => (
+                  <li key={s.id}>
+                    <ServiceCard service={s} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
       )}
     </div>
   );
@@ -116,6 +141,38 @@ function ProductCard({ product: p }: { product: StoreProduct }) {
           )}
         </div>
       )}
+    </article>
+  );
+}
+
+function ServiceCard({ service: s }: { service: StoreService }) {
+  const { t, money, config } = useStore();
+  const href = `/tienda/${encodeURIComponent(config.slug)}/servicio/${s.id}`;
+  const price = s.price > 0 ? (s.price_is_from ? fill(t.from, { price: money(s.price) }) : money(s.price)) : null;
+  return (
+    <article className="flex h-full gap-3 overflow-hidden rounded-2xl bg-white p-3 ring-1 ring-slate-200 transition-shadow hover:shadow-md">
+      {s.image_url ? (
+        <LineImage src={s.image_url} alt={s.name} className="size-24 shrink-0 rounded-xl" />
+      ) : (
+        <span className="flex size-24 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: config.accent }} aria-hidden>
+          <Sparkles className="size-8" />
+        </span>
+      )}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <h3 className="line-clamp-2 text-sm font-semibold text-slate-900">{s.name}</h3>
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+          <span className="inline-flex items-center gap-1"><Clock className="size-3.5" aria-hidden /> {fill(t.minutes, { n: s.duration_minutes })}</span>
+          {s.category && <span>· {s.category}</span>}
+        </p>
+        {price && <p className="mt-1 text-sm font-semibold text-slate-900">{price}</p>}
+        <Link
+          href={href}
+          className="mt-auto inline-flex h-9 items-center justify-center gap-1.5 self-start rounded-full px-4 text-sm font-semibold text-white hover:opacity-90"
+          style={{ background: config.accent }}
+        >
+          <CalendarCheck className="size-4" aria-hidden /> {s.booking === 'schedule' ? t.book : t.hire}
+        </Link>
+      </div>
     </article>
   );
 }

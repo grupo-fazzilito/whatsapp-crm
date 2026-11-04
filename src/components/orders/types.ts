@@ -22,7 +22,8 @@ export interface OrderRow {
   id: string;
   number: number;
   status: OrderStatus;
-  fulfillment: Fulfillment;
+  /** 'service': a service bought in the online store (no delivery). */
+  fulfillment: Fulfillment | 'service';
   customer_name: string | null;
   customer_phone: string | null;
   contact_id: string | null;
@@ -98,7 +99,12 @@ export interface NextAction {
 }
 
 /** Forward step(s) available from `status` (cancel is offered separately). */
-export function nextActions(status: OrderStatus, fulfillment: Fulfillment): NextAction[] {
+export function nextActions(status: OrderStatus, fulfillment: Fulfillment | 'service'): NextAction[] {
+  // A service: confirm it, then mark it done (no preparing or shipping).
+  if (fulfillment === 'service') {
+    if (status === 'pending') return [{ status: 'confirmed', key: 'confirm' }];
+    return status === 'cancelled' || status === 'delivered' ? [] : [{ status: 'delivered', key: 'serviceDone' }];
+  }
   switch (status) {
     case 'pending':
       return [{ status: 'confirmed', key: 'confirm' }];

@@ -361,6 +361,8 @@ model bookings {
   calendly_reschedule_url       String?
   calendly_cancel_synced_at     DateTime?             @db.Timestamptz(6)
 
+  orders orders[]
+
   @@index([status, feedback_sent], map: "idx_appointments_feedback_pending", where: raw("((status = 'completed'::text) AND ((feedback_sent IS NULL) OR (feedback_sent = false)))"))
   @@index([status, followup_sent], map: "idx_appointments_followup_pending", where: raw("((status = 'completed'::text) AND ((followup_sent IS NULL) OR (followup_sent = false)))"))
   @@index([workspace_id], map: "idx_appointments_workspace")
@@ -1392,6 +1394,8 @@ model order_items {
   order_id         String            @db.Uuid
   product_id       String?           @db.Uuid
   variant_id       String?           @db.Uuid
+  service_id       String?           @db.Uuid
+  services         services?         @relation(fields: [service_id], references: [id], onUpdate: NoAction)
   name             String
   variant_name     String?
   sku              String?
@@ -1447,6 +1451,8 @@ model orders {
   shipping_on_delivery Boolean            @default(false)
   extra_fees           Json               @default("[]")
   fees_total           Decimal            @default(0) @db.Decimal(12, 2)
+  booking_id           String?            @db.Uuid
+  bookings             bookings?          @relation(fields: [booking_id], references: [id], onUpdate: NoAction)
   shipping_profiles    shipping_profiles? @relation(fields: [shipping_profile_id], references: [id], onUpdate: NoAction)
   created_by           String?            @default(dbgenerated("app_user_id()")) @db.Uuid
   created_at           DateTime?          @default(now()) @db.Timestamptz(6)
@@ -1849,6 +1855,10 @@ model services {
   workspace_id         String                 @default(dbgenerated("active_ws()")) @db.Uuid
   category             String?
   price_is_from        Boolean                @default(true)
+  image_url            String?
+  show_in_store        Boolean                @default(true)
+  store_booking        String                 @default("schedule")
+  order_items          order_items[]
   bookings             bookings[]
   workspaces           workspaces             @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "clinic_services_workspace_id_fkey")
   staff_services       staff_services[]

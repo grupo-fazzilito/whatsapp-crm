@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { loadStore, loadStoreCatalog } from '@/lib/store/server';
 import { siteUrl } from '@/lib/real-estate/listing/url';
 import { storePath } from '@/lib/store/settings';
+import { loadStoreServices } from '@/lib/store/services';
 import { StoreCatalog } from './catalog';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -27,7 +28,7 @@ export default async function StorePage({ params }: Props) {
   const { slug } = await params;
   const s = await loadStore(slug);
   if (!s) notFound();
-  const { products, categories } = await loadStoreCatalog(s.workspace);
+  const [{ products, categories }, services] = await Promise.all([loadStoreCatalog(s.workspace), loadStoreServices(s.workspace)]);
   const intro = s.store.tagline ?? s.workspace.description;
   return (
     <>
@@ -46,7 +47,7 @@ export default async function StorePage({ params }: Props) {
         </section>
       )}
       {!s.store.banner_url && !intro && <h1 className="mb-4 text-2xl font-bold">{s.workspace.name}</h1>}
-      <StoreCatalog products={products} categories={categories} />
+      <StoreCatalog products={products} categories={categories} services={services} />
     </>
   );
 }

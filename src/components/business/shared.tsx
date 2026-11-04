@@ -54,6 +54,10 @@ export interface Service {
   price_is_from: boolean;
   duration_minutes: number | null;
   is_active: boolean;
+  /** Online store: photo, listed or not, and whether the customer books when buying. */
+  image_url?: string | null;
+  show_in_store?: boolean;
+  store_booking?: 'schedule' | 'later';
 }
 
 export interface Faq {

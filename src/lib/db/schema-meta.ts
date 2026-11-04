@@ -259,7 +259,10 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "patient_intake": {
       "rel": "patient_intake"
     },
-    "calendly_cancel_synced_at": "timestamp"
+    "calendly_cancel_synced_at": "timestamp",
+    "orders": {
+      "rel": "orders"
+    }
   },
   "broadcast_recipients": {
     "sent_at": "timestamp",
@@ -1087,6 +1090,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     }
   },
   "order_items": {
+    "services": {
+      "rel": "services"
+    },
     "unit_price": "decimal",
     "total": "decimal",
     "orders": {
@@ -1111,6 +1117,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "paid_at": "timestamp",
     "weight_kg": "decimal",
     "fees_total": "decimal",
+    "bookings": {
+      "rel": "bookings"
+    },
     "shipping_profiles": {
       "rel": "shipping_profiles"
     },
@@ -1388,6 +1397,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "price": "decimal",
     "created_at": "timestamp",
     "updated_at": "timestamp",
+    "order_items": {
+      "rel": "order_items"
+    },
     "bookings": {
       "rel": "bookings"
     },

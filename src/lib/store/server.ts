@@ -191,16 +191,19 @@ export async function loadCheckoutOptions(wsId: string): Promise<{ shipping: Shi
 export async function storeReadiness(ws: { id: string; industry: string; settings: WorkspaceSettings }): Promise<StoreReadiness> {
   const db = tenantDb(ws.id)
   const store = storeSettings(ws.settings?.store)
-  const [profiles, payments, products] = await Promise.all([
+  const modules = resolveIndustry(ws.industry, ws.settings).modules
+  const [profiles, payments, products, services] = await Promise.all([
     db.shipping_profiles.count({ where: { is_active: true } }),
     db.payment_methods.count({ where: { is_active: true } }),
-    db.products.count({ where: { is_active: true } }),
+    modules.products ? db.products.count({ where: { is_active: true } }) : Promise.resolve(0),
+    modules.services ? db.services.count({ where: { is_active: true, show_in_store: true } }) : Promise.resolve(0),
   ])
   return {
-    ordersModule: resolveIndustry(ws.industry, ws.settings).modules.orders,
-    shipping: profiles > 0 || store.pickup_enabled,
+    ordersModule: modules.orders,
+    // Shipping only matters when there are physical products to send.
+    shipping: products === 0 || profiles > 0 || store.pickup_enabled,
     payment: payments > 0,
-    products: products > 0,
+    products: products > 0 || services > 0,
   }
 }
 
@@ -276,7 +279,7 @@ export type PlaceStoreResult =
   | { ok: false; error: 'unavailable' | 'stock' | 'shipping' | 'too_heavy' | 'payment' | 'pickup' | 'min_order'; name?: string; available?: number }
 
 /** Contact with this phone (any formatting), or a new one. */
-async function contactFor(wsId: string, name: string, phone: string, email: string | null): Promise<string> {
+export async function contactFor(wsId: string, name: string, phone: string, email: string | null): Promise<string> {
   const db = tenantDb(wsId)
   const tail = phone.slice(-4)
   const candidates = await db.contacts.findMany({ where: { phone: { endsWith: tail } }, select: { id: true, phone: true, email: true }, take: 50 })
@@ -378,7 +381,7 @@ export async function placeStoreOrder(store: PublicStore, input: CheckoutInput):
   return { ok: true, number, token, total }
 }
 
-async function notifyTeam(ws: StoreWorkspace, orderId: string, number: number, customer: string, total: number) {
+export async function notifyTeam(ws: StoreWorkspace, orderId: string, number: number, customer: string, total: number) {
   const db = tenantDb(ws.id)
   const members = await db.workspace_members.findMany({ where: { status: 'active' }, select: { user_id: true } })
   if (!members.length) return
@@ -453,7 +456,12 @@ export interface PublicOrder {
   created_at: string | null
   items: { name: string; quantity: number; total: number }[]
   payment: StorePaymentMethod | null
+  /** Service orders: the appointment made at checkout. */
+  booking: { date: string; time: string; staff: string | null; status: string | null } | null
 }
+
+/** 'YYYY-MM-DD' whether the date column arrives as a string or a Date. */
+const isoDay = (d: unknown) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10))
 
 export async function loadPublicOrder(store: PublicStore, token: string): Promise<PublicOrder | null> {
   if (!/^[A-Za-z0-9_-]{20,40}$/.test(token)) return null
@@ -475,6 +483,7 @@ export async function loadPublicOrder(store: PublicStore, token: string): Promis
       total: true,
       created_at: true,
       payment_method_id: true,
+      bookings: { select: { booking_date: true, booking_time: true, status: true, staff: { select: { name: true } } } },
       order_items: { select: { name: true, quantity: true, total: true }, orderBy: { sort_order: 'asc' } },
     },
   })
@@ -502,5 +511,8 @@ export async function loadPublicOrder(store: PublicStore, token: string): Promis
     created_at: o.created_at ? new Date(o.created_at).toISOString() : null,
     items: o.order_items.map((i) => ({ name: i.name, quantity: i.quantity, total: Number(i.total) })),
     payment,
+    booking: o.bookings
+      ? { date: isoDay(o.bookings.booking_date), time: String(o.bookings.booking_time).slice(0, 5), staff: o.bookings.staff?.name ?? null, status: o.bookings.status ?? null }
+      : null,
   }
 }

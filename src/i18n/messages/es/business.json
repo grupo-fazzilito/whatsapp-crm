@@ -222,6 +222,18 @@
         "priceFrom": "Precio «desde»",
         "duration": "Duración (min)",
         "active": "Activo (la IA lo ofrece)"
+      },
+      "store": {
+        "title": "Tienda online",
+        "show": "Mostrar en la tienda",
+        "bookingLabel": "Al comprar en la tienda",
+        "schedule": "El cliente reserva su cita",
+        "scheduleHint": "Elige día y hora entre los horarios libres; la cita se crea con el pedido.",
+        "later": "Se coordina después",
+        "laterHint": "El cliente paga o separa el servicio y la fecha la acuerdan por chat.",
+        "image": "Foto",
+        "upload": "Subir foto",
+        "removeImage": "Quitar"
       }
     },
     "faqs": {

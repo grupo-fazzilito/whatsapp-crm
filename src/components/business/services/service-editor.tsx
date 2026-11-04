@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { ImagePlus, Loader2, Trash2 } from 'lucide-react';
+import { uploadFile } from '@/lib/storage/client';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { api } from '../api';
@@ -24,7 +25,8 @@ interface Props {
 
 export function ServiceEditor({ service, categories, readOnly, onClose, onSaved }: Props) {
   const t = useT();
-  const { workspace, label } = useWorkspace();
+  const { workspace, label, modules } = useWorkspace();
+  const [uploading, setUploading] = useState(false);
   const [draft, setDraft] = useState({
     name: service?.name ?? '',
     description: service?.description ?? '',
@@ -33,6 +35,9 @@ export function ServiceEditor({ service, categories, readOnly, onClose, onSaved 
     price_is_from: service?.price_is_from ?? false,
     duration_minutes: String(service?.duration_minutes ?? 30),
     is_active: service?.is_active ?? true,
+    image_url: service?.image_url ?? '',
+    show_in_store: service?.show_in_store ?? true,
+    store_booking: service?.store_booking ?? ('schedule' as 'schedule' | 'later'),
   });
   const [saving, setSaving] = useState(false);
   const set = <K extends keyof typeof draft>(k: K, v: (typeof draft)[K]) => setDraft((d) => ({ ...d, [k]: v }));
@@ -59,6 +64,9 @@ export function ServiceEditor({ service, categories, readOnly, onClose, onSaved 
       price_is_from: draft.price_is_from,
       duration_minutes: duration,
       is_active: draft.is_active,
+      ...(modules.orders
+        ? { image_url: draft.image_url || null, show_in_store: draft.show_in_store, store_booking: draft.store_booking }
+        : {}),
     };
     try {
       // The server drops the AI's cached business context.
@@ -76,7 +84,7 @@ export function ServiceEditor({ service, categories, readOnly, onClose, onSaved 
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <form onSubmit={submit} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>
@@ -157,6 +165,70 @@ export function ServiceEditor({ service, categories, readOnly, onClose, onSaved 
             <span className="text-sm font-medium text-foreground">{t('business.services.field.active')}</span>
             <Switch checked={draft.is_active} disabled={readOnly} onCheckedChange={(v) => set('is_active', v)} />
           </label>
+
+          {modules.orders && (
+            <fieldset className="grid gap-3 rounded-lg border border-border p-3">
+              <legend className="px-1 text-sm font-semibold text-foreground">{t('business.services.store.title')}</legend>
+              <label className="flex items-center justify-between gap-3">
+                <span className="text-sm text-foreground">{t('business.services.store.show')}</span>
+                <Switch checked={draft.show_in_store} disabled={readOnly} onCheckedChange={(v) => set('show_in_store', v)} />
+              </label>
+              {draft.show_in_store && (
+                <>
+                  <div className="grid gap-2" role="radiogroup" aria-label={t('business.services.store.bookingLabel')}>
+                    <span className="text-sm font-medium text-foreground">{t('business.services.store.bookingLabel')}</span>
+                    {(['schedule', 'later'] as const).map((k) => (
+                      <label key={k} className={`flex cursor-pointer items-start gap-2 rounded-md border p-2.5 text-sm ${draft.store_booking === k ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                        <input type="radio" name="sv-booking" className="mt-0.5" checked={draft.store_booking === k} disabled={readOnly} onChange={() => set('store_booking', k)} />
+                        <span>
+                          <span className="block font-medium text-foreground">{t(`business.services.store.${k}`)}</span>
+                          <span className="block text-xs text-muted-foreground">{t(`business.services.store.${k}Hint`)}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="grid gap-1.5">
+                    <span className="text-sm font-medium text-foreground">{t('business.services.store.image')}</span>
+                    {draft.image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element -- uploaded photo preview
+                      <img src={draft.image_url} alt="" className="aspect-video w-full max-w-xs rounded-md border border-border object-cover" />
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <label className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent ${readOnly || uploading ? 'pointer-events-none opacity-60' : ''}`}>
+                        {uploading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <ImagePlus className="size-4" aria-hidden />}
+                        {t('business.services.store.upload')}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="sr-only"
+                          disabled={readOnly || uploading}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setUploading(true);
+                            try {
+                              const { url } = await uploadFile('catalog', file, { folder: 'services' });
+                              set('image_url', url);
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : String(err));
+                            } finally {
+                              setUploading(false);
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                      </label>
+                      {draft.image_url && !readOnly && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => set('image_url', '')}>
+                          <Trash2 className="size-4" aria-hidden /> {t('business.services.store.removeImage')}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </fieldset>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>

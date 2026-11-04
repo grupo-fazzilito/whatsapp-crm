@@ -32,7 +32,7 @@ export default async function StoreOrderPage({ params }: Props) {
         <h1 className="mt-3 text-xl font-bold sm:text-2xl">{fill(t.orderTitle, { name: order.customer_name?.split(' ')[0] ?? '' })}</h1>
         <p className="mt-1 text-sm text-slate-600">{fill(t.orderNumber, { number: order.number })} · {t.orderNext}</p>
         <p className="mt-3 inline-flex flex-wrap justify-center gap-2 text-xs font-semibold">
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">{t.status[order.status] ?? order.status}</span>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">{order.fulfillment === 'service' && order.status === 'delivered' ? t.serviceDone : (t.status[order.status] ?? order.status)}</span>
           <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">{t.paymentStatus[order.payment_status] ?? order.payment_status}</span>
         </p>
       </section>
@@ -66,16 +66,33 @@ export default async function StoreOrderPage({ params }: Props) {
         </ul>
         <dl className="space-y-1.5 border-t border-slate-100 pt-3 text-sm">
           <div className="flex justify-between"><dt className="text-slate-600">{t.subtotal}</dt><dd className="tabular-nums">{money(order.subtotal)}</dd></div>
-          <div className="flex justify-between"><dt className="text-slate-600">{t.shipping}{order.shipping_name ? ` · ${order.shipping_name}` : ''}</dt><dd className="tabular-nums">{order.shipping_on_delivery ? t.onDelivery : order.delivery_fee === 0 ? t.free : money(order.delivery_fee)}</dd></div>
+          {order.fulfillment !== 'service' && <div className="flex justify-between"><dt className="text-slate-600">{t.shipping}{order.shipping_name ? ` · ${order.shipping_name}` : ''}</dt><dd className="tabular-nums">{order.shipping_on_delivery ? t.onDelivery : order.delivery_fee === 0 ? t.free : money(order.delivery_fee)}</dd></div>}
           {order.fees.map((f, k) => (
             <div key={k} className="flex justify-between"><dt className="text-slate-600">{f.name}</dt><dd className="tabular-nums">{money(f.amount)}</dd></div>
           ))}
           <div className="flex justify-between text-base font-bold"><dt>{t.total}</dt><dd className="tabular-nums">{money(order.total)}</dd></div>
         </dl>
         {order.shipping_on_delivery && <p className="text-xs text-slate-500">{t.onDeliveryHint}</p>}
+        {order.fulfillment === 'service' ? (
+          order.booking ? (
+            <p className="border-t border-slate-100 pt-3 text-sm text-slate-700">
+              <span className="font-medium">{t.yourBooking}:</span>{' '}
+              <span>
+                {fill(t.bookingAt, {
+                  date: new Intl.DateTimeFormat(s.workspace.locale === 'en' ? 'en-US' : 'es-PE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${order.booking.date}T12:00:00Z`)),
+                  time: order.booking.time,
+                })}
+              </span>
+              {order.booking.staff ? ` ${fill(t.withStaff, { name: order.booking.staff })}` : ''}
+            </p>
+          ) : (
+            <p className="border-t border-slate-100 pt-3 text-sm text-slate-700">{t.laterNote}</p>
+          )
+        ) : (
         <p className="border-t border-slate-100 pt-3 text-sm text-slate-700">
           <span className="font-medium">{t.deliverTo}:</span> {order.fulfillment === 'pickup' ? fill(t.pickupAt, { address: s.store.pickup_address ?? s.workspace.name }) : order.address}
         </p>
+        )}
       </section>
 
       <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
