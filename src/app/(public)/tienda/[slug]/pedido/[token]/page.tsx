@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { followSlug } from '@/lib/store/follow-slug';
 import { CheckCircle2, MessageCircle } from 'lucide-react';
 import { loadPublicOrder, loadStore, storeMoney } from '@/lib/store/server';
 import { storePath } from '@/lib/store/settings';
@@ -15,6 +16,7 @@ export default async function StoreOrderPage({ params }: Props) {
   const { slug, token } = await params;
   const s = await loadStore(slug);
   if (!s) notFound();
+  followSlug(slug, s.workspace.slug, `/pedido/${encodeURIComponent(token)}`);
   const order = await loadPublicOrder(s, token);
   if (!order) notFound();
   const t = storeTexts(s.workspace.locale);

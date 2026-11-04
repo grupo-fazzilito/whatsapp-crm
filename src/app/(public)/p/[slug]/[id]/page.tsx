@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { followSlug } from '@/lib/store/follow-slug';
 import {
   Bath,
   BedDouble,
@@ -105,6 +106,7 @@ export default async function PropertyPage({ params }: Props) {
   const { slug, id } = await params;
   const listing = await loadPublicListing(slug, id);
   if (!listing) notFound();
+  followSlug(slug, listing.workspace.slug, `/${id}`, '/p');
 
   const { product, workspace } = listing;
   const locale = workspace.locale;

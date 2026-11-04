@@ -476,5 +476,8 @@ export const resultCompat = Prisma.defineExtension({
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
     },
+    workspace_slug_redirects: {
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+    },
   },
 })

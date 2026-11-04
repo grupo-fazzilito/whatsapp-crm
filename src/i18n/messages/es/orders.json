@@ -377,6 +377,27 @@
       "optional": "Opcional (el cliente lo elige)",
       "remove": "Quitar cargo",
       "max": "Puedes tener hasta {n} cargos."
+    },
+    "address": {
+      "title": "Dirección de tu tienda",
+      "change": "Cambiar dirección",
+      "save": "Guardar dirección",
+      "cancel": "Cancelar",
+      "hint": "Solo letras, números y guiones. Por ejemplo, el nombre de tu negocio.",
+      "useSuggestion": "Usar «{slug}»",
+      "checking": "Revisando…",
+      "available": "Disponible",
+      "current": "Es tu dirección actual",
+      "oldLinks": "Los links anteriores siguen funcionando: llevan a la nueva dirección.",
+      "saved": "Dirección actualizada",
+      "errors": {
+        "short": "Usa al menos 3 caracteres.",
+        "long": "Usa como máximo 50 caracteres.",
+        "format": "Solo letras, números y guiones.",
+        "reserved": "Esa dirección está reservada. Elige otra.",
+        "taken": "Esa dirección ya la usa otro negocio.",
+        "failed": "No se pudo guardar. Inténtalo de nuevo."
+      }
     }
   }
 }

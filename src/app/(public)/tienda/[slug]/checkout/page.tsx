@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { followSlug } from '@/lib/store/follow-slug';
 import { loadCheckoutOptions, loadStore } from '@/lib/store/server';
 import { storeTexts } from '@/lib/store/texts';
 import { CheckoutForm } from './checkout-form';
@@ -16,6 +17,7 @@ export default async function CheckoutPage({ params }: Props) {
   const { slug } = await params;
   const s = await loadStore(slug);
   if (!s) notFound();
+  followSlug(slug, s.workspace.slug, '/checkout');
   const { shipping, payments } = await loadCheckoutOptions(s.workspace.id);
   return (
     <CheckoutForm

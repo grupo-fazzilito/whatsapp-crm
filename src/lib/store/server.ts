@@ -3,6 +3,7 @@ import crypto from 'node:crypto'
 import { cache } from 'react'
 import { prisma } from '@/lib/db/prisma'
 import { tenantDb } from '@/lib/db/tenant'
+import { findWorkspaceBySlug } from '@/lib/workspace/slug-server'
 import { getSessionUser } from '@/lib/auth/session'
 import { isUuid } from '@/lib/workspace/constants'
 import { countryDefaults, formatMoney, moneyLocale } from '@/lib/workspace/countries'
@@ -53,7 +54,8 @@ const WS_SELECT = { id: true, name: true, slug: true, industry: true, country: t
 export const loadStore = cache(async (slug: string): Promise<PublicStore | null> => {
   if (!slug || slug.length > 120) return null
   // Public page: the workspace is only known by its slug (platform lookup).
-  const ws = await prisma.workspaces.findFirst({ select: WS_SELECT, where: { slug } }).catch(() => null)
+  // An old slug finds the workspace too; pages redirect to ws.slug.
+  const ws = await findWorkspaceBySlug(slug, WS_SELECT).catch(() => null)
   if (!ws) return null
   const store = storeSettings((ws.settings as WorkspaceSettings | null)?.store)
   let preview = false

@@ -377,6 +377,27 @@
       "optional": "Optional (customer chooses)",
       "remove": "Remove charge",
       "max": "You can have up to {n} charges."
+    },
+    "address": {
+      "title": "Your store address",
+      "change": "Change address",
+      "save": "Save address",
+      "cancel": "Cancel",
+      "hint": "Only letters, numbers and dashes. For example, your business name.",
+      "useSuggestion": "Use “{slug}”",
+      "checking": "Checking…",
+      "available": "Available",
+      "current": "This is your current address",
+      "oldLinks": "Your previous links keep working: they lead to the new address.",
+      "saved": "Address updated",
+      "errors": {
+        "short": "Use at least 3 characters.",
+        "long": "Use at most 50 characters.",
+        "format": "Only letters, numbers and dashes.",
+        "reserved": "That address is reserved. Pick another.",
+        "taken": "Another business already uses that address.",
+        "failed": "Could not save. Try again."
+      }
     }
   }
 }
