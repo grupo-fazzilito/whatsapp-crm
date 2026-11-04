@@ -41,7 +41,8 @@
     "fulfillment": {
       "pickup": "Recojo en tienda",
       "delivery": "Delivery",
-      "dine_in": "Consumo en el local"
+      "dine_in": "Consumo en el local",
+      "service": "Servicio"
     },
     "source": {
       "ai": "Asistente IA",
@@ -102,7 +103,8 @@
       "cancel": "Cancelar pedido",
       "confirmCancel": "Sí, cancelar pedido",
       "back": "Volver",
-      "markPaid": "Marcar como pagado"
+      "markPaid": "Marcar como pagado",
+      "serviceDone": "Marcar como realizado"
     },
     "detail": {
       "title": "Detalle del pedido",
@@ -273,7 +275,7 @@
       "ordersModule": "Activar los pedidos (Configuración del negocio → Pedidos y pagos).",
       "shipping": "Un perfil de envío activo o el recojo en tienda.",
       "payment": "Un método de pago activo (Configuración del negocio → Pedidos y pagos).",
-      "products": "Al menos un producto activo con precio.",
+      "products": "Al menos un producto activo con precio o un servicio visible en la tienda.",
       "goShipping": "Crear perfil de envío",
       "goSetup": "Ir a Configuración del negocio",
       "goCatalog": "Ir al catálogo"

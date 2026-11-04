@@ -25,7 +25,7 @@ export interface CreateBookingInput {
   aiAgentId: string | null
   draft: BookingDraft
   /** ai = the AI agent, flow = a flow's booking step, picker = the schedule a team member sent from the inbox. */
-  source: 'ai' | 'manual' | 'flow' | 'picker'
+  source: 'ai' | 'manual' | 'flow' | 'picker' | 'store'
 }
 
 /** Required booking data still missing, per industry preset. */

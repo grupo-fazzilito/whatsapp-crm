@@ -111,3 +111,16 @@ describe('shipping paid at destination and extra charges', () => {
     expect(storeSettings({ fees }).fees).toHaveLength(2)
   })
 })
+
+describe('service checkout', () => {
+  it('needs day and time only when the service books at checkout', async () => {
+    const { parseServiceCheckout } = await import('./service-checkout')
+    const body = { service_id: P, customer: { name: 'Luis Rojas', phone: '912 345 678' }, fields: { party_size: 4, reason: ' Dolor ', 'bad key': 'x' } }
+    expect(parseServiceCheckout(body, '+51', true)).toEqual({ ok: false, error: 'slot' })
+    const later = parseServiceCheckout(body, '+51', false)
+    expect(later).toMatchObject({ ok: true, input: { date: null, time: null, customer: { phone: '51912345678' }, fields: { party_size: 4, reason: 'Dolor' } } })
+    if (later.ok) expect(Object.keys(later.input.fields)).not.toContain('bad key')
+    expect(parseServiceCheckout({ ...body, date: '2026-11-10', time: '10:30' }, '+51', true)).toMatchObject({ ok: true, input: { date: '2026-11-10', time: '10:30' } })
+    expect(parseServiceCheckout({ ...body, service_id: 'x' }, '+51', false)).toEqual({ ok: false, error: 'service' })
+  })
+})

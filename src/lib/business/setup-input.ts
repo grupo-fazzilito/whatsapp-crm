@@ -101,6 +101,17 @@ const SERVICE_FIELDS: Record<string, (v: unknown) => unknown> = {
   price_is_from: (v) => bool(v, 'price_is_from'),
   duration_minutes: (v) => int(v, 5, 1440, 'duration_minutes'),
   is_active: (v) => bool(v, 'is_active'),
+  // Online store
+  image_url: (v) => {
+    const s = text(v, 2000)
+    if (s !== null && !/^https?:\/\//.test(s)) throw new InputError('Invalid image_url')
+    return s
+  },
+  show_in_store: (v) => bool(v, 'show_in_store'),
+  store_booking: (v) => {
+    if (v !== 'schedule' && v !== 'later') throw new InputError('Invalid store_booking')
+    return v
+  },
 }
 
 export function parseService(body: Body, partial: boolean): Row {

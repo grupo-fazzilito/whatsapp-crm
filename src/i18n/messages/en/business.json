@@ -222,6 +222,18 @@
         "priceFrom": "“From” price",
         "duration": "Duration (min)",
         "active": "Active (offered by the AI)"
+      },
+      "store": {
+        "title": "Online store",
+        "show": "Show in the store",
+        "bookingLabel": "When bought in the store",
+        "schedule": "The customer books their appointment",
+        "scheduleHint": "They pick day and time from the free slots; the booking is created with the order.",
+        "later": "Arranged later",
+        "laterHint": "The customer pays for or reserves the service and the date is agreed in the chat.",
+        "image": "Photo",
+        "upload": "Upload photo",
+        "removeImage": "Remove"
       }
     },
     "faqs": {
