@@ -12,7 +12,8 @@ import { cartCurrencyConflict } from '@/lib/catalog/currency'
 import { phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { emailConfigured, sendEmail } from '@/lib/email/send'
 import type { WorkspaceSettings } from '@/lib/workspace/types'
-import { orderFees, storeSettings, type StoreReadiness, type StoreSettings } from './settings'
+import { orderFees, storeSettings, storeStockRules, type StoreReadiness, type StoreSettings } from './settings'
+import { productStockRules, publicAvailable, stockLabel, type StockLabel } from './stock-display'
 import { orderWeight, quoteShipping, toShippingProfile, type ShippingProfile } from './shipping'
 import { addressLine, type CheckoutInput, type CheckoutItem } from './checkout'
 
@@ -90,7 +91,9 @@ export interface StoreVariant {
   id: string
   name: string
   price: number
+  /** 0 = sold out; null = available (amount not tracked or not shown). */
   available: number | null
+  stock_label: StockLabel
 }
 
 export interface StoreProduct {
@@ -102,8 +105,11 @@ export interface StoreProduct {
   images: string[]
   category_id: string | null
   is_featured: boolean
-  /** Null = not tracked (always available). */
+  /** 0 = sold out; null = available (amount not tracked or not shown). */
   available: number | null
+  stock_label: StockLabel
+  /** "Notify me" is offered when it (or a variant) is sold out. */
+  waitlist: boolean
   variants: StoreVariant[]
 }
 
@@ -132,6 +138,9 @@ export async function loadStoreCatalog(ws: StoreWorkspace, productId?: string): 
         is_featured: true,
         track_stock: true,
         stock: true,
+        stock_display: true,
+        low_stock_threshold: true,
+        waitlist_enabled: true,
         product_variants: { where: { is_active: true }, select: { id: true, name: true, price: true, stock: true }, orderBy: { sort_order: 'asc' } },
       },
       orderBy: [{ is_featured: 'desc' }, { sort_order: 'asc' }, { created_at: 'desc' }],
@@ -139,12 +148,18 @@ export async function loadStoreCatalog(ws: StoreWorkspace, productId?: string): 
     }),
     productId ? Promise.resolve([]) : db.product_categories.findMany({ select: { id: true, name: true }, orderBy: [{ sort_order: 'asc' }, { name: 'asc' }] }),
   ])
+  const general = storeStockRules(storeSettings(ws.settings?.store))
   const products: StoreProduct[] = []
   for (const p of rows) {
     if (cartCurrencyConflict(p, ws.currency)) continue
+    const rules = productStockRules(general, p)
     const variants = p.product_variants
-      .map((v) => ({ id: v.id, name: v.name, price: Number(v.price ?? p.price ?? NaN), available: p.track_stock ? Math.max(0, v.stock ?? p.stock ?? 0) : null }))
+      .map((v) => {
+        const left = p.track_stock ? Math.max(0, v.stock ?? p.stock ?? 0) : null
+        return { id: v.id, name: v.name, price: Number(v.price ?? p.price ?? NaN), available: publicAvailable(rules, left), stock_label: stockLabel(rules, left) }
+      })
       .filter((v) => Number.isFinite(v.price))
+    const left = p.track_stock ? Math.max(0, p.stock ?? 0) : null
     const price = p.price === null ? (variants.length ? Math.min(...variants.map((v) => v.price)) : null) : Number(p.price)
     if (price === null || !Number.isFinite(price)) continue
     products.push({
@@ -156,7 +171,9 @@ export async function loadStoreCatalog(ws: StoreWorkspace, productId?: string): 
       images: publicImages(p.images),
       category_id: p.category_id,
       is_featured: p.is_featured,
-      available: p.track_stock ? Math.max(0, p.stock ?? 0) : null,
+      available: publicAvailable(rules, left),
+      stock_label: stockLabel(rules, left),
+      waitlist: rules.waitlist && p.track_stock,
       variants,
     })
   }
@@ -239,10 +256,14 @@ export async function priceItems(ws: StoreWorkspace, items: CheckoutItem[]): Pro
       track_stock: true,
       stock: true,
       weight_kg: true,
+      stock_display: true,
+      low_stock_threshold: true,
+      waitlist_enabled: true,
       product_variants: { where: { is_active: true }, select: { id: true, name: true, sku: true, price: true, stock: true, weight_kg: true } },
     },
   })
   const byId = new Map(rows.map((r) => [r.id, r]))
+  const general = storeStockRules(storeSettings(ws.settings?.store))
   const lines: PricedLine[] = []
   for (const it of items) {
     const p = byId.get(it.product_id)
@@ -255,7 +276,11 @@ export async function priceItems(ws: StoreWorkspace, items: CheckoutItem[]): Pro
     if (price === null || price === undefined) return { ok: false, error: 'unavailable', name: p.name }
     if (p.track_stock) {
       const available = v && v.stock !== null ? v.stock : p.stock ?? 0
-      if (available < it.quantity) return { ok: false, error: 'stock', name: v ? `${p.name} (${v.name})` : p.name, available: Math.max(0, available) }
+      if (available < it.quantity) {
+        // The amount left is only told when the store shows it.
+        const shown = productStockRules(general, p).display === 'exact' || available <= 0
+        return { ok: false, error: 'stock', name: v ? `${p.name} (${v.name})` : p.name, ...(shown ? { available: Math.max(0, available) } : {}) }
+      }
     }
     const weight = v?.weight_kg ?? p.weight_kg
     lines.push({

@@ -207,6 +207,27 @@
       "searched": "Buscó en el catálogo: {query}",
       "shown": "Fotos que enviaría"
     },
-    "import": "Importar"
+    "import": "Importar",
+    "storeStock": {
+      "title": "En la tienda online",
+      "display": "Mostrar el stock",
+      "inherit": "Como en la tienda (configuración general)",
+      "hidden": "Ocultar",
+      "exact": "Mostrar la cantidad",
+      "low": "Solo «¡Casi agotado!»",
+      "threshold": "Cuando queden menos de",
+      "thresholdPlaceholder": "Como en la tienda",
+      "waitlist": "Botón «Notifícame disponibilidad»",
+      "waitlistOn": "Mostrar",
+      "waitlistOff": "No mostrar",
+      "thresholdError": "Pon un número entero desde 1."
+    },
+    "waitlist": {
+      "badge": "{n} esperando",
+      "readyTitle": "Ya hay stock: puedes avisar a {n}",
+      "banner": "Hay stock nuevo en productos que tus clientes esperan: {products} producto(s), {people} persona(s) por avisar.",
+      "go": "Ir a Lista de espera",
+      "restocked": "Hay {n} persona(s) esperando este producto. Avísales desde la Lista de espera."
+    }
   }
 }

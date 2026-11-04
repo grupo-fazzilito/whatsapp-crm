@@ -37,6 +37,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Hand,
+  BellRing,
 } from "lucide-react";
 import {
   Avatar,
@@ -115,6 +116,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         : []),
     ...(modules.orders ? [{ href: "/orders", label: t("orders.navTitle"), icon: ShoppingBag, badge: pendingOrders }] : []),
     ...(modules.orders && modules.products ? [{ href: "/store", label: t("store.navTitle"), icon: Store }] : []),
+    ...(modules.orders && modules.products ? [{ href: "/waitlist", label: t("waitlist.navTitle"), icon: BellRing }] : []),
     ...(modules.staff ? [{ href: "/business/staff", label: label("staffPlural"), icon: UserRound }] : []),
     ...(workspace?.industry === "real_estate" ? [{ href: "/captures", label: t("realestate.captures.navTitle"), icon: HousePlus }] : []),
   ];

@@ -398,6 +398,67 @@
         "taken": "Another business already uses that address.",
         "failed": "Could not save. Try again."
       }
+    },
+    "stock": {
+      "title": "Stock and waitlist",
+      "description": "How customers see the stock of products that track it. Each product can have its own rule.",
+      "display": "Show stock",
+      "hidden": "Hide (only “Sold out” when nothing is left)",
+      "exact": "Show the amount (e.g. “7 left”)",
+      "low": "Only “Almost gone!” when few units are left",
+      "threshold": "Show “Almost gone!” when fewer than",
+      "thresholdUnit": "units are left",
+      "waitlist": "“Notify me when available” button on sold-out products",
+      "waitlistHint": "The customer leaves their WhatsApp, joins the Waitlist and their WhatsApp opens with a message for you."
+    }
+  },
+  "waitlist": {
+    "navTitle": "Waitlist",
+    "title": "Waitlist",
+    "description": "Customers who asked to be told when a product is back in stock. When you restock it, tap “Notify” and they get a WhatsApp message.",
+    "tabs": {
+      "waiting": "Waiting",
+      "notified": "Notified"
+    },
+    "empty": "Nobody is waiting for a product right now. When a customer taps “Notify me when available” on a sold-out product, they show up here.",
+    "emptyNotified": "You haven't notified anyone yet.",
+    "people": "{n} waiting",
+    "inStock": "In stock: {n}",
+    "inStockUntracked": "Available",
+    "noStock": "No stock yet",
+    "inactive": "Product turned off",
+    "notifyAll": "Notify everyone",
+    "notify": "Notify",
+    "remove": "Remove from list",
+    "removed": "Removed from the list.",
+    "since": "Since {date}",
+    "notifiedAt": "Notified on {date}",
+    "openChat": "Open chat",
+    "editProduct": "Edit product",
+    "sent": "Notified: {n}.",
+    "someFailed": "Couldn't notify {n}: {reason}.",
+    "error": "Couldn't complete it. Try again.",
+    "template": {
+      "title": "“Notify stock arrival” template",
+      "why": "WhatsApp only lets you write freely up to 24 h after the customer's last message. After that, the notice goes out with this Meta-approved template.",
+      "draft": "It's ready: it only needs to be sent to Meta for approval.",
+      "pending": "Sent to Meta, under review. Meanwhile you can only notify people who wrote to you in the last 24 h.",
+      "approved": "Approved by Meta.",
+      "rejected": "Meta rejected it: {reason}",
+      "submit": "Send to Meta",
+      "submitted": "Template sent to Meta for approval.",
+      "noWhatsApp": "Connect a WhatsApp number in Channels to send it to Meta.",
+      "open": "See template",
+      "needed": "You turned on “Notify me when available”, but the “Notify stock arrival” template isn't approved yet. Send it to Meta so you can notify customers after 24 h."
+    },
+    "reason": {
+      "no_stock": "the product has no stock yet",
+      "no_channel": "no WhatsApp number is connected",
+      "window_closed": "more than 24 h since their last message",
+      "template_missing": "the “Notify stock arrival” template is missing",
+      "template_pending": "the template isn't approved by Meta yet",
+      "template_rejected": "Meta rejected the template",
+      "send_failed": "WhatsApp didn't accept the message"
     }
   }
 }

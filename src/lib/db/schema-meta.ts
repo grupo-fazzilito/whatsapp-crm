@@ -588,6 +588,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     }
   },
   "contacts": {
+    "stock_waitlist": {
+      "rel": "stock_waitlist"
+    },
     "created_at": "timestamp",
     "updated_at": "timestamp",
     "ai_chat_logs": {
@@ -694,6 +697,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     }
   },
   "conversations": {
+    "stock_waitlist": {
+      "rel": "stock_waitlist"
+    },
     "last_message_at": "timestamp",
     "created_at": "timestamp",
     "updated_at": "timestamp",
@@ -1266,6 +1272,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     }
   },
   "product_variants": {
+    "stock_waitlist": {
+      "rel": "stock_waitlist"
+    },
     "price": "decimal",
     "weight_kg": "decimal",
     "created_at": "timestamp",
@@ -1284,6 +1293,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     }
   },
   "products": {
+    "stock_waitlist": {
+      "rel": "stock_waitlist"
+    },
     "price": "decimal",
     "compare_at_price": "decimal",
     "created_at": "timestamp",
@@ -1553,6 +1565,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     }
   },
   "users": {
+    "stock_waitlist": {
+      "rel": "stock_waitlist"
+    },
     "last_sign_in_at": "timestamp",
     "created_at": "timestamp",
     "updated_at": "timestamp",
@@ -1833,6 +1848,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     }
   },
   "workspaces": {
+    "stock_waitlist": {
+      "rel": "stock_waitlist"
+    },
     "created_at": "timestamp",
     "updated_at": "timestamp",
     "plan_changed_at": "timestamp",
@@ -2142,6 +2160,28 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "created_at": "timestamp",
     "workspaces": {
       "rel": "workspaces"
+    }
+  },
+  "stock_waitlist": {
+    "notified_at": "timestamp",
+    "created_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    },
+    "products": {
+      "rel": "products"
+    },
+    "product_variants": {
+      "rel": "product_variants"
+    },
+    "contacts": {
+      "rel": "contacts"
+    },
+    "users": {
+      "rel": "users"
+    },
+    "conversations": {
+      "rel": "conversations"
     }
   }
 }

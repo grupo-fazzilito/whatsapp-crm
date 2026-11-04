@@ -802,6 +802,7 @@ model contact_tags {
 
 model contacts {
   id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stock_waitlist                stock_waitlist[]
   user_id                       String?                         @default(dbgenerated("app_user_id()")) @db.Uuid
   phone                         String?
   name                          String?
@@ -882,6 +883,7 @@ model conversation_tags {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model conversations {
   id                                       String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stock_waitlist                           stock_waitlist[]
   user_id                                  String?               @default(dbgenerated("app_user_id()")) @db.Uuid
   contact_id                               String                @db.Uuid
   status                                   String                @default("open")
@@ -1659,23 +1661,24 @@ model product_categories {
 }
 
 model product_variants {
-  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  workspace_id String        @db.Uuid
-  product_id   String        @db.Uuid
-  name         String
-  options      Json          @default("{}")
-  sku          String?
-  price        Decimal?      @db.Decimal(14, 2)
-  stock        Int?
-  weight_kg    Decimal?      @db.Decimal(10, 3)
-  is_active    Boolean       @default(true)
-  sort_order   Int           @default(0)
-  created_at   DateTime?     @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime?     @default(now()) @db.Timestamptz(6)
-  cart_items   cart_items[]
-  order_items  order_items[]
-  products     products      @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  workspaces   workspaces    @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stock_waitlist stock_waitlist[]
+  workspace_id   String           @db.Uuid
+  product_id     String           @db.Uuid
+  name           String
+  options        Json             @default("{}")
+  sku            String?
+  price          Decimal?         @db.Decimal(14, 2)
+  stock          Int?
+  weight_kg      Decimal?         @db.Decimal(10, 3)
+  is_active      Boolean          @default(true)
+  sort_order     Int              @default(0)
+  created_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  cart_items     cart_items[]
+  order_items    order_items[]
+  products       products         @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  workspaces     workspaces       @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([product_id], map: "idx_product_variants_product")
 }
@@ -1683,6 +1686,7 @@ model product_variants {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model products {
   id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stock_waitlist         stock_waitlist[]
   workspace_id           String                   @default(dbgenerated("active_ws()")) @db.Uuid
   category_id            String?                  @db.Uuid
   name                   String
@@ -1709,6 +1713,9 @@ model products {
   external_missing_since DateTime?                @db.Timestamptz(6)
   currency               String?
   weight_kg              Decimal?                 @db.Decimal(10, 3)
+  stock_display          String?
+  low_stock_threshold    Int?
+  waitlist_enabled       Boolean?
   bookings               bookings[]
   cart_items             cart_items[]
   lead_property_alerts   lead_property_alerts[]
@@ -2033,6 +2040,7 @@ model teams {
 
 model users {
   id                                                          String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stock_waitlist                                              stock_waitlist[]
   email                                                       String                          @unique
   name                                                        String                          @default("")
   email_verified                                              Boolean                         @default(false)
@@ -2270,6 +2278,7 @@ model plans {
 
 model workspaces {
   id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stock_waitlist                stock_waitlist[]
   name                          String
   slug                          String                          @unique
   industry                      String                          @default("generic")
@@ -2462,4 +2471,29 @@ model workspace_slug_redirects {
   workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([workspace_id], map: "idx_workspace_slug_redirects_ws")
+}
+
+model stock_waitlist {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id     String            @db.Uuid
+  product_id       String            @db.Uuid
+  variant_id       String?           @db.Uuid
+  contact_id       String?           @db.Uuid
+  name             String?
+  phone            String
+  status           String            @default("waiting")
+  notified_at      DateTime?         @db.Timestamptz(6)
+  notified_by      String?           @db.Uuid
+  notify_error     String?
+  conversation_id  String?           @db.Uuid
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  workspaces       workspaces        @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products         products          @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product_variants product_variants? @relation(fields: [variant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  contacts         contacts?         @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  users            users?            @relation(fields: [notified_by], references: [id], onUpdate: NoAction)
+  conversations    conversations?    @relation(fields: [conversation_id], references: [id], onUpdate: NoAction)
+
+  @@index([workspace_id, status, created_at(sort: Desc)], map: "idx_stock_waitlist_workspace")
+  @@index([product_id], map: "idx_stock_waitlist_product")
 }
