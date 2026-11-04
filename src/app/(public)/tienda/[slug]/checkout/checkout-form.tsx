@@ -88,8 +88,9 @@ export function CheckoutForm({ preview, dialCode, pickup, note, shipping, paymen
 
   const fee = fulfillment === 'pickup' ? 0 : (quote?.shipping.find((s) => s.id === profileId)?.fee ?? null);
   const onDelivery = fulfillment === 'delivery' && !!shipping.find((s) => s.id === profileId && s.type === 'on_delivery');
-  const extras = orderFees(fees, pickedFees);
-  const optionalFees = fees.filter((f) => !f.required);
+  const extras = orderFees(fees, pickedFees, fulfillment);
+  // Extra charges (packaging…) only apply to shipped orders.
+  const optionalFees = fulfillment === 'delivery' ? fees.filter((f) => !f.required) : [];
   const subtotal = quote?.subtotal ?? 0;
   const total = fee === null ? null : Math.round((subtotal + fee + extras.total) * 100) / 100;
 
@@ -113,7 +114,7 @@ export function CheckoutForm({ preview, dialCode, pickup, note, shipping, paymen
         shipping_profile_id: fulfillment === 'delivery' ? profileId : null,
         address: fulfillment === 'delivery' ? address : null,
         payment_method_id: paymentId,
-        fee_ids: pickedFees,
+        fee_ids: fulfillment === 'delivery' ? pickedFees : [],
         notes,
         website,
       }),

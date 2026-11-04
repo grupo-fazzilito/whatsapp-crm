@@ -365,7 +365,7 @@
     },
     "fees": {
       "title": "Extra charges",
-      "description": "Fixed amounts added to the order, such as packaging. If optional, the customer ticks it at checkout.",
+      "description": "Fixed amounts added to shipped orders, such as packaging. Not charged when the customer picks up in store. If optional, the customer ticks it at checkout.",
       "empty": "No extra charges.",
       "add": "Add charge",
       "name": "Concept",

@@ -314,7 +314,7 @@ export async function placeStoreOrder(store: PublicStore, input: CheckoutInput):
   const minOrder = Math.max(0, Number((ws.settings?.orders as { min_order?: number } | undefined)?.min_order ?? 0) || 0)
   if (minOrder && priced.subtotal < minOrder) return { ok: false, error: 'min_order' }
 
-  const fees = orderFees(store.store.fees, input.fee_ids)
+  const fees = orderFees(store.store.fees, input.fee_ids, input.fulfillment)
   const onDelivery = profile?.type === 'on_delivery'
   const contactId = await contactFor(ws.id, input.customer.name, input.customer.phone, input.customer.email)
   const token = crypto.randomBytes(18).toString('base64url')

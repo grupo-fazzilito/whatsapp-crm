@@ -365,7 +365,7 @@
     },
     "fees": {
       "title": "Cargos adicionales",
-      "description": "Montos fijos que se suman al pedido, como el empaquetado. Si es opcional, el cliente lo marca en el checkout.",
+      "description": "Montos fijos que se suman a los pedidos con envío, como el empaquetado. No se cobran cuando el cliente recoge en tienda. Si es opcional, el cliente lo marca en el checkout.",
       "empty": "Sin cargos adicionales.",
       "add": "Agregar cargo",
       "name": "Concepto",

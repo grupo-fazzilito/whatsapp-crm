@@ -104,8 +104,12 @@ export function parseFees(raw: unknown): StoreFee[] {
   return out
 }
 
-/** Charges of an order: the required ones plus the optional ones the customer picked. */
-export function orderFees(fees: StoreFee[], picked: string[]): { lines: { name: string; amount: number }[]; total: number } {
+/**
+ * Charges of an order: the required ones plus the optional ones the
+ * customer picked. Only for shipped orders: store pickup pays none.
+ */
+export function orderFees(fees: StoreFee[], picked: string[], fulfillment: 'delivery' | 'pickup'): { lines: { name: string; amount: number }[]; total: number } {
+  if (fulfillment !== 'delivery') return { lines: [], total: 0 }
   const lines = fees.filter((f) => f.required || picked.includes(f.id)).map((f) => ({ name: f.name, amount: f.amount }))
   return { lines, total: Math.round(lines.reduce((a, l) => a + l.amount, 0) * 100) / 100 }
 }
