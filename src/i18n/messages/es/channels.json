@@ -179,7 +179,20 @@
       "token": "Token del bot",
       "tokenHelp": "Se ve así: 123456789:AAH… Lo guardamos cifrado. Si el bot estaba conectado a otro programa, dejará de recibir mensajes allí.",
       "doneDescription": "Tus clientes ya pueden escribirle a tu bot. Comparte este enlace en tu web y redes sociales.",
-      "link": "Enlace de tu bot"
+      "link": "Enlace de tu bot",
+      "business": {
+        "title": "Responder desde tu cuenta personal (Telegram Business)",
+        "intro": "Con Telegram Premium, este bot puede contestar los chats de tu cuenta personal de Telegram. Esos chats llegan a la Bandeja como un canal aparte.",
+        "step1": "En @BotFather, abre {bot} → Bot Settings → Business Mode y actívalo.",
+        "step2": "En tu Telegram: Ajustes → Telegram Business → Chatbots, agrega {bot} y elige qué chats atiende.",
+        "step3": "Listo: aparece el canal «Cuenta personal». Si conectaste el bot antes de esta función, pulsa «Actualizar conexión» primero.",
+        "note": "Lo que escribas desde tu celular también se ve en la Bandeja y pausa a la IA en ese chat. El bot solo ve los mensajes nuevos, no los chats anteriores.",
+        "resync": "Actualizar conexión",
+        "resynced": "Conexión actualizada",
+        "replyNotAllowed": "El bot no tiene permiso para responder. En Telegram → Telegram Business → Chatbots, activa «Responder a mensajes».",
+        "channelNote": "Responde desde tu cuenta personal a través de tu bot. Las respuestas salen con tu nombre.",
+        "accountLink": "Enlace de tu cuenta"
+      }
     }
   }
 }

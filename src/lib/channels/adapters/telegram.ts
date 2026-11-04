@@ -170,6 +170,12 @@ async function post(token: string, req: TgRequest, base: Record<string, unknown>
   }
 }
 
+/** The business connection of a "Telegram · personal account" channel; null for plain bots. */
+export function businessConnectionId(settings: Record<string, unknown> | null | undefined): string | null {
+  const id = settings?.business_connection_id
+  return typeof id === 'string' && id ? id : null
+}
+
 export const telegramAdapter: ChannelAdapter = {
   type: 'telegram',
   capabilities: { templates: false, reactions: false, interactive: true, replyWindowHours: null, media: true },
@@ -177,9 +183,17 @@ export const telegramAdapter: ChannelAdapter = {
     const token = ctx.channel.secrets.access_token
     if (!token) throw new ChannelSendError('Telegram bot token missing', 'not_configured')
     const quoted = parseTgMessageKey(ctx.replyToExternalId)
+    // Telegram Business: sent from the owner's account, through their connection.
+    const connectionId = businessConnectionId(ctx.channel.settings)
     let first: string | null = null
     for (const req of telegramRequests(content)) {
-      const base: Record<string, unknown> = { chat_id: ctx.recipient }
+      const base: Record<string, unknown> = { chat_id: ctx.recipient, ...(connectionId ? { business_connection_id: connectionId } : {}) }
+      // Custom reply keyboards (the share-contact one) aren't allowed on behalf of a business account.
+      if (connectionId && req.body.reply_markup && 'keyboard' in (req.body.reply_markup as object)) {
+        const { reply_markup: _rm, ...rest } = req.body
+        void _rm
+        req.body = rest
+      }
       if (!first && quoted && quoted.chatId === ctx.recipient) {
         base.reply_parameters = { message_id: quoted.messageId, allow_sending_without_reply: true }
       }

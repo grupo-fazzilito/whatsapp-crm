@@ -7,8 +7,8 @@ import { loadChannel, saveChannelSecrets } from '@/lib/channels/store'
 import { verifyPhoneNumber } from '@/lib/whatsapp/meta-api'
 import { isUuid } from '@/lib/workspace/constants'
 import { GRAPH, PUBLIC_SELECT, assertAgentInWorkspace, bad, skipVerify, str } from '../_lib/shared'
-import { looksLikeBotToken } from '@/lib/channels/adapters/telegram'
-import { deleteBotWebhook, getBot, newWebhookSecret, setBotWebhook, telegramWebhookUrl } from '@/lib/channels/telegram-server'
+import { businessConnectionId, looksLikeBotToken } from '@/lib/channels/adapters/telegram'
+import { deleteBotWebhook, getBot, linkedBusinessChannels, newWebhookSecret, resyncBotWebhook, setBotWebhook, telegramWebhookUrl } from '@/lib/channels/telegram-server'
 import { publicOrigin } from '@/lib/site-origin'
 import { parseWebchatSettings, webchatHandle, type WebchatSettings } from '../_lib/webchat'
 import { parseWelcomeMenu } from '../_lib/welcome-menu'
@@ -21,6 +21,8 @@ import type { WelcomeMenu } from '@/lib/ai/types'
  *     settings.welcome_menu (any type; null removes it) — see _lib/welcome-menu.ts,
  *   access_token / verify_token / app_secret (rotate credentials; never returned;
  *   app_secret = own Meta app for manual setups, null removes it).
+ *   resync_webhook: true — Telegram bots: set the bot's webhook again (e.g. to
+ *   start receiving Telegram Business updates). Returns at once.
  * DELETE /api/channels/[id] — admin. Conversations keep their history
  *   (conversations.channel_id is set to NULL).
  */
@@ -39,6 +41,13 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
   if (!body) return bad('Invalid JSON body')
+
+  if (body.resync_webhook === true) {
+    if (channel.type !== 'telegram' || businessConnectionId(channel.settings)) return bad('Only Telegram bot channels have a webhook to update')
+    const err = skipVerify(request) ? null : await resyncBotWebhook(channel, telegramWebhookUrl(publicOrigin(request), channel.external_id))
+    if (err) return bad(`Telegram did not accept the webhook: ${err}`, 502)
+    return NextResponse.json({ channel: stripSecrets(channel) })
+  }
 
   const patch: Record<string, unknown> = {}
 
@@ -121,6 +130,9 @@ export async function PATCH(request: Request, { params }: Params) {
   }
   // Telegram: a new token (revoked in @BotFather) must be the same bot; the webhook is set again.
   let webhookSecret: string | undefined
+  if (accessToken && channel.type === 'telegram' && businessConnectionId(channel.settings)) {
+    return bad('This channel uses its bot’s token: change it on the bot’s channel')
+  }
   if (accessToken && channel.type === 'telegram') {
     if (!looksLikeBotToken(accessToken)) return bad('access_token looks invalid (copy the whole token @BotFather gave you)')
     webhookSecret = newWebhookSecret()
@@ -150,6 +162,10 @@ export async function PATCH(request: Request, { params }: Params) {
     if (accessToken && !('status' in body)) {
       patch.status = 'connected'
       patch.status_detail = null
+    }
+    // The bot's personal-account channels send with the same token.
+    if (accessToken && channel.type === 'telegram') {
+      for (const linked of await linkedBusinessChannels(channel)) await saveChannelSecrets(linked.id, { access_token: accessToken }).catch(() => null)
     }
   }
 
@@ -188,8 +204,13 @@ export async function DELETE(_request: Request, { params }: Params) {
     return bad(error instanceof Error ? error.message : 'Could not delete the channel', 500)
   }
 
-  // The bot stops sending updates here (it can be connected again later).
-  if (channel.type === 'telegram' && channel.secrets.access_token) await deleteBotWebhook(channel.secrets.access_token)
+  // The bot stops sending updates here (it can be connected again later);
+  // its personal-account channels can't work without it.
+  if (channel.type === 'telegram' && !businessConnectionId(channel.settings)) {
+    if (channel.secrets.access_token) await deleteBotWebhook(channel.secrets.access_token)
+    const linked = await linkedBusinessChannels(channel)
+    if (linked.length) await guard.ctx.db.channels.deleteMany({ where: { id: { in: linked.map((l) => l.id) } } }).catch(() => null)
+  }
 
   // Stop Meta from sending us this page's events when nothing else uses it.
   const pageId = channel.type === 'messenger' ? channel.external_id : (channel.settings?.page_id as string | undefined)

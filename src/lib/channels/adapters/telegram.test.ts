@@ -45,3 +45,34 @@ describe('telegram outbound', () => {
     expect(looksLikeBotToken('hola')).toBe(false)
   })
 })
+
+describe('telegram business sending', () => {
+  it('knows a business-account channel by its connection id', async () => {
+    const { businessConnectionId } = await import('./telegram')
+    expect(businessConnectionId({ business_connection_id: 'BC1' })).toBe('BC1')
+    expect(businessConnectionId({ username: 'bot' })).toBeNull()
+  })
+})
+
+describe('telegram adapter send', () => {
+  it('sends on behalf of the business account and drops the share-contact keyboard', async () => {
+    const { vi } = await import('vitest')
+    const { telegramAdapter, SHARE_PHONE_ID: share } = await import('./telegram')
+    const calls: { url: string; body: Record<string, unknown> }[] = []
+    const fetchMock = vi.fn(async (url: string, init: { body: string }) => {
+      calls.push({ url, body: JSON.parse(init.body) })
+      return new Response(JSON.stringify({ ok: true, result: { message_id: 42 } }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const channel = { id: 'c', workspace_id: 'w', type: 'telegram', external_id: '999:BC1', settings: { business_connection_id: 'BC1' }, secrets: { access_token: '999:TOKEN' } }
+    const res = await telegramAdapter.send(
+      { channel: channel as never, recipient: '555' },
+      { type: 'buttons', text: '¿Tu número?', options: [{ id: share, title: 'Compartir' }] },
+    )
+    expect(res.externalId).toBe('555_42')
+    expect(calls[0].url).toContain('/bot999:TOKEN/sendMessage')
+    expect(calls[0].body).toMatchObject({ chat_id: '555', business_connection_id: 'BC1' })
+    expect(calls[0].body.reply_markup).toBeUndefined()
+    vi.unstubAllGlobals()
+  })
+})

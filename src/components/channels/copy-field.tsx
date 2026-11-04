@@ -16,7 +16,7 @@ export function CopyField({ value, label, multiline }: { value: string; label?: 
     }
   };
   return (
-    <div className="grid min-w-0 gap-1.5">
+    <div className="grid min-w-0 grid-cols-1 gap-1.5">
       {label && <span className="text-xs font-medium text-muted-foreground">{label}</span>}
       <div className="flex items-start gap-2">
         <code

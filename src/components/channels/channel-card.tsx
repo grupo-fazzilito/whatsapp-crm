@@ -18,6 +18,7 @@ import { CopyField } from './copy-field';
 import { readWelcomeMenu } from './welcome-menu-dialog';
 import { MarketingMessagesBox } from './marketing-messages-box';
 import { CallingBox } from './calling-box';
+import { TelegramBusinessBox } from './telegram-business-box';
 
 const STATUS_STYLE: Record<ChannelDTO['status'], string> = {
   connected: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -97,7 +98,9 @@ export function ChannelCard({ channel, agents, isAdmin, origin, onAgentChange, o
         {channel.status_detail && (
           <p className="flex items-start gap-1.5 rounded-md bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
             <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
-            <span className="break-words">{channel.status_detail}</span>
+            <span className="break-words">
+              {channel.status_detail === 'reply_not_allowed' ? t('channels.telegram.business.replyNotAllowed') : channel.status_detail}
+            </span>
           </p>
         )}
 
@@ -151,9 +154,17 @@ export function ChannelCard({ channel, agents, isAdmin, origin, onAgentChange, o
 
         {channel.type === 'whatsapp' && <MarketingMessagesBox channel={channel} isAdmin={isAdmin} />}
 
+        {channel.type === 'telegram' && channel.settings?.business_connection_id ? (
+          <p className="text-xs text-muted-foreground">
+            {t('channels.telegram.business.channelNote')}
+          </p>
+        ) : channel.type === 'telegram' ? (
+          <TelegramBusinessBox channel={channel} isAdmin={isAdmin} />
+        ) : null}
+
         {channel.type === 'telegram' && telegramLink(channel) && (
-          <div className="mt-auto">
-            <CopyField label={t('channels.telegram.link')} value={telegramLink(channel)!} />
+          <div className="mt-auto min-w-0">
+            <CopyField label={channel.settings?.business_connection_id ? t('channels.telegram.business.accountLink') : t('channels.telegram.link')} value={telegramLink(channel)!} />
           </div>
         )}
 

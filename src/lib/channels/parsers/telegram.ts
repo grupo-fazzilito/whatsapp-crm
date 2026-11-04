@@ -5,6 +5,7 @@
 // bots are ignored. Message ids are only unique inside a chat, so they are
 // stored as "<chat id>_<message id>".
 import type { InboundEvent } from '../types'
+import type { CoexMessage } from './whatsapp'
 
 interface TgUser {
   id: number
@@ -27,6 +28,10 @@ interface TgFile {
 
 export interface TgMessage {
   message_id: number
+  /** Set on messages of a connected business account (Telegram Business). */
+  business_connection_id?: string
+  /** Set when a bot sent it on behalf of the business account. */
+  sender_business_bot?: TgUser
   from?: TgUser
   chat: TgChat
   date: number
@@ -47,9 +52,23 @@ export interface TgMessage {
   reply_markup?: { inline_keyboard?: { text: string; callback_data?: string }[][] }
 }
 
+/** The bot connected to (or removed from) a Telegram Business account. */
+export interface TgBusinessConnection {
+  id: string
+  user: TgUser
+  user_chat_id: number
+  date: number
+  /** Bot API 9+: rights; older payloads had can_reply. */
+  rights?: { can_reply?: boolean }
+  can_reply?: boolean
+  is_enabled: boolean
+}
+
 export interface TgUpdate {
   update_id: number
   message?: TgMessage
+  business_connection?: TgBusinessConnection
+  business_message?: TgMessage
   callback_query?: {
     id: string
     from: TgUser
@@ -112,10 +131,22 @@ function messageContent(m: TgMessage): Content {
   return { contentType: 'text', text: '[Unsupported message]' }
 }
 
+/**
+ * external_id of the channel for a business account connected to a bot:
+ * "<bot id>:<business connection id>". Plain bot channels use the bot id.
+ */
+export function businessChannelKey(botId: string, connectionId: string): string {
+  return `${botId}:${connectionId}`
+}
+
 /** Callback queries the webhook must answer (stops the button's spinner). */
 export interface ParsedTelegramUpdate {
   events: InboundEvent[]
   callbackQueryId: string | null
+  /** Telegram Business: the connection was created, changed or removed. */
+  connection: TgBusinessConnection | null
+  /** Telegram Business: what the owner wrote from their own app (shown as a team reply). */
+  echo: { channelExternalId: string; message: CoexMessage } | null
 }
 
 /**
@@ -124,17 +155,22 @@ export interface ParsedTelegramUpdate {
  * resolved later against the message that carried the buttons).
  */
 export function parseTelegramUpdate(botId: string, update: TgUpdate): ParsedTelegramUpdate {
+  const none = { events: [], callbackQueryId: null, connection: null, echo: null }
+  if (update.business_connection) return { ...none, connection: update.business_connection }
+
   const cb = update.callback_query
   if (cb) {
     const chat = cb.message?.chat
-    if (!cb.data || cb.from.is_bot || (chat && chat.type !== 'private')) return { events: [], callbackQueryId: cb.id }
+    if (!cb.data || cb.from.is_bot || (chat && chat.type !== 'private')) return { ...none, callbackQueryId: cb.id }
+    const channelExternalId = cb.message?.business_connection_id ? businessChannelKey(botId, cb.message.business_connection_id) : botId
     const button = cb.message?.reply_markup?.inline_keyboard?.flat().find((b) => b.callback_data === cb.data)
     return {
+      ...none,
       callbackQueryId: cb.id,
       events: [
         {
           kind: 'message',
-          channelExternalId: botId,
+          channelExternalId,
           from: sender(cb.from),
           externalMessageId: `cb_${cb.id}`,
           timestamp: Date.now(),
@@ -147,22 +183,48 @@ export function parseTelegramUpdate(botId: string, update: TgUpdate): ParsedTele
     }
   }
 
+  const biz = update.business_message
+  if (biz) {
+    if (!biz.business_connection_id || !biz.from || biz.chat.type !== 'private') return none
+    // Sent by a bot (us) on behalf of the account: already stored when sent.
+    if (biz.sender_business_bot) return none
+    const channelExternalId = businessChannelKey(botId, biz.business_connection_id)
+    // The chat is the customer's; a message from someone else is the owner writing from their app.
+    if (biz.from.id !== biz.chat.id) {
+      return {
+        ...none,
+        echo: {
+          channelExternalId,
+          message: {
+            externalMessageId: tgMessageKey(biz.chat.id, biz.message_id),
+            customer: String(biz.chat.id),
+            fromBusiness: true,
+            timestamp: biz.date * 1000,
+            content: { ...messageContent(biz), interactiveReplyId: null },
+            replyToExternalId: biz.reply_to_message ? tgMessageKey(biz.chat.id, biz.reply_to_message.message_id) : null,
+          },
+        },
+      }
+    }
+    return { ...none, events: [customerEvent(channelExternalId, biz, biz.from)] }
+  }
+
   const m = update.message
-  if (!m || !m.from || m.from.is_bot || m.chat.type !== 'private') return { events: [], callbackQueryId: null }
+  if (!m || !m.from || m.from.is_bot || m.chat.type !== 'private') return none
+  return { ...none, events: [customerEvent(botId, m, m.from)] }
+}
+
+/** A customer's message in a private chat (with the bot or with the business account). */
+function customerEvent(channelExternalId: string, m: TgMessage, from: TgUser): InboundEvent {
   // A shared contact card counts as the customer's phone only when it is theirs.
-  const ownPhone = m.contact && m.contact.user_id === m.from.id ? phoneDigits(m.contact.phone_number) : null
+  const ownPhone = m.contact && m.contact.user_id === from.id ? phoneDigits(m.contact.phone_number) : null
   return {
-    callbackQueryId: null,
-    events: [
-      {
-        kind: 'message',
-        channelExternalId: botId,
-        from: sender(m.from, ownPhone),
-        externalMessageId: tgMessageKey(m.chat.id, m.message_id),
-        timestamp: m.date * 1000,
-        ...messageContent(m),
-        replyToExternalId: m.reply_to_message ? tgMessageKey(m.chat.id, m.reply_to_message.message_id) : null,
-      },
-    ],
+    kind: 'message',
+    channelExternalId,
+    from: sender(from, ownPhone),
+    externalMessageId: tgMessageKey(m.chat.id, m.message_id),
+    timestamp: m.date * 1000,
+    ...messageContent(m),
+    replyToExternalId: m.reply_to_message ? tgMessageKey(m.chat.id, m.reply_to_message.message_id) : null,
   }
 }
