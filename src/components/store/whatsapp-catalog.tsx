@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, Search, Unplug } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ExternalLink, Loader2, RefreshCw, Search, Unplug } from 'lucide-react';
+import { CopyField } from '@/components/channels/copy-field';
 import { useI18n, useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ const card = 'space-y-4 rounded-xl border border-border bg-card p-5';
 type MetaCatalog = { id: string; name: string; product_count?: number };
 
 /** Tienda online → WhatsApp: the Meta catalog synced in real time. */
-export function WhatsAppCatalog({ readOnly }: { readOnly: boolean }) {
+export function WhatsAppCatalog({ readOnly, storeEnabled }: { readOnly: boolean; storeEnabled: boolean }) {
   const t = useT();
   const { locale } = useI18n();
   const { workspace: ws } = useWorkspace();
@@ -112,11 +113,19 @@ export function WhatsAppCatalog({ readOnly }: { readOnly: boolean }) {
 
   return (
     <div className="space-y-5">
+      <div className="space-y-1">
+        <h2 className="text-lg font-semibold">{t('store.whatsapp.title')}</h2>
+        <p className="text-sm text-muted-foreground">{t('store.whatsapp.description')}</p>
+        <p className="text-xs text-muted-foreground">{t('store.whatsapp.sourceOfTruth')}</p>
+      </div>
+      {!storeEnabled && <p role="note" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-100">{t('store.whatsapp.storeOff')}</p>}
+
+      <FeedSection readOnly={readOnly} />
+
       <section className={card} aria-labelledby="wa-cat-title">
         <div className="space-y-1">
-          <h2 id="wa-cat-title" className="text-base font-semibold">{t('store.whatsapp.title')}</h2>
-          <p className="text-sm text-muted-foreground">{t('store.whatsapp.description')}</p>
-          <p className="text-xs text-muted-foreground">{t('store.whatsapp.sourceOfTruth')}</p>
+          <h2 id="wa-cat-title" className="text-base font-semibold">{t('store.whatsapp.apiTitle')}</h2>
+          <p className="text-sm text-muted-foreground">{t('store.whatsapp.apiIntro')}</p>
         </div>
 
         {conn ? (
@@ -240,5 +249,85 @@ export function WhatsAppCatalog({ readOnly }: { readOnly: boolean }) {
         onConfirm={disconnect}
       />
     </div>
+  );
+}
+
+/** The product feed link Meta reads every hour, and how to set it up. */
+function FeedSection({ readOnly }: { readOnly: boolean }) {
+  const t = useT();
+  const [url, setUrl] = useState<string | null | undefined>(undefined);
+  const [busy, setBusy] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/store/feed', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : { url: null }))
+      .then((d: { url: string | null }) => !cancelled && setUrl(d.url))
+      .catch(() => !cancelled && setUrl(null));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const create = async () => {
+    setBusy(true);
+    const res = await fetch('/api/store/feed', { method: 'POST' }).catch(() => null);
+    setBusy(false);
+    if (res?.ok) {
+      setUrl(((await res.json()) as { url: string }).url);
+      toast.success(t('store.whatsapp.feedCreated'));
+    } else toast.error(t('store.whatsapp.error.failed'));
+  };
+
+  return (
+    <section className={card} aria-labelledby="wa-feed-title">
+      <div className="space-y-1">
+        <h2 id="wa-feed-title" className="text-base font-semibold">{t('store.whatsapp.feedTitle')}</h2>
+        <p className="text-sm text-muted-foreground">{t('store.whatsapp.feedIntro')}</p>
+      </div>
+      {url === undefined ? (
+        <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
+      ) : url ? (
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <CopyField label={t('store.whatsapp.feedLink')} value={url} />
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" render={<a href={url} target="_blank" rel="noopener noreferrer" />}>
+              <ExternalLink className="size-4" aria-hidden /> {t('store.whatsapp.feedOpen')}
+            </Button>
+            {!readOnly && (
+              <Button variant="ghost" disabled={busy} onClick={() => setConfirm(true)}>
+                <RefreshCw className="size-4" aria-hidden /> {t('store.whatsapp.feedRenew')}
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : (
+        !readOnly && (
+          <Button disabled={busy} onClick={() => void create()}>
+            {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
+            {t('store.whatsapp.feedCreate')}
+          </Button>
+        )
+      )}
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold">{t('store.whatsapp.stepsTitle')}</h3>
+        <ol className="list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">
+          {['s1', 's2', 's3', 's4', 's5'].map((k) => (
+            <li key={k}>{t(`store.whatsapp.steps.${k}`)}</li>
+          ))}
+        </ol>
+        <p className="text-xs text-muted-foreground">{t('store.whatsapp.feedDelay')}</p>
+      </div>
+      <ConfirmationDialog
+        isOpen={confirm}
+        onOpenChange={setConfirm}
+        title={t('store.whatsapp.feedRenew')}
+        description={t('store.whatsapp.feedRenewConfirm')}
+        confirmText={t('store.whatsapp.feedRenew')}
+        cancelText={t('catalog.cancel')}
+        onConfirm={create}
+      />
+    </section>
   );
 }

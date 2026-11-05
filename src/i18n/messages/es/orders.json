@@ -418,7 +418,7 @@
     "whatsapp": {
       "tab": "WhatsApp",
       "title": "Catálogo de WhatsApp",
-      "description": "Tus productos aparecen en tu WhatsApp: el ícono de tienda en el chat, el carrito y las fichas de producto. Cada cambio de precio, foto o stock en Whasalia se envía a WhatsApp al instante.",
+      "description": "Tus productos aparecen en tu WhatsApp: el ícono de tienda en el chat, el carrito y las fichas de producto. Los cambios de precio, foto o stock llegan a WhatsApp en menos de 1 hora con el feed, o al instante con la API.",
       "sourceOfTruth": "Whasalia es la fuente principal: lo que edites directamente en Meta Commerce Manager se reemplaza en la siguiente sincronización.",
       "noWhatsApp": "Primero conecta tu número de WhatsApp en Canales.",
       "goChannels": "Ir a Canales",
@@ -458,7 +458,27 @@
         "whatsapp_not_connected": "El número de WhatsApp no está conectado correctamente.",
         "business_missing": "No encontramos la cuenta de negocio de Meta de este número.",
         "failed": "No se pudo completar. Inténtalo de nuevo."
-      }
+      },
+      "feedTitle": "Conectar con el feed de productos",
+      "feedIntro": "Meta lee tus productos desde este enlace cada hora. No necesitas permisos especiales: solo configúralo una vez en Meta.",
+      "feedLink": "Enlace del feed",
+      "feedCreate": "Crear enlace del feed",
+      "feedRenew": "Cambiar enlace",
+      "feedRenewConfirm": "¿Crear un enlace nuevo? El enlace actual deja de funcionar y tendrás que pegar el nuevo en Meta Commerce Manager.",
+      "feedCreated": "Enlace del feed listo.",
+      "feedOpen": "Ver el feed",
+      "stepsTitle": "Cómo conectarlo (una sola vez)",
+      "steps": {
+        "s1": "Copia el enlace del feed.",
+        "s2": "Entra a Meta Commerce Manager (business.facebook.com/commerce) con la cuenta de negocio de tu WhatsApp y crea un catálogo de tipo «Comercio electrónico», o elige uno que ya tengas.",
+        "s3": "En el catálogo ve a Catálogo → Orígenes de datos → Agregar artículos → Feed de datos → «Feed programado». Pega el enlace, elige «Cada hora» y la moneda de tu tienda.",
+        "s4": "En WhatsApp Manager → Catálogo, conecta ese catálogo a tu número y activa «Mostrar catálogo» y «Carrito».",
+        "s5": "Listo: tus productos aparecen en tu WhatsApp y los carritos que te envíen llegan a Pedidos."
+      },
+      "feedDelay": "Los cambios de precio, fotos o stock tardan hasta 1 hora en verse en WhatsApp. Si un cliente pide algo que ya se agotó, Whasalia revisa el stock real y le avisa antes de crear el pedido.",
+      "storeOff": "Tu tienda online aún no está publicada: los productos del catálogo enlazan a ella, publícala en la pestaña General.",
+      "apiTitle": "Sincronización instantánea (API de Meta)",
+      "apiIntro": "Envía cada cambio al instante, sin feed. Necesita que tu conexión de WhatsApp tenga el permiso de catálogos (catalog_management), que Meta debe aprobar para Whasalia. Usa una sola de las dos opciones con el mismo catálogo."
     }
   },
   "waitlist": {

@@ -27,7 +27,7 @@ export interface SyncResult {
 
 const running = new Set<string>()
 
-function contextFor(ws: { name: string; slug: string; currency: string }): CatalogContext {
+export function contextFor(ws: { name: string; slug: string; currency: string }): CatalogContext {
   const site = siteUrl()
   return {
     currency: ws.currency,
@@ -37,7 +37,7 @@ function contextFor(ws: { name: string; slug: string; currency: string }): Catal
   }
 }
 
-async function plansFor(workspaceId: string, productIds: string[], ctx: CatalogContext) {
+export async function plansFor(workspaceId: string, productIds: string[], ctx: CatalogContext) {
   const db = tenantDb(workspaceId)
   const rows = productIds.length
     ? await db.products.findMany({
@@ -175,4 +175,10 @@ export function kickCatalogSync(workspaceId: string): void {
     // Outside a request (scripts, cron): run it now, without waiting.
     void syncWorkspaceCatalog(workspaceId)
   }
+}
+
+/** Every item of the workspace's catalog right now (the product feed). */
+export async function allCatalogItems(ws: { id: string; name: string; slug: string; currency: string }): Promise<CatalogItem[]> {
+  const ids = (await tenantDb(ws.id).products.findMany({ where: { is_active: true }, select: { id: true }, orderBy: { created_at: 'asc' }, take: 5000 })).map((p) => p.id)
+  return (await plansFor(ws.id, ids, contextFor(ws))).upserts
 }

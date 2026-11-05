@@ -25,7 +25,8 @@ export async function PUT(request: Request) {
   if (!body || typeof body !== 'object') return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
 
   const current = storeSettings(workspace.settings?.store)
-  const next = storeSettings({ ...current, ...body })
+  // The feed token only changes through POST /api/store/feed.
+  const next = storeSettings({ ...current, ...body, feed_token: current.feed_token })
   if (next.enabled) {
     const missing = missingForStore(await storeReadiness({ ...workspace, settings: { ...workspace.settings, store: next } }))
     if (missing.length) return NextResponse.json({ error: 'not_ready', missing }, { status: 400 })

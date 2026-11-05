@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { catalogBlocker, catalogItems, parseWaOrder, type CatalogProduct } from './items'
+import { catalogBlocker, catalogItems, feedCsv, parseWaOrder, type CatalogProduct } from './items'
 
 const ctx = {
   currency: 'PEN',
@@ -88,5 +88,14 @@ describe('Meta catalog items', () => {
     ).toEqual({ catalogId: '123', text: 'Para el sábado', items: [{ retailerId: 'v2', quantity: 2, price: 159, currency: 'PEN' }] })
     expect(parseWaOrder({ product_items: [] })).toBeNull()
     expect(parseWaOrder(null)).toBeNull()
+  })
+})
+
+describe('product feed', () => {
+  it('writes the CSV Meta reads, quoting commas and quotes', () => {
+    const items = catalogItems({ ...base, name: 'Casaca "Oversize", azul', images: ['https://x.com/a.jpg', 'https://x.com/b.jpg'] }, ctx).upserts
+    const [header, row] = feedCsv(items).trim().split('\n')
+    expect(header).toBe('id,title,description,availability,condition,price,sale_price,link,image_link,additional_image_link,brand,item_group_id,quantity_to_sell_on_facebook,size,color')
+    expect(row).toBe('p1,"Casaca ""Oversize"", azul","Casaca ""Oversize"", azul",in stock,new,199.00 PEN,149.00 PEN,https://whasalia.com/tienda/moda-ana/producto/p1,https://x.com/a.jpg,https://x.com/b.jpg,Moda Ana,,4,,')
   })
 })

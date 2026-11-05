@@ -84,7 +84,7 @@ export function StoreManager() {
             <ShippingProfiles readOnly={readOnly} missingWeight={state.missing_weight} onChanged={load} />
           </TabsContent>
           <TabsContent value="whatsapp" className="pt-2">
-            <WhatsAppCatalog readOnly={readOnly} />
+            <WhatsAppCatalog readOnly={readOnly} storeEnabled={state.settings.enabled} />
           </TabsContent>
         </Tabs>
       )}

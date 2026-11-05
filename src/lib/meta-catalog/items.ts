@@ -152,3 +152,56 @@ export function parseWaOrder(raw: unknown): { catalogId: string | null; text: st
   if (!items.length) return null
   return { catalogId: typeof o.catalog_id === 'string' ? o.catalog_id : null, text: typeof o.text === 'string' && o.text.trim() ? o.text.trim().slice(0, 1000) : null, items }
 }
+
+// ------------------------------------------------------------------
+// Product feed (CSV) that Meta reads on a schedule (Commerce Manager →
+// Data sources → Scheduled feed). Same items as the Catalog API; products
+// left out of the feed are removed by Meta on the next read.
+// https://www.facebook.com/business/help/120325381656392
+// ------------------------------------------------------------------
+export const FEED_COLUMNS = [
+  'id',
+  'title',
+  'description',
+  'availability',
+  'condition',
+  'price',
+  'sale_price',
+  'link',
+  'image_link',
+  'additional_image_link',
+  'brand',
+  'item_group_id',
+  'quantity_to_sell_on_facebook',
+  'size',
+  'color',
+] as const
+
+const csvCell = (v: unknown) => {
+  const s = v === undefined || v === null ? '' : String(v).replace(/\r?\n/g, ' ')
+  return /[",]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
+export function feedCsv(items: CatalogItem[]): string {
+  const rows = items.map((it) => {
+    const row: Record<(typeof FEED_COLUMNS)[number], unknown> = {
+      id: it.id,
+      title: it.title,
+      description: it.description,
+      availability: it.availability,
+      condition: it.condition,
+      price: it.price,
+      sale_price: it.sale_price,
+      link: it.link,
+      image_link: it.image[0]?.url,
+      additional_image_link: it.image.slice(1).map((i) => i.url).join(','),
+      brand: it.brand,
+      item_group_id: it.item_group_id,
+      quantity_to_sell_on_facebook: it.quantity_to_sell_on_facebook,
+      size: it.size,
+      color: it.color,
+    }
+    return FEED_COLUMNS.map((c) => csvCell(row[c])).join(',')
+  })
+  return [FEED_COLUMNS.join(','), ...rows].join('\n') + '\n'
+}

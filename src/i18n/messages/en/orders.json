@@ -418,7 +418,7 @@
     "whatsapp": {
       "tab": "WhatsApp",
       "title": "WhatsApp catalog",
-      "description": "Your products show in your WhatsApp: the shop icon in the chat, the cart and product cards. Every price, photo or stock change in Whasalia goes to WhatsApp right away.",
+      "description": "Your products show in your WhatsApp: the shop icon in the chat, the cart and product cards. Price, photo or stock changes reach WhatsApp within 1 hour with the feed, or instantly with the API.",
       "sourceOfTruth": "Whasalia is the source of truth: whatever you edit directly in Meta Commerce Manager is replaced on the next sync.",
       "noWhatsApp": "Connect your WhatsApp number in Channels first.",
       "goChannels": "Go to Channels",
@@ -458,7 +458,27 @@
         "whatsapp_not_connected": "The WhatsApp number isn't connected properly.",
         "business_missing": "We couldn't find this number's Meta business account.",
         "failed": "Couldn't complete it. Try again."
-      }
+      },
+      "feedTitle": "Connect with the product feed",
+      "feedIntro": "Meta reads your products from this link every hour. No special permissions needed: just set it up once in Meta.",
+      "feedLink": "Feed link",
+      "feedCreate": "Create feed link",
+      "feedRenew": "Change link",
+      "feedRenewConfirm": "Create a new link? The current link stops working and you'll have to paste the new one in Meta Commerce Manager.",
+      "feedCreated": "Feed link ready.",
+      "feedOpen": "See the feed",
+      "stepsTitle": "How to connect it (once)",
+      "steps": {
+        "s1": "Copy the feed link.",
+        "s2": "Go to Meta Commerce Manager (business.facebook.com/commerce) with your WhatsApp's business account and create an “E-commerce” catalog, or pick one you already have.",
+        "s3": "In the catalog go to Catalog → Data sources → Add items → Data feed → “Scheduled feed”. Paste the link, choose “Hourly” and your store's currency.",
+        "s4": "In WhatsApp Manager → Catalog, connect that catalog to your number and turn on “Show catalog” and “Cart”.",
+        "s5": "Done: your products show in your WhatsApp and the carts customers send arrive in Orders."
+      },
+      "feedDelay": "Price, photo or stock changes take up to 1 hour to show in WhatsApp. If a customer orders something that sold out, Whasalia checks the real stock and tells them before creating the order.",
+      "storeOff": "Your online store isn't published yet: catalog products link to it, publish it in the General tab.",
+      "apiTitle": "Instant sync (Meta API)",
+      "apiIntro": "Sends every change instantly, without a feed. Your WhatsApp connection needs the catalog permission (catalog_management), which Meta must approve for Whasalia. Use only one of the two options with the same catalog."
     }
   },
   "waitlist": {
