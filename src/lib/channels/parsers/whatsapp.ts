@@ -32,6 +32,8 @@ export interface WaMessage {
     list_reply?: { id: string; title: string }
   }
   button?: { payload?: string; text?: string }
+  /** Cart sent from the business's WhatsApp catalog. */
+  order?: { catalog_id?: string; text?: string; product_items?: { product_retailer_id?: string; quantity?: number; item_price?: number; currency?: string }[] }
   context?: { id: string }
   /** History sync only: delivery state on the phone (READ, DELIVERED, PLAYED...). */
   history_context?: { status?: string }
@@ -145,6 +147,7 @@ export function parseWhatsAppWebhook(body: WaWebhookBody): InboundEvent[] {
           timestamp,
           replyToExternalId: m.context?.id ?? null,
           ...content,
+          ...(m.type === 'order' && m.order ? { order: m.order } : {}),
         })
       }
     }
@@ -227,6 +230,12 @@ export function waMessageContent(m: WaMessage): MessageContent {
         text: m.button?.text ?? m.button?.payload ?? '',
         interactiveReplyId: m.button?.payload ?? null,
       }
+    case 'order': {
+      // Cart from the WhatsApp catalog: the order itself travels in `order`.
+      const items = m.order?.product_items ?? []
+      const units = items.reduce((a, i) => a + (Number(i.quantity) || 0), 0)
+      return { contentType: 'text', text: [`🛒 Pedido desde el catálogo de WhatsApp (${units} ${units === 1 ? 'producto' : 'productos'})`, m.order?.text?.trim()].filter(Boolean).join('\n') }
+    }
     case 'media_placeholder':
       // History sync: the media itself arrives later in its own webhook.
       return { contentType: 'text', text: '[Media]' }

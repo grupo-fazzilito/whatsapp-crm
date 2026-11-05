@@ -8,7 +8,8 @@ import type { StorePaymentMethod } from '@/lib/store/server';
 import type { ShippingType } from '@/lib/store/shipping';
 import { orderFees, type StoreFee } from '@/lib/store/settings';
 import { fill } from '@/lib/store/texts';
-import { LineImage, useStore } from '../cart';
+import type { PendingCheckout } from '@/lib/meta-catalog/orders';
+import { LineImage, useStore, type CartLine } from '../cart';
 
 interface ShippingOption {
   id: string;
@@ -26,6 +27,10 @@ interface Props {
   shipping: ShippingOption[];
   payments: StorePaymentMethod[];
   fees: StoreFee[];
+  /** Order sent from the WhatsApp cart: its lines replace the store cart. */
+  fromWhatsApp?: PendingCheckout | null;
+  /** Opened from a WhatsApp link that's no longer valid (already completed…). */
+  expired?: boolean;
 }
 
 interface Quote {
@@ -40,14 +45,18 @@ const field = 'h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 te
 const label = 'mb-1.5 block text-sm font-medium text-slate-800';
 const card = 'space-y-4 rounded-2xl bg-white p-5 ring-1 ring-slate-200';
 
-export function CheckoutForm({ preview, dialCode, pickup, note, shipping, payments, fees }: Props) {
-  const { lines, ready, t, money, config, clear } = useStore();
+export function CheckoutForm({ preview, dialCode, pickup, note, shipping, payments, fees, fromWhatsApp = null, expired = false }: Props) {
+  const store = useStore();
+  const { t, money, config, clear } = store;
+  const waLines = useMemo<CartLine[] | null>(() => (fromWhatsApp ? fromWhatsApp.lines.map((l) => ({ ...l, max: null })) : null), [fromWhatsApp]);
+  const lines = waLines ?? store.lines;
+  const ready = waLines ? true : store.ready;
   const router = useRouter();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteError, setQuoteError] = useState<QuoteError | null>(null);
 
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [name, setName] = useState(fromWhatsApp?.customer.name ?? '');
+  const [phone, setPhone] = useState(fromWhatsApp?.customer.phone ? `+${fromWhatsApp.customer.phone}` : '');
   const [email, setEmail] = useState('');
   const [doc, setDoc] = useState('');
   const [fulfillment, setFulfillment] = useState<'delivery' | 'pickup'>(shipping.length ? 'delivery' : 'pickup');
@@ -118,11 +127,12 @@ export function CheckoutForm({ preview, dialCode, pickup, note, shipping, paymen
         fee_ids: fulfillment === 'delivery' ? pickedFees : [],
         notes,
         website,
+        ...(fromWhatsApp ? { order_token: fromWhatsApp.token } : {}),
       }),
     }).catch(() => null);
     const body = (await res?.json().catch(() => ({}))) as { url?: string; error?: string; name?: string; available?: number };
     if (res?.status === 201 && body.url) {
-      clear();
+      if (!fromWhatsApp) clear();
       router.push(body.url);
       return;
     }
@@ -133,10 +143,10 @@ export function CheckoutForm({ preview, dialCode, pickup, note, shipping, paymen
 
   if (!ready) return <Loader2 className="mx-auto mt-16 size-6 animate-spin text-slate-400" aria-label="…" />;
 
-  if (!lines.length) {
+  if (!lines.length || expired) {
     return (
       <div className="mx-auto mt-10 max-w-md rounded-2xl bg-white p-8 text-center ring-1 ring-slate-200">
-        <p className="text-slate-600">{t.emptyCart}</p>
+        <p className="text-slate-600">{expired ? t.waOrderExpired : t.emptyCart}</p>
         <Link href={`/tienda/${encodeURIComponent(config.slug)}`} className="mt-4 inline-block text-sm font-semibold underline underline-offset-4" style={{ color: config.accent }}>
           {t.keepShopping}
         </Link>
@@ -149,7 +159,8 @@ export function CheckoutForm({ preview, dialCode, pickup, note, shipping, paymen
   return (
     <form onSubmit={submit} noValidate className="grid gap-6 lg:grid-cols-[1fr_380px] lg:items-start">
       <div className="space-y-5">
-        <h1 className="text-2xl font-bold">{t.checkout}</h1>
+        <h1 className="text-2xl font-bold">{fromWhatsApp ? fill(t.waOrderTitle, { number: fromWhatsApp.number }) : t.checkout}</h1>
+        {fromWhatsApp && <p className="text-sm text-slate-600">{t.waOrderHint}</p>}
         {preview && <p role="status" className="rounded-xl bg-amber-100 px-4 py-3 text-sm text-amber-900">{t.previewNoOrders}</p>}
 
         <section className={card} aria-labelledby="co-contact">

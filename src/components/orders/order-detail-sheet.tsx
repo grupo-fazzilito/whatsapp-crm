@@ -157,6 +157,9 @@ function DetailBody({ orderId, refreshKey, onChanged }: { orderId: string; refre
       </SheetHeader>
 
       <div className="grid gap-5 p-4">
+        {order.checkout_pending && !closed && (
+          <p role="status" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-100">{t('orders.detail.checkoutPending')}</p>
+        )}
         {/* Actions */}
         {!closed && (
           <section aria-label={t('orders.detail.actions')} className="grid gap-3 rounded-lg border border-border p-3">
@@ -364,6 +367,8 @@ function eventText(t: (k: string, v?: Record<string, string | number>) => string
       return t('orders.timeline.payment', { status: t(`orders.payment.${e.to_value}`) });
     case 'notified':
       return t('orders.timeline.notified');
+    case 'checkout':
+      return t('orders.timeline.checkout');
     default:
       return e.note ?? e.type;
   }

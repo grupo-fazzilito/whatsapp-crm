@@ -49,7 +49,8 @@
       "chat_buttons": "Botones del chat",
       "manual": "Registrado por el equipo",
       "webchat": "Chat web",
-      "store": "Tienda online"
+      "store": "Tienda online",
+      "whatsapp_catalog": "Catálogo de WhatsApp"
     },
     "channel": {
       "whatsapp": "WhatsApp",
@@ -133,13 +134,15 @@
       "cancelReason": "Motivo (opcional, se envía al cliente)",
       "cancelReasonPlaceholder": "Ej.: nos quedamos sin stock",
       "document": "Documento",
-      "shippingOnDelivery": "Envío: lo paga el cliente al recibir"
+      "shippingOnDelivery": "Envío: lo paga el cliente al recibir",
+      "checkoutPending": "Llegó desde el carrito de WhatsApp: el cliente recibió el link para elegir el envío y cómo pagar, y aún no lo completa. El total todavía no incluye el envío."
     },
     "timeline": {
       "created": "Pedido creado · {source}",
       "status": "Estado: {status}",
       "payment": "Pago: {status}",
-      "notified": "Se notificó al cliente"
+      "notified": "Se notificó al cliente",
+      "checkout": "El cliente completó el envío y el pago en la tienda"
     },
     "toast": {
       "new": "Nuevo pedido #{number}",
@@ -256,7 +259,8 @@
     "description": "Tu catálogo como tienda web: tus clientes arman su carrito, completan sus datos y el pedido llega a Pedidos.",
     "tabs": {
       "general": "General",
-      "shipping": "Envíos"
+      "shipping": "Envíos",
+      "whatsapp": "WhatsApp"
     },
     "readOnly": "Solo los administradores pueden cambiar la tienda.",
     "publish": {
@@ -410,6 +414,51 @@
       "thresholdUnit": "unidades",
       "waitlist": "Botón «Notifícame disponibilidad» en productos agotados",
       "waitlistHint": "El cliente deja su WhatsApp, queda en la Lista de espera y se abre su WhatsApp con un mensaje para ti."
+    },
+    "whatsapp": {
+      "tab": "WhatsApp",
+      "title": "Catálogo de WhatsApp",
+      "description": "Tus productos aparecen en tu WhatsApp: el ícono de tienda en el chat, el carrito y las fichas de producto. Cada cambio de precio, foto o stock en Whasalia se envía a WhatsApp al instante.",
+      "sourceOfTruth": "Whasalia es la fuente principal: lo que edites directamente en Meta Commerce Manager se reemplaza en la siguiente sincronización.",
+      "noWhatsApp": "Primero conecta tu número de WhatsApp en Canales.",
+      "goChannels": "Ir a Canales",
+      "number": "Número de WhatsApp",
+      "find": "Buscar mis catálogos de Meta",
+      "finding": "Buscando…",
+      "pick": "Elige el catálogo",
+      "linked": "ya conectado a este número",
+      "products": "{n} productos",
+      "createNew": "Crear un catálogo nuevo",
+      "newName": "Nombre del catálogo",
+      "connect": "Conectar y sincronizar",
+      "connected": "Catálogo conectado. Enviando tus productos…",
+      "connectedTitle": "Conectado a «{name}»",
+      "via": "Número: {number}",
+      "lastSync": "Última sincronización: {date}",
+      "never": "Aún no se sincroniza",
+      "pending": "{n} cambio(s) por enviar",
+      "upToDate": "Todo al día",
+      "syncNow": "Sincronizar todo ahora",
+      "synced": "Sincronizado: {sent} producto(s) enviados.",
+      "disconnect": "Desconectar",
+      "disconnectConfirm": "¿Desconectar el catálogo? Se ocultan la tienda y el carrito en tu WhatsApp y dejan de enviarse los cambios. El catálogo queda en tu cuenta de Meta.",
+      "disconnected": "Catálogo desconectado.",
+      "blockedTitle": "Productos que no se envían a WhatsApp",
+      "blocked": {
+        "inactive": "{n} desactivado(s)",
+        "image": "{n} sin foto",
+        "price": "{n} sin precio",
+        "currency": "{n} en otra moneda"
+      },
+      "itemErrors": "Meta rechazó {n} producto(s):",
+      "orders": "Cuando un cliente envía su carrito por WhatsApp, el pedido aparece en Pedidos y el cliente recibe un link para elegir el envío y cómo pagar.",
+      "error": {
+        "permission": "Tu conexión de WhatsApp no tiene permiso para administrar catálogos. Vuelve a conectar el número en Canales y acepta el permiso de catálogos (catalog_management).",
+        "already_linked": "Este número ya tiene otro catálogo conectado en Meta. Elige ese catálogo o desconéctalo en WhatsApp Manager.",
+        "whatsapp_not_connected": "El número de WhatsApp no está conectado correctamente.",
+        "business_missing": "No encontramos la cuenta de negocio de Meta de este número.",
+        "failed": "No se pudo completar. Inténtalo de nuevo."
+      }
     }
   },
   "waitlist": {

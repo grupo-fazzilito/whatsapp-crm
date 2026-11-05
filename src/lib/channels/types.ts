@@ -131,6 +131,8 @@ export type InboundEvent =
       /** Id of the tapped button / list row / quick reply. */
       interactiveReplyId?: string | null
       replyToExternalId?: string | null
+      /** WhatsApp: cart sent from the business's catalog (raw `order` object). */
+      order?: unknown
     }
   | {
       kind: 'status'

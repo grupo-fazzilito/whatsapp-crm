@@ -9,6 +9,7 @@ type Ctx = { params: Promise<{ slug: string }> }
 /**
  * POST /api/public/store/:slug/orders — the checkout form (see
  * lib/store/checkout.ts). Prices, stock and shipping are computed here.
+ * `order_token`: completes the order sent from the WhatsApp cart.
  * → 201 { number, total, url } | 400 { error: <field> } | 409 { error, name?, available? }
  */
 export async function POST(request: Request, { params }: Ctx) {
@@ -27,7 +28,9 @@ export async function POST(request: Request, { params }: Ctx) {
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 })
 
   try {
-    const result = await placeStoreOrder(store, parsed.input)
+    // From the WhatsApp cart's link: completes that order.
+    const completeToken = typeof body?.order_token === 'string' && body.order_token.length <= 64 ? body.order_token : null
+    const result = await placeStoreOrder(store, parsed.input, { completeToken })
     if (!result.ok) return NextResponse.json(result, { status: 409 })
     return NextResponse.json({ number: result.number, total: result.total, url: orderPagePath(store.workspace.slug, result.token) }, { status: 201 })
   } catch (err) {

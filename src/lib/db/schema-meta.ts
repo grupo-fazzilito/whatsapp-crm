@@ -500,6 +500,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     }
   },
   "channels": {
+    "meta_catalogs": {
+      "rel": "meta_catalogs"
+    },
     "created_at": "timestamp",
     "updated_at": "timestamp",
     "ai_chat_logs": {
@@ -1565,6 +1568,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     }
   },
   "users": {
+    "meta_catalogs": {
+      "rel": "meta_catalogs"
+    },
     "stock_waitlist": {
       "rel": "stock_waitlist"
     },
@@ -1848,6 +1854,12 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     }
   },
   "workspaces": {
+    "meta_catalog_queue": {
+      "rel": "meta_catalog_queue"
+    },
+    "meta_catalogs": {
+      "rel": "meta_catalogs"
+    },
     "stock_waitlist": {
       "rel": "stock_waitlist"
     },
@@ -2182,6 +2194,26 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "conversations": {
       "rel": "conversations"
+    }
+  },
+  "meta_catalogs": {
+    "last_synced_at": "timestamp",
+    "created_at": "timestamp",
+    "updated_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    },
+    "channels": {
+      "rel": "channels"
+    },
+    "users": {
+      "rel": "users"
+    }
+  },
+  "meta_catalog_queue": {
+    "created_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
     }
   }
 }

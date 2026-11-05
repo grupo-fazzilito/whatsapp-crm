@@ -134,9 +134,9 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [ ] Lista de departamentos / provincias / distritos del Perú en el checkout (hoy son campos de texto) — 🤖
 - [ ] Que el agente de IA comparta el enlace de la tienda o de un producto cuando el cliente lo pida — 🤖
 - [ ] Planificador de publicaciones (Instagram, Facebook, TikTok) con descripciones hechas por la IA y el enlace a la tienda; necesita `instagram_content_publish` y `pages_manage_posts` (segundo App Review de Meta) y la Content Posting API de TikTok — 🤖 / 🧑
-- [ ] Sincronizar el catálogo con el catálogo de Meta (WhatsApp e Instagram Shopping, permiso `catalog_management`) — 🤖 / 🧑
-  - Whasalia → Meta: (a) feed de productos por negocio que se pega una vez en Commerce Manager (sin App Review) o (b) Catalog API en tiempo real (`catalog_management`, App Review). Whasalia queda como fuente de verdad
-  - Meta → Whasalia: los pedidos del carrito de WhatsApp (mensaje `order` del webhook) se crean en Pedidos y descuentan stock; los cambios hechos en Commerce Manager solo por lectura periódica (Meta no avisa)
+- [x] Catálogo de WhatsApp en tiempo real (Catalog API): Tienda online → WhatsApp → conectar un catálogo existente o crear uno; se activan la tienda y el carrito en el chat. Cada cambio de producto, foto o stock (editor, importación, pedidos) se envía al instante por triggers + cola, y el cron reintenta. Whasalia es la fuente principal. Los carritos enviados por WhatsApp crean el pedido en Pedidos y el cliente recibe el link al checkout de la tienda para elegir envío y pago (completa ese mismo pedido) — 🤖 (2026-11-04, rama `feat/whatsapp-catalog`)
+- [ ] Meta para el catálogo de WhatsApp: en la app de Meta agregar el caso de uso «Manage products with Catalog API», sumar `catalog_management` a la configuración de Embedded Signup (login_config) y pedirlo en App Review; los números ya conectados deben reconectarse para dar el permiso — 🧑
+- [ ] Que la IA envíe fichas de producto del catálogo de WhatsApp (mensajes de producto / multiproducto) en lugar de tarjetas propias cuando el catálogo esté conectado — 🤖
 - [ ] "Estado preparado": mandar cada día al dueño la imagen y el texto para su estado de WhatsApp (no hay API oficial de estados) — 🤖
 
 ## 9. Mantenimiento
