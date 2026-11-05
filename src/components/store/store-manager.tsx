@@ -18,6 +18,7 @@ import { LoadingBlock, Notice, PageHeader } from '@/components/business/shared';
 import { CopyField } from '@/components/channels/copy-field';
 import { ShippingProfiles } from './shipping-profiles';
 import { SlugEditor } from './slug-editor';
+import { WhatsAppCatalog } from './whatsapp-catalog';
 import { STOCK_DISPLAYS, type StockDisplay } from '@/lib/store/stock-display';
 import { WaitlistTemplateNotice } from '@/components/waitlist/template-notice';
 
@@ -29,7 +30,7 @@ export interface StoreState {
   url: string;
 }
 
-const TABS = ['general', 'shipping'] as const;
+const TABS = ['general', 'shipping', 'whatsapp'] as const;
 type Tab = (typeof TABS)[number];
 
 export function StoreManager() {
@@ -81,6 +82,9 @@ export function StoreManager() {
           </TabsContent>
           <TabsContent value="shipping" className="pt-2">
             <ShippingProfiles readOnly={readOnly} missingWeight={state.missing_weight} onChanged={load} />
+          </TabsContent>
+          <TabsContent value="whatsapp" className="pt-2">
+            <WhatsAppCatalog readOnly={readOnly} storeEnabled={state.settings.enabled} />
           </TabsContent>
         </Tabs>
       )}

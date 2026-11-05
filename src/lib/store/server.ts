@@ -319,9 +319,18 @@ export async function contactFor(wsId: string, name: string, phone: string, emai
   return created.id
 }
 
-export async function placeStoreOrder(store: PublicStore, input: CheckoutInput): Promise<PlaceStoreResult> {
+/**
+ * `completeToken`: the order came from the WhatsApp cart (checkout_pending)
+ * and the customer now picks shipping and payment: that order is completed
+ * instead of creating a new one.
+ */
+export async function placeStoreOrder(store: PublicStore, input: CheckoutInput, opts: { completeToken?: string | null } = {}): Promise<PlaceStoreResult> {
   const ws = store.workspace
   const db = tenantDb(ws.id)
+  const existing = opts.completeToken
+    ? await db.orders.findFirst({ where: { public_token: opts.completeToken, source: 'whatsapp_catalog', checkout_pending: true, status: 'pending' }, select: { id: true, public_token: true } })
+    : null
+  if (opts.completeToken && !existing) return { ok: false, error: 'unavailable' }
   const priced = await priceItems(ws, input.items)
   if (!priced.ok) return priced
 
@@ -347,10 +356,9 @@ export async function placeStoreOrder(store: PublicStore, input: CheckoutInput):
   const fees = orderFees(store.store.fees, input.fee_ids, input.fulfillment)
   const onDelivery = profile?.type === 'on_delivery'
   const contactId = await contactFor(ws.id, input.customer.name, input.customer.phone, input.customer.email)
-  const token = crypto.randomBytes(18).toString('base64url')
+  const token = existing?.public_token ?? crypto.randomBytes(18).toString('base64url')
   const total = round2(priced.subtotal + fee + fees.total)
-  const order = await db.orders.create({
-    data: {
+  const data = {
       workspace_id: ws.id,
       contact_id: contactId,
       fulfillment: input.fulfillment,
@@ -378,9 +386,17 @@ export async function placeStoreOrder(store: PublicStore, input: CheckoutInput):
       source: 'store',
       public_token: token,
       created_by: null,
-    },
-    select: { id: true, number: true },
-  })
+  }
+  let order: { id: string; number: number | bigint }
+  if (existing) {
+    // Same order, now with shipping and payment; its lines are priced again.
+    const { workspace_id: _w, source: _s, public_token: _t, created_by: _c, ...changes } = data
+    void [_w, _s, _t, _c]
+    order = (await db.orders.updateManyAndReturn({ where: { id: existing.id }, data: { ...changes, checkout_pending: false, updated_at: new Date() }, select: { id: true, number: true } }))[0]
+    await db.order_items.deleteMany({ where: { order_id: existing.id } })
+  } else {
+    order = await db.orders.create({ data, select: { id: true, number: true } })
+  }
   await db.order_items.createMany({
     data: priced.lines.map((l, i) => ({
       workspace_id: ws.id,
@@ -396,10 +412,13 @@ export async function placeStoreOrder(store: PublicStore, input: CheckoutInput):
       sort_order: i,
     })),
   })
-  await db.order_events.create({ data: { workspace_id: ws.id, order_id: order.id, type: 'created', to_value: 'pending', note: 'store' } })
-
   const number = Number(order.number)
-  await notifyTeam(ws, order.id, number, input.customer.name, total).catch((err) => console.error('[store] notify failed:', err instanceof Error ? err.message : err))
+  if (existing) {
+    await db.order_events.create({ data: { workspace_id: ws.id, order_id: order.id, type: 'checkout', note: 'store' } }).catch(() => undefined)
+  } else {
+    await db.order_events.create({ data: { workspace_id: ws.id, order_id: order.id, type: 'created', to_value: 'pending', note: 'store' } })
+    await notifyTeam(ws, order.id, number, input.customer.name, total).catch((err) => console.error('[store] notify failed:', err instanceof Error ? err.message : err))
+  }
   if (input.customer.email) {
     await emailCustomer(store, input, { number, token, total, fee, onDelivery, fees: fees.lines, subtotal: priced.subtotal, lines: priced.lines, payment }).catch((err) =>
       console.error('[store] email failed:', err instanceof Error ? err.message : err),
@@ -495,7 +514,8 @@ export async function loadPublicOrder(store: PublicStore, token: string): Promis
   if (!/^[A-Za-z0-9_-]{20,40}$/.test(token)) return null
   const db = tenantDb(store.workspace.id)
   const o = await db.orders.findFirst({
-    where: { public_token: token, source: 'store' },
+    // WhatsApp-cart orders get the same page once the customer completed the checkout.
+    where: { public_token: token, OR: [{ source: 'store' }, { source: 'whatsapp_catalog', checkout_pending: false }] },
     select: {
       number: true,
       status: true,

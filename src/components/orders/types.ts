@@ -42,7 +42,9 @@ export interface OrderRow {
   payment_method_name: string | null;
   payment_proof_url: string | null;
   paid_at: string | null;
-  source: 'ai' | 'chat_buttons' | 'manual' | 'webchat' | 'store';
+  source: 'ai' | 'chat_buttons' | 'manual' | 'webchat' | 'store' | 'whatsapp_catalog';
+  /** Sent from the WhatsApp cart; the customer hasn't picked shipping and payment yet. */
+  checkout_pending?: boolean;
   /** Store orders: what the customer typed at checkout. */
   customer_email?: string | null;
   customer_document?: string | null;

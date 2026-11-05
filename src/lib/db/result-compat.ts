@@ -483,5 +483,13 @@ export const resultCompat = Prisma.defineExtension({
       notified_at: { needs: { notified_at: true }, compute: (r) => r.notified_at === null ? null : r.notified_at.toISOString() },
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
     },
+    meta_catalogs: {
+      last_synced_at: { needs: { last_synced_at: true }, compute: (r) => r.last_synced_at === null ? null : r.last_synced_at.toISOString() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
+    meta_catalog_queue: {
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+    },
   },
 })

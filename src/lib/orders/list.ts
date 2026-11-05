@@ -39,6 +39,7 @@ const ORDER_SELECT = {
   shipping_name: true,
   weight_kg: true,
   shipping_on_delivery: true,
+  checkout_pending: true,
   extra_fees: true,
   fees_total: true,
   created_at: true,

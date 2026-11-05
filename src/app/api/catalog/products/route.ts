@@ -3,6 +3,7 @@ import { requireWorkspace } from '@/lib/workspace/context'
 import { isUuid } from '@/lib/workspace/constants'
 import { productAttributesFor } from '@/lib/catalog/attributes'
 import { deleteProducts, listProducts, parseProduct, parseVariants, saveProduct, type ProductListFilters } from '@/lib/catalog/manage'
+import { kickCatalogSync } from '@/lib/meta-catalog/sync'
 
 const MAX_IDS = 500
 
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
   const { db, workspace, user } = guard.ctx
+  kickCatalogSync(workspace.id)
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
   const product = parseProduct(body?.product)
   const variants = parseVariants(body?.variants)
@@ -69,6 +71,7 @@ export async function PATCH(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
   const { db } = guard.ctx
+  kickCatalogSync(guard.ctx.workspace.id)
   const body = (await request.json().catch(() => null)) as { ids?: unknown; patch?: Record<string, unknown> } | null
   const ids = idList(body?.ids)
   const raw = body?.patch
@@ -96,6 +99,7 @@ export async function DELETE(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
   const { db, workspace } = guard.ctx
+  kickCatalogSync(workspace.id)
   const body = (await request.json().catch(() => null)) as { ids?: unknown } | null
   const ids = idList(body?.ids)
   if (!ids) return NextResponse.json({ error: 'invalid' }, { status: 400 })

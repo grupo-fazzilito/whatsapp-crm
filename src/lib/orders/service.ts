@@ -9,6 +9,7 @@ import { invalidateBusinessContext } from '@/lib/ai/context'
 import { formatMoney, moneyLocale } from '@/lib/workspace/countries'
 import type { Workspace } from '@/lib/workspace/types'
 import { statusMessage, texts, type CartLine, type Fulfillment, type Lang, type OrderStatus } from './texts'
+import { kickCatalogSync } from '@/lib/meta-catalog/sync'
 
 // ------------------------------------------------------------
 // Settings (workspaces.settings.orders)
@@ -327,6 +328,8 @@ export async function updateOrderStatus(args: {
   const ws = order.workspaces as unknown as Workspace
   if (order.status === args.status) return { ok: true }
   if (order.status === 'cancelled' || order.status === 'delivered') return { ok: false, error: 'closed' }
+  // Confirming / cancelling moves stock: the WhatsApp catalog follows.
+  kickCatalogSync(args.workspaceId)
 
   // The order was checked against the workspace above; the functions take its id.
   if (args.status === 'cancelled') {

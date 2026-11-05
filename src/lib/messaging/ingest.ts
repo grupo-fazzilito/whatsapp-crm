@@ -14,6 +14,7 @@ import { dispatchInboundToFlows } from '@/lib/flows/engine'
 import { handleBookingPickerInbound } from '@/lib/bookings/picker'
 import { isPickerReply } from '@/lib/bookings/picker-model'
 import { handleReminderReply } from '@/lib/bookings/reminder-send'
+import { handleCatalogOrder } from '@/lib/meta-catalog/orders'
 import { parseReminderReply } from '@/lib/bookings/reminder-settings'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { cancelFollowupsForInbound } from '@/lib/automations/followups'
@@ -448,6 +449,15 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
       .updateMany({ where: { id: conversation.id }, data: { status: 'open', ai_agent_id: null, ai_state: {}, resolved_at: null, resolved_by: null } })
       .catch(() => {})
     await recordEvent({ workspaceId: ws, conversationId: conversation.id, type: 'reopened', data: { by: 'customer' } })
+  }
+
+  // 0) Cart sent from the WhatsApp catalog: pending order + link to the store's checkout.
+  if (ev.order) {
+    const handledOrder = await handleCatalogOrder({ workspaceId: ws, conversationId: conversation.id, contactId: contact.id, order: ev.order }).catch((err) => {
+      console.error('[ingest] catalog order failed:', err)
+      return false
+    })
+    if (handledOrder) return outcome
   }
 
   // 0a) Real estate: post-visit answers and "Agendar visita" buttons.

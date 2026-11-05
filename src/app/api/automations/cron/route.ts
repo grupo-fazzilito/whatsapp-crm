@@ -12,6 +12,7 @@ import { runCalendlyCron } from '@/lib/integrations/calendly/sync'
 import { processWebhookDeliveries } from '@/lib/webhooks/deliver'
 import { processPlatformWebhookDeliveries } from '@/lib/webhooks/platform'
 import { runBillingCron } from '@/lib/billing/payments'
+import { syncAllCatalogs } from '@/lib/meta-catalog/sync'
 
 /**
  * Drain due `automation_pending_executions` rows, then fire due
@@ -135,5 +136,13 @@ export async function GET(request: Request) {
     billing = { error: err instanceof Error ? err.message : String(err) }
   }
 
-  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, calendly, realEstate, webhooks, platformWebhooks, billing })
+  // WhatsApp catalog: product changes Meta hasn't taken yet (retries).
+  let whatsappCatalog: Awaited<ReturnType<typeof syncAllCatalogs>> | { error: string }
+  try {
+    whatsappCatalog = await syncAllCatalogs()
+  } catch (err) {
+    whatsappCatalog = { error: err instanceof Error ? err.message : String(err) }
+  }
+
+  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, calendly, realEstate, webhooks, platformWebhooks, billing, whatsappCatalog })
 }

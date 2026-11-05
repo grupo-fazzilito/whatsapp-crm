@@ -167,3 +167,36 @@ describe('parseMetaMessagingWebhook', () => {
     expect(events[2]).toMatchObject({ kind: 'status', externalMessageId: 'out1', status: 'delivered' })
   })
 })
+
+describe('WhatsApp catalog cart', () => {
+  it('keeps the order and shows a summary', async () => {
+    const { parseWhatsAppWebhook } = await import('./whatsapp')
+    const events = parseWhatsAppWebhook({
+      object: 'whatsapp_business_account',
+      entry: [
+        {
+          changes: [
+            {
+              field: 'messages',
+              value: {
+                metadata: { phone_number_id: 'PN1' },
+                contacts: [{ wa_id: '51912345678', profile: { name: 'Ana' } }],
+                messages: [
+                  {
+                    from: '51912345678',
+                    id: 'wamid.1',
+                    timestamp: '1700000000',
+                    type: 'order',
+                    order: { catalog_id: 'C1', text: 'Gracias', product_items: [{ product_retailer_id: 'v1', quantity: 2, item_price: 39, currency: 'PEN' }, { product_retailer_id: 'p2', quantity: 1, item_price: 29, currency: 'PEN' }] },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    } as never)
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({ kind: 'message', contentType: 'text', text: '🛒 Pedido desde el catálogo de WhatsApp (3 productos)\nGracias', order: { catalog_id: 'C1' } })
+  })
+})

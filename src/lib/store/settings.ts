@@ -24,6 +24,8 @@ export interface StoreSettings {
   low_stock_threshold: number
   /** "Notify me" on sold-out products. */
   waitlist_enabled: boolean
+  /** Secret part of the product feed URL Meta reads (null = no feed yet). */
+  feed_token: string | null
 }
 
 export const DEFAULT_ACCENT = '#059669'
@@ -41,6 +43,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   stock_display: DEFAULT_STOCK_DISPLAY,
   low_stock_threshold: DEFAULT_LOW_THRESHOLD,
   waitlist_enabled: true,
+  feed_token: null,
 }
 
 const text = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null)
@@ -64,6 +67,7 @@ export function storeSettings(raw: unknown): StoreSettings {
     stock_display: parseStockDisplay(r.stock_display) ?? DEFAULT_STOCK_DISPLAY,
     low_stock_threshold: parseThreshold(r.low_stock_threshold) ?? DEFAULT_LOW_THRESHOLD,
     waitlist_enabled: r.waitlist_enabled !== false,
+    feed_token: typeof r.feed_token === 'string' && /^[A-Za-z0-9_-]{24,64}$/.test(r.feed_token) ? r.feed_token : null,
   }
 }
 
@@ -84,6 +88,11 @@ export type ReadinessKey = keyof StoreReadiness
 /** What still blocks publishing the store (empty = it can be published). */
 export function missingForStore(r: StoreReadiness): ReadinessKey[] {
   return (Object.keys(r) as ReadinessKey[]).filter((k) => !r[k])
+}
+
+/** Path of the product feed Meta reads (scheduled feed in Commerce Manager). */
+export function feedPath(slug: string, token: string): string {
+  return `/api/public/catalog-feed/${encodeURIComponent(slug)}/${token}/catalog.csv`
 }
 
 /** Stored path of the public store. */

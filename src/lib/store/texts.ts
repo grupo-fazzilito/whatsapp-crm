@@ -15,6 +15,9 @@ const es = {
   chooseOption: 'Elige una opción',
   left: 'Quedan {n}',
   almostGone: '¡Casi agotado!',
+  waOrderTitle: 'Completa tu pedido #{number}',
+  waOrderHint: 'Recibimos tu carrito de WhatsApp. Elige cómo lo recibes y cómo pagas.',
+  waOrderExpired: 'Este pedido ya se completó o ya no está disponible. Escríbenos por WhatsApp si necesitas ayuda.',
   notify: {
     button: 'Notifícame disponibilidad',
     short: 'Avísame',
@@ -193,6 +196,9 @@ const en: StoreTexts = {
   chooseOption: 'Choose an option',
   left: '{n} left',
   almostGone: 'Almost gone!',
+  waOrderTitle: 'Complete your order #{number}',
+  waOrderHint: 'We received your WhatsApp cart. Choose how you get it and how you pay.',
+  waOrderExpired: 'This order was already completed or is no longer available. Message us on WhatsApp if you need help.',
   notify: {
     button: 'Notify me when available',
     short: 'Notify me',

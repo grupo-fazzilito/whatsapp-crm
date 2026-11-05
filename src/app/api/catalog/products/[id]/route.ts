@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { isUuid } from '@/lib/workspace/constants'
 import { parseProduct, parseVariants, saveProduct } from '@/lib/catalog/manage'
+import { kickCatalogSync } from '@/lib/meta-catalog/sync'
 
 /**
  * PATCH /api/catalog/products/[id] { product, variants, removed_variant_ids? } — admins.
@@ -11,6 +12,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
   const { db, workspace, user } = guard.ctx
+  kickCatalogSync(workspace.id)
   const { id } = await ctx.params
   if (!isUuid(id)) return NextResponse.json({ error: 'not_found' }, { status: 404 })
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null

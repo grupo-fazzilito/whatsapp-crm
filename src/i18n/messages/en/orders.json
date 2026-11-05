@@ -49,7 +49,8 @@
       "chat_buttons": "Chat buttons",
       "manual": "Entered by the team",
       "webchat": "Web chat",
-      "store": "Online store"
+      "store": "Online store",
+      "whatsapp_catalog": "WhatsApp catalog"
     },
     "channel": {
       "whatsapp": "WhatsApp",
@@ -133,13 +134,15 @@
       "cancelReason": "Reason (optional, sent to the customer)",
       "cancelReasonPlaceholder": "E.g. we ran out of stock",
       "document": "ID",
-      "shippingOnDelivery": "Shipping: paid by the customer on delivery"
+      "shippingOnDelivery": "Shipping: paid by the customer on delivery",
+      "checkoutPending": "Sent from the WhatsApp cart: the customer got the link to pick shipping and payment and hasn't completed it yet. The total doesn't include shipping yet."
     },
     "timeline": {
       "created": "Order created · {source}",
       "status": "Status: {status}",
       "payment": "Payment: {status}",
-      "notified": "Customer notified"
+      "notified": "Customer notified",
+      "checkout": "The customer completed shipping and payment in the store"
     },
     "toast": {
       "new": "New order #{number}",
@@ -256,7 +259,8 @@
     "description": "Your catalog as a web store: customers fill their cart, enter their details and the order lands in Orders.",
     "tabs": {
       "general": "General",
-      "shipping": "Shipping"
+      "shipping": "Shipping",
+      "whatsapp": "WhatsApp"
     },
     "readOnly": "Only admins can change the store.",
     "publish": {
@@ -410,6 +414,71 @@
       "thresholdUnit": "units are left",
       "waitlist": "“Notify me when available” button on sold-out products",
       "waitlistHint": "The customer leaves their WhatsApp, joins the Waitlist and their WhatsApp opens with a message for you."
+    },
+    "whatsapp": {
+      "tab": "WhatsApp",
+      "title": "WhatsApp catalog",
+      "description": "Your products show in your WhatsApp: the shop icon in the chat, the cart and product cards. Price, photo or stock changes reach WhatsApp within 1 hour with the feed, or instantly with the API.",
+      "sourceOfTruth": "Whasalia is the source of truth: whatever you edit directly in Meta Commerce Manager is replaced on the next sync.",
+      "noWhatsApp": "Connect your WhatsApp number in Channels first.",
+      "goChannels": "Go to Channels",
+      "number": "WhatsApp number",
+      "find": "Find my Meta catalogs",
+      "finding": "Searching…",
+      "pick": "Choose the catalog",
+      "linked": "already connected to this number",
+      "products": "{n} products",
+      "createNew": "Create a new catalog",
+      "newName": "Catalog name",
+      "connect": "Connect and sync",
+      "connected": "Catalog connected. Sending your products…",
+      "connectedTitle": "Connected to “{name}”",
+      "via": "Number: {number}",
+      "lastSync": "Last sync: {date}",
+      "never": "Not synced yet",
+      "pending": "{n} change(s) to send",
+      "upToDate": "All up to date",
+      "syncNow": "Sync everything now",
+      "synced": "Synced: {sent} product(s) sent.",
+      "disconnect": "Disconnect",
+      "disconnectConfirm": "Disconnect the catalog? The shop and cart are hidden in your WhatsApp and changes stop being sent. The catalog stays in your Meta account.",
+      "disconnected": "Catalog disconnected.",
+      "blockedTitle": "Products not sent to WhatsApp",
+      "blocked": {
+        "inactive": "{n} turned off",
+        "image": "{n} without a photo",
+        "price": "{n} without a price",
+        "currency": "{n} in another currency"
+      },
+      "itemErrors": "Meta rejected {n} product(s):",
+      "orders": "When a customer sends their cart on WhatsApp, the order shows in Orders and the customer gets a link to pick shipping and payment.",
+      "error": {
+        "permission": "Your WhatsApp connection can't manage catalogs. Reconnect the number in Channels and accept the catalog permission (catalog_management).",
+        "already_linked": "This number already has another catalog connected in Meta. Choose that catalog or disconnect it in WhatsApp Manager.",
+        "whatsapp_not_connected": "The WhatsApp number isn't connected properly.",
+        "business_missing": "We couldn't find this number's Meta business account.",
+        "failed": "Couldn't complete it. Try again."
+      },
+      "feedTitle": "Connect with the product feed",
+      "feedIntro": "Meta reads your products from this link every hour. No special permissions needed: just set it up once in Meta.",
+      "feedLink": "Feed link",
+      "feedCreate": "Create feed link",
+      "feedRenew": "Change link",
+      "feedRenewConfirm": "Create a new link? The current link stops working and you'll have to paste the new one in Meta Commerce Manager.",
+      "feedCreated": "Feed link ready.",
+      "feedOpen": "See the feed",
+      "stepsTitle": "How to connect it (once)",
+      "steps": {
+        "s1": "Copy the feed link.",
+        "s2": "Go to Meta Commerce Manager (business.facebook.com/commerce) with your WhatsApp's business account and create an “E-commerce” catalog, or pick one you already have.",
+        "s3": "In the catalog go to Catalog → Data sources → Add items → Data feed → “Scheduled feed”. Paste the link, choose “Hourly” and your store's currency.",
+        "s4": "In WhatsApp Manager → Catalog, connect that catalog to your number and turn on “Show catalog” and “Cart”.",
+        "s5": "Done: your products show in your WhatsApp and the carts customers send arrive in Orders."
+      },
+      "feedDelay": "Price, photo or stock changes take up to 1 hour to show in WhatsApp. If a customer orders something that sold out, Whasalia checks the real stock and tells them before creating the order.",
+      "storeOff": "Your online store isn't published yet: catalog products link to it, publish it in the General tab.",
+      "apiTitle": "Instant sync (Meta API)",
+      "apiIntro": "Sends every change instantly, without a feed. Your WhatsApp connection needs the catalog permission (catalog_management), which Meta must approve for Whasalia. Use only one of the two options with the same catalog."
     }
   },
   "waitlist": {

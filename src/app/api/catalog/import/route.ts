@@ -4,6 +4,7 @@ import type { TenantDb } from '@/lib/db/tenant'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { invalidateBusinessContext } from '@/lib/ai/context'
 import { productAttributesFor } from '@/lib/catalog/attributes'
+import { kickCatalogSync } from '@/lib/meta-catalog/sync'
 import {
   IMPORT_BATCH,
   MAX_IMPORT_ROWS,
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
   const { workspace: ws, user, db } = guard.ctx
+  kickCatalogSync(ws.id)
 
   const body = (await request.json().catch(() => null)) as { rows?: unknown } | null
   const input = Array.isArray(body?.rows) ? (body.rows as (RawRecord & { row?: unknown })[]) : null

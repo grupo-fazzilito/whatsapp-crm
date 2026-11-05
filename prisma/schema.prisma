@@ -707,6 +707,7 @@ model channel_secrets {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model channels {
   id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  meta_catalogs     meta_catalogs[]
   workspace_id      String              @default(dbgenerated("active_ws()")) @db.Uuid
   type              String
   name              String
@@ -1417,6 +1418,7 @@ model order_items {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model orders {
   id                   String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  checkout_pending     Boolean            @default(false)
   workspace_id         String             @default(dbgenerated("active_ws()")) @db.Uuid
   number               BigInt             @default(0)
   contact_id           String?            @db.Uuid
@@ -2040,6 +2042,7 @@ model teams {
 
 model users {
   id                                                          String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  meta_catalogs                                               meta_catalogs[]
   stock_waitlist                                              stock_waitlist[]
   email                                                       String                          @unique
   name                                                        String                          @default("")
@@ -2278,6 +2281,8 @@ model plans {
 
 model workspaces {
   id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  meta_catalog_queue            meta_catalog_queue[]
+  meta_catalogs                 meta_catalogs?
   stock_waitlist                stock_waitlist[]
   name                          String
   slug                          String                          @unique
@@ -2496,4 +2501,34 @@ model stock_waitlist {
 
   @@index([workspace_id, status, created_at(sort: Desc)], map: "idx_stock_waitlist_workspace")
   @@index([product_id], map: "idx_stock_waitlist_product")
+}
+
+model meta_catalogs {
+  workspace_id   String     @id @db.Uuid
+  channel_id     String     @db.Uuid
+  catalog_id     String
+  catalog_name   String?
+  status         String     @default("active")
+  last_synced_at DateTime?  @db.Timestamptz(6)
+  last_error     String?
+  item_errors    Json       @default("[]")
+  connected_by   String?    @db.Uuid
+  created_at     DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime   @default(now()) @db.Timestamptz(6)
+  workspaces     workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  channels       channels   @relation(fields: [channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          users?     @relation(fields: [connected_by], references: [id], onUpdate: NoAction)
+}
+
+model meta_catalog_queue {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @db.Uuid
+  product_id   String?    @db.Uuid
+  retailer_id  String?
+  op           String
+  attempts     Int        @default(0)
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id, created_at], map: "idx_meta_catalog_queue_workspace")
 }
