@@ -13,7 +13,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [x] Agregar `whasalia.com` y `www.whasalia.com` en Railway + DNS + HTTPS — 🤖 (2026-10-12)
 - [x] Nuevas URI de redireccionamiento y dominio en la app de Meta — 🧑 (2026-10-14)
 - [x] `NEXT_PUBLIC_SITE_URL` y `BETTER_AUTH_URL` → `https://whasalia.com`; `www` y la dirección de Railway redirigen al dominio principal; cron apunta a whasalia.com — 🤖 (2026-10-14)
-- [ ] Meta → WhatsApp → Configuración → Webhook: URL `https://whasalia.com/api/webhooks/meta` (mismo token) — 🧑
+- [x] Meta → WhatsApp → Configuración → Webhook: URL `https://whasalia.com/api/webhooks/meta` (mismo token) — 🧑
 
 ## 2. Correo
 
@@ -28,30 +28,30 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 
 - [x] App de Meta creada, Facebook Login configurado, claves en Railway — 🧑→🤖 (2026-10-12)
 - [x] Cuenta de revisión para Meta: `grupofazzilito+metareview@gmail.com` (negocio "Demo Store") — 🤖 (2026-10-12)
-- [ ] Pasar la app de Meta a modo **Activo** — 🧑
-- [ ] Enviar la revisión de la app; en el texto usar `https://whasalia.com/login` y `https://whasalia.com/en/...` — 🧑
+- [x] Pasar la app de Meta a modo **Activo** — 🧑
+- [x] Enviar la revisión de la app (**en revisión** desde 2026-11-06); en el texto usar `https://whasalia.com/login` y `https://whasalia.com/en/...` — 🧑
 - [ ] Crear cliente OAuth de Google (callback `https://whasalia.com/api/auth/callback/google`) y pasar Client ID/Secret — 🧑→🤖
 - [ ] Al terminar la revisión de Meta: borrar la cuenta de revisión o cambiarle la contraseña — 🤖
 
 ## 4. Meta: WhatsApp, Instagram y Messenger para clientes reales
 
 - [x] Verificación del negocio de Grupo Fazzilito E.I.R.L. (Ficha RUC + correo `@whasalia.com` o dominio verificado) — 🧑 (verificado el 2026-10-20)
-- [ ] WhatsApp: Meta marca "WhatsApp needs more information" tras la verificación; abrir el aviso en Centro de seguridad y responder lo que pida — 🧑
-- [ ] Agregar productos WhatsApp, Messenger e Instagram; crear configuración de Embedded Signup y de inicio de sesión para empresas — 🧑 (Claude da el paso a paso)
-- [ ] Superadmin → Ajustes → Meta: App ID, ES config ID, login config ID (en Railway solo está `META_APP_SECRET`) — 🧑→🤖
-- [ ] Revisión de permisos avanzados (`whatsapp_business_messaging`, `pages_messaging`, `instagram_manage_messages`…) con video por permiso — 🧑 graba / 🤖 guion listo en `docs/meta-app-review.md`
+- [x] WhatsApp: Meta marca "WhatsApp needs more information" tras la verificación; abrir el aviso en Centro de seguridad y responder lo que pida — 🧑
+- [x] Agregar productos WhatsApp, Messenger e Instagram; crear configuración de Embedded Signup y de inicio de sesión para empresas — 🧑 (Claude da el paso a paso)
+- [x] Superadmin → Ajustes → Meta: App ID, ES config ID, login config ID (en Railway solo está `META_APP_SECRET`) — 🧑→🤖
+- [x] Revisión de permisos avanzados (**enviada, en revisión** desde 2026-11-06) (`whatsapp_business_messaging`, `pages_messaging`, `instagram_manage_messages`…) con video por permiso — 🧑 graba / 🤖 guion listo en `docs/meta-app-review.md`
 - [x] **Respuestas a comentarios por palabra clave** (Instagram y Facebook): Automatizaciones → Comentarios; respuesta pública + mensaje privado que abre el chat en la bandeja — 🤖 (2026-10-14, rama `feat/comment-replies`)
-- [ ] Para que funcione con clientes reales: en la app de Meta agregar a la revisión `instagram_manage_comments`, `pages_read_engagement`, `pages_read_user_content` y `pages_manage_engagement` (video: comentar «precio» → respuesta pública + mensaje privado); si se usa una configuración de Facebook Login for Business, agregar esos permisos a la configuración — 🧑
-- [ ] En la app de Meta → Webhooks: objeto **Instagram** suscrito al campo `comments` y objeto **Page** al campo `feed` — 🧑
+- [x] Para que funcione con clientes reales: en la app de Meta agregar a la revisión `instagram_manage_comments`, `pages_read_engagement`, `pages_read_user_content` y `pages_manage_engagement` (video: comentar «precio» → respuesta pública + mensaje privado); si se usa una configuración de Facebook Login for Business, agregar esos permisos a la configuración — 🧑
+- [x] En la app de Meta → Webhooks: objeto **Instagram** suscrito al campo `comments` y objeto **Page** al campo `feed` — 🧑
 - [ ] Los negocios que ya conectaron Instagram/Facebook deben volver a conectar la cuenta para dar el permiso de comentarios — 🧑 (avisar)
 - [x] **Clientes de WhatsApp con nombre de usuario (BSUID)**: se reciben y se responden aunque Meta no comparta el teléfono; cambios de número o de BSUID unen al mismo contacto — 🤖 (2026-10-20, rama `feat/whatsapp-bsuid`)
 - [ ] Opcional: reservar el nombre de usuario de empresa de Whasalia en WhatsApp Manager (abierto desde el 29-jun-2026) — 🧑
 - [x] **API de Marketing Messages**: las plantillas de marketing de números con los términos aceptados salen por `/marketing_messages`; el resto sigue por Cloud API; aviso en Canales — 🤖 (2026-10-20, rama `feat/whatsapp-marketing-messages`)
-- [ ] En la app de Meta → Webhooks → WhatsApp Business Account: suscribir el campo **`account_update`** (avisa cuando una empresa acepta los términos de marketing) — 🧑
+- [x] En la app de Meta → Webhooks → WhatsApp Business Account: suscribir el campo **`account_update`** (avisa cuando una empresa acepta los términos de marketing) — 🧑
 - [ ] Avisar a las empresas que usan Difusiones que acepten los términos de Marketing Messages en WhatsApp Manager antes del **13-oct-2027** (desde esa fecha Meta rechaza marketing por Cloud API) — 🧑
 - [ ] Antes del 13-oct-2027: quitar el respaldo por Cloud API para plantillas de marketing — 🤖
 - [x] **Llamadas de WhatsApp, fase 1** (las atiende una persona desde la bandeja, WebRTC en el navegador); el modal de conexión explica coexistencia vs. solo API — 🤖 (2026-10-20, rama `feat/whatsapp-calls`)
-- [ ] En la app de Meta → Webhooks → WhatsApp Business Account: suscribir el campo **`calls`** — 🧑
+- [x] En la app de Meta → Webhooks → WhatsApp Business Account: suscribir el campo **`calls`** — 🧑
 - [ ] Probar una llamada real: número solo API con límite de 2.000+ destinatarios/día (o número de prueba de Meta), activar en Canales y llamar desde un celular — 🧑
 - [ ] Confirmar la tarifa de Meta por llamadas entrantes (página de precios de Calling API) — 🧑/🤖
 - [ ] Llamadas fase 2: que las atienda el agente de IA (voz en tiempo real; servicio de audio aparte y tokens por minuto) — 🤖 (futuro)
