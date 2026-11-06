@@ -491,5 +491,15 @@ export const resultCompat = Prisma.defineExtension({
     meta_catalog_queue: {
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
     },
+    social_accounts: {
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
+    social_posts: {
+      scheduled_at: { needs: { scheduled_at: true }, compute: (r) => r.scheduled_at === null ? null : r.scheduled_at.toISOString() },
+      published_at: { needs: { published_at: true }, compute: (r) => r.published_at === null ? null : r.published_at.toISOString() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
   },
 })

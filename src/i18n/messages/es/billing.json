@@ -33,7 +33,8 @@
       "comment_reply": "Comentario respondido automáticamente",
       "unit": "{n} token(s)",
       "playground": "Mensaje de prueba de un agente",
-      "reminder": "Recordatorio de cita enviado"
+      "reminder": "Recordatorio de cita enviado",
+      "social_caption": "Texto de publicación escrito con IA"
     },
     "account": {
       "title": "Datos de facturación",

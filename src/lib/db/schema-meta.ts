@@ -1299,6 +1299,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "stock_waitlist": {
       "rel": "stock_waitlist"
     },
+    "social_posts": {
+      "rel": "social_posts"
+    },
     "price": "decimal",
     "compare_at_price": "decimal",
     "created_at": "timestamp",
@@ -1573,6 +1576,15 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "stock_waitlist": {
       "rel": "stock_waitlist"
+    },
+    "social_accounts": {
+      "rel": "social_accounts"
+    },
+    "social_posts_created": {
+      "rel": "social_posts"
+    },
+    "social_posts_approved": {
+      "rel": "social_posts"
     },
     "last_sign_in_at": "timestamp",
     "created_at": "timestamp",
@@ -1862,6 +1874,12 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "stock_waitlist": {
       "rel": "stock_waitlist"
+    },
+    "social_accounts": {
+      "rel": "social_accounts"
+    },
+    "social_posts": {
+      "rel": "social_posts"
     },
     "created_at": "timestamp",
     "updated_at": "timestamp",
@@ -2214,6 +2232,34 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "created_at": "timestamp",
     "workspaces": {
       "rel": "workspaces"
+    }
+  },
+  "social_accounts": {
+    "created_at": "timestamp",
+    "updated_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    },
+    "users": {
+      "rel": "users"
+    }
+  },
+  "social_posts": {
+    "scheduled_at": "timestamp",
+    "published_at": "timestamp",
+    "created_at": "timestamp",
+    "updated_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    },
+    "products": {
+      "rel": "products"
+    },
+    "creator": {
+      "rel": "users"
+    },
+    "approver": {
+      "rel": "users"
     }
   }
 }

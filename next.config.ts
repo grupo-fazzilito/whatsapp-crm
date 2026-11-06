@@ -55,6 +55,11 @@ const SECURITY_HEADERS = [
 ] as const;
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // The proxy buffers request bodies (default 10 MB): videos for
+    // Publicaciones go up to 100 MB.
+    proxyClientMaxBodySize: '110mb',
+  },
   async redirects() {
     return [
       {
@@ -133,7 +138,7 @@ const nextConfig: NextConfig = {
         // (Rules are merged, so this must not also match /api: the last
         // matching Cache-Control wins.)
         source:
-          "/((?!api|_next|admin-panel|dashboard|inbox|contacts|pipelines|broadcasts|automations|flows|settings|healthcare|business|catalog|orders|agents|channels|admin|login|signup|forgot-password|invite|auth).*)",
+          "/((?!api|_next|admin-panel|dashboard|inbox|contacts|pipelines|broadcasts|automations|flows|settings|healthcare|business|catalog|orders|posts|waitlist|agents|channels|admin|login|signup|forgot-password|invite|auth).*)",
         headers: [
           {
             key: "Cache-Control",
@@ -144,7 +149,7 @@ const nextConfig: NextConfig = {
       },
       {
         source:
-          "/:path(admin-panel|dashboard|inbox|contacts|pipelines|broadcasts|automations|flows|settings|healthcare|business|catalog|orders|agents|channels|admin|login|signup|forgot-password|invite|auth)/:rest*",
+          "/:path(admin-panel|dashboard|inbox|contacts|pipelines|broadcasts|automations|flows|settings|healthcare|business|catalog|orders|posts|waitlist|agents|channels|admin|login|signup|forgot-password|invite|auth)/:rest*",
         headers: [{ key: "Cache-Control", value: "private, no-store" }],
       },
       {

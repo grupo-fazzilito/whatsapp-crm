@@ -3,6 +3,7 @@ import { requireWorkspace } from '@/lib/workspace/context'
 import { isUuid } from '@/lib/workspace/constants'
 import { parseProduct, parseVariants, saveProduct } from '@/lib/catalog/manage'
 import { kickCatalogSync } from '@/lib/meta-catalog/sync'
+import { kickProductEvent, productAvailable } from '@/lib/social/server'
 
 /**
  * PATCH /api/catalog/products/[id] { product, variants, removed_variant_ids? } — admins.
@@ -22,7 +23,10 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
   if (!product || !variants || !Array.isArray(removed) || !removed.every((x) => typeof x === 'string' && isUuid(x))) {
     return NextResponse.json({ error: 'invalid' }, { status: 400 })
   }
+  const before = await productAvailable(workspace.id, id)
   const res = await saveProduct(db, workspace.id, user.id, id, product, variants, removed as string[])
   if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.status })
+  // Sold out → back in stock: automatic post, when the business turned it on.
+  if (before === 0 && ((await productAvailable(workspace.id, id)) ?? 0) > 0) kickProductEvent(workspace.id, id, 'restock')
   return NextResponse.json({ id: res.id })
 }

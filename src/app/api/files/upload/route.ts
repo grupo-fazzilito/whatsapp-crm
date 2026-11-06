@@ -23,6 +23,7 @@ export async function POST(request: Request) {
   const limits = UPLOAD_LIMITS[bucket]
   if (file.size === 0 || file.size > limits.maxBytes) return NextResponse.json({ error: 'file_too_large', max_bytes: limits.maxBytes }, { status: 413 })
   if (limits.imagesOnly && !file.type.startsWith('image/')) return NextResponse.json({ error: 'images_only' }, { status: 415 })
+  if (limits.mediaOnly && !/^(image|video)\//.test(file.type)) return NextResponse.json({ error: 'media_only' }, { status: 415 })
 
   const given = form?.get('path')
   const folder = String(form?.get('folder') ?? 'uploads').replace(/[^A-Za-z0-9/_-]/g, '').replace(/^\/+|\/+$/g, '') || 'uploads'

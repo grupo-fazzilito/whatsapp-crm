@@ -1689,6 +1689,7 @@ model product_variants {
 model products {
   id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   stock_waitlist         stock_waitlist[]
+  social_posts           social_posts[]
   workspace_id           String                   @default(dbgenerated("active_ws()")) @db.Uuid
   category_id            String?                  @db.Uuid
   name                   String
@@ -2044,6 +2045,9 @@ model users {
   id                                                          String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   meta_catalogs                                               meta_catalogs[]
   stock_waitlist                                              stock_waitlist[]
+  social_accounts                                             social_accounts[]
+  social_posts_created                                        social_posts[]                  @relation("social_posts_created_by")
+  social_posts_approved                                       social_posts[]                  @relation("social_posts_approved_by")
   email                                                       String                          @unique
   name                                                        String                          @default("")
   email_verified                                              Boolean                         @default(false)
@@ -2284,6 +2288,8 @@ model workspaces {
   meta_catalog_queue            meta_catalog_queue[]
   meta_catalogs                 meta_catalogs?
   stock_waitlist                stock_waitlist[]
+  social_accounts               social_accounts[]
+  social_posts                  social_posts[]
   name                          String
   slug                          String                          @unique
   industry                      String                          @default("generic")
@@ -2531,4 +2537,55 @@ model meta_catalog_queue {
   workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([workspace_id, created_at], map: "idx_meta_catalog_queue_workspace")
+}
+
+model social_accounts {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @db.Uuid
+  network      String
+  external_id  String
+  page_id      String
+  name         String
+  username     String?
+  picture_url  String?
+  access_token String
+  status       String     @default("active")
+  last_error   String?
+  connected_by String?    @db.Uuid
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime   @default(now()) @db.Timestamptz(6)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users        users?     @relation(fields: [connected_by], references: [id], onUpdate: NoAction)
+
+  @@unique([workspace_id, network, external_id], map: "uq_social_accounts")
+}
+
+model social_posts {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @db.Uuid
+  status       String     @default("draft")
+  format       String     @default("post")
+  caption      String     @default("")
+  media        Json       @default("[]")
+  product_id   String?    @db.Uuid
+  link_url     String?
+  targets      String[]   @default([])
+  scheduled_at DateTime?  @db.Timestamptz(6)
+  published_at DateTime?  @db.Timestamptz(6)
+  origin       String     @default("manual")
+  slot_key     String?
+  results      Json       @default("{}")
+  attempts     Int        @default(0)
+  last_error   String?
+  share_token  String     @unique
+  created_by   String?    @db.Uuid
+  approved_by  String?    @db.Uuid
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime   @default(now()) @db.Timestamptz(6)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products     products?  @relation(fields: [product_id], references: [id], onUpdate: NoAction)
+  creator      users?     @relation("social_posts_created_by", fields: [created_by], references: [id], onUpdate: NoAction)
+  approver     users?     @relation("social_posts_approved_by", fields: [approved_by], references: [id], onUpdate: NoAction)
+
+  @@index([workspace_id, scheduled_at(sort: Desc)], map: "idx_social_posts_workspace")
 }

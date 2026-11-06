@@ -55,6 +55,7 @@ function getPageTitle(pathname: string, t: T, label: Label): string {
     ["/orders", t("orders.navTitle")],
     ["/store", t("store.navTitle")],
     ["/waitlist", t("waitlist.navTitle")],
+    ["/posts", t("posts.navTitle")],
     ["/captures", t("realestate.captures.navTitle")],
   ];
   const match = titles
