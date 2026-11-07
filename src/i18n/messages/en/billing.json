@@ -33,7 +33,8 @@
       "comment_reply": "Automatically answered comment",
       "unit": "{n} token(s)",
       "playground": "Agent test message",
-      "reminder": "Appointment reminder sent"
+      "reminder": "Appointment reminder sent",
+      "social_caption": "Post caption written by AI"
     },
     "account": {
       "title": "Billing details",

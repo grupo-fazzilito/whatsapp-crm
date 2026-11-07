@@ -23,6 +23,8 @@ export interface StoredMetaSettings {
   es_coex_config_id?: string
   /** Facebook Login for Business configuration for Messenger / Instagram pages. */
   login_config_id?: string
+  /** Facebook Login for Business configuration for Messenger marketing messages (system user token: page + ad account). */
+  marketing_config_id?: string
   graph_version?: string
   /**
    * Development only: base URL that replaces https://graph.facebook.com/<version>
@@ -40,6 +42,7 @@ export interface MetaConfig {
   esConfigId: string | null
   esCoexConfigId: string | null
   loginConfigId: string | null
+  marketingConfigId: string | null
   graphVersion: string
   /** Graph API base (version included), honouring the dev mock override. */
   graphBase: string
@@ -73,6 +76,7 @@ export function buildMetaConfig(stored: StoredMetaSettings | null, env: Record<s
   const [esConfigId, esSrc] = pick(stored?.es_config_id, env.META_ES_CONFIG_ID || env.META_LOGIN_CONFIG_ID)
   const [esCoexConfigId] = pick(stored?.es_coex_config_id, env.META_ES_COEX_CONFIG_ID)
   const [loginConfigId, loginSrc] = pick(stored?.login_config_id, env.META_LOGIN_CONFIG_ID)
+  const [marketingConfigId] = pick(stored?.marketing_config_id, env.META_MARKETING_CONFIG_ID)
   const graphVersion =
     [stored?.graph_version, env.META_GRAPH_VERSION].find((v) => !!v && GRAPH_VERSION_RE.test(v)) ?? DEFAULT_GRAPH_VERSION
   const mock = env.NODE_ENV !== 'production' ? stored?.dev_graph_base_url || env.META_GRAPH_MOCK_URL : undefined
@@ -83,6 +87,7 @@ export function buildMetaConfig(stored: StoredMetaSettings | null, env: Record<s
     esConfigId,
     esCoexConfigId,
     loginConfigId,
+    marketingConfigId,
     graphVersion,
     graphBase: mock ? mock.replace(/\/$/, '') : `https://graph.facebook.com/${graphVersion}`,
     sources: { appId: appIdSrc, appSecret: secretSrc, verifyToken: vtSrc, esConfigId: esSrc, loginConfigId: loginSrc },
@@ -106,13 +111,14 @@ export interface MetaSettingsUpdate {
   es_config_id?: string | null
   es_coex_config_id?: string | null
   login_config_id?: string | null
+  marketing_config_id?: string | null
   graph_version?: string | null
 }
 
 export async function updateMetaSettings(update: MetaSettingsUpdate, userId: string | null): Promise<void> {
   const current = (await getPlatformSetting<StoredMetaSettings>('meta')) ?? {}
   const next: StoredMetaSettings = { ...current }
-  const plain = ['app_id', 'es_config_id', 'es_coex_config_id', 'login_config_id', 'graph_version'] as const
+  const plain = ['app_id', 'es_config_id', 'es_coex_config_id', 'login_config_id', 'marketing_config_id', 'graph_version'] as const
   for (const k of plain) {
     const v = update[k]
     if (v === null) delete next[k]
@@ -145,6 +151,7 @@ export async function maskedMetaSettings(siteOrigin: string) {
     es_config_id: stored?.es_config_id ?? '',
     es_coex_config_id: stored?.es_coex_config_id ?? '',
     login_config_id: stored?.login_config_id ?? '',
+    marketing_config_id: stored?.marketing_config_id ?? '',
     graph_version: stored?.graph_version ?? '',
     effective: {
       graph_version: cfg.graphVersion,

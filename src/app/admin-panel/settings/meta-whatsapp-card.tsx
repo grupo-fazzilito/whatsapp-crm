@@ -16,6 +16,7 @@ interface MetaSettings {
   es_config_id: string;
   es_coex_config_id: string;
   login_config_id: string;
+  marketing_config_id: string;
   graph_version: string;
   effective: { graph_version: string; es_config_id: string; login_config_id: string };
   sources: { appId: Source; appSecret: Source; verifyToken: Source; esConfigId: Source; loginConfigId: Source };
@@ -50,7 +51,7 @@ export function MetaWhatsAppCard() {
   const { t } = useI18n();
   const { copied, copy } = useCopy();
   const [s, setS] = useState<MetaSettings | null>(null);
-  const [form, setForm] = useState({ app_id: "", es_config_id: "", es_coex_config_id: "", login_config_id: "", graph_version: "", verify_token: "" });
+  const [form, setForm] = useState({ app_id: "", es_config_id: "", es_coex_config_id: "", login_config_id: "", marketing_config_id: "", graph_version: "", verify_token: "" });
   const [secret, setSecret] = useState("");
   const [show, setShow] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -64,6 +65,7 @@ export function MetaWhatsAppCard() {
       es_config_id: d.es_config_id,
       es_coex_config_id: d.es_coex_config_id,
       login_config_id: d.login_config_id,
+      marketing_config_id: d.marketing_config_id ?? "",
       graph_version: d.graph_version,
       verify_token: d.verify_token,
     });
@@ -105,6 +107,7 @@ export function MetaWhatsAppCard() {
       es_config_id: form.es_config_id.trim() || null,
       es_coex_config_id: form.es_coex_config_id.trim() || null,
       login_config_id: form.login_config_id.trim() || null,
+      marketing_config_id: form.marketing_config_id.trim() || null,
       graph_version: form.graph_version.trim() || null,
     };
     if (form.verify_token.trim() !== (s?.verify_token ?? "")) patch.verify_token = form.verify_token.trim() || null;
@@ -214,6 +217,7 @@ export function MetaWhatsAppCard() {
         {text("es_config_id", t("metawa.admin.esConfigId"), t("metawa.admin.esConfigHelp"))}
         {text("es_coex_config_id", t("metawa.admin.coexConfigId"), t("metawa.admin.coexConfigHelp"))}
         {text("login_config_id", t("metawa.admin.loginConfigId"), t("metawa.admin.loginConfigHelp"))}
+        {text("marketing_config_id", t("metawa.admin.marketingConfigId"), t("metawa.admin.marketingConfigHelp"))}
         {text("graph_version", t("metawa.admin.graphVersion"), t("metawa.admin.graphVersionHelp", { version: s.effective.graph_version }), s.default_graph_version)}
       </div>
 

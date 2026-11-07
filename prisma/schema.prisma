@@ -376,21 +376,24 @@ model bookings {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model broadcast_recipients {
-  id                  String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  broadcast_id        String     @db.Uuid
-  contact_id          String?    @db.Uuid
-  status              String     @default("pending")
-  sent_at             DateTime?  @db.Timestamptz(6)
-  delivered_at        DateTime?  @db.Timestamptz(6)
-  read_at             DateTime?  @db.Timestamptz(6)
-  replied_at          DateTime?  @db.Timestamptz(6)
-  error_message       String?
-  created_at          DateTime?  @default(now()) @db.Timestamptz(6)
-  whatsapp_message_id String?    @unique(map: "idx_broadcast_recipients_wamid", where: raw("(whatsapp_message_id IS NOT NULL)"))
-  workspace_id        String     @db.Uuid
-  broadcasts          broadcasts @relation(fields: [broadcast_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  contacts            contacts?  @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
-  workspaces          workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  broadcast_id          String                 @db.Uuid
+  contact_id            String?                @db.Uuid
+  status                String                 @default("pending")
+  sent_at               DateTime?              @db.Timestamptz(6)
+  delivered_at          DateTime?              @db.Timestamptz(6)
+  read_at               DateTime?              @db.Timestamptz(6)
+  replied_at            DateTime?              @db.Timestamptz(6)
+  error_message         String?
+  created_at            DateTime?              @default(now()) @db.Timestamptz(6)
+  whatsapp_message_id   String?                @unique(map: "idx_broadcast_recipients_wamid", where: raw("(whatsapp_message_id IS NOT NULL)"))
+  workspace_id          String                 @db.Uuid
+  subscriber_id         String?                @db.Uuid
+  tracking_id           String?
+  messenger_subscribers messenger_subscribers? @relation(fields: [subscriber_id], references: [id], onUpdate: NoAction)
+  broadcasts            broadcasts             @relation(fields: [broadcast_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  contacts              contacts?              @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  workspaces            workspaces             @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([broadcast_id], map: "idx_broadcast_recipients_broadcast")
   @@index([broadcast_id, status], map: "idx_broadcast_recipients_broadcast_status")
@@ -418,6 +421,10 @@ model broadcasts {
   updated_at           DateTime?              @default(now()) @db.Timestamptz(6)
   workspace_id         String                 @default(dbgenerated("active_ws()")) @db.Uuid
   channel_id           String?                @db.Uuid
+  kind                 String                 @default("whatsapp_template")
+  message              Json?
+  meta_campaign_id     String?
+  budget               Decimal?               @db.Decimal(12, 2)
   broadcast_recipients broadcast_recipients[]
   channels             channels?              @relation(fields: [channel_id], references: [id], onUpdate: NoAction)
   users                users?                 @relation(fields: [user_id], references: [id], onUpdate: NoAction)
@@ -706,33 +713,35 @@ model channel_secrets {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model channels {
-  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  meta_catalogs     meta_catalogs[]
-  workspace_id      String              @default(dbgenerated("active_ws()")) @db.Uuid
-  type              String
-  name              String
-  purpose           String?
-  external_id       String
-  display_handle    String?
-  status            String              @default("connected")
-  status_detail     String?
-  settings          Json                @default("{}")
-  ai_agent_id       String?             @db.Uuid
-  created_by        String?             @default(dbgenerated("app_user_id()")) @db.Uuid
-  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime?           @default(now()) @db.Timestamptz(6)
-  ai_chat_logs      ai_chat_logs[]
-  ai_usage          ai_usage[]
-  broadcasts        broadcasts[]
-  channel_secrets   channel_secrets?
-  ai_agents         ai_agents?          @relation(fields: [ai_agent_id], references: [id], onUpdate: NoAction)
-  users             users?              @relation(fields: [created_by], references: [id], onUpdate: NoAction)
-  workspaces        workspaces          @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  conversations     conversations[]
-  message_templates message_templates[]
-  orders            orders[]
-  comment_rules     comment_rules[]
-  comment_replies   comment_replies[]
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messenger_marketing   messenger_marketing[]
+  messenger_subscribers messenger_subscribers[]
+  meta_catalogs         meta_catalogs[]
+  workspace_id          String                  @default(dbgenerated("active_ws()")) @db.Uuid
+  type                  String
+  name                  String
+  purpose               String?
+  external_id           String
+  display_handle        String?
+  status                String                  @default("connected")
+  status_detail         String?
+  settings              Json                    @default("{}")
+  ai_agent_id           String?                 @db.Uuid
+  created_by            String?                 @default(dbgenerated("app_user_id()")) @db.Uuid
+  created_at            DateTime?               @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?               @default(now()) @db.Timestamptz(6)
+  ai_chat_logs          ai_chat_logs[]
+  ai_usage              ai_usage[]
+  broadcasts            broadcasts[]
+  channel_secrets       channel_secrets?
+  ai_agents             ai_agents?              @relation(fields: [ai_agent_id], references: [id], onUpdate: NoAction)
+  users                 users?                  @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  workspaces            workspaces              @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  conversations         conversations[]
+  message_templates     message_templates[]
+  orders                orders[]
+  comment_rules         comment_rules[]
+  comment_replies       comment_replies[]
 
   whatsapp_calls whatsapp_calls[]
 
@@ -804,6 +813,7 @@ model contact_tags {
 model contacts {
   id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   stock_waitlist                stock_waitlist[]
+  messenger_subscribers         messenger_subscribers[]
   user_id                       String?                         @default(dbgenerated("app_user_id()")) @db.Uuid
   phone                         String?
   name                          String?
@@ -1689,6 +1699,7 @@ model product_variants {
 model products {
   id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   stock_waitlist         stock_waitlist[]
+  social_posts           social_posts[]
   workspace_id           String                   @default(dbgenerated("active_ws()")) @db.Uuid
   category_id            String?                  @db.Uuid
   name                   String
@@ -2044,6 +2055,10 @@ model users {
   id                                                          String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   meta_catalogs                                               meta_catalogs[]
   stock_waitlist                                              stock_waitlist[]
+  social_accounts                                             social_accounts[]
+  messenger_marketing                                         messenger_marketing[]
+  social_posts_created                                        social_posts[]                  @relation("social_posts_created_by")
+  social_posts_approved                                       social_posts[]                  @relation("social_posts_approved_by")
   email                                                       String                          @unique
   name                                                        String                          @default("")
   email_verified                                              Boolean                         @default(false)
@@ -2284,6 +2299,10 @@ model workspaces {
   meta_catalog_queue            meta_catalog_queue[]
   meta_catalogs                 meta_catalogs?
   stock_waitlist                stock_waitlist[]
+  social_accounts               social_accounts[]
+  social_posts                  social_posts[]
+  messenger_marketing           messenger_marketing?
+  messenger_subscribers         messenger_subscribers[]
   name                          String
   slug                          String                          @unique
   industry                      String                          @default("generic")
@@ -2531,4 +2550,97 @@ model meta_catalog_queue {
   workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([workspace_id, created_at], map: "idx_meta_catalog_queue_workspace")
+}
+
+model social_accounts {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @db.Uuid
+  network      String
+  external_id  String
+  page_id      String
+  name         String
+  username     String?
+  picture_url  String?
+  access_token String
+  status       String     @default("active")
+  last_error   String?
+  connected_by String?    @db.Uuid
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime   @default(now()) @db.Timestamptz(6)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users        users?     @relation(fields: [connected_by], references: [id], onUpdate: NoAction)
+
+  @@unique([workspace_id, network, external_id], map: "uq_social_accounts")
+}
+
+model social_posts {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String     @db.Uuid
+  status       String     @default("draft")
+  format       String     @default("post")
+  caption      String     @default("")
+  media        Json       @default("[]")
+  product_id   String?    @db.Uuid
+  link_url     String?
+  targets      String[]   @default([])
+  scheduled_at DateTime?  @db.Timestamptz(6)
+  published_at DateTime?  @db.Timestamptz(6)
+  origin       String     @default("manual")
+  slot_key     String?
+  results      Json       @default("{}")
+  attempts     Int        @default(0)
+  last_error   String?
+  share_token  String     @unique
+  created_by   String?    @db.Uuid
+  approved_by  String?    @db.Uuid
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime   @default(now()) @db.Timestamptz(6)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products     products?  @relation(fields: [product_id], references: [id], onUpdate: NoAction)
+  creator      users?     @relation("social_posts_created_by", fields: [created_by], references: [id], onUpdate: NoAction)
+  approver     users?     @relation("social_posts_approved_by", fields: [approved_by], references: [id], onUpdate: NoAction)
+
+  @@index([workspace_id, scheduled_at(sort: Desc)], map: "idx_social_posts_workspace")
+}
+
+model messenger_marketing {
+  workspace_id        String     @id @db.Uuid
+  channel_id          String     @db.Uuid
+  page_id             String
+  ad_account_id       String
+  ad_account_name     String?
+  ad_account_currency String?
+  access_token        String
+  status              String     @default("active")
+  last_error          String?
+  connected_by        String?    @db.Uuid
+  created_at          DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime   @default(now()) @db.Timestamptz(6)
+  workspaces          workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  channels            channels   @relation(fields: [channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users               users?     @relation(fields: [connected_by], references: [id], onUpdate: NoAction)
+}
+
+model messenger_subscribers {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id         String                 @db.Uuid
+  channel_id           String                 @db.Uuid
+  psid                 String
+  contact_id           String?                @db.Uuid
+  status               String                 @default("invited")
+  token                String?
+  token_expires_at     DateTime?              @db.Timestamptz(6)
+  source               String                 @default("chat")
+  invited_at           DateTime?              @db.Timestamptz(6)
+  subscribed_at        DateTime?              @db.Timestamptz(6)
+  last_sent_at         DateTime?              @db.Timestamptz(6)
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime               @default(now()) @db.Timestamptz(6)
+  workspaces           workspaces             @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  channels             channels               @relation(fields: [channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  contacts             contacts?              @relation(fields: [contact_id], references: [id], onUpdate: NoAction)
+  broadcast_recipients broadcast_recipients[]
+
+  @@unique([channel_id, psid], map: "uq_messenger_subscribers")
+  @@index([workspace_id, status], map: "idx_messenger_subscribers_ws")
 }

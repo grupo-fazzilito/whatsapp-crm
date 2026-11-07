@@ -4,10 +4,11 @@
 // (/storage/v1/object/{public,sign}/<bucket>/<path>) are still understood
 // so data copied from Supabase keeps resolving.
 
-export const BUCKETS = ['attachments', 'catalog', 'avatars'] as const
+export const BUCKETS = ['attachments', 'catalog', 'avatars', 'social'] as const
 export type Bucket = (typeof BUCKETS)[number]
-/** Readable without a signature (product photos, payment QRs, avatars). */
-export const PUBLIC_BUCKETS: ReadonlySet<Bucket> = new Set(['catalog', 'avatars'])
+/** Readable without a signature (product photos, payment QRs, avatars, and the photos/videos
+ * of Publicaciones, which Meta downloads by URL). */
+export const PUBLIC_BUCKETS: ReadonlySet<Bucket> = new Set(['catalog', 'avatars', 'social'])
 
 export function isBucket(v: unknown): v is Bucket {
   return typeof v === 'string' && (BUCKETS as readonly string[]).includes(v)

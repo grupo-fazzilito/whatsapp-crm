@@ -37,6 +37,7 @@ export async function PUT(req: NextRequest) {
     ['es_config_id', ID_RE, 'es_config_id must be numeric'],
     ['es_coex_config_id', ID_RE, 'es_coex_config_id must be numeric'],
     ['login_config_id', ID_RE, 'login_config_id must be numeric'],
+    ['marketing_config_id', ID_RE, 'marketing_config_id must be numeric'],
     ['graph_version', GRAPH_VERSION_RE, 'graph_version must look like v25.0'],
     ['app_secret', SECRET_RE, 'app_secret looks invalid'],
     ['verify_token', TOKEN_RE, 'verify_token must be 8–200 visible characters'],

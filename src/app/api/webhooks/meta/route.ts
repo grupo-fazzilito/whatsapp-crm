@@ -9,6 +9,8 @@ import { applyTemplateStatusUpdate } from '@/lib/templates/meta'
 import { parseMetaMessagingWebhook, type MetaMessagingBody } from '@/lib/channels/parsers/meta-messaging'
 import { findChannelByExternalId } from '@/lib/channels/store'
 import { ingestEvents } from '@/lib/messaging/ingest'
+import { parseOptins } from '@/lib/messenger-marketing/model'
+import { applyOptins, maybeAutoInvite } from '@/lib/messenger-marketing/server'
 import { applyCoexBatch } from '@/lib/messaging/echo'
 import type { ChannelType, InboundEvent } from '@/lib/channels'
 import { parseCommentWebhook, type CommentEvent } from '@/lib/comments/model'
@@ -87,6 +89,8 @@ async function dispatch(type: ChannelType, events: InboundEvent[]) {
       continue
     }
     await ingestEvents(channel, list)
+    // Messenger: ask new customers whether they want offers (when the business turned it on).
+    if (type === 'messenger') await maybeAutoInvite(channel, list.flatMap((e) => (e.kind === 'message' ? [e.from.externalId] : [])))
   }
 }
 
@@ -153,6 +157,11 @@ export async function POST(request: Request) {
   if (parsed && events.length > 0) {
     // Ack within Meta's timeout; process after the response is sent.
     after(() => dispatch(parsed.type, events).catch((err) => console.error('[webhook] dispatch failed:', err)))
+  }
+  // Messenger marketing messages: the customer subscribed to (or stopped) the offers.
+  const optins = parseOptins(body).filter((o) => !allowed || allowed.has(o.pageId))
+  if (optins.length > 0) {
+    after(() => applyOptins(optins).catch((err) => console.error('[webhook] optins failed:', err)))
   }
   const comments = parseCommentWebhook(body).filter((c) => !allowed || allowed.has(c.channelExternalId))
   if (comments.length > 0) {

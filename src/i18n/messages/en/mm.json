@@ -1,0 +1,106 @@
+{
+  "mm": {
+    "title": "Messenger: marketing messages",
+    "intro": "Send promotions to customers who agreed to get offers on Messenger. Meta charges each delivered message to the business's ad account.",
+    "notAvailable": "Messenger marketing messages aren't enabled in Whasalia yet.",
+    "noPage": "First connect your Facebook page (Messenger) in Channels.",
+    "connect": "Connect ad account",
+    "reconnect": "Reconnect",
+    "disconnect": "Disconnect",
+    "disconnectConfirm": "Disconnect the ad account? Subscribers are kept, but you won't be able to send Messenger broadcasts.",
+    "connectedAs": "Page: {page} · Ad account: {account}",
+    "error": "Meta refused access: reconnect.",
+    "connected": "Messenger connected for marketing",
+    "pickTitle": "Choose the page and the ad account",
+    "page": "Page",
+    "adAccount": "Ad account",
+    "pickSave": "Connect",
+    "pickExpired": "The selection expired. Connect again.",
+    "errors": {
+      "denied": "You cancelled the permission on Facebook.",
+      "forbidden": "Only an admin can connect.",
+      "not_configured": "Messenger marketing messages aren't enabled in Whasalia yet.",
+      "state": "The connection expired. Try again.",
+      "exchange": "Meta didn't complete the connection. Try again.",
+      "no_page": "The chosen page isn't connected in Channels. Connect your Messenger page first.",
+      "no_ad_account": "You didn't pick an ad account. Reconnect and choose one (with a payment method)."
+    },
+    "subs": {
+      "title": "Subscribers",
+      "subscribed": "{n} subscribed",
+      "invited": "{n} invited, no answer",
+      "stopped": "{n} unsubscribed",
+      "ready": "{n} can get a message now",
+      "import": "Import subscribers from Meta",
+      "imported": "{imported} new, {updated} updated",
+      "importHint": "Includes people who answered Click-to-Messenger ads and earlier subscriptions."
+    },
+    "settings": {
+      "autoInvite": "Invite new customers automatically",
+      "autoInviteHint": "The first time someone messages you on Messenger, they get “Want our offers?” and subscribe with one tap.",
+      "inviteTitle": "Invitation text",
+      "inviteImage": "Invitation image (https URL, optional)",
+      "save": "Save",
+      "saved": "Saved"
+    },
+    "newBroadcast": "New Messenger broadcast",
+    "newWhatsApp": "New WhatsApp broadcast",
+    "kind": "Messenger · card",
+    "form": {
+      "title": "New Messenger broadcast",
+      "back": "Back to Broadcasts",
+      "name": "Internal name",
+      "namePlaceholder": "End of month deals",
+      "card": "Card",
+      "cardHint": "Messenger shows a card with an image, a title, short text and a button with a link.",
+      "image": "Image",
+      "upload": "Upload image",
+      "uploading": "Uploading…",
+      "cardTitle": "Title",
+      "subtitle": "Text (optional)",
+      "buttonText": "Button text",
+      "buttonTextPlaceholder": "See offer",
+      "buttonUrl": "Button link",
+      "audience": "Who",
+      "allSubscribers": "All subscribers",
+      "byTags": "Only with these tags",
+      "noTags": "You have no tags.",
+      "count": "{n} subscribers will get it.",
+      "tooSoon": "{n} got another message in the last 12 hours and are left out (Meta allows 1 every 12 h).",
+      "budget": "Maximum budget ({currency}, optional)",
+      "budgetHint": "Meta charges each delivered message to your ad account. Without a budget, Meta sets an estimated cap.",
+      "when": "When",
+      "now": "Now",
+      "schedule": "Schedule",
+      "send": "Send",
+      "scheduleBtn": "Schedule",
+      "sent": "Broadcast created: {n} recipients",
+      "preview": "Preview",
+      "issues": {
+        "title": "Write a title up to 80 characters.",
+        "subtitle": "The text takes up to 80 characters.",
+        "image": "Upload an image.",
+        "button_text": "Write the button text (up to 20 characters).",
+        "button_url": "Write a valid link for the button."
+      },
+      "errors": {
+        "empty": "No subscribers can get it right now.",
+        "not_connected": "Connect the ad account first.",
+        "invalid_budget": "Check the budget.",
+        "generic": "Couldn't create the broadcast."
+      }
+    },
+    "inbox": {
+      "title": "Messenger offers",
+      "invite": "Invite to get offers",
+      "invited": "Invitation sent",
+      "status": {
+        "subscribed": "Subscribed to offers",
+        "invited": "Invited, no answer",
+        "stopped": "Unsubscribed"
+      },
+      "notConnected": "Connect the ad account in Broadcasts to invite.",
+      "error": "Couldn't send the invitation: {message}"
+    }
+  }
+}

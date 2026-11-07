@@ -26,6 +26,22 @@ export async function GET(request: Request, { params }: { params: Promise<{ buck
     }
     const dl = search.get('dl')
     if (dl) headers['Content-Disposition'] = `attachment; filename*=UTF-8''${encodeURIComponent(dl)}`
+    headers['Accept-Ranges'] = 'bytes'
+    // Byte ranges: browsers (Safari) need them to play videos.
+    const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get('range') ?? '')
+    if (range && (range[1] || range[2])) {
+      const size = obj.body.length
+      let start = range[1] ? Number(range[1]) : size - Number(range[2])
+      let end = range[1] && range[2] ? Number(range[2]) : size - 1
+      start = Math.max(0, start)
+      end = Math.min(size - 1, end)
+      if (start > end || start >= size) {
+        return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${size}` } })
+      }
+      headers['Content-Range'] = `bytes ${start}-${end}/${size}`
+      headers['Content-Length'] = String(end - start + 1)
+      return new Response(new Uint8Array(obj.body.subarray(start, end + 1)), { status: 206, headers })
+    }
     return new Response(new Uint8Array(obj.body), { headers })
   } catch (err) {
     if (err instanceof StorageError && (err.code === 'not_found' || err.code === 'invalid')) {

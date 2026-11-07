@@ -9,6 +9,7 @@ import { AiProvidersCard } from "./ai-providers-card";
 import { GoogleCalendarCard } from "./google-calendar-card";
 import { CalendlyCard } from "./calendly-card";
 import { MetaWhatsAppCard } from "./meta-whatsapp-card";
+import { MetaPublishingCard } from "./meta-publishing-card";
 import { BillingCard } from "./billing-card";
 import { SupportCard } from "./support-card";
 import { AdminNotificationsCard } from "./notifications-card";
@@ -106,7 +107,12 @@ export default function AdminSettingsPage() {
         <div role="tabpanel" id={`settings-panel-${tab}`} aria-labelledby={`settings-tab-${tab}`} className="space-y-6">
           {tab === "ai" && <AiProvidersCard />}
           {tab === "billing" && <BillingCard />}
-          {tab === "meta" && <MetaWhatsAppCard />}
+          {tab === "meta" && (
+            <>
+              <MetaWhatsAppCard />
+              <MetaPublishingCard />
+            </>
+          )}
           {tab === "integrations" && (
             <>
               <GoogleCalendarCard />

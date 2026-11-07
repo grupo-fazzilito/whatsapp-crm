@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Broadcast } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/table';
 import { Radio, Plus, Loader2 } from 'lucide-react';
 import { getBroadcastStatus } from '@/lib/broadcast-status';
+import { MessengerPanel } from '@/components/broadcasts/messenger-panel';
+import { useT } from '@/i18n/client';
 
 /**
  * Poll cadence while any broadcast is sending. Kept modest so we don't
@@ -55,6 +57,7 @@ function RateCell({
 
 export default function BroadcastsPage() {
   const router = useRouter();
+  const t = useT();
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -185,6 +188,10 @@ export default function BroadcastsPage() {
         </Button>
       </div>
 
+      <Suspense>
+        <MessengerPanel />
+      </Suspense>
+
       {broadcasts.length === 0 ? (
         <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-900">
           <Radio className="mb-3 h-10 w-10 text-slate-600" />
@@ -219,24 +226,26 @@ export default function BroadcastsPage() {
             <TableBody>
               {broadcasts.map((broadcast) => {
                 const status = getBroadcastStatus(broadcast.status);
+                // Messenger broadcasts have no WhatsApp detail page (their counts are in the row).
+                const messenger = (broadcast as { kind?: string }).kind === 'messenger_card';
                 return (
                   <TableRow
                     key={broadcast.id}
-                    className="cursor-pointer border-slate-800 hover:bg-slate-800/50"
-                    onClick={() => router.push(`/broadcasts/${broadcast.id}`)}
+                    className={`border-slate-800 hover:bg-slate-800/50 ${messenger ? '' : 'cursor-pointer'}`}
+                    onClick={() => !messenger && router.push(`/broadcasts/${broadcast.id}`)}
                   >
                     <TableCell className="font-medium text-white">
                       {broadcast.name}
                     </TableCell>
                     <TableCell className="hidden text-slate-300 md:table-cell">
-                      {broadcast.template_name}
+                      {messenger ? t('mm.kind') : broadcast.template_name}
                     </TableCell>
                     <TableCell className="hidden text-right text-slate-300 tabular-nums sm:table-cell">
                       {broadcast.total_recipients}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       <RateCell
-                        value={broadcast.delivered_count}
+                        value={messenger ? broadcast.sent_count : broadcast.delivered_count}
                         total={broadcast.total_recipients}
                         color="bg-primary"
                       />

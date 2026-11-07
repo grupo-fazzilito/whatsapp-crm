@@ -4,6 +4,7 @@ import { isUuid } from '@/lib/workspace/constants'
 import { productAttributesFor } from '@/lib/catalog/attributes'
 import { deleteProducts, listProducts, parseProduct, parseVariants, saveProduct, type ProductListFilters } from '@/lib/catalog/manage'
 import { kickCatalogSync } from '@/lib/meta-catalog/sync'
+import { kickProductEvent } from '@/lib/social/server'
 
 const MAX_IDS = 500
 
@@ -63,6 +64,7 @@ export async function POST(request: Request) {
   if (!product || !variants || variants.some((v) => v.id)) return NextResponse.json({ error: 'invalid' }, { status: 400 })
   const res = await saveProduct(db, workspace.id, user.id, null, product, variants)
   if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.status })
+  kickProductEvent(workspace.id, res.id, 'new_product')
   return NextResponse.json({ id: res.id }, { status: 201 })
 }
 

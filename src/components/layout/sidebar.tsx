@@ -38,6 +38,8 @@ import {
   ChevronRight,
   Hand,
   BellRing,
+  Megaphone,
+  Send,
 } from "lucide-react";
 import {
   Avatar,
@@ -80,6 +82,8 @@ const navItems: NavItem[] = [
 const toolNavItems: NavItem[] = [
   { href: "/agents", label: "agents.navTitle", icon: Bot },
   { href: "/automations", label: "nav.automations", icon: Zap },
+  { href: "/posts", label: "posts.navTitle", icon: Megaphone },
+  { href: "/broadcasts", label: "nav.broadcasts", icon: Send },
   { href: "/channels", label: "channels.navTitle", icon: Radio },
   { href: "/reports", label: "reports.navTitle", icon: BarChart3 },
 ];
