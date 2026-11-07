@@ -23,15 +23,15 @@ export interface StatusDisplay {
 export const broadcastStatusConfig: Record<BroadcastStatus, StatusDisplay> = {
   draft: {
     label: "Draft",
-    classes: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+    classes: "bg-slate-500/10 text-slate-700 dark:text-slate-400 border-slate-500/20",
   },
   scheduled: {
     label: "Scheduled",
-    classes: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    classes: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
   },
   sending: {
     label: "Sending",
-    classes: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    classes: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
     pulse: true,
   },
   sent: {
@@ -40,18 +40,18 @@ export const broadcastStatusConfig: Record<BroadcastStatus, StatusDisplay> = {
   },
   failed: {
     label: "Failed",
-    classes: "bg-red-500/10 text-red-400 border-red-500/20",
+    classes: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
   },
 };
 
 export const recipientStatusConfig: Record<RecipientStatus, StatusDisplay> = {
   pending: {
     label: "Pending",
-    classes: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+    classes: "bg-slate-500/10 text-slate-700 dark:text-slate-400 border-slate-500/20",
   },
   sent: {
     label: "Sent",
-    classes: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    classes: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
   },
   delivered: {
     label: "Delivered",
@@ -63,11 +63,11 @@ export const recipientStatusConfig: Record<RecipientStatus, StatusDisplay> = {
   },
   replied: {
     label: "Replied",
-    classes: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    classes: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
   },
   failed: {
     label: "Failed",
-    classes: "bg-red-500/10 text-red-400 border-red-500/20",
+    classes: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
   },
 };
 

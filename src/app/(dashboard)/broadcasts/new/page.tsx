@@ -10,16 +10,13 @@ import { Step3Personalize } from '@/components/broadcasts/step3-personalize';
 import { Step4ScheduleSend } from '@/components/broadcasts/step4-schedule-send';
 import { useBroadcastSending } from '@/hooks/use-broadcast-sending';
 import { Check } from 'lucide-react';
+import { useT } from '@/i18n/client';
 
-const steps = [
-  { label: 'Template', key: 'template' },
-  { label: 'Audience', key: 'audience' },
-  { label: 'Personalize', key: 'personalize' },
-  { label: 'Send', key: 'send' },
-] as const;
+const steps = ['template', 'audience', 'personalize', 'send'] as const;
 
 export default function NewBroadcastPage() {
   const router = useRouter();
+  const t = useT();
   const { createAndSendBroadcast, isProcessing, progress } = useBroadcastSending();
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -60,7 +57,7 @@ export default function NewBroadcastPage() {
     } catch (err) {
       // Previously swallowed with console.error — the wizard would
       // just no-op, leaving the user confused. Surface the reason.
-      const message = err instanceof Error ? err.message : 'Broadcast failed';
+      const message = err instanceof Error ? err.message : t('bc.wizard.failed');
       console.error('Broadcast failed:', err);
       toast.error(message);
     }
@@ -77,7 +74,7 @@ export default function NewBroadcastPage() {
    */
   async function handleSaveDraft() {
     if (!template || !name.trim()) {
-      toast.error('Give the broadcast a name before saving a draft.');
+      toast.error(t('bc.wizard.draftNeedsName'));
       return;
     }
     const res = await fetch('/api/broadcasts', {
@@ -97,10 +94,10 @@ export default function NewBroadcastPage() {
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      toast.error(`Failed to save draft: ${body?.error ?? `HTTP ${res.status}`}`);
+      toast.error(t('bc.wizard.draftFailed', { error: body?.error ?? `HTTP ${res.status}` }));
       return;
     }
-    toast.success('Draft saved');
+    toast.success(t('bc.wizard.draftSaved'));
     router.push('/broadcasts');
   }
 
@@ -108,9 +105,9 @@ export default function NewBroadcastPage() {
     <div className="mx-auto max-w-3xl space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">New Broadcast</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Create and send a broadcast message to your contacts.
+        <h1 className="text-2xl font-bold text-foreground">{t('bc.wizard.title')}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t('bc.wizard.intro')}
         </p>
       </div>
 
@@ -121,7 +118,7 @@ export default function NewBroadcastPage() {
           const isCompleted = index < currentStep;
 
           return (
-            <div key={step.key} className="flex flex-1 items-center">
+            <div key={step} className="flex flex-1 items-center">
               <div className="flex items-center gap-2">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-all ${
@@ -129,23 +126,23 @@ export default function NewBroadcastPage() {
                       ? 'bg-primary text-primary-foreground'
                       : isActive
                         ? 'border-2 border-primary bg-primary/10 text-primary'
-                        : 'border border-slate-700 bg-slate-800 text-slate-500'
+                        : 'border border-border bg-muted text-muted-foreground'
                   }`}
                 >
                   {isCompleted ? <Check className="h-4 w-4" /> : index + 1}
                 </div>
                 <span
                   className={`hidden text-sm font-medium sm:block ${
-                    isActive ? 'text-white' : isCompleted ? 'text-primary' : 'text-slate-500'
+                    isActive ? 'text-foreground' : isCompleted ? 'text-primary' : 'text-muted-foreground'
                   }`}
                 >
-                  {step.label}
+                  {t(`bc.wizard.steps.${step}`)}
                 </span>
               </div>
               {index < steps.length - 1 && (
                 <div
                   className={`mx-3 h-px flex-1 ${
-                    index < currentStep ? 'bg-primary' : 'bg-slate-800'
+                    index < currentStep ? 'bg-primary' : 'bg-muted'
                   }`}
                 />
               )}
