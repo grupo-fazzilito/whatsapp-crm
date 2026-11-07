@@ -70,7 +70,8 @@ export async function graphGet<T>(path: string, accessToken: string): Promise<T>
   return data as T
 }
 
-const PAGE_MESSAGE_FIELDS = 'messages,messaging_postbacks,message_reactions,message_deliveries'
+// messaging_optins: subscriptions to the business's marketing messages on Messenger.
+const PAGE_MESSAGE_FIELDS = 'messages,messaging_postbacks,message_reactions,message_deliveries,messaging_optins'
 
 async function subscribePageFields(pageId: string, pageToken: string, fields: string): Promise<string | null> {
   try {

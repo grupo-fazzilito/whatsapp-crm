@@ -1,5 +1,6 @@
 "use client";
 
+import { MessengerOffers } from "./messenger-offers";
 import { useState, useEffect, useCallback } from "react";
 import { useRealtimeChanges } from "@/lib/realtime/client";
 import { cn } from "@/lib/utils";
@@ -652,6 +653,8 @@ export function ContactSidebar({
                   </ul>
                 </section>
               )}
+
+              {conversationId && <MessengerOffers key={`mm-${conversationId}`} conversationId={conversationId} sectionTitle={sectionTitle} />}
 
               <section aria-labelledby="sidebar-tags-title">
                 <h4 id="sidebar-tags-title" className={sectionTitle}>

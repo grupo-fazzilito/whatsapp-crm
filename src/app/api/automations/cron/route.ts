@@ -14,6 +14,7 @@ import { processPlatformWebhookDeliveries } from '@/lib/webhooks/platform'
 import { runBillingCron } from '@/lib/billing/payments'
 import { syncAllCatalogs } from '@/lib/meta-catalog/sync'
 import { runSocialCron } from '@/lib/social/server'
+import { runMessengerBroadcasts } from '@/lib/messenger-marketing/server'
 
 /**
  * Drain due `automation_pending_executions` rows, then fire due
@@ -153,5 +154,13 @@ export async function GET(request: Request) {
     social = { error: err instanceof Error ? err.message : String(err) }
   }
 
-  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, calendly, realEstate, webhooks, platformWebhooks, billing, whatsappCatalog, social })
+  // Messenger broadcasts (marketing messages): scheduled ones and the rest of big sends.
+  let messengerBroadcasts: Awaited<ReturnType<typeof runMessengerBroadcasts>> | { error: string }
+  try {
+    messengerBroadcasts = await runMessengerBroadcasts()
+  } catch (err) {
+    messengerBroadcasts = { error: err instanceof Error ? err.message : String(err) }
+  }
+
+  return NextResponse.json({ processed, followups, abandonedCarts, taskReminders, googleCalendar, calendly, realEstate, webhooks, platformWebhooks, billing, whatsappCatalog, social, messengerBroadcasts })
 }

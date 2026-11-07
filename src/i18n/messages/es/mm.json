@@ -1,0 +1,106 @@
+{
+  "mm": {
+    "title": "Messenger: mensajes de marketing",
+    "intro": "Envía promociones a los clientes que aceptaron recibir ofertas por Messenger. Meta cobra cada mensaje entregado a la cuenta publicitaria del negocio.",
+    "notAvailable": "Los mensajes de marketing de Messenger aún no están habilitados en Whasalia.",
+    "noPage": "Primero conecta tu página de Facebook (Messenger) en Canales.",
+    "connect": "Conectar cuenta publicitaria",
+    "reconnect": "Volver a conectar",
+    "disconnect": "Desconectar",
+    "disconnectConfirm": "¿Desconectar la cuenta publicitaria? Los suscriptores se conservan, pero no podrás enviar difusiones por Messenger.",
+    "connectedAs": "Página: {page} · Cuenta publicitaria: {account}",
+    "error": "Meta rechazó el acceso: vuelve a conectar.",
+    "connected": "Messenger conectado para marketing",
+    "pickTitle": "Elige la página y la cuenta publicitaria",
+    "page": "Página",
+    "adAccount": "Cuenta publicitaria",
+    "pickSave": "Conectar",
+    "pickExpired": "La selección expiró. Vuelve a conectar.",
+    "errors": {
+      "denied": "Cancelaste el permiso en Facebook.",
+      "forbidden": "Solo un administrador puede conectar.",
+      "not_configured": "Los mensajes de marketing de Messenger aún no están habilitados en Whasalia.",
+      "state": "La conexión expiró. Inténtalo de nuevo.",
+      "exchange": "Meta no completó la conexión. Inténtalo de nuevo.",
+      "no_page": "La página elegida no está conectada en Canales. Conecta primero tu página de Messenger.",
+      "no_ad_account": "No elegiste una cuenta publicitaria. Vuelve a conectar y elige una (con método de pago)."
+    },
+    "subs": {
+      "title": "Suscriptores",
+      "subscribed": "{n} suscritos",
+      "invited": "{n} invitados sin responder",
+      "stopped": "{n} se dieron de baja",
+      "ready": "{n} pueden recibir un mensaje ahora",
+      "import": "Traer suscriptores de Meta",
+      "imported": "{imported} nuevos, {updated} actualizados",
+      "importHint": "Incluye a quienes respondieron anuncios de «Clic a Messenger» y suscripciones anteriores."
+    },
+    "settings": {
+      "autoInvite": "Invitar automáticamente a los clientes nuevos",
+      "autoInviteHint": "La primera vez que alguien te escribe por Messenger, recibe «¿Quieres recibir ofertas?» y se suscribe con un toque.",
+      "inviteTitle": "Texto de la invitación",
+      "inviteImage": "Imagen de la invitación (URL https, opcional)",
+      "save": "Guardar",
+      "saved": "Guardado"
+    },
+    "newBroadcast": "Nueva difusión por Messenger",
+    "newWhatsApp": "Nueva difusión por WhatsApp",
+    "kind": "Messenger · tarjeta",
+    "form": {
+      "title": "Nueva difusión por Messenger",
+      "back": "Volver a Difusiones",
+      "name": "Nombre interno",
+      "namePlaceholder": "Ofertas de fin de mes",
+      "card": "Tarjeta",
+      "cardHint": "Messenger muestra una tarjeta con imagen, título, texto corto y un botón con enlace.",
+      "image": "Imagen",
+      "upload": "Subir imagen",
+      "uploading": "Subiendo…",
+      "cardTitle": "Título",
+      "subtitle": "Texto (opcional)",
+      "buttonText": "Texto del botón",
+      "buttonTextPlaceholder": "Ver oferta",
+      "buttonUrl": "Enlace del botón",
+      "audience": "A quién",
+      "allSubscribers": "Todos los suscriptores",
+      "byTags": "Solo con estas etiquetas",
+      "noTags": "No tienes etiquetas.",
+      "count": "Lo recibirán {n} suscriptores.",
+      "tooSoon": "{n} recibieron otro mensaje en las últimas 12 horas y quedan fuera (Meta permite 1 cada 12 h).",
+      "budget": "Presupuesto máximo ({currency}, opcional)",
+      "budgetHint": "Meta cobra cada mensaje entregado a tu cuenta publicitaria. Sin presupuesto, Meta pone un tope estimado.",
+      "when": "Cuándo",
+      "now": "Ahora",
+      "schedule": "Programar",
+      "send": "Enviar",
+      "scheduleBtn": "Programar",
+      "sent": "Difusión creada: {n} destinatarios",
+      "preview": "Vista previa",
+      "issues": {
+        "title": "Escribe un título de hasta 80 caracteres.",
+        "subtitle": "El texto admite hasta 80 caracteres.",
+        "image": "Sube una imagen.",
+        "button_text": "Escribe el texto del botón (hasta 20 caracteres).",
+        "button_url": "Escribe un enlace válido para el botón."
+      },
+      "errors": {
+        "empty": "No hay suscriptores que puedan recibirlo ahora.",
+        "not_connected": "Conecta la cuenta publicitaria primero.",
+        "invalid_budget": "Revisa el presupuesto.",
+        "generic": "No se pudo crear la difusión."
+      }
+    },
+    "inbox": {
+      "title": "Ofertas por Messenger",
+      "invite": "Invitar a recibir ofertas",
+      "invited": "Invitación enviada",
+      "status": {
+        "subscribed": "Suscrito a ofertas",
+        "invited": "Invitado, sin respuesta",
+        "stopped": "Se dio de baja"
+      },
+      "notConnected": "Conecta la cuenta publicitaria en Difusiones para invitar.",
+      "error": "No se pudo enviar la invitación: {message}"
+    }
+  }
+}

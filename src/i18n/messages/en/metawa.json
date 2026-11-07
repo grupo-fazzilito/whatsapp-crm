@@ -41,7 +41,9 @@
       "setup3": "Create a Facebook Login for Business configuration with the “Embedded Signup” variation and the WhatsApp product; paste its ID here.",
       "setup4": "In WhatsApp → Configuration, set the webhook URL and token and subscribe the listed fields (smb_message_echoes, history and smb_app_state_sync are needed for coexistence).",
       "setup5": "Add your domain under Facebook Login for Business → Allowed domains for the JavaScript SDK.",
-      "setup6": "Save the App ID and App Secret (App settings → Basic)."
+      "setup6": "Save the App ID and App Secret (App settings → Basic).",
+      "marketingConfigId": "Configuration ID: Messenger marketing (optional)",
+      "marketingConfigHelp": "Facebook Login for Business with a system user token (never expires), assets Pages + Ad accounts and permissions ads_management, pages_messaging, paid_marketing_messages. Used by Broadcasts → Messenger."
     },
     "signup": {
       "question": "How do you want to connect your number?",

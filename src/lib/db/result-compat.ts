@@ -91,6 +91,7 @@ export const resultCompat = Prisma.defineExtension({
       scheduled_at: { needs: { scheduled_at: true }, compute: (r) => r.scheduled_at === null ? null : r.scheduled_at.toISOString() },
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
+      budget: { needs: { budget: true }, compute: (r) => r.budget === null ? null : r.budget.toNumber() },
     },
     business_hours: {
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
@@ -498,6 +499,18 @@ export const resultCompat = Prisma.defineExtension({
     social_posts: {
       scheduled_at: { needs: { scheduled_at: true }, compute: (r) => r.scheduled_at === null ? null : r.scheduled_at.toISOString() },
       published_at: { needs: { published_at: true }, compute: (r) => r.published_at === null ? null : r.published_at.toISOString() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
+    messenger_marketing: {
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
+    messenger_subscribers: {
+      token_expires_at: { needs: { token_expires_at: true }, compute: (r) => r.token_expires_at === null ? null : r.token_expires_at.toISOString() },
+      invited_at: { needs: { invited_at: true }, compute: (r) => r.invited_at === null ? null : r.invited_at.toISOString() },
+      subscribed_at: { needs: { subscribed_at: true }, compute: (r) => r.subscribed_at === null ? null : r.subscribed_at.toISOString() },
+      last_sent_at: { needs: { last_sent_at: true }, compute: (r) => r.last_sent_at === null ? null : r.last_sent_at.toISOString() },
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
     },

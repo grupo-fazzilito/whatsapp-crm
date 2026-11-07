@@ -71,6 +71,8 @@ import enCalendly from './messages/en/calendly.json'
 import esComments from './messages/es/comments.json'
 import esPosts from './messages/es/posts.json'
 import enPosts from './messages/en/posts.json'
+import esMm from './messages/es/mm.json'
+import enMm from './messages/en/mm.json'
 import enComments from './messages/en/comments.json'
 import esCalls from './messages/es/calls.json'
 import enCalls from './messages/en/calls.json'
@@ -84,8 +86,8 @@ import type { AppLocale } from './config'
 type Tree = { [key: string]: string | Tree }
 
 const DICTS: Record<AppLocale, Tree> = {
-  es: { ...esCore, ...esChannels, ...esAgents, ...esWebchat, ...esInbox, ...esBusiness, ...esRouting, ...esAdmin, ...esBookings, ...esCatalogImport, ...esCatalog, ...esFollowups, ...esOrders, ...esCrm, ...esReports, ...esInboxPro, ...esLeads, ...esRealEstate, ...esGcal, ...esAiAssist, ...esMetaWa, ...esIntegrations, ...esBilling, ...esSupport, ...esDash, ...esMktShell, ...esAuth, ...esMktHome, ...esMktA, ...esMktB, ...esMktC, ...esMktLegal, ...esTemplates, ...esPlatformHooks, ...esComplaints, ...esCalendly, ...esComments, ...esCalls, ...esPosts },
-  en: { ...enCore, ...enChannels, ...enAgents, ...enWebchat, ...enInbox, ...enBusiness, ...enRouting, ...enAdmin, ...enBookings, ...enCatalogImport, ...enCatalog, ...enFollowups, ...enOrders, ...enCrm, ...enReports, ...enInboxPro, ...enLeads, ...enRealEstate, ...enGcal, ...enAiAssist, ...enMetaWa, ...enIntegrations, ...enBilling, ...enSupport, ...enDash, ...enMktShell, ...enAuth, ...enMktHome, ...enMktA, ...enMktB, ...enMktC, ...enMktLegal, ...enTemplates, ...enPlatformHooks, ...enComplaints, ...enCalendly, ...enComments, ...enCalls, ...enPosts },
+  es: { ...esCore, ...esChannels, ...esAgents, ...esWebchat, ...esInbox, ...esBusiness, ...esRouting, ...esAdmin, ...esBookings, ...esCatalogImport, ...esCatalog, ...esFollowups, ...esOrders, ...esCrm, ...esReports, ...esInboxPro, ...esLeads, ...esRealEstate, ...esGcal, ...esAiAssist, ...esMetaWa, ...esIntegrations, ...esBilling, ...esSupport, ...esDash, ...esMktShell, ...esAuth, ...esMktHome, ...esMktA, ...esMktB, ...esMktC, ...esMktLegal, ...esTemplates, ...esPlatformHooks, ...esComplaints, ...esCalendly, ...esComments, ...esCalls, ...esPosts, ...esMm },
+  en: { ...enCore, ...enChannels, ...enAgents, ...enWebchat, ...enInbox, ...enBusiness, ...enRouting, ...enAdmin, ...enBookings, ...enCatalogImport, ...enCatalog, ...enFollowups, ...enOrders, ...enCrm, ...enReports, ...enInboxPro, ...enLeads, ...enRealEstate, ...enGcal, ...enAiAssist, ...enMetaWa, ...enIntegrations, ...enBilling, ...enSupport, ...enDash, ...enMktShell, ...enAuth, ...enMktHome, ...enMktA, ...enMktB, ...enMktC, ...enMktLegal, ...enTemplates, ...enPlatformHooks, ...enComplaints, ...enCalendly, ...enComments, ...enCalls, ...enPosts, ...enMm },
 }
 
 /** Dotted-path key into the message tree, e.g. "nav.inbox". */
