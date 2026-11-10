@@ -13,9 +13,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Radio, Plus, Loader2 } from 'lucide-react';
-import { getBroadcastStatus } from '@/lib/broadcast-status';
+import { broadcastStatusConfig as BC_STATUS, getBroadcastStatus } from '@/lib/broadcast-status';
 import { MessengerPanel } from '@/components/broadcasts/messenger-panel';
-import { useT } from '@/i18n/client';
+import { useI18n } from '@/i18n/client';
 
 /**
  * Poll cadence while any broadcast is sending. Kept modest so we don't
@@ -42,10 +42,10 @@ function RateCell({
   const pct = percent(value, total);
   return (
     <div className="flex items-center gap-2">
-      <span className="w-10 text-right text-xs tabular-nums text-slate-300">
+      <span className="w-10 text-right text-xs tabular-nums text-foreground">
         {pct}%
       </span>
-      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-800">
+      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
         <div
           className={`h-1.5 rounded-full ${color}`}
           style={{ width: `${pct}%` }}
@@ -57,7 +57,7 @@ function RateCell({
 
 export default function BroadcastsPage() {
   const router = useRouter();
-  const t = useT();
+  const { t, locale } = useI18n();
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,10 +69,10 @@ export default function BroadcastsPage() {
     try {
       const res = await fetch('/api/broadcasts', { cache: 'no-store' });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.error ?? 'Failed to load broadcasts');
+      if (!res.ok) throw new Error(body?.error ?? '');
       setBroadcasts(body.broadcasts ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load broadcasts');
+      setError(err instanceof Error ? err.message : '');
     } finally {
       setLoading(false);
     }
@@ -131,12 +131,12 @@ export default function BroadcastsPage() {
     );
   }
 
-  if (error) {
+  if (error !== null) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-2">
-        <p className="text-sm text-red-400">{error}</p>
+        <p className="text-sm text-red-600 dark:text-red-400">{error || t('bc.loadError')}</p>
         <Button variant="outline" onClick={() => window.location.reload()}>
-          Retry
+          {t('bc.retry')}
         </Button>
       </div>
     );
@@ -149,8 +149,8 @@ export default function BroadcastsPage() {
       {anySending && (
         <div
           role="progressbar"
-          aria-label="Broadcast in progress"
-          className="broadcast-indeterminate fixed inset-x-0 top-0 z-40 h-0.5 overflow-hidden bg-slate-800"
+          aria-label={t('bc.inProgress')}
+          className="broadcast-indeterminate fixed inset-x-0 top-0 z-40 h-0.5 overflow-hidden bg-muted"
         >
           <div className="broadcast-indeterminate-bar h-0.5 bg-primary" />
           <style jsx>{`
@@ -174,9 +174,9 @@ export default function BroadcastsPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Broadcasts</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Send bulk messages to your contacts using approved templates.
+          <h1 className="text-2xl font-bold text-foreground">{t('bc.title')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t('bc.intro')}
           </p>
         </div>
         <Button
@@ -184,7 +184,7 @@ export default function BroadcastsPage() {
           className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
-          New Broadcast
+          {t('bc.new')}
         </Button>
       </div>
 
@@ -193,34 +193,34 @@ export default function BroadcastsPage() {
       </Suspense>
 
       {broadcasts.length === 0 ? (
-        <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-900">
-          <Radio className="mb-3 h-10 w-10 text-slate-600" />
-          <p className="text-sm font-medium text-white">No broadcasts yet</p>
-          <p className="mt-1 text-xs text-slate-400">
-            Create your first broadcast to reach your contacts at scale.
+        <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-border bg-card">
+          <Radio className="mb-3 h-10 w-10 text-muted-foreground" />
+          <p className="text-sm font-medium text-foreground">{t('bc.emptyTitle')}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t('bc.emptyText')}
           </p>
           <Button
             onClick={() => router.push('/broadcasts/new')}
             className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" />
-            New Broadcast
+            {t('bc.new')}
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <Table>
             <TableHeader>
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-slate-400">Name</TableHead>
-                <TableHead className="hidden text-slate-400 md:table-cell">Template</TableHead>
-                <TableHead className="hidden text-right text-slate-400 sm:table-cell">
-                  Recipients
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-muted-foreground">{t('bc.col.name')}</TableHead>
+                <TableHead className="hidden text-muted-foreground md:table-cell">{t('bc.col.template')}</TableHead>
+                <TableHead className="hidden text-right text-muted-foreground sm:table-cell">
+                  {t('bc.col.recipients')}
                 </TableHead>
-                <TableHead className="hidden text-slate-400 lg:table-cell">Delivery</TableHead>
-                <TableHead className="hidden text-slate-400 lg:table-cell">Read</TableHead>
-                <TableHead className="text-slate-400">Status</TableHead>
-                <TableHead className="hidden text-slate-400 sm:table-cell">Date</TableHead>
+                <TableHead className="hidden text-muted-foreground lg:table-cell">{t('bc.col.delivery')}</TableHead>
+                <TableHead className="hidden text-muted-foreground lg:table-cell">{t('bc.col.read')}</TableHead>
+                <TableHead className="text-muted-foreground">{t('bc.col.status')}</TableHead>
+                <TableHead className="hidden text-muted-foreground sm:table-cell">{t('bc.col.date')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -231,16 +231,16 @@ export default function BroadcastsPage() {
                 return (
                   <TableRow
                     key={broadcast.id}
-                    className={`border-slate-800 hover:bg-slate-800/50 ${messenger ? '' : 'cursor-pointer'}`}
+                    className={`border-border hover:bg-muted ${messenger ? '' : 'cursor-pointer'}`}
                     onClick={() => !messenger && router.push(`/broadcasts/${broadcast.id}`)}
                   >
-                    <TableCell className="font-medium text-white">
+                    <TableCell className="font-medium text-foreground">
                       {broadcast.name}
                     </TableCell>
-                    <TableCell className="hidden text-slate-300 md:table-cell">
+                    <TableCell className="hidden text-foreground md:table-cell">
                       {messenger ? t('mm.kind') : broadcast.template_name}
                     </TableCell>
-                    <TableCell className="hidden text-right text-slate-300 tabular-nums sm:table-cell">
+                    <TableCell className="hidden text-right text-foreground tabular-nums sm:table-cell">
                       {broadcast.total_recipients}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
@@ -267,11 +267,11 @@ export default function BroadcastsPage() {
                             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-yellow-400" />
                           </span>
                         )}
-                        {status.label}
+                        {t(`bc.status.${broadcast.status in BC_STATUS ? broadcast.status : 'draft'}`)}
                       </span>
                     </TableCell>
-                    <TableCell className="hidden text-slate-400 sm:table-cell">
-                      {new Date(broadcast.created_at).toLocaleDateString()}
+                    <TableCell className="hidden text-muted-foreground sm:table-cell">
+                      {new Date(broadcast.created_at).toLocaleDateString(locale)}
                     </TableCell>
                   </TableRow>
                 );

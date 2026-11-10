@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ArrowLeft, ArrowRight, Eye, Loader2, FileText } from 'lucide-react';
+import { useT } from '@/i18n/client';
 
 type VariableType = 'static' | 'field' | 'custom_field';
 
@@ -30,12 +31,7 @@ interface Step3Props {
   onBack: () => void;
 }
 
-const contactFields = [
-  { value: 'name', label: 'Contact Name' },
-  { value: 'phone', label: 'Phone Number' },
-  { value: 'email', label: 'Email Address' },
-  { value: 'company', label: 'Company' },
-];
+const contactFields = ['name', 'phone', 'email', 'company'] as const;
 
 /** Contact field a template variable source maps to. */
 const SOURCE_FIELD: Partial<Record<VariableSource, string>> = {
@@ -66,6 +62,7 @@ export function Step3Personalize({
   onNext,
   onBack,
 }: Step3Props) {
+  const t = useT();
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingFields, setLoadingFields] = useState(true);
   const [firstContact, setFirstContact] = useState<Contact | null>(null);
@@ -175,7 +172,7 @@ export function Step3Personalize({
           uniqueMatches.forEach((m) => {
             list.push({
               buttonIndex,
-              buttonText: (btn.text as string) || 'Button',
+              buttonText: (btn.text as string) || t('bc.s3.button'),
               placeholder: m,
             });
           });
@@ -183,7 +180,7 @@ export function Step3Personalize({
       }
     });
     return list;
-  }, [template.buttons]);
+  }, [template.buttons, t]);
 
   useEffect(() => {
     if (!templateVariables.length || prefilled.current === template.id) return;
@@ -222,14 +219,14 @@ export function Step3Personalize({
       const num = p.replace(/^\{\{|\}\}$/g, '');
       const key = `header_${num}`;
       const mapping = variables[key];
-      if (!mapping || !mapping.value?.trim()) missing.push(`Header ${p}`);
+      if (!mapping || !mapping.value?.trim()) missing.push(t('bc.s3.missingHeader', { p }));
     }
 
     for (const p of bodyPlaceholders) {
       const num = p.replace(/^\{\{|\}\}$/g, '');
       const key = `body_${num}`;
       const mapping = variables[key] ?? variables[num]; 
-      if (!mapping || !mapping.value?.trim()) missing.push(`Body ${p}`);
+      if (!mapping || !mapping.value?.trim()) missing.push(t('bc.s3.missingBody', { p }));
     }
 
     for (const btn of buttonPlaceholders) {
@@ -237,12 +234,12 @@ export function Step3Personalize({
       const key = `button_${btn.buttonIndex}_${num}`;
       const mapping = variables[key];
       if (!mapping || !mapping.value?.trim()) {
-        missing.push(`Button "${btn.buttonText}" ${btn.placeholder}`);
+        missing.push(t('bc.s3.missingButton', { button: btn.buttonText, p: btn.placeholder }));
       }
     }
 
     return missing;
-  }, [headerPlaceholders, bodyPlaceholders, buttonPlaceholders, variables]);
+  }, [headerPlaceholders, bodyPlaceholders, buttonPlaceholders, variables, t]);
 
   function updateVariable(key: string, patch: Partial<VariableMapping>) {
     const current = variables[key] ?? { type: 'static' as VariableType, value: '' };
@@ -311,7 +308,7 @@ export function Step3Personalize({
 
   const previewLabel = firstContact
     ? firstContact.name || firstContact.phone
-    : 'sample data';
+    : t('bc.s3.sampleData');
 
   function renderPlaceholderRow(placeholder: string, key: string, labelPrefix?: string) {
     const mapping = variables[key] ?? { type: 'static', value: '' };
@@ -319,21 +316,21 @@ export function Step3Personalize({
     return (
       <div
         key={key}
-        className="rounded-xl border border-slate-800 bg-slate-900/50 p-4"
+        className="rounded-xl border border-border bg-card p-4"
       >
         <div className="mb-3 flex items-center gap-2">
           <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-mono font-medium text-primary">
             {placeholder}
           </span>
           {labelPrefix && (
-            <span className="text-xs text-slate-400 font-medium">{labelPrefix}</span>
+            <span className="text-xs text-muted-foreground font-medium">{labelPrefix}</span>
           )}
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-400">
-              Mapping Type
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              {t('bc.s3.mappingType')}
             </label>
             <Select
               value={mapping.type}
@@ -344,22 +341,20 @@ export function Step3Personalize({
                 })
               }
             >
-              <SelectTrigger className="w-full border-slate-700 bg-slate-800 text-white">
+              <SelectTrigger className="w-full border-border bg-muted text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="border-slate-700 bg-slate-800">
-                <SelectItem value="static">Static Value</SelectItem>
-                <SelectItem value="field">Contact Field</SelectItem>
-                <SelectItem value="custom_field">
-                  Custom Field
-                </SelectItem>
+              <SelectContent className="border-border bg-muted">
+                <SelectItem value="static">{t('bc.s3.static')}</SelectItem>
+                <SelectItem value="field">{t('bc.s3.contactField')}</SelectItem>
+                <SelectItem value="custom_field">{t('bc.s3.customField')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-400">
-              {mapping.type === 'static' ? 'Value' : 'Field'}
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              {mapping.type === 'static' ? t('bc.s3.value') : t('bc.s3.field')}
             </label>
             {mapping.type === 'static' ? (
               <Input
@@ -367,8 +362,8 @@ export function Step3Personalize({
                 onChange={(e) =>
                   updateVariable(key, { value: e.target.value })
                 }
-                placeholder="Enter value..."
-                className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500"
+                placeholder={t('bc.s3.enterValue')}
+                className="border-border bg-muted text-foreground placeholder:text-muted-foreground"
               />
             ) : mapping.type === 'field' ? (
               <Select
@@ -377,13 +372,13 @@ export function Step3Personalize({
                   updateVariable(key, { value: val || '' })
                 }
               >
-                <SelectTrigger className="w-full border-slate-700 bg-slate-800 text-white">
-                  <SelectValue placeholder="Select field..." />
+                <SelectTrigger className="w-full border-border bg-muted text-foreground">
+                  <SelectValue placeholder={t('bc.s3.pickField')} />
                 </SelectTrigger>
-                <SelectContent className="border-slate-700 bg-slate-800">
+                <SelectContent className="border-border bg-muted">
                   {contactFields.map((field) => (
-                    <SelectItem key={field.value} value={field.value}>
-                      {field.label}
+                    <SelectItem key={field} value={field}>
+                      {t(`bc.s3.fields.${field}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -395,18 +390,18 @@ export function Step3Personalize({
                   updateVariable(key, { value: val || '' })
                 }
               >
-                <SelectTrigger className="w-full border-slate-700 bg-slate-800 text-white">
+                <SelectTrigger className="w-full border-border bg-muted text-foreground">
                   <SelectValue
                     placeholder={
                       loadingFields
-                        ? 'Loading…'
+                        ? t('bc.s3.loading')
                         : customFields.length === 0
-                          ? 'No custom fields'
-                          : 'Select custom field…'
+                          ? t('bc.s3.noCustomFields')
+                          : t('bc.s3.pickCustomField')
                     }
                   />
                 </SelectTrigger>
-                <SelectContent className="border-slate-700 bg-slate-800">
+                <SelectContent className="border-border bg-muted">
                   {customFields.map((f) => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.field_name}
@@ -424,16 +419,16 @@ export function Step3Personalize({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-white">Personalize Message</h2>
-        <p className="mt-1 text-sm text-slate-400">
-          Map template variables to contact fields, custom fields, or static values.
+        <h2 className="text-lg font-semibold text-foreground">{t('bc.s3.title')}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t('bc.s3.intro')}
         </p>
       </div>
 
       {!hasAnyPlaceholders ? (
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-6 text-center">
-          <p className="text-sm text-slate-400">
-            This template has no variables to personalize.
+        <div className="rounded-xl border border-border bg-card p-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            {t('bc.s3.none')}
           </p>
         </div>
       ) : (
@@ -441,7 +436,7 @@ export function Step3Personalize({
           {headerPlaceholders.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Header Personalization
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" /> {t('bc.s3.header')}
               </h3>
               {headerPlaceholders.map((placeholder: string) => {
                 const num = placeholder.replace(/^\{\{|\}\}$/g, '');
@@ -454,7 +449,7 @@ export function Step3Personalize({
           {bodyPlaceholders.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Body Personalization
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" /> {t('bc.s3.body')}
               </h3>
               {bodyPlaceholders.map((placeholder: string) => {
                 const num = placeholder.replace(/^\{\{|\}\}$/g, '');
@@ -467,23 +462,23 @@ export function Step3Personalize({
           {buttonPlaceholders.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Button Personalization
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" /> {t('bc.s3.buttons')}
               </h3>
               {buttonPlaceholders.map((btn) => {
                 const num = btn.placeholder.replace(/^\{\{|\}\}$/g, '');
                 const key = `button_${btn.buttonIndex}_${num}`;
-                return renderPlaceholderRow(btn.placeholder, key, `For button "${btn.buttonText}" link suffix`);
+                return renderPlaceholderRow(btn.placeholder, key, t('bc.s3.buttonFor', { button: btn.buttonText }));
               })}
             </div>
           )}
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+      <div className="rounded-xl border border-border bg-card p-4">
         <div className="mb-3 flex items-center gap-2">
           <Eye className="h-4 w-4 text-primary" />
-          <p className="text-sm font-medium text-white">Live Preview</p>
-          <span className="text-xs text-slate-500">({previewLabel})</span>
+          <p className="text-sm font-medium text-foreground">{t('bc.s3.preview')}</p>
+          <span className="text-xs text-muted-foreground">({previewLabel})</span>
           {loadingPreview && (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
           )}
@@ -496,9 +491,9 @@ export function Step3Personalize({
               </p>
             )}
             {template.header_type && template.header_type !== 'text' && (
-              <div className="flex items-center gap-2 bg-[#062c1e] text-xs font-semibold text-teal-400 p-2 rounded-xl border border-[#0d3c2b]">
+              <div className="flex items-center gap-2 bg-[#062c1e] text-xs font-semibold text-teal-700 dark:text-teal-400 p-2 rounded-xl border border-[#0d3c2b]">
                 <FileText className="size-4 shrink-0" />
-                <span className="capitalize">{template.header_type} Header Attachment</span>
+                <span>{t('bc.s3.attachment', { type: template.header_type })}</span>
               </div>
             )}
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#c3fae8]">
@@ -553,30 +548,26 @@ export function Step3Personalize({
       </div>
 
       {unmappedKeys.length > 0 && (
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
-          Map every placeholder before continuing — still missing{' '}
-          <span className="font-mono font-semibold">
-            {unmappedKeys.join(', ')}
-          </span>
-          .
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+          {t('bc.s3.missing', { list: unmappedKeys.join(', ') })}
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-slate-800 pt-4">
+      <div className="flex items-center justify-between border-t border-border pt-4">
         <Button
           variant="outline"
           onClick={onBack}
-          className="border-slate-700 text-slate-300"
+          className="border-border text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          {t('bc.wizard.back')}
         </Button>
         <Button
           onClick={onNext}
           disabled={unmappedKeys.length > 0}
           className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          Next
+          {t('bc.wizard.next')}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
