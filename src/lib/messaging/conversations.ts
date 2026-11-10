@@ -88,8 +88,16 @@ export async function findOrCreateConversationOnChannel(
   })
   if (existing) return existing.id
 
+  // A chat whose channel was deleted, of this same network: this same
+  // account or one no longer known. Never another network's chat (an
+  // Instagram customer's chat must not become WhatsApp).
   const legacy = await db.conversations.findFirst({
-    where: { contact_id: contactId, channel_id: null },
+    where: {
+      contact_id: contactId,
+      channel_id: null,
+      channel_type: channel.type,
+      OR: [{ channel_account_id: channel.external_id }, { channel_account_id: null }],
+    },
     select: { id: true },
     orderBy: { created_at: 'asc' },
   })

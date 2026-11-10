@@ -1483,7 +1483,14 @@ export function MessageThread({
         )}
       </div>
 
-      {/* Composer */}
+      {/* Composer — none when the chat's account was removed: its customer ids
+          belong to that account (WhatsApp chats keep sending from the current number). */}
+      {channel?.removed && channel.type !== "whatsapp" ? (
+        <div role="status" className="border-t border-border bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+          <p className="font-medium">{t("inbox.channel.removedTitle", { name: channel.name })}</p>
+          <p className="mt-0.5 text-xs">{t("inbox.channel.removedHint")}</p>
+        </div>
+      ) : (
       <MessageComposer
         conversationId={conversation.id}
         sessionExpired={sessionInfo.expired}
@@ -1499,6 +1506,7 @@ export function MessageThread({
         quickReplyVars={quickReplyVars}
         onSendQuickAttachments={handleSendQuickAttachments}
       />
+      )}
 
       <SummarySheet
         open={summaryOpen}

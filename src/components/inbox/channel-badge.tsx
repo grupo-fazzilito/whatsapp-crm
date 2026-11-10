@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import type { ChannelType } from "@/lib/channels/types";
 import { CHANNEL_TYPE_LABELS } from "@/lib/channels/capabilities";
+import { useT } from "@/i18n/client";
 
 /** Minimal channel info the inbox needs (subset of the channels row). */
 export interface InboxChannel {
@@ -13,6 +14,34 @@ export interface InboxChannel {
   display_handle: string | null;
   status: "connected" | "disconnected" | "error";
   ai_agent_id: string | null;
+  /** Stand-in for a deleted channel (the account is no longer connected). */
+  removed?: boolean;
+}
+
+/**
+ * The conversation's channel. When it was deleted, a stand-in built from the
+ * origin the conversation keeps (network + account name), marked removed;
+ * null only when even the network is unknown.
+ */
+export function conversationChannel(
+  conv: { channel_id?: string | null; channel_type?: string | null; channel_name?: string | null } | null | undefined,
+  byId: Map<string, InboxChannel>,
+): InboxChannel | null {
+  if (!conv) return null;
+  const live = conv.channel_id ? byId.get(conv.channel_id) : undefined;
+  if (live) return live;
+  const type = conv.channel_type as ChannelType | null | undefined;
+  if (!type || !(type in CHANNEL_TYPE_LABELS)) return null;
+  return {
+    id: "",
+    type,
+    name: conv.channel_name ?? CHANNEL_TYPE_LABELS[type],
+    purpose: null,
+    display_handle: null,
+    status: "disconnected",
+    ai_agent_id: null,
+    removed: true,
+  };
 }
 
 const BADGE_BG: Record<ChannelType, string> = {
@@ -90,10 +119,22 @@ export function ChannelIcon({
   size = 16,
   className,
 }: {
-  type: ChannelType;
+  /** null = unknown network (neutral icon). */
+  type: ChannelType | null;
   size?: number;
   className?: string;
 }) {
+  if (!type) {
+    return (
+      <span
+        className={cn("inline-flex shrink-0 items-center justify-center rounded-full bg-slate-500 text-[9px] font-bold text-white", className)}
+        style={{ width: size, height: size }}
+        aria-hidden
+      >
+        ?
+      </span>
+    );
+  }
   return (
     <span
       title={CHANNEL_TYPE_LABELS[type]}
@@ -110,11 +151,21 @@ export function ChannelIcon({
 }
 
 /** "WhatsApp · Soporte" — channel brand plus its purpose (or name). */
-export function channelLine(channel: InboxChannel | null | undefined): string {
-  if (!channel) return CHANNEL_TYPE_LABELS.whatsapp;
+export function channelLine(
+  channel: InboxChannel | null | undefined,
+  labels?: { unknown: string; removed: string },
+): string {
+  if (!channel) return labels?.unknown ?? "";
   const brand = CHANNEL_TYPE_LABELS[channel.type];
   const detail = channel.purpose?.trim() || channel.name?.trim();
-  return detail && detail !== brand ? `${brand} · ${detail}` : brand;
+  const line = detail && detail !== brand ? `${brand} · ${detail}` : brand;
+  return channel.removed && labels ? `${line} · ${labels.removed}` : line;
+}
+
+/** Labels channelLine needs for unknown / removed channels, in the UI language. */
+export function useChannelLineLabels() {
+  const t = useT();
+  return { unknown: t("inbox.channel.unknown"), removed: t("inbox.channel.removed") };
 }
 
 /** Icon + "WhatsApp · Soporte" label. */
@@ -125,10 +176,11 @@ export function ChannelBadge({
   channel: InboxChannel | null | undefined;
   className?: string;
 }) {
+  const labels = useChannelLineLabels();
   return (
     <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)}>
-      <ChannelIcon type={channel?.type ?? "whatsapp"} size={14} />
-      <span className="truncate">{channelLine(channel)}</span>
+      <ChannelIcon type={channel?.type ?? null} size={14} />
+      <span className={cn("truncate", channel?.removed && "text-amber-700 dark:text-amber-400")}>{channelLine(channel, labels)}</span>
     </span>
   );
 }

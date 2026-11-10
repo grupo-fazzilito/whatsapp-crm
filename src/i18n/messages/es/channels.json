@@ -15,7 +15,7 @@
     "saved": "Cambios guardados",
     "deleted": "Canal eliminado",
     "deleteTitle": "¿Eliminar «{name}»?",
-    "deleteDescription": "Dejarás de recibir y enviar mensajes por este canal. Las conversaciones anteriores se conservan.",
+    "deleteDescription": "Dejarás de recibir y enviar mensajes por este canal. Las conversaciones se conservan con su ícono y se marcan como «cuenta desconectada»; si vuelves a conectar esta misma cuenta, regresan a ella.",
     "connected": "«{name}» conectado",
     "noAgent": "Sin agente (solo humanos)",
     "agentDisabled": "desactivado",

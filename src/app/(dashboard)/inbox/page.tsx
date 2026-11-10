@@ -13,6 +13,7 @@ import { WifiOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/i18n/client";
 import { useInboxDirectory } from "@/components/inbox/use-inbox-directory";
+import { conversationChannel } from "@/components/inbox/channel-badge";
 import { useInboxExtras } from "@/components/inbox/use-inbox-extras";
 import { OPEN_CONVERSATION_EVENT } from "@/components/notifications/events";
 import { cn } from "@/lib/utils";
@@ -532,9 +533,7 @@ export default function InboxPage() {
     setActiveConversation((prev) => (prev && prev.contact_id === contact.id ? { ...prev, contact } : prev));
   }, []);
 
-  const activeChannel = activeConversation?.channel_id
-    ? (directory.channelsById.get(activeConversation.channel_id) ?? null)
-    : null;
+  const activeChannel = conversationChannel(activeConversation, directory.channelsById);
 
   // On mobile (<lg) we show a SINGLE pane — either the list or the
   // thread — rather than cramming both side-by-side. Selecting a
