@@ -51,7 +51,9 @@
       "handoverAuto": "Reparto automático (o avisar a todos los disponibles)",
       "handoverTeams": "Equipos",
       "handoverMembers": "Personas",
-      "handoverHelp": "Quien quede asignado recibe una notificación. Si no hay nadie asignado, se avisa a todos los disponibles y el chat aparece en «Atención requerida»."
+      "handoverHelp": "Quien quede asignado recibe una notificación. Si no hay nadie asignado, se avisa a todos los disponibles y el chat aparece en «Atención requerida».",
+      "crmActions": "Registrar en el CRM",
+      "crmActionsHelp": "Guarda los datos que da el cliente (correo, teléfono, campos personalizados y «Más información del cliente»), abre y avanza su negocio según las etapas del embudo, pone etiquetas, crea tareas y deja una nota al pasar el chat a una persona. Cada acción usa tokens de IA."
     },
     "tone": {
       "friendly": "Amigable",

@@ -24,6 +24,7 @@ import { handOverConversation, type HandoverTarget } from '@/lib/inbox/server'
 import { qualifiesLeads } from '@/lib/real-estate/leads/prompt-section'
 import { applyAiCapture, applyAiLeadProfile, leadForPrompt } from '@/lib/real-estate/leads/ai'
 import { onViewingConfirmed } from '@/lib/real-estate/leads/visits'
+import { applyAiCrm, loadCrmContext } from './crm'
 
 export const HANDOVER_PAUSE_MS = 12 * 60 * 60 * 1000
 const HISTORY_TURNS = 14
@@ -336,8 +337,11 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
   // Real estate: what we know about the buyer/tenant so far.
   const leadAgent = qualifiesLeads(ctx.workspace.industry, agent.skills)
   const leadProfile = leadAgent ? await leadForPrompt(input.workspaceId, input.contactId) : null
+  // CRM: what is on file and what the agent may register (each write costs credits).
+  const crm = agent.crm_actions !== false ? await loadCrmContext(input.workspaceId, input.contactId, ctx.workspace.industry) : null
   const promptInput = {
     leadProfile,
+    crm,
     cart: openCart
       ? { lines: openLines, subtotal: openLines.reduce((a, l) => a + l.unitPrice * l.quantity, 0) }
       : null,
@@ -365,7 +369,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     const raw = await completeJson({
       system: buildSystemPrompt({ ...promptInput, catalogResults }),
       turns,
-      schema: agentOutputSchema(ctx.workspace.industry, agent.skills),
+      schema: agentOutputSchema(ctx.workspace.industry, agent.skills, !!crm),
       model: agent.model,
       meter: catalogResults ? { ...meter, purpose: 'catalog' } : meter,
     })
@@ -416,6 +420,22 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
 
   const lang = pickLang(agent, ctx, out.language)
   const T = TEXT[lang]
+
+  // What the customer told us goes to the CRM: data, deal stage, tags, task,
+  // and a summary note when the chat goes to a person.
+  if (crm) {
+    await applyAiCrm({
+      workspaceId: input.workspaceId,
+      contactId: input.contactId,
+      conversationId: input.conversationId,
+      lang: ctx.workspace.locale === 'en' ? 'en' : 'es',
+      timeZone: ctx.timeZone,
+      currency: ctx.workspace.currency,
+      crm: out.crm,
+      ctx: crm,
+      handover: !!out.handover || out.intent === 'emergency',
+    })
+  }
   const bookingNoun = industryLabel(ctx.workspace.industry, 'booking', lang, ctx.workspace.settings).toLowerCase()
 
   // 5) Transfer to another agent: it answers the same message right away.

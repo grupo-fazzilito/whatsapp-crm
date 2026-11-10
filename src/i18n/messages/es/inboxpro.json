@@ -106,7 +106,10 @@
       "callMissed": "Llamada de WhatsApp perdida",
       "callRejected": "Llamada de WhatsApp rechazada",
       "aiHandover": "La IA pasó la conversación a una persona",
-      "aiHandoverTo": "La IA pasó la conversación a {to}"
+      "aiHandoverTo": "La IA pasó la conversación a {to}",
+      "aiCrm": "La IA registró en el CRM",
+      "crmAutoCreated": "Negocio nuevo en «{stage}» (el cliente: {fact})",
+      "crmAutoMoved": "Negocio movido a «{stage}» (el cliente: {fact})"
     },
     "notes": {
       "label": "Nota interna — solo visible para el equipo",

@@ -5,7 +5,7 @@ const COLOR_RE = /^#[0-9a-f]{3,8}$/i
 
 /**
  * GET  /api/tags → { tags } oldest first (any member)
- * POST /api/tags { name, color? } → { tag } (any member, so agents can tag on the fly)
+ * POST /api/tags { name, color?, ai_hint? } → { tag } (any member, so agents can tag on the fly)
  */
 export async function GET() {
   const guard = await requireWorkspace('agent')
@@ -27,9 +27,10 @@ export async function POST(request: Request) {
   const name = typeof body?.name === 'string' ? body.name.trim().slice(0, 100) : ''
   if (!name) return NextResponse.json({ error: 'Tag name is required' }, { status: 400 })
   const color = typeof body?.color === 'string' && COLOR_RE.test(body.color) ? body.color : undefined
+  const aiHint = typeof body?.ai_hint === 'string' ? body.ai_hint.trim().slice(0, 300) || null : null
 
   try {
-    const tag = await db.tags.create({ data: { workspace_id: workspace.id, user_id: user.id, name, ...(color ? { color } : {}) } })
+    const tag = await db.tags.create({ data: { workspace_id: workspace.id, user_id: user.id, name, ai_hint: aiHint, ...(color ? { color } : {}) } })
     return NextResponse.json({ tag })
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })

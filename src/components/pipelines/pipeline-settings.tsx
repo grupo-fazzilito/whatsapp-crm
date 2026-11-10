@@ -33,7 +33,10 @@ import {
   Plus,
   GripVertical,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { STAGE_FACTS, type StageFact } from "@/lib/crm/stage-facts";
 import { toast } from "sonner";
 import { useI18n } from "@/i18n/client";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -115,7 +118,10 @@ export function PipelineSettings({
     // Positions follow the list order.
     const ok = await apiJson(`/api/crm/pipelines/${pipeline.id}`, {
       method: "PUT",
-      body: { name: name.trim(), stages: localStages.map((s) => ({ id: s.id, name: s.name, color: s.color })) },
+      body: {
+        name: name.trim(),
+        stages: localStages.map((s) => ({ id: s.id, name: s.name, color: s.color, ai_hint: s.ai_hint ?? null, ai_events: s.ai_events ?? [] })),
+      },
     }).then(
       () => true,
       () => false,
@@ -188,7 +194,7 @@ export function PipelineSettings({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-slate-900 border-slate-700 max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg bg-slate-900 border-slate-700 max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white">{t("crm.pipelines.settings.title")}</DialogTitle>
         </DialogHeader>
@@ -238,6 +244,7 @@ export function PipelineSettings({
 
               <div className="grid gap-2">
                 <Label className="text-slate-300">{t("crm.pipelines.settings.stages")}</Label>
+                <p className="text-xs text-slate-400">{t("crm.pipelines.ai.intro")}</p>
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -261,6 +268,20 @@ export function PipelineSettings({
                             const updated = [...localStages];
                             updated[index] = { ...updated[index], color: v };
                             setLocalStages(updated);
+                          }}
+                          onHintChange={(v) => {
+                            const updated = [...localStages];
+                            updated[index] = { ...updated[index], ai_hint: v };
+                            setLocalStages(updated);
+                          }}
+                          onFactToggle={(fact, on) => {
+                            // A fact moves deals to one stage only.
+                            setLocalStages(
+                              localStages.map((s, i) => {
+                                const events = (s.ai_events ?? []).filter((e) => e !== fact);
+                                return { ...s, ai_events: on && i === index ? [...events, fact] : events };
+                              }),
+                            );
                           }}
                           onRemove={() => handleRemoveStage(stage.id)}
                           colors={STAGE_COLORS}
@@ -362,18 +383,25 @@ function SortableStageRow({
   stage,
   onNameChange,
   onColorChange,
+  onHintChange,
+  onFactToggle,
   onRemove,
   colors,
 }: {
   stage: PipelineStage;
   onNameChange: (v: string) => void;
   onColorChange: (v: string) => void;
+  onHintChange: (v: string) => void;
+  onFactToggle: (fact: StageFact, on: boolean) => void;
   onRemove: () => void;
   colors: string[];
 }) {
   const { t } = useI18n();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: stage.id });
+  const facts = stage.ai_events ?? [];
+  const configured = !!stage.ai_hint?.trim() || facts.length > 0;
+  const [aiOpen, setAiOpen] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -382,36 +410,75 @@ function SortableStageRow({
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 p-2"
-    >
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        className="cursor-grab touch-none text-slate-500 hover:text-slate-300 active:cursor-grabbing"
-        aria-label={t("crm.pipelines.settings.dragStage", { name: stage.name })}
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
-      <ColorSwatch value={stage.color} onChange={onColorChange} colors={colors} />
-      <Input
-        value={stage.name}
-        aria-label={t("crm.pipelines.settings.stageName")}
-        onChange={(e) => onNameChange(e.target.value)}
-        className="h-7 flex-1 border-transparent bg-transparent text-sm text-white focus:border-slate-600"
-      />
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        onClick={onRemove}
-        aria-label={t("crm.pipelines.settings.removeStage", { name: stage.name })}
-        className="text-slate-400 hover:text-red-400"
-      >
-        <Trash2 className="h-3 w-3" />
-      </Button>
+    <div ref={setNodeRef} style={style} className="rounded-lg border border-slate-700 bg-slate-800 p-2">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="cursor-grab touch-none text-slate-500 hover:text-slate-300 active:cursor-grabbing"
+          aria-label={t("crm.pipelines.settings.dragStage", { name: stage.name })}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+        <ColorSwatch value={stage.color} onChange={onColorChange} colors={colors} />
+        <Input
+          value={stage.name}
+          aria-label={t("crm.pipelines.settings.stageName")}
+          onChange={(e) => onNameChange(e.target.value)}
+          className="h-7 flex-1 border-transparent bg-transparent text-sm text-white focus:border-slate-600"
+        />
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={() => setAiOpen((v) => !v)}
+          aria-expanded={aiOpen}
+          aria-label={t("crm.pipelines.ai.toggle", { name: stage.name })}
+          title={t("crm.pipelines.ai.toggle", { name: stage.name })}
+          className={configured ? "text-primary hover:text-primary" : "text-slate-400 hover:text-white"}
+        >
+          <Sparkles className="h-3 w-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={onRemove}
+          aria-label={t("crm.pipelines.settings.removeStage", { name: stage.name })}
+          className="text-slate-400 hover:text-red-400"
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+      {aiOpen && (
+        <div className="mt-2 grid gap-2 border-t border-slate-700 pt-2">
+          <Label htmlFor={`stage-hint-${stage.id}`} className="text-xs text-slate-300">
+            {t("crm.pipelines.ai.hint")}
+          </Label>
+          <Textarea
+            id={`stage-hint-${stage.id}`}
+            rows={2}
+            maxLength={500}
+            value={stage.ai_hint ?? ""}
+            placeholder={t("crm.pipelines.ai.hintPlaceholder")}
+            onChange={(e) => onHintChange(e.target.value)}
+            className="border-slate-700 bg-slate-900 text-xs text-white"
+          />
+          <fieldset className="grid gap-1">
+            <legend className="mb-1 text-xs text-slate-300">{t("crm.pipelines.ai.facts")}</legend>
+            {STAGE_FACTS.map((fact) => (
+              <label key={fact} className="flex items-center gap-2 text-xs text-slate-300">
+                <input
+                  type="checkbox"
+                  className="size-3.5 accent-[var(--primary)]"
+                  checked={facts.includes(fact)}
+                  onChange={(e) => onFactToggle(fact, e.target.checked)}
+                />
+                {t(`crm.pipelines.ai.fact.${fact}`)}
+              </label>
+            ))}
+          </fieldset>
+        </div>
+      )}
     </div>
   );
 }

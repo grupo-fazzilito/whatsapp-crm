@@ -106,7 +106,10 @@
       "callMissed": "Missed WhatsApp call",
       "callRejected": "WhatsApp call declined",
       "aiHandover": "The AI handed the conversation to a person",
-      "aiHandoverTo": "The AI handed the conversation to {to}"
+      "aiHandoverTo": "The AI handed the conversation to {to}",
+      "aiCrm": "The AI registered in the CRM",
+      "crmAutoCreated": "New deal in \"{stage}\" (the customer: {fact})",
+      "crmAutoMoved": "Deal moved to \"{stage}\" (the customer: {fact})"
     },
     "notes": {
       "label": "Internal note — only visible to your team",

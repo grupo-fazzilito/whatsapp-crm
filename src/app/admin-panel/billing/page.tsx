@@ -46,7 +46,7 @@ interface History {
 }
 
 // Actions with a label in billing.costs; anything else (e.g. adjustments) shows as is.
-const COST_ACTIONS = ["reply", "followup", "summary", "suggest", "transcription", "vision", "comment_reply", "playground", "reminder", "social_caption"];
+const COST_ACTIONS = ["reply", "followup", "summary", "suggest", "transcription", "vision", "comment_reply", "playground", "reminder", "social_caption", "crm_action"];
 
 interface Overview {
   totals: { sales_month: number; credits_used_month: number; ai_cost_usd_month: number; credits_outstanding: number };

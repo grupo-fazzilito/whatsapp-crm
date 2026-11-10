@@ -309,6 +309,19 @@
         "addStageFailed": "No se pudo agregar la etapa",
         "deleteStageFailed": "No se pudo eliminar la etapa",
         "stageHasDeals": "Mueve o elimina primero los negocios de esta etapa"
+      },
+      "ai": {
+        "intro": "Toca ✨ en una etapa para decirle a la IA cuándo un cliente pasa ahí, o qué hecho lo mueve solo.",
+        "toggle": "Qué significa «{name}» para la IA",
+        "hint": "Cuándo pasa un cliente a esta etapa (la IA lo lee)",
+        "hintPlaceholder": "Ej.: pidió una cotización o preguntó por formas de pago",
+        "facts": "Mover aquí automáticamente cuando:",
+        "fact": {
+          "booking_created": "Agenda una cita",
+          "booking_completed": "Completa una cita",
+          "order_created": "Hace un pedido",
+          "order_paid": "Paga un pedido"
+        }
       }
     },
     "analytics": {
@@ -362,6 +375,35 @@
       "choose": "Elegir…",
       "none": "Sin campos personalizados.",
       "create": "Crear campos en Ajustes"
+    },
+    "tagManager": {
+      "title": "Etiquetas",
+      "subtitle": "Organiza a tus clientes con etiquetas de colores. Si le dices a la IA cuándo usar cada una, el agente las pone solo.",
+      "new": "Nueva etiqueta",
+      "empty": "Aún no hay etiquetas.",
+      "emptyHint": "Crea etiquetas para clasificar a tus clientes.",
+      "noHint": "Toca para decirle a la IA cuándo ponerla",
+      "editFor": "Editar la etiqueta {name}",
+      "deleteFor": "Eliminar la etiqueta {name}",
+      "newTitle": "Nueva etiqueta",
+      "editTitle": "Editar etiqueta",
+      "dialogDescription": "Nombre, color y cuándo la pone el agente de IA.",
+      "name": "Nombre",
+      "namePlaceholder": "Ej.: Cliente VIP",
+      "color": "Color",
+      "pickColor": "Color {color}",
+      "hint": "Cuándo la pone la IA",
+      "hintPlaceholder": "Ej.: el cliente pregunta por ortodoncia o brackets",
+      "hintHelp": "Si lo dejas vacío, el agente solo la pone cuando el nombre lo deja muy claro. Cada etiqueta que pone usa tokens de IA.",
+      "nameRequired": "Ponle un nombre a la etiqueta.",
+      "created": "Etiqueta creada",
+      "saved": "Etiqueta guardada",
+      "saveFailed": "No se pudo guardar la etiqueta",
+      "loadFailed": "No se pudieron cargar las etiquetas",
+      "deleted": "Etiqueta eliminada",
+      "deleteFailed": "No se pudo eliminar la etiqueta",
+      "deleteTitle": "Eliminar etiqueta",
+      "deleteDescription": "Se quitará «{name}» de todos los contactos. Esta acción no se puede deshacer."
     }
   }
 }

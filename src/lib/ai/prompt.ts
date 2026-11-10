@@ -8,6 +8,7 @@ import type { BusinessContext } from './context'
 import type { AiAgentRow, BookingDraft } from './types'
 import { CAPTURE_SCHEMA, LEAD_PROFILE_SCHEMA, qualifiesLeads, realEstateLeadSections, type CaptureOutput } from '@/lib/real-estate/leads/prompt-section'
 import type { LeadFields } from '@/lib/real-estate/leads/types'
+import { CRM_OUTPUT_SCHEMA, crmPromptSection, type CrmContext, type CrmOutput } from './crm-model'
 
 export const AGENT_INTENTS = [
   'greeting',
@@ -67,6 +68,8 @@ export interface AgentOutput {
   lead_profile?: Record<string, unknown>
   /** Real estate: owner who wants to sell/rent their own property. */
   capture?: CaptureOutput
+  /** What to register in the CRM (agents with crm_actions on). */
+  crm?: CrmOutput
 }
 
 /** Gemini responseSchema for AgentOutput. */
@@ -130,12 +133,17 @@ export const AGENT_OUTPUT_SCHEMA = {
   required: ['reply', 'intent', 'language', 'confidence', 'handover', 'transfer_to_agent_id', 'booking_action'],
 } as const
 
-/** Output schema for an agent: real-estate lead agents also return lead_profile / capture. */
-export function agentOutputSchema(industry: string | null | undefined, skills: string[]): Record<string, unknown> {
-  if (!qualifiesLeads(industry, skills)) return AGENT_OUTPUT_SCHEMA as unknown as Record<string, unknown>
+/** Output schema for an agent: real-estate lead agents also return lead_profile / capture; CRM agents return crm. */
+export function agentOutputSchema(industry: string | null | undefined, skills: string[], crm = false): Record<string, unknown> {
+  const lead = qualifiesLeads(industry, skills)
+  if (!lead && !crm) return AGENT_OUTPUT_SCHEMA as unknown as Record<string, unknown>
   return {
     ...AGENT_OUTPUT_SCHEMA,
-    properties: { ...AGENT_OUTPUT_SCHEMA.properties, lead_profile: LEAD_PROFILE_SCHEMA, capture: CAPTURE_SCHEMA },
+    properties: {
+      ...AGENT_OUTPUT_SCHEMA.properties,
+      ...(lead ? { lead_profile: LEAD_PROFILE_SCHEMA, capture: CAPTURE_SCHEMA } : {}),
+      ...(crm ? { crm: CRM_OUTPUT_SCHEMA } : {}),
+    },
   }
 }
 
@@ -170,6 +178,8 @@ export interface PromptInput {
   leadProfile?: Partial<LeadFields> | null
   /** Free times from Calendly for the chosen service (local date → HH:MM), when it is booked there. */
   calendlySlots?: Record<string, string[]> | null
+  /** The agent registers in the CRM: what is on file and what it may write. */
+  crm?: CrmContext | null
 }
 
 function money(ctx: BusinessContext, amount: number | null | undefined): string {
@@ -452,6 +462,8 @@ export function buildSystemPrompt(input: PromptInput): string {
     )
   }
 
+  if (input.crm) sections.push(crmPromptSection(input.crm, `${now.date} ${now.time}`))
+
   sections.push(
     [
       'HUMAN HANDOVER:',
@@ -466,6 +478,7 @@ export function buildSystemPrompt(input: PromptInput): string {
     [
       'OUTPUT: a JSON object with: reply, intent, language (ISO code of the customer language), confidence (0-1), handover, transfer_to_agent_id ("" if none), booking_action ("none" if not booking), booking (object, may be empty).',
       leadAgent ? 'Also lead_profile (object with only the facts the customer gave; {} if none) and capture (only for owners offering their property; omit otherwise).' : '',
+      input.crm ? 'Also crm (object, see CRM; omit it or {} when there is nothing new to register).' : '',
       input.customerName ? `The customer's name on file is "${input.customerName}".` : '',
     ]
       .filter(Boolean)

@@ -34,7 +34,8 @@
       "unit": "{n} token(s)",
       "playground": "Mensaje de prueba de un agente",
       "reminder": "Recordatorio de cita enviado",
-      "social_caption": "Texto de publicación escrito con IA"
+      "social_caption": "Texto de publicación escrito con IA",
+      "crm_action": "Acción de la IA en el CRM (dato guardado, negocio, etiqueta, tarea o nota)"
     },
     "account": {
       "title": "Datos de facturación",
