@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useT } from '@/i18n/client';
@@ -43,9 +43,8 @@ export function MetaConnectDialog({ error, agents, onClose, onCreated }: Props) 
     apiJson<{ pages: CandidatePage[] }>('/api/channels/meta/connect')
       .then((d) => {
         if (cancelled) return;
+        // Nothing preselected: with many pages, ticking two beats unticking forty-eight.
         setPages(d.pages);
-        setPageIds(d.pages.filter((p) => !p.connected).map((p) => p.id));
-        setIgIds(d.pages.flatMap((p) => (p.instagram && !p.instagram.connected ? [p.instagram.id] : [])));
       })
       .catch(() => setPages([]))
       .finally(() => !cancelled && setLoading(false));
@@ -86,6 +85,14 @@ export function MetaConnectDialog({ error, agents, onClose, onCreated }: Props) 
   const Messenger = CHANNEL_STYLE.messenger;
   const Instagram = CHANNEL_STYLE.instagram;
   const noneLeft = pages.length > 0 && pageIds.length + igIds.length === 0;
+  const freePageIds = pages.filter((p) => !p.connected).map((p) => p.id);
+  const freeIgIds = pages.flatMap((p) => (p.instagram && !p.instagram.connected ? [p.instagram.id] : []));
+  const freeCount = freePageIds.length + freeIgIds.length;
+  const selectedCount = pageIds.length + igIds.length;
+  const selectAll = (on: boolean) => {
+    setPageIds(on ? freePageIds : []);
+    setIgIds(on ? freeIgIds : []);
+  };
 
   return (
     <Dialog open onOpenChange={(o) => !o && cancel()}>
@@ -103,6 +110,13 @@ export function MetaConnectDialog({ error, agents, onClose, onCreated }: Props) 
           <p className="text-sm text-muted-foreground">{t('channels.meta.expired')}</p>
         ) : (
           <div className="grid gap-4">
+            {freeCount > 1 && (
+              <SelectAll
+                label={t('channels.meta.selectAll', { count: freeCount })}
+                state={selectedCount === 0 ? 'none' : selectedCount === freeCount ? 'all' : 'some'}
+                onChange={selectAll}
+              />
+            )}
             <ul className="divide-y divide-border rounded-md border border-border">
               {pages.map((p) => (
                 <li key={p.id} className="grid gap-2 p-3">
@@ -159,11 +173,31 @@ export function MetaConnectDialog({ error, agents, onClose, onCreated }: Props) 
             <Button type="button" disabled={saving || noneLeft} onClick={submit}>
               {saving && <Loader2 className="size-4 animate-spin" />}
               {t('channels.meta.connectSelected')}
+              {selectedCount > 0 && ` (${selectedCount})`}
             </Button>
           )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SelectAll({ label, state, onChange }: { label: string; state: 'none' | 'some' | 'all'; onChange: (on: boolean) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = state === 'some';
+  }, [state]);
+  return (
+    <label className="flex items-center gap-2 px-3 text-sm font-medium text-foreground">
+      <input
+        ref={ref}
+        type="checkbox"
+        className="size-4 accent-[var(--primary)]"
+        checked={state === 'all'}
+        onChange={() => onChange(state !== 'all')}
+      />
+      {label}
+    </label>
   );
 }
 
