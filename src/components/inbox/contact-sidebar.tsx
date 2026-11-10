@@ -577,7 +577,7 @@ export function ContactSidebar({
 
   return (
     <div className={cn("flex h-full w-80 flex-col border-l border-slate-800 bg-slate-900", className)}>
-      <ScrollArea className="flex-1">
+      <ScrollArea className="min-h-0 flex-1">
         <div className="grid gap-4 p-4">
           {/* Who */}
           <div className="flex items-center gap-3">
