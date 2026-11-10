@@ -41,6 +41,7 @@ function toDraft(a: AiAgent | null): AgentDraft {
     after_hours_message: a.after_hours_message ?? '',
     escalation_keywords: [...a.escalation_keywords],
     business_hours_only: a.business_hours_only,
+    crm_actions: a.crm_actions ?? true,
     enabled: a.enabled,
     transfer_agent_ids: [...(a.transfer_agent_ids ?? [])],
     model: a.model ?? null,
@@ -99,6 +100,7 @@ export function AgentEditor({ agent, allAgents, readOnly, onClose, onSaved }: Pr
       after_hours_message: nullIfEmpty(draft.after_hours_message),
       escalation_keywords: draft.escalation_keywords,
       business_hours_only: draft.business_hours_only,
+      crm_actions: draft.crm_actions,
       enabled: draft.enabled,
       model: draft.model || null,
       // Drop ids of agents deleted meanwhile.
@@ -281,6 +283,14 @@ export function AgentEditor({ agent, allAgents, readOnly, onClose, onSaved }: Pr
             <div className="grid gap-1.5">
               <Label htmlFor="ag-greeting">{t('agents.field.greeting')}</Label>
               <Textarea id="ag-greeting" rows={2} maxLength={1000} value={draft.greeting_message ?? ''} placeholder={t('agents.field.greetingPlaceholder')} onChange={(e) => set('greeting_message', e.target.value)} />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+              <div>
+                <Label htmlFor="ag-crm">{t('agents.field.crmActions')}</Label>
+                <p className="text-xs text-muted-foreground">{t('agents.field.crmActionsHelp')}</p>
+              </div>
+              <Switch id="ag-crm" checked={draft.crm_actions} onCheckedChange={(v) => set('crm_actions', v)} />
             </div>
 
             <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">

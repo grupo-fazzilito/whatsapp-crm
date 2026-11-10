@@ -28,6 +28,8 @@ export interface AgentInput {
   escalation_keywords?: string[]
   business_hours_only?: boolean
   enabled?: boolean
+  /** Registers what it learns in the CRM (costs credits per action). */
+  crm_actions?: boolean
   model?: string | null
   transfer_agent_ids?: string[]
   training_context?: string | null
@@ -91,7 +93,7 @@ export function parseAgentInput(body: Record<string, unknown>, partial: boolean)
     if (typeof list === 'string') return { ok: false, error: list }
     value[f] = list
   }
-  for (const f of ['business_hours_only', 'enabled'] as const) {
+  for (const f of ['business_hours_only', 'enabled', 'crm_actions'] as const) {
     if (!(f in body)) continue
     if (typeof body[f] !== 'boolean') return { ok: false, error: `${f} must be true or false` }
     value[f] = body[f] as boolean

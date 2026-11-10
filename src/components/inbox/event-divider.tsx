@@ -9,6 +9,7 @@ import {
   Phone,
   PhoneMissed,
   RotateCcw,
+  Sparkles,
   Tag as TagIcon,
   UserCheck,
   UserMinus,
@@ -31,6 +32,7 @@ const ICONS = {
   tag_removed: TagIcon,
   call: Phone,
   ai_handover: Hand,
+  ai_crm: Sparkles,
 } as const;
 
 /** Sentence for a timeline event, e.g. "Ana transfirió a Luis: motivo…". */
@@ -70,6 +72,17 @@ export function describeEvent(e: ConversationEvent, t: T, nameOf: (userId: strin
     case "tag_removed":
       text = t("inboxpro.events.tagRemoved", { actor, tag: String(data.tag_name ?? "—") });
       break;
+    case "ai_crm": {
+      if (data.auto) {
+        const first = (Array.isArray(data.actions) ? data.actions[0] : null) as { kind?: string; stage?: string } | null;
+        const fact = typeof data.fact === "string" ? data.fact : "";
+        text = t(first?.kind === "deal_created" ? "inboxpro.events.crmAutoCreated" : "inboxpro.events.crmAutoMoved", {
+          stage: String(first?.stage ?? "—"),
+          fact: fact ? t(`crm.pipelines.ai.fact.${fact}`).toLocaleLowerCase() : "—",
+        });
+      } else text = t("inboxpro.events.aiCrm");
+      break;
+    }
     case "ai_handover":
       text = e.to_user ? t("inboxpro.events.aiHandoverTo", { to }) : t("inboxpro.events.aiHandover");
       break;

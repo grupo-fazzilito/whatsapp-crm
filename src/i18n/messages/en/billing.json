@@ -34,7 +34,8 @@
       "unit": "{n} token(s)",
       "playground": "Agent test message",
       "reminder": "Appointment reminder sent",
-      "social_caption": "Post caption written by AI"
+      "social_caption": "Post caption written by AI",
+      "crm_action": "AI action in the CRM (saved data, deal, tag, task or note)"
     },
     "account": {
       "title": "Billing details",

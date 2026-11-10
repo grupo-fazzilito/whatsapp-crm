@@ -14,6 +14,8 @@ export const EVENT_TYPES = [
   'tag_removed',
   'call',
   'ai_handover',
+  /** What the AI agent (or an automatic fact) registered in the CRM. */
+  'ai_crm',
 ] as const
 export type ConversationEventType = (typeof EVENT_TYPES)[number]
 

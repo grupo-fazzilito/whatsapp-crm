@@ -39,6 +39,8 @@ export interface Tag {
   user_id?: string | null;
   name: string;
   color: string;
+  /** When the AI agent puts this tag on a customer. */
+  ai_hint?: string | null;
   created_at: string;
 }
 
@@ -254,6 +256,10 @@ export interface PipelineStage {
   color: string;
   /** Stable stage key of seeded pipelines (e.g. 'viewing_scheduled'). */
   key?: string | null;
+  /** When a customer belongs here, in the business's words (the AI agent reads it). */
+  ai_hint?: string | null;
+  /** Facts that move a customer's deal here on their own. */
+  ai_events?: string[];
   created_at: string;
 }
 

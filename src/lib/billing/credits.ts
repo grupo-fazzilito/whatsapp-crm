@@ -83,13 +83,13 @@ export async function canSpend(workspaceId: string, action: BillableAction): Pro
   }
 }
 
-/** Charges an action that already happened. Never throws. Returns the balance after. */
-export async function spend(workspaceId: string, action: BillableAction, opts: { conversationId?: string | null } = {}): Promise<number | null> {
+/** Charges an action that already happened (`times` of them). Never throws. Returns the balance after. */
+export async function spend(workspaceId: string, action: BillableAction, opts: { conversationId?: string | null; times?: number; note?: string | null } = {}): Promise<number | null> {
   try {
     const settings = await getBillingSettings()
-    const cost = actionCost(action, settings)
+    const cost = actionCost(action, settings) * Math.max(1, Math.floor(opts.times ?? 1))
     if (cost <= 0) return null
-    const left = await spendCredits({ workspaceId, amount: cost, action, conversationId: opts.conversationId ?? null, partial: true })
+    const left = await spendCredits({ workspaceId, amount: cost, action, conversationId: opts.conversationId ?? null, partial: true, note: opts.note ?? null })
     if (left < Math.max(1, Math.min(...Object.values(settings.action_costs).filter((c) => c > 0)))) await notifyBilling(workspaceId, 'depleted')
     else if (left <= settings.low_credit_threshold) await notifyBilling(workspaceId, 'low', left)
     return left

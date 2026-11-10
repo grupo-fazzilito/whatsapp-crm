@@ -17,6 +17,8 @@ export interface AiAgentRow {
   after_hours_message: string | null
   escalation_keywords: string[]
   business_hours_only: boolean
+  /** Registers what it learns in the CRM (costs credits per action). Default true. */
+  crm_actions?: boolean
   model: string | null
   enabled: boolean
   /** Agents this one may hand the conversation to (empty = none, or any for routers). */

@@ -51,7 +51,9 @@
       "handoverAuto": "Automatic (or alert everyone available)",
       "handoverTeams": "Teams",
       "handoverMembers": "People",
-      "handoverHelp": "Whoever gets it is notified. If nobody is assigned, everyone available is alerted and the chat shows in “Attention needed”."
+      "handoverHelp": "Whoever gets it is notified. If nobody is assigned, everyone available is alerted and the chat shows in “Attention needed”.",
+      "crmActions": "Register in the CRM",
+      "crmActionsHelp": "Saves the data the customer gives (email, phone, custom fields and \"More about the customer\"), opens and moves their deal along the pipeline stages, adds tags, creates tasks and leaves a note when the chat goes to a person. Each action uses AI tokens."
     },
     "tone": {
       "friendly": "Friendly",

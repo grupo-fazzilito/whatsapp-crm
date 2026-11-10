@@ -309,6 +309,19 @@
         "addStageFailed": "Couldn't add the stage",
         "deleteStageFailed": "Couldn't delete the stage",
         "stageHasDeals": "Move or delete the deals in this stage first"
+      },
+      "ai": {
+        "intro": "Tap ✨ on a stage to tell the AI when a customer belongs there, or which fact moves them there on its own.",
+        "toggle": "What \"{name}\" means for the AI",
+        "hint": "When a customer moves to this stage (the AI reads it)",
+        "hintPlaceholder": "E.g.: asked for a quote or about payment methods",
+        "facts": "Move here automatically when they:",
+        "fact": {
+          "booking_created": "Book an appointment",
+          "booking_completed": "Complete an appointment",
+          "order_created": "Place an order",
+          "order_paid": "Pay an order"
+        }
       }
     },
     "analytics": {
@@ -362,6 +375,35 @@
       "choose": "Choose…",
       "none": "No custom fields.",
       "create": "Create fields in Settings"
+    },
+    "tagManager": {
+      "title": "Tags",
+      "subtitle": "Organize your customers with color tags. Tell the AI when to use each one and the agent adds them on its own.",
+      "new": "New tag",
+      "empty": "No tags yet.",
+      "emptyHint": "Create tags to sort your customers.",
+      "noHint": "Tap to tell the AI when to add it",
+      "editFor": "Edit tag {name}",
+      "deleteFor": "Delete tag {name}",
+      "newTitle": "New tag",
+      "editTitle": "Edit tag",
+      "dialogDescription": "Name, color and when the AI agent adds it.",
+      "name": "Name",
+      "namePlaceholder": "E.g.: VIP customer",
+      "color": "Color",
+      "pickColor": "Color {color}",
+      "hint": "When the AI adds it",
+      "hintPlaceholder": "E.g.: the customer asks about braces",
+      "hintHelp": "Left empty, the agent only adds it when the name makes it obvious. Each tag it adds uses AI tokens.",
+      "nameRequired": "Give the tag a name.",
+      "created": "Tag created",
+      "saved": "Tag saved",
+      "saveFailed": "Could not save the tag",
+      "loadFailed": "Could not load tags",
+      "deleted": "Tag deleted",
+      "deleteFailed": "Could not delete the tag",
+      "deleteTitle": "Delete tag",
+      "deleteDescription": "\"{name}\" will be removed from every contact. This cannot be undone."
     }
   }
 }

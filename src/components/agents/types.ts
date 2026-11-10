@@ -22,6 +22,7 @@ export interface AiAgent {
   after_hours_message: string | null;
   escalation_keywords: string[];
   business_hours_only: boolean;
+  crm_actions: boolean;
   model: string | null;
   enabled: boolean;
   /** Agents it may hand the conversation to (routers: empty = all non-routers). */
@@ -57,6 +58,7 @@ export const EMPTY_AGENT: AgentDraft = {
   after_hours_message: '',
   escalation_keywords: ['humano', 'agente', 'asesor', 'human', 'agent'],
   business_hours_only: false,
+  crm_actions: true,
   enabled: true,
   transfer_agent_ids: [],
   model: null,
