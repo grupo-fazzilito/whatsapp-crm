@@ -74,6 +74,18 @@ describe('rules', () => {
     expect(pickRule(rules, { channelId: 'CH2', postId: 'M9', text: 'hola' })?.id).toBe('other-account')
   })
 
+  it('answers every comment with a catch-all rule, after the keyword rules', () => {
+    const base = { channel_id: null, post_id: null, enabled: true }
+    const rules = [
+      { ...base, id: 'all', keywords: [], position: 0 },
+      { ...base, id: 'price', keywords: ['precio'], position: 1 },
+    ]
+    expect(pickRule(rules, { channelId: 'CH1', postId: 'M1', text: 'precio?' })?.id).toBe('price')
+    expect(pickRule(rules, { channelId: 'CH1', postId: 'M1', text: 'a' })?.id).toBe('all')
+    expect(pickRule(rules, { channelId: 'CH1', postId: 'M1', text: '😍' })?.id).toBe('all')
+    expect(pickRule(rules, { channelId: 'CH1', postId: 'M1', text: '' })?.id).toBe('all')
+  })
+
   it('fills the first name and picks one of the public replies', () => {
     expect(fillReply('Hola {nombre}, te escribimos 📩', 'Ana Pérez')).toBe('Hola Ana, te escribimos 📩')
     expect(fillReply('Hola {nombre}, te escribimos', null)).toBe('Hola, te escribimos')

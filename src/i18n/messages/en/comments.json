@@ -2,7 +2,7 @@
   "comments": {
     "tab": "Comments",
     "title": "Comment replies",
-    "subtitle": "When someone comments a keyword on your Instagram or Facebook posts, Whasalia replies to the comment and messages them privately. The conversation continues in the inbox. Each answered comment uses 1 token.",
+    "subtitle": "When someone comments on your Instagram or Facebook posts (any comment, or one with a keyword), Whasalia replies to the comment and messages them privately. The conversation continues in the inbox. Each answered comment uses 1 token.",
     "newRule": "New rule",
     "noChannels": "Connect your Instagram account or Facebook page in Channels to use comment replies.",
     "goChannels": "Go to Channels",
@@ -47,8 +47,12 @@
       "postsError": "We couldn't read this account's posts.",
       "postsReconnect": "Missing permission: connect the account again in Channels.",
       "pickAccountFirst": "Choose an account to reply on a single post.",
+      "match": "Reply to",
+      "matchAll": "All comments",
+      "matchKeywords": "Only comments with keywords",
+      "matchAllHelp": "Replies to any comment, even a single letter or an emoji. If another rule has a matching keyword, that one is used.",
       "keywords": "Keywords",
-      "keywordsHelp": "Comma separated. The comment needs just one of them (case and accents don't matter). Empty = reply to every comment.",
+      "keywordsHelp": "Comma-separated. The comment only needs one of them (case and accents don't matter).",
       "keywordsPlaceholder": "price, info, how much",
       "public": "Public reply (under the comment)",
       "publicHelp": "Write several and one is picked at random, so it isn't always the same. Use {name} for the person's name.",
@@ -64,7 +68,8 @@
         "reply": "Write a public reply or a private message.",
         "too_long": "The private message is too long (max 2,000 characters).",
         "channel": "That account is no longer connected.",
-        "generic": "Couldn't save. Try again."
+        "generic": "Couldn't save. Try again.",
+        "keywords": "Enter at least one keyword, or choose \"All comments\"."
       }
     },
     "activity": {

@@ -2,7 +2,7 @@
   "comments": {
     "tab": "Comentarios",
     "title": "Respuestas a comentarios",
-    "subtitle": "Cuando alguien comenta una palabra clave en tus publicaciones de Instagram o Facebook, Whasalia responde el comentario y le escribe por privado. La conversación sigue en la bandeja. Cada comentario respondido usa 1 token.",
+    "subtitle": "Cuando alguien comenta en tus publicaciones de Instagram o Facebook (cualquier comentario o uno con una palabra clave), Whasalia responde el comentario y le escribe por privado. La conversación sigue en la bandeja. Cada comentario respondido usa 1 token.",
     "newRule": "Nueva regla",
     "noChannels": "Conecta tu cuenta de Instagram o tu página de Facebook en Canales para usar las respuestas a comentarios.",
     "goChannels": "Ir a Canales",
@@ -47,8 +47,12 @@
       "postsError": "No pudimos leer las publicaciones de esta cuenta.",
       "postsReconnect": "Falta permiso: vuelve a conectar la cuenta en Canales.",
       "pickAccountFirst": "Elige una cuenta para responder en una sola publicación.",
+      "match": "Responder a",
+      "matchAll": "Todos los comentarios",
+      "matchKeywords": "Solo comentarios con palabras clave",
+      "matchAllHelp": "Responde cualquier comentario, aunque sea una letra o un emoji. Si otra regla tiene una palabra clave que coincide, se usa esa.",
       "keywords": "Palabras clave",
-      "keywordsHelp": "Separadas por coma. Basta con que el comentario tenga una (no importan mayúsculas ni tildes). Vacío = responde a todos los comentarios.",
+      "keywordsHelp": "Separadas por coma. Basta con que el comentario tenga una (no importan mayúsculas ni tildes).",
       "keywordsPlaceholder": "precio, info, cuánto cuesta",
       "public": "Respuesta pública (debajo del comentario)",
       "publicHelp": "Escribe varias y se elegirá una al azar, para no repetir siempre lo mismo. Usa {nombre} para el nombre de la persona.",
@@ -64,7 +68,8 @@
         "reply": "Escribe una respuesta pública o un mensaje privado.",
         "too_long": "El mensaje privado es demasiado largo (máx. 2000 caracteres).",
         "channel": "Esa cuenta ya no está conectada.",
-        "generic": "No se pudo guardar. Inténtalo de nuevo."
+        "generic": "No se pudo guardar. Inténtalo de nuevo.",
+        "keywords": "Escribe al menos una palabra clave, o elige «Todos los comentarios»."
       }
     },
     "activity": {
