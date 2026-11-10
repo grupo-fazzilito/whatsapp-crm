@@ -107,18 +107,28 @@ async function withTemplateCategory(channel: LoadedChannel, content: Extract<Out
  * conversation. Failures are stored as status='failed' (so the inbox
  * shows them) and reported in the result instead of thrown.
  */
+/**
+ * Channel a conversation sends through: its own; when that channel was
+ * deleted, the workspace's WhatsApp only for WhatsApp chats (the phone works
+ * from any number). An Instagram / Messenger / TikTok / Telegram / web chat
+ * whose account is gone has none: its customer ids belong to that account.
+ */
+async function channelToSend(workspaceId: string, conv: { channel_id: string | null; channel_type: string | null }) {
+  if (conv.channel_id) return loadChannel(workspaceId, conv.channel_id)
+  if (conv.channel_type && conv.channel_type !== 'whatsapp') return null
+  return defaultChannel(workspaceId, 'whatsapp')
+}
+
 export async function sendMessage(input: SendMessageInput): Promise<SendMessageResult> {
   const { workspaceId, conversationId, content, sender } = input
   const db = tenantDb(workspaceId)
 
   const conversation = await db.conversations
-    .findFirst({ where: { id: conversationId }, select: { id: true, contact_id: true, channel_id: true } })
+    .findFirst({ where: { id: conversationId }, select: { id: true, contact_id: true, channel_id: true, channel_type: true } })
     .catch(() => null)
   if (!conversation) throw new Error('Conversation not found')
 
-  const channel = conversation.channel_id
-    ? await loadChannel(workspaceId, conversation.channel_id)
-    : await defaultChannel(workspaceId, 'whatsapp')
+  const channel = await channelToSend(workspaceId, conversation)
 
   let replyToExternalId: string | null = null
   if (input.replyToMessageId) {
@@ -228,14 +238,12 @@ export async function sendReaction(input: {
   const msg = await tenantDb(input.workspaceId)
     .messages.findFirst({
       where: { id: input.messageId, conversation_id: input.conversationId },
-      select: { message_id: true, conversations: { select: { contact_id: true, channel_id: true } } },
+      select: { message_id: true, conversations: { select: { contact_id: true, channel_id: true, channel_type: true } } },
     })
     .catch(() => null)
   const conv = msg?.conversations ?? null
   if (!msg?.message_id || !conv) return
-  const channel = conv.channel_id
-    ? await loadChannel(input.workspaceId, conv.channel_id)
-    : await defaultChannel(input.workspaceId, 'whatsapp')
+  const channel = await channelToSend(input.workspaceId, conv)
   if (!channel) return
   const adapter = getAdapter(channel.type)
   if (!adapter.sendReaction) return

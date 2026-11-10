@@ -259,6 +259,9 @@ async function applyIdentityChange(channel: LoadedChannel, ev: Extract<InboundEv
   }
 }
 
+/** Networks whose customer ids belong to one account (page / profile). */
+const SCOPED_IDS = new Set(['instagram', 'messenger', 'tiktok'])
+
 export async function findOrCreateConversation(channel: LoadedChannel, contactId: string) {
   const db = tenantDb(channel.workspace_id)
   const existing = await db.conversations.findFirst({
@@ -266,6 +269,22 @@ export async function findOrCreateConversation(channel: LoadedChannel, contactId
     orderBy: { created_at: 'asc' },
   })
   if (existing) return existing
+
+  // The customer's chat from before the channel was deleted. Instagram,
+  // Messenger and TikTok ids belong to one account, so the identity that
+  // matched proves it's the same account; WhatsApp / Telegram ids don't, and
+  // a new number starts its own chat.
+  if (SCOPED_IDS.has(channel.type)) {
+    const orphan = await db.conversations.findFirst({
+      where: { contact_id: contactId, channel_id: null, channel_type: channel.type },
+      orderBy: { last_message_at: { sort: 'desc', nulls: 'last' } },
+    })
+    if (orphan) {
+      await db.conversations.updateMany({ where: { id: orphan.id, channel_id: null }, data: { channel_id: channel.id } })
+      const adopted = await db.conversations.findFirst({ where: { id: orphan.id } })
+      if (adopted?.channel_id === channel.id) return adopted
+    }
+  }
 
   try {
     return await db.conversations.create({

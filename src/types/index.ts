@@ -97,6 +97,10 @@ export interface Conversation {
   contact?: Contact;
   /** Channel the conversation happens on (channels.id). */
   channel_id?: string | null;
+  /** Network / account / name the conversation came from; kept when its channel is deleted. */
+  channel_type?: string | null;
+  channel_account_id?: string | null;
+  channel_name?: string | null;
   /** The channel's AI agent stays quiet until this moment (null = active). */
   ai_paused_until?: string | null;
   ai_state?: Record<string, unknown> | null;

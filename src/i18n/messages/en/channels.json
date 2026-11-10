@@ -15,7 +15,7 @@
     "saved": "Changes saved",
     "deleted": "Channel deleted",
     "deleteTitle": "Delete \"{name}\"?",
-    "deleteDescription": "You'll stop receiving and sending messages on this channel. Past conversations are kept.",
+    "deleteDescription": "You'll stop receiving and sending messages on this channel. Conversations are kept with their icon and marked \"account disconnected\"; connecting this same account again brings them back.",
     "connected": "\"{name}\" connected",
     "noAgent": "No agent (humans only)",
     "agentDisabled": "disabled",

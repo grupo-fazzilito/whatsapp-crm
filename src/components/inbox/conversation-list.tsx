@@ -33,7 +33,7 @@ import {
 } from "@/lib/inbox/filters";
 import { PRIORITY_ORDER } from "@/lib/inbox/priority";
 import type { Priority } from "@/lib/inbox/types";
-import { ChannelIcon, channelLine, type InboxChannel } from "./channel-badge";
+import { ChannelIcon, channelLine, conversationChannel, useChannelLineLabels, type InboxChannel } from "./channel-badge";
 import { initialsOf } from "./use-inbox-directory";
 import { PriorityIndicator, PRIORITY_STYLE } from "./priority";
 import { TagChip } from "./tag-chip";
@@ -498,7 +498,7 @@ export function ConversationList({
               <ConversationItem
                 key={conv.id}
                 conversation={conv}
-                channel={conv.channel_id ? channelsById.get(conv.channel_id) : undefined}
+                channel={conversationChannel(conv, channelsById) ?? undefined}
                 assignee={
                   conv.assigned_agent_id ? membersByUserId.get(conv.assigned_agent_id) : undefined
                 }
@@ -549,7 +549,8 @@ function ConversationItem({
       })
     : "";
 
-  const channelType = channel?.type ?? "whatsapp";
+  const channelType = channel?.type ?? null;
+  const lineLabels = useChannelLineLabels();
   const assigneeName = assignee?.full_name || assignee?.email;
   const chipTags = (conversation.conversation_tags ?? [])
     .map((l) => tagsById.get(l.tag_id))
@@ -593,7 +594,7 @@ function ConversationItem({
           </span>
           <span className="shrink-0 text-[10px] text-slate-400">{timeAgo}</span>
         </div>
-        <p className="truncate text-[10px] text-slate-400">{channelLine(channel)}</p>
+        <p className={cn("truncate text-[10px]", channel?.removed ? "text-amber-700 dark:text-amber-400" : "text-slate-400")}>{channelLine(channel, lineLabels)}</p>
         <div className="mt-0.5 flex items-center justify-between gap-2">
           <p className="truncate text-xs text-slate-400">
             {conversation.last_message_text || t("inbox.list.noMessages")}

@@ -906,6 +906,9 @@ model conversations {
   updated_at                               DateTime?             @default(now()) @db.Timestamptz(6)
   workspace_id                             String                @default(dbgenerated("active_ws()")) @db.Uuid
   channel_id                               String?               @db.Uuid
+  channel_type                             String?
+  channel_account_id                       String?
+  channel_name                             String?
   ai_state                                 Json                  @default("{}")
   booking_picker                           Json?
   ai_paused_until                          DateTime?             @db.Timestamptz(6)

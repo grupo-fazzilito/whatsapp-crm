@@ -193,6 +193,12 @@
       "sending": "Simulando...",
       "success": "Mensaje simulado",
       "failed": "La simulación falló: {reason}"
+    },
+    "channel": {
+      "unknown": "Canal desconocido",
+      "removed": "cuenta desconectada",
+      "removedTitle": "La cuenta «{name}» ya no está conectada.",
+      "removedHint": "Para seguir esta conversación, el cliente debe escribirte a la cuenta conectada ahora. Si vuelves a conectar esta misma cuenta, el chat vuelve a ella."
     }
   }
 }
