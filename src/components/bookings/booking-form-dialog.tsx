@@ -42,11 +42,11 @@ interface FormState {
   notify: boolean
 }
 
-function initialState(booking: Booking | null, date: string): FormState {
+function initialState(booking: Booking | null, date: string, contact: ContactLite | null = null): FormState {
   if (!booking) {
     return {
-      contact: null,
-      customer_name: '',
+      contact,
+      customer_name: contact?.name ?? '',
       service_id: '',
       staff_id: '',
       product_id: '',
@@ -95,6 +95,10 @@ export interface BookingFormProps {
   hours: BusinessHoursRow[]
   /** Called after a successful save; `notify` = tell the customer. */
   onSaved: (id: string, notify: boolean) => void
+  /** New booking for this customer (from a chat): preselected and fixed. */
+  initialContact?: ContactLite | null
+  /** Chat a new booking is made from. */
+  conversationId?: string | null
 }
 
 /** Create / edit dialog. Mount it with a `key` so it resets per booking. */
@@ -102,7 +106,7 @@ export function BookingFormDialog(props: BookingFormProps) {
   const { open, onOpenChange, booking, fields, staff, services, products, hours } = props
   const { t, locale } = useI18n()
   const { workspace, label, modules } = useWorkspace()
-  const [form, setForm] = useState<FormState>(() => initialState(booking, props.initialDate))
+  const [form, setForm] = useState<FormState>(() => initialState(booking, props.initialDate, props.initialContact ?? null))
   const [saving, setSaving] = useState(false)
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -190,6 +194,7 @@ export function BookingFormDialog(props: BookingFormProps) {
 
     const payload = {
       contact_id: form.contact.id,
+      ...(!booking && props.conversationId ? { conversation_id: props.conversationId } : {}),
       customer_name: form.customer_name.trim() || form.contact.name || null,
       service_id: form.service_id || null,
       staff_id: form.staff_id || null,
@@ -245,6 +250,7 @@ export function BookingFormDialog(props: BookingFormProps) {
                 <ContactPicker
                   id="bk-contact"
                   value={form.contact}
+                  locked={!booking && !!props.initialContact}
                   onChange={(c) =>
                     setForm((f) => ({
                       ...f,

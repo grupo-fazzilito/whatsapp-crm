@@ -199,6 +199,10 @@
       "removed": "account disconnected",
       "removedTitle": "The \"{name}\" account is no longer connected.",
       "removedHint": "To continue, the customer has to message the account you have connected now. Connecting this same account again brings the chat back to it."
+    },
+    "bookings": {
+      "noUpcoming": "No upcoming {bookings}.",
+      "history": "View history ({count})"
     }
   }
 }

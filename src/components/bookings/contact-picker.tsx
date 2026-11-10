@@ -15,10 +15,13 @@ export function ContactPicker({
   value,
   onChange,
   id,
+  locked = false,
 }: {
   value: ContactLite | null
   onChange: (c: ContactLite | null) => void
   id?: string
+  /** The customer can't be changed (booking made from their chat). */
+  locked?: boolean
 }) {
   const t = useT()
   const { label } = useWorkspace()
@@ -78,9 +81,9 @@ export function ContactPicker({
           <div className="truncate text-sm font-medium text-foreground">{value.name || value.phone}</div>
           {value.phone && <div className="text-xs text-muted-foreground">{value.phone}</div>}
         </div>
-        <Button type="button" size="icon-xs" variant="ghost" onClick={() => onChange(null)} aria-label={t('bookings.form.changeCustomer')}>
+        {!locked && <Button type="button" size="icon-xs" variant="ghost" onClick={() => onChange(null)} aria-label={t('bookings.form.changeCustomer')}>
           <X className="size-3.5" />
-        </Button>
+        </Button>}
       </div>
     )
   }

@@ -343,6 +343,8 @@ const BOOKING_FIELDS: Record<string, (v: unknown) => unknown> = {
     if (!isUuid(v)) throw new InputError('contact_id is required')
     return v
   },
+  /** Chat the booking was made from (reminders and notices go there). */
+  conversation_id: (v) => optUuid(v, 'conversation_id'),
   customer_name: (v) => text(v, 200),
   service_id: (v) => optUuid(v, 'service_id'),
   staff_id: (v) => optUuid(v, 'staff_id'),

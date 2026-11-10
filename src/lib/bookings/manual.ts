@@ -22,6 +22,7 @@ export async function assertBookingRefs(db: TenantDb, data: Record<string, unkno
     assertOwned(db, 'staff', [data.staff_id as string | null]),
     assertOwned(db, 'services', [data.service_id as string | null]),
     assertOwned(db, 'products', [data.product_id as string | null]),
+    assertOwned(db, 'conversations', [data.conversation_id as string | null]),
   ])
 }
 

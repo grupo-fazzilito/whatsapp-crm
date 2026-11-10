@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { invalidateBusinessContext } from '@/lib/ai/context'
-import { parseBooking } from '@/lib/business/setup-input'
+import { isUuid, parseBooking } from '@/lib/business/setup-input'
 import { badRequest, errorResponse, readBody } from '@/lib/business/setup-server'
 import { assertBookingRefs, BOOKING_INCLUDE, bookingOut, bookManualInCalendly } from '@/lib/bookings/manual'
 import { createTranslator } from '@/i18n/translate'
@@ -9,13 +9,15 @@ import { safeTimeZone } from '@/lib/ai/time'
 import type { Prisma } from '@/generated/prisma/client'
 
 const MAX_BOOKINGS = 2000
+const MAX_CONTACT_BOOKINGS = 100
 const DAY = /^\d{4}-\d{2}-\d{2}$/
 
 /**
  * GET  /api/bookings (members) → { bookings } newest first (max 2000) with contact, staff and service.
+ * GET  /api/bookings?contact_id=<id> → { bookings } of that customer (max 100), newest first.
  * GET  /api/bookings?date=YYYY-MM-DD&active=1 → { bookings } of that day still pending/confirmed
  *      (id, staff_id, booking_date, booking_time, duration_minutes, status, party_size) — for availability.
- * POST /api/bookings { contact_id, booking_date, booking_time, customer_name?, service_id?, staff_id?, product_id?,
+ * POST /api/bookings { contact_id, booking_date, booking_time, conversation_id?, customer_name?, service_id?, staff_id?, product_id?,
  *      duration_minutes?, party_size?, custom_fields?, notes?, status? } (members) → { id, warning? }
  *      A service linked to Calendly is booked in Calendly first (409 with a readable error when Calendly
  *      refuses: no email on the contact, time not free); when the plan can't book by API it is saved
@@ -36,10 +38,13 @@ export async function GET(request: Request) {
       })
       return NextResponse.json({ bookings })
     }
+    const contactId = sp.get('contact_id')
+    if (contactId !== null && !isUuid(contactId)) return badRequest('Invalid contact_id')
     const rows = await db.bookings.findMany({
       include: BOOKING_INCLUDE,
+      where: contactId ? { contact_id: contactId } : {},
       orderBy: [{ booking_date: 'desc' }, { booking_time: 'desc' }],
-      take: MAX_BOOKINGS,
+      take: contactId ? MAX_CONTACT_BOOKINGS : MAX_BOOKINGS,
     })
     return NextResponse.json({ bookings: rows.map(bookingOut) })
   } catch (err) {
