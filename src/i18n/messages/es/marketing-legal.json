@@ -2,7 +2,7 @@
   "mktPrivacy": {
     "badge": "Documento legal",
     "title": "Política de privacidad",
-    "updated": "Última actualización: 23 de junio de 2026",
+    "updated": "Última actualización: 31 de octubre de 2026",
     "intro": "Esta Política de privacidad (la \"Política\") describe cómo Whasalia (\"nosotros\" o \"nuestro\") recopila, usa, conserva y divulga la información de los usuarios de nuestra Plataforma. Al acceder a la plataforma SaaS de Whasalia o usarla, aceptas las prácticas descritas en esta Política. Si no estás de acuerdo, te pedimos que no uses la Plataforma.",
     "s1": {
       "title": "1. Recopilación de datos de usuario",
@@ -45,8 +45,12 @@
       "title": "9. Integraciones de terceros",
       "body": "Whasalia se integra con software de terceros (como sistemas de comercio electrónico, herramientas de hojas de cálculo y redes de mensajería). No somos responsables de las políticas de privacidad de estas plataformas externas. Te recomendamos revisar sus propios términos antes de configurar endpoints de webhook o permisos de sincronización."
     },
+    "authorities": {
+      "title": "10. Solicitudes de autoridades públicas",
+      "body": "Solo entregamos datos personales a una autoridad pública cuando la ley nos obliga a hacerlo. Cada solicitud la revisamos para comprobar que sea legal y válida; si la consideramos ilícita o excesiva, la impugnamos por las vías legales disponibles. Cuando debemos responder, entregamos solo la información mínima necesaria para cumplir con la solicitud. Dejamos constancia de cada solicitud, de nuestra respuesta, de la autoridad que la hizo y de su fundamento legal. Si la ley lo permite, avisamos al negocio afectado antes de entregar sus datos."
+    },
     "s10": {
-      "title": "10. Contacto e información regulatoria",
+      "title": "11. Contacto e información regulatoria",
       "body": "Si tienes preguntas o solicitudes sobre tus datos, ponte en contacto con Whasalia:",
       "emailLabel": "Correo electrónico:"
     }
