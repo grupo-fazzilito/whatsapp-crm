@@ -66,13 +66,15 @@ interface Draft {
   channel_id: string;
   post_id: string | null;
   post_label: string | null;
+  /** Reply to every comment, or only to those with a keyword. */
+  match: "all" | "keywords";
   keywords: string;
   public_replies: string[];
   private_message: string;
   enabled: boolean;
 }
 
-const EMPTY: Draft = { id: null, name: "", channel_id: "", post_id: null, post_label: null, keywords: "", public_replies: [""], private_message: "", enabled: true };
+const EMPTY: Draft = { id: null, name: "", channel_id: "", post_id: null, post_label: null, match: "all", keywords: "", public_replies: [""], private_message: "", enabled: true };
 
 const STATUS_VARIANT: Record<ReplyLog["status"], "default" | "secondary" | "destructive" | "outline"> = {
   replied: "default",
@@ -129,6 +131,7 @@ export default function CommentRulesPage() {
             channel_id: rule.channel_id ?? "",
             post_id: rule.post_id,
             post_label: rule.post_label,
+            match: rule.keywords.length ? "keywords" : "all",
             keywords: rule.keywords.join(", "),
             public_replies: rule.public_replies.length ? rule.public_replies : [""],
             private_message: rule.private_message ?? "",
@@ -148,6 +151,11 @@ export default function CommentRulesPage() {
 
   const save = async () => {
     if (!draft) return;
+    const keywords = draft.match === "keywords" ? draft.keywords.split(",").map((k) => k.trim()).filter(Boolean) : [];
+    if (draft.match === "keywords" && keywords.length === 0) {
+      setFormError(t("comments.form.errors.keywords"));
+      return;
+    }
     setSaving(true);
     setFormError(null);
     const payload = {
@@ -155,7 +163,7 @@ export default function CommentRulesPage() {
       channel_id: draft.channel_id || null,
       post_id: draft.channel_id ? draft.post_id : null,
       post_label: draft.channel_id && draft.post_id ? draft.post_label : null,
-      keywords: draft.keywords.split(",").map((k) => k.trim()).filter(Boolean),
+      keywords,
       public_replies: draft.public_replies.map((r) => r.trim()).filter(Boolean),
       private_message: draft.private_message.trim() || null,
       enabled: draft.enabled,
@@ -475,10 +483,27 @@ export default function CommentRulesPage() {
                 ))}
 
               <div className="space-y-1.5">
-                <Label htmlFor="cr-keywords">{t("comments.form.keywords")}</Label>
-                <Input id="cr-keywords" value={draft.keywords} placeholder={t("comments.form.keywordsPlaceholder")} onChange={(e) => setDraft({ ...draft, keywords: e.target.value })} aria-describedby="cr-keywords-help" />
-                <p id="cr-keywords-help" className="text-xs text-muted-foreground">{t("comments.form.keywordsHelp")}</p>
+                <Label htmlFor="cr-match">{t("comments.form.match")}</Label>
+                <select
+                  id="cr-match"
+                  className={cn(selectClass, "w-full")}
+                  value={draft.match}
+                  onChange={(e) => setDraft({ ...draft, match: e.target.value === "keywords" ? "keywords" : "all" })}
+                  aria-describedby="cr-match-help"
+                >
+                  <option value="all">{t("comments.form.matchAll")}</option>
+                  <option value="keywords">{t("comments.form.matchKeywords")}</option>
+                </select>
+                <p id="cr-match-help" className="text-xs text-muted-foreground">
+                  {t(draft.match === "all" ? "comments.form.matchAllHelp" : "comments.form.keywordsHelp")}
+                </p>
               </div>
+              {draft.match === "keywords" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="cr-keywords">{t("comments.form.keywords")}</Label>
+                  <Input id="cr-keywords" value={draft.keywords} placeholder={t("comments.form.keywordsPlaceholder")} onChange={(e) => setDraft({ ...draft, keywords: e.target.value })} />
+                </div>
+              )}
 
               <fieldset className="space-y-2">
                 <legend className="text-sm font-medium">{t("comments.form.public")}</legend>

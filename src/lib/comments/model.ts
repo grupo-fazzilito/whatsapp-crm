@@ -108,13 +108,19 @@ export interface RuleForMatch {
 /**
  * First enabled rule (by position) for this comment. Rules for one post
  * win over rules for every post, so "price on this reel" can override a
- * general "price" rule.
+ * general "price" rule; and a rule whose keyword matched wins over an
+ * "every comment" rule, which only answers what no keyword caught.
  */
 export function pickRule<R extends RuleForMatch>(rules: R[], c: { channelId: string; postId: string | null; text: string }): R | null {
   const fits = rules
     .filter((r) => r.enabled && (!r.channel_id || r.channel_id === c.channelId) && (!r.post_id || r.post_id === c.postId))
     .filter((r) => matchesKeywords(c.text, r.keywords))
-    .sort((a, b) => Number(!!b.post_id) - Number(!!a.post_id) || a.position - b.position)
+    .sort(
+      (a, b) =>
+        Number(!!b.post_id) - Number(!!a.post_id) ||
+        Number(b.keywords.length > 0) - Number(a.keywords.length > 0) ||
+        a.position - b.position,
+    )
   return fits[0] ?? null
 }
 
