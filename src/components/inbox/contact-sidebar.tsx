@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { ConversationCrmPanel } from "@/components/crm";
+import { ContactBookingsCard } from "@/components/bookings/contact-bookings-card";
 import { LeadPanel } from "@/components/real-estate/lead-panel";
 import { CustomFieldInput } from "@/components/crm/custom-field-input";
 import type { Team } from "@/lib/inbox/types";
@@ -710,6 +711,11 @@ export function ContactSidebar({
                   contactName={contact.name}
                 />
               )}
+              <ContactBookingsCard
+                key={`bk-${contact.id}`}
+                contact={{ id: contact.id, name: contact.name ?? null, phone: contact.phone ?? null }}
+                conversationId={conversationId}
+              />
               <CustomFieldsCard key={`cf-${contact.id}`} contactId={contact.id} />
               <OrdersCard key={contact.id} contactId={contact.id} />
               {isRealEstate && <LeadPanel key={`lead-${contact.id}`} contactId={contact.id} conversationId={conversationId} />}

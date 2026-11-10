@@ -32,7 +32,7 @@ export async function idParam(params: Promise<{ id: string }>): Promise<string |
   return isUuid(id) ? id : null
 }
 
-type OwnedTable = 'contacts' | 'staff' | 'services' | 'products' | 'ai_agents'
+type OwnedTable = 'contacts' | 'staff' | 'services' | 'products' | 'ai_agents' | 'conversations'
 
 /** Throws InputError unless every id belongs to the workspace of `db`. */
 export async function assertOwned(db: TenantDb, table: OwnedTable, ids: (string | null | undefined)[]) {
@@ -55,6 +55,9 @@ export async function assertOwned(db: TenantDb, table: OwnedTable, ids: (string 
       break
     case 'ai_agents':
       found = await db.ai_agents.count(where)
+      break
+    case 'conversations':
+      found = await db.conversations.count(where)
       break
   }
   if (found !== wanted.length) throw new InputError(`Unknown ${table} id`)
