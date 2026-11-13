@@ -34,7 +34,7 @@
       "instagram": "Direct messages of a professional Instagram account.",
       "messenger": "Messages to your Facebook page.",
       "webchat": "A floating chat for your website.",
-      "tiktok": "Direct messages of your TikTok business account.",
+      "tiktok": "Answer the comments on your TikTok account's videos.",
       "telegram": "Your business's Telegram bot. Free, no approvals needed."
     },
     "status": {
@@ -112,7 +112,36 @@
     },
     "tiktok": {
       "soon": "Coming soon / requires TikTok approval",
-      "businessId": "Business account ID"
+      "businessId": "Business account ID",
+      "oauthIntro": "Log in to TikTok and authorize Whasalia on your business account. Whasalia will then be able to:",
+      "useProfile": "Show your account's name and picture.",
+      "useVideos": "List your videos, so a rule can answer on one of them.",
+      "useComments": "Read the comments on your videos and reply publicly with your rules.",
+      "continue": "Continue with TikTok",
+      "sandboxNote": "Sandbox mode: connects a sample account with sample videos and comments. TikTok is not called.",
+      "connected": "TikTok account connected",
+      "errors": {
+        "denied": "The TikTok connection was not authorized.",
+        "forbidden": "Only an admin can connect accounts.",
+        "not_configured": "The TikTok connection isn't enabled on the platform yet.",
+        "state": "The request expired or is invalid. Please try again.",
+        "exchange": "We couldn't connect your TikTok account. Please try again.",
+        "conflict": "That TikTok account is already connected to another business."
+      },
+      "sandbox": {
+        "banner": "Whasalia sandbox mode: stands in for TikTok's authorization screen",
+        "title": "Whasalia would like to access your TikTok business account",
+        "account": "Account:",
+        "authorize": "Authorize",
+        "scope": {
+          "user": "Account information",
+          "userHelp": "Name, picture and basic profile",
+          "media": "Account videos",
+          "mediaHelp": "List the videos you published",
+          "comments": "Account comments",
+          "commentsHelp": "Read and reply to comments on your videos"
+        }
+      }
     },
     "webchat": {
       "defaultName": "Website chat",

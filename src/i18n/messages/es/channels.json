@@ -34,7 +34,7 @@
       "instagram": "Mensajes directos de una cuenta profesional de Instagram.",
       "messenger": "Mensajes de tu página de Facebook.",
       "webchat": "Un chat flotante para tu sitio web.",
-      "tiktok": "Mensajes directos de tu cuenta de empresa de TikTok.",
+      "tiktok": "Responde los comentarios de los videos de tu cuenta de TikTok.",
       "telegram": "Un bot de Telegram de tu negocio. Gratis y sin aprobaciones."
     },
     "status": {
@@ -112,7 +112,36 @@
     },
     "tiktok": {
       "soon": "Próximamente / requiere aprobación de TikTok",
-      "businessId": "ID de la cuenta de empresa"
+      "businessId": "ID de la cuenta de empresa",
+      "oauthIntro": "Inicia sesión en TikTok y autoriza a Whasalia en la cuenta de tu negocio. Con eso, Whasalia podrá:",
+      "useProfile": "Mostrar el nombre y la foto de tu cuenta.",
+      "useVideos": "Listar tus videos, para que una regla responda en uno en particular.",
+      "useComments": "Leer los comentarios de tus videos y responderlos en público con tus reglas.",
+      "continue": "Continuar con TikTok",
+      "sandboxNote": "Modo de prueba: se conecta una cuenta de ejemplo con videos y comentarios de muestra. No se llama a TikTok.",
+      "connected": "Cuenta de TikTok conectada",
+      "errors": {
+        "denied": "No se autorizó la conexión con TikTok.",
+        "forbidden": "Solo un administrador puede conectar cuentas.",
+        "not_configured": "La conexión con TikTok aún no está activada en la plataforma.",
+        "state": "La solicitud expiró o no es válida. Vuelve a intentarlo.",
+        "exchange": "No pudimos conectar tu cuenta de TikTok. Vuelve a intentarlo.",
+        "conflict": "Esa cuenta de TikTok ya está conectada en otro negocio."
+      },
+      "sandbox": {
+        "banner": "Modo de prueba de Whasalia: representa la pantalla de autorización de TikTok",
+        "title": "Whasalia quiere acceder a tu cuenta de empresa de TikTok",
+        "account": "Cuenta:",
+        "authorize": "Autorizar",
+        "scope": {
+          "user": "Información de la cuenta",
+          "userHelp": "Nombre, foto y datos básicos del perfil",
+          "media": "Videos de la cuenta",
+          "mediaHelp": "Listar los videos que publicaste",
+          "comments": "Comentarios de la cuenta",
+          "commentsHelp": "Leer y responder los comentarios de tus videos"
+        }
+      }
     },
     "webchat": {
       "defaultName": "Chat del sitio web",

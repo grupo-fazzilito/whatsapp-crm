@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { tiktokConnectReady, tiktokSandbox } from '@/lib/tiktok/config'
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { verifyPhoneNumber } from '@/lib/whatsapp/meta-api'
@@ -62,6 +63,10 @@ export async function GET() {
       /** WhatsApp Embedded Signup (Facebook Login for Business configuration set). */
       whatsappSignup: metaAppReady(meta) && !!meta.esConfigId,
       tiktok: tiktokEnabled(),
+      /** "Connect TikTok" (Accounts API OAuth: comments on the business's videos). */
+      tiktokConnect: tiktokConnectReady(),
+      /** Local demo data instead of TikTok (TIKTOK_SANDBOX, never in production). */
+      tiktokSandbox: tiktokSandbox(),
       platformVerifyToken: !!meta.verifyToken,
     },
   })

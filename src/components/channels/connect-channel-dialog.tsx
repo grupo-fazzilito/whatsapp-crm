@@ -90,8 +90,10 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
     if (!next) setTimeout(reset, 200);
   };
 
+  const tiktokAvailable = features.tiktok || !!features.tiktokConnect;
+
   const pick = (type: ChannelType) => {
-    if (type === 'tiktok' && !features.tiktok) return;
+    if (type === 'tiktok' && !tiktokAvailable) return;
     setName(type === 'webchat' ? t('channels.webchat.defaultName') : CHANNEL_STYLE[type].label);
     // The direct "connect" button always comes first; manual setup is an advanced link.
     setManualMeta(false);
@@ -145,7 +147,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {CHANNEL_ORDER.map((ct) => {
                 const s = CHANNEL_STYLE[ct];
-                const disabled = ct === 'tiktok' && !features.tiktok;
+                const disabled = ct === 'tiktok' && !tiktokAvailable;
                 return (
                   <button
                     key={ct}
@@ -208,6 +210,28 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
                 <button type="button" className="text-xs text-muted-foreground underline underline-offset-2" onClick={() => setManualMeta(true)}>
                   {t('channels.meta.manualInstead')}
                 </button>
+              </div>
+            ) : type === 'tiktok' && features.tiktokConnect ? (
+              <div className="grid gap-3">
+                <p className="text-sm text-muted-foreground">{t('channels.tiktok.oauthIntro')}</p>
+                <ul className="grid gap-1 text-xs text-muted-foreground">
+                  <li>• {t('channels.tiktok.useProfile')}</li>
+                  <li>• {t('channels.tiktok.useVideos')}</li>
+                  <li>• {t('channels.tiktok.useComments')}</li>
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => window.location.assign('/api/channels/tiktok/oauth/start')}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-black px-4 text-sm font-medium text-white ring-1 ring-white/15 hover:bg-neutral-800"
+                >
+                  <ExternalLink className="size-4" />
+                  {t('channels.tiktok.continue')}
+                </button>
+                {features.tiktokSandbox && (
+                  <p role="note" className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                    {t('channels.tiktok.sandboxNote')}
+                  </p>
+                )}
               </div>
             ) : (
               <>

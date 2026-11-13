@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ImageOff, Loader2, MessageSquareReply, Pencil, Plus, Trash2 } from "lucide-react";
+import { FlaskConical, ImageOff, Loader2, MessageSquareReply, Pencil, Plus, Trash2 } from "lucide-react";
 import { useT } from "@/i18n/client";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -30,12 +30,12 @@ interface Rule {
   replies_count: number;
   last_triggered_at: string | null;
   /** Set when its account was deleted: the rule doesn't run until it's reconnected or edited. */
-  detached_channel_type: "instagram" | "messenger" | null;
+  detached_channel_type: "instagram" | "messenger" | "tiktok" | null;
 }
 
 interface CommentChannel {
   id: string;
-  type: "instagram" | "messenger";
+  type: "instagram" | "messenger" | "tiktok";
   name: string;
   display_handle: string | null;
   status: string;
@@ -84,10 +84,17 @@ const STATUS_VARIANT: Record<ReplyLog["status"], "default" | "secondary" | "dest
   no_tokens: "destructive",
 };
 
+/** TikTok allows public replies only, up to 1,200 characters. */
+const TIKTOK_REPLY_MAX = 1200;
+
 /** Facebook pages are "messenger" channels; here they are about posts, so call them Facebook. */
+function networkName(type: CommentChannel["type"] | undefined) {
+  return type === "instagram" ? "Instagram" : type === "tiktok" ? "TikTok" : "Facebook";
+}
+
 function channelLabel(c: CommentChannel | undefined) {
   if (!c) return "";
-  const net = c.type === "instagram" ? "Instagram" : "Facebook";
+  const net = networkName(c.type);
   return `${net} · ${c.display_handle ? `@${c.display_handle.replace(/^@/, "")}` : c.name}`;
 }
 
@@ -101,7 +108,8 @@ export default function CommentRulesPage() {
   const { can, workspace } = useWorkspace();
   const isAdmin = can("admin");
   const locale = workspace?.locale === "en" ? "en" : "es";
-  const [data, setData] = useState<{ rules: Rule[]; channels: CommentChannel[]; replies: ReplyLog[] } | null>(null);
+  const [data, setData] = useState<{ rules: Rule[]; channels: CommentChannel[]; replies: ReplyLog[]; tiktokSandbox?: boolean } | null>(null);
+  const [simulating, setSimulating] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -149,6 +157,8 @@ export default function CommentRulesPage() {
     else setPosts({ state: "error", list: [], error: body.error === "reconnect" ? t("comments.form.postsReconnect") : t("comments.form.postsError") });
   };
 
+  const draftTiktokAt = (channelId: string) => channelsById.get(channelId)?.type === "tiktok";
+
   const save = async () => {
     if (!draft) return;
     const keywords = draft.match === "keywords" ? draft.keywords.split(",").map((k) => k.trim()).filter(Boolean) : [];
@@ -165,7 +175,7 @@ export default function CommentRulesPage() {
       post_label: draft.channel_id && draft.post_id ? draft.post_label : null,
       keywords,
       public_replies: draft.public_replies.map((r) => r.trim()).filter(Boolean),
-      private_message: draft.private_message.trim() || null,
+      private_message: draftTiktokAt(draft.channel_id) ? null : draft.private_message.trim() || null,
       enabled: draft.enabled,
     };
     const res = await fetch(draft.id ? `/api/comment-rules/${draft.id}` : "/api/comment-rules", {
@@ -181,7 +191,7 @@ export default function CommentRulesPage() {
       return;
     }
     const body = res ? await res.json().catch(() => ({})) : {};
-    const key = ["name", "reply", "too_long", "channel"].includes(body.error) ? body.error : "generic";
+    const key = ["name", "reply", "too_long", "channel", "reply_tiktok", "too_long_tiktok"].includes(body.error) ? body.error : "generic";
     setFormError(t(`comments.form.errors.${key}`));
   };
 
@@ -206,6 +216,27 @@ export default function CommentRulesPage() {
     void load();
   };
 
+  /** Local demo (TIKTOK_SANDBOX): a sample customer comments on the sandbox TikTok account. */
+  const simulateTiktok = async (channelId: string) => {
+    setSimulating(true);
+    const res = await fetch("/api/channels/tiktok/sandbox-comment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channel_id: channelId }),
+    }).catch(() => null);
+    setSimulating(false);
+    const body = res ? await res.json().catch(() => ({})) : {};
+    if (!res?.ok) {
+      toast.error(t("comments.form.errors.generic"));
+      return;
+    }
+    const answered = body.outcome === "replied" || body.outcome === "partial";
+    toast[answered ? "success" : "info"](
+      t(answered ? "comments.sandbox.answered" : "comments.sandbox.notAnswered", { name: body.comment?.author ?? "", text: body.comment?.text ?? "" }),
+    );
+    void load();
+  };
+
   if (!data) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -215,6 +246,9 @@ export default function CommentRulesPage() {
   }
 
   const noChannels = data.channels.length === 0;
+  const sandboxTiktok = data.tiktokSandbox ? data.channels.find((c) => c.type === "tiktok") : undefined;
+  const draftChannel = draft?.channel_id ? channelsById.get(draft.channel_id) : undefined;
+  const draftTiktok = draftChannel?.type === "tiktok";
 
   return (
     <div className="space-y-6">
@@ -241,8 +275,21 @@ export default function CommentRulesPage() {
         <>
           <ul className="space-y-1 text-xs text-muted-foreground">
             <li>{t("comments.reconnectTip")}</li>
-            <li>{t("comments.tiktokSoon")}</li>
+            <li>{t("comments.tiktokPublicOnly")}</li>
           </ul>
+
+          {sandboxTiktok && isAdmin && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              <p className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                <FlaskConical className="h-4 w-4 shrink-0" aria-hidden />
+                {t("comments.sandbox.note")}
+              </p>
+              <Button size="sm" variant="outline" disabled={simulating} onClick={() => simulateTiktok(sandboxTiktok.id)}>
+                {simulating && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
+                {t("comments.sandbox.simulate")}
+              </Button>
+            </div>
+          )}
 
           {data.rules.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">{t("comments.empty")}</div>
@@ -352,7 +399,7 @@ export default function CommentRulesPage() {
                           <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{when(r.created_at, locale)}</td>
                           <td className="px-3 py-2">
                             <span className="inline-flex items-center gap-1.5">
-                              <Icon className="h-3.5 w-3.5 text-muted-foreground" aria-label={ch?.type === "instagram" ? "Instagram" : "Facebook"} />
+                              <Icon className="h-3.5 w-3.5 text-muted-foreground" aria-label={networkName(ch?.type)} />
                               {r.author_name ?? "—"}
                             </span>
                           </td>
@@ -513,8 +560,8 @@ export default function CommentRulesPage() {
                     <Textarea
                       rows={2}
                       value={reply}
-                      maxLength={2200}
-                      placeholder={t("comments.form.publicPlaceholder")}
+                      maxLength={draftTiktok ? TIKTOK_REPLY_MAX : 2200}
+                      placeholder={t(draftTiktok ? "comments.form.publicPlaceholderTiktok" : "comments.form.publicPlaceholder")}
                       aria-label={`${t("comments.form.public")} ${i + 1}`}
                       onChange={(e) => setDraft({ ...draft, public_replies: draft.public_replies.map((r, j) => (j === i ? e.target.value : r)) })}
                     />
@@ -537,11 +584,15 @@ export default function CommentRulesPage() {
                 )}
               </fieldset>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="cr-private">{t("comments.form.private")}</Label>
-                <Textarea id="cr-private" rows={4} maxLength={2000} value={draft.private_message} placeholder={t("comments.form.privatePlaceholder")} onChange={(e) => setDraft({ ...draft, private_message: e.target.value })} aria-describedby="cr-private-help" />
-                <p id="cr-private-help" className="text-xs text-muted-foreground">{t("comments.form.privateHelp")}</p>
-              </div>
+              {draftTiktok ? (
+                <p className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">{t("comments.form.tiktokNoPrivate")}</p>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label htmlFor="cr-private">{t("comments.form.private")}</Label>
+                  <Textarea id="cr-private" rows={4} maxLength={2000} value={draft.private_message} placeholder={t("comments.form.privatePlaceholder")} onChange={(e) => setDraft({ ...draft, private_message: e.target.value })} aria-describedby="cr-private-help" />
+                  <p id="cr-private-help" className="text-xs text-muted-foreground">{t(draft.channel_id ? "comments.form.privateHelp" : "comments.form.privateHelpAll")}</p>
+                </div>
+              )}
 
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={draft.enabled} onCheckedChange={(v) => setDraft({ ...draft, enabled: v })} />

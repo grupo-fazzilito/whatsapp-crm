@@ -38,10 +38,10 @@ export function ConnectedAccounts() {
     let alive = true;
     fetch('/api/channels', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: { channels?: Channel[]; features?: { tiktok?: boolean } } | null) => {
+      .then((d: { channels?: Channel[]; features?: { tiktok?: boolean; tiktokConnect?: boolean } } | null) => {
         if (!alive) return;
         setChannels(d?.channels ?? []);
-        setTiktok(!!d?.features?.tiktok);
+        setTiktok(!!d?.features?.tiktok || !!d?.features?.tiktokConnect);
       })
       .catch(() => alive && setChannels([]));
     return () => {

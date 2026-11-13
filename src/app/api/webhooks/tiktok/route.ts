@@ -1,13 +1,36 @@
-import { NextResponse } from 'next/server'
-import { tiktokEnabled } from '@/lib/channels/adapters/tiktok'
+import { NextResponse, after } from 'next/server'
+import { tiktokAppConfig } from '@/lib/tiktok/config'
+import { parseCommentUpdate, verifyTiktokSignature } from '@/lib/tiktok/model'
+import { handleTiktokCommentEvent } from '@/lib/tiktok/comments'
 
-// TikTok Business Messaging webhooks. The API is in beta and gated by
-// TikTok approval; the event format and signature scheme come with the
-// access grant. Until then this endpoint refuses traffic explicitly so
-// nothing is silently dropped.
-export async function POST() {
-  if (!tiktokEnabled()) {
-    return NextResponse.json({ error: 'TikTok messaging is not enabled' }, { status: 501 })
+// TikTok API for Business webhooks (one callback URL per developer app,
+// set with /business/webhook/update/). Every delivery is signed with the
+// app secret ("Tiktok-Signature: t=…,s=…"); unsigned or stale ones are refused.
+//   comment.update → comment rules (Accounts API).
+//   Business Messaging events: not handled yet (that API is a separate approval).
+export async function POST(request: Request) {
+  const cfg = tiktokAppConfig()
+  if (!cfg) return NextResponse.json({ error: 'TikTok is not configured' }, { status: 503 })
+
+  const raw = await request.text()
+  if (!verifyTiktokSignature(raw, request.headers.get('tiktok-signature'), cfg.appSecret)) {
+    console.warn('[tiktok-webhook] bad signature', request.headers.get('x-tt-logid') ?? '')
+    return NextResponse.json({ error: 'invalid signature' }, { status: 401 })
   }
-  return NextResponse.json({ error: 'TikTok webhook parser not implemented yet' }, { status: 501 })
+
+  let body: unknown
+  try {
+    body = JSON.parse(raw)
+  } catch {
+    return NextResponse.json({ error: 'invalid body' }, { status: 400 })
+  }
+
+  const comment = parseCommentUpdate(body)
+  if (comment) {
+    after(() =>
+      handleTiktokCommentEvent(comment).catch((err) => console.error('[tiktok-webhook] comment failed:', err instanceof Error ? err.message : err)),
+    )
+  }
+  // Answer fast: TikTok retries deliveries that don't get a 2xx.
+  return NextResponse.json({ ok: true })
 }

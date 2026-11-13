@@ -9,6 +9,10 @@ export interface ChannelFeatures {
   /** WhatsApp Embedded Signup available (platform Meta app + configuration id). */
   whatsappSignup?: boolean;
   tiktok: boolean;
+  /** "Connect TikTok" through TikTok's authorization (comments on the business's videos). */
+  tiktokConnect?: boolean;
+  /** Local demo: sample TikTok account, videos and comments. */
+  tiktokSandbox?: boolean;
   platformVerifyToken: boolean;
 }
 
