@@ -2,12 +2,11 @@
   "comments": {
     "tab": "Comments",
     "title": "Comment replies",
-    "subtitle": "When someone comments on your Instagram or Facebook posts (any comment, or one with a keyword), Whasalia replies to the comment and messages them privately. The conversation continues in the inbox. Each answered comment uses 1 token.",
+    "subtitle": "When someone comments on your Instagram, Facebook or TikTok posts (any comment, or one with a keyword), Whasalia replies to the comment and, on Instagram and Facebook, messages them privately. The conversation continues in the inbox. Each answered comment uses 1 token.",
     "newRule": "New rule",
-    "noChannels": "Connect your Instagram account or Facebook page in Channels to use comment replies.",
+    "noChannels": "Connect your Instagram account, Facebook page or TikTok account in Channels to use comment replies.",
     "goChannels": "Go to Channels",
     "reconnectTip": "If you connected your account before this feature was turned on, connect it again in Channels to grant the comments permission.",
-    "tiktokSoon": "TikTok: coming once TikTok approves the app (public replies only; TikTok doesn't allow private messages from a comment).",
     "empty": "No rules yet. Create one, for example: when someone comments “price”, reply “We sent you a DM!” and send the price privately.",
     "anyComment": "Any comment",
     "allAccounts": "All accounts",
@@ -69,8 +68,13 @@
         "too_long": "The private message is too long (max 2,000 characters).",
         "channel": "That account is no longer connected.",
         "generic": "Couldn't save. Try again.",
-        "keywords": "Enter at least one keyword, or choose \"All comments\"."
-      }
+        "keywords": "Enter at least one keyword, or choose \"All comments\".",
+        "reply_tiktok": "On TikTok, write at least one public reply.",
+        "too_long_tiktok": "On TikTok, each public reply can be up to 1,200 characters."
+      },
+      "publicPlaceholderTiktok": "Hi {name}! It's $59. Message us on WhatsApp to book 😊",
+      "tiktokNoPrivate": "On TikTok, replies are public only, under the comment (up to 1,200 characters). TikTok doesn't allow private messages from a comment.",
+      "privateHelpAll": "Instagram and Facebook only (TikTok doesn't allow it). Sent once per comment, within 7 days (Meta's rule)."
     },
     "activity": {
       "title": "Latest replied comments",
@@ -89,6 +93,13 @@
         "no_tokens": "No tokens"
       }
     },
-    "bubble": "Automatic reply to their comment: “{text}”"
+    "bubble": "Automatic reply to their comment: “{text}”",
+    "tiktokPublicOnly": "TikTok: public replies only (TikTok doesn't allow private messages from a comment).",
+    "sandbox": {
+      "note": "TikTok sandbox: simulate a customer commenting on a video of the sample account.",
+      "simulate": "Simulate a TikTok comment",
+      "answered": "{name} commented “{text}” and got a reply.",
+      "notAnswered": "{name} commented “{text}”, but no rule answered it."
+    }
   }
 }

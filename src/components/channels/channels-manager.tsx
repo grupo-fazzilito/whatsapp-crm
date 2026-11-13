@@ -18,7 +18,7 @@ import { WelcomeMenuDialog } from './welcome-menu-dialog';
 
 const noopSubscribe = () => () => {};
 
-const NO_FEATURES: ChannelFeatures = { metaOAuth: false, tiktok: false, platformVerifyToken: false };
+const NO_FEATURES: ChannelFeatures = { metaOAuth: false, tiktok: false, tiktokConnect: false, tiktokSandbox: false, platformVerifyToken: false };
 
 export function ChannelsManager() {
   const t = useT();
@@ -91,6 +91,21 @@ export function ChannelsManager() {
   };
 
   const clearMetaParams = () => router.replace(pathname, { scroll: false });
+
+  // Back from TikTok's authorization (GET /api/channels/tiktok/oauth/callback).
+  const tiktokReturn = searchParams.get('connect') === 'tiktok';
+  const tiktokOk = searchParams.get('ok') === '1';
+  useEffect(() => {
+    if (!tiktokReturn) return;
+    if (tiktokOk) toast.success(t('channels.tiktok.connected'));
+    else {
+      const err = searchParams.get('error');
+      const known = ['denied', 'forbidden', 'not_configured', 'state', 'exchange', 'conflict'];
+      toast.error(t(`channels.tiktok.errors.${err && known.includes(err) ? err : 'exchange'}`));
+    }
+    router.replace(pathname, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per return from TikTok
+  }, [tiktokReturn]);
 
   return (
     <div className="space-y-6">

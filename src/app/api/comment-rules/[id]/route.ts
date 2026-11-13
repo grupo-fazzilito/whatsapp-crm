@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { isUuid } from '@/lib/workspace/constants'
 import { parseRuleInput } from '@/lib/comments/model'
-import { channelAllowed } from '@/lib/comments/server'
+import { fitRuleToChannel } from '@/lib/comments/server'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -24,10 +24,10 @@ export async function PATCH(request: Request, { params }: Ctx) {
 
   const parsed = parseRuleInput(body)
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 })
-  const { rule } = parsed
-  if (rule.channel_id && (!isUuid(rule.channel_id) || !(await channelAllowed(workspace.id, rule.channel_id)))) {
-    return NextResponse.json({ error: 'channel' }, { status: 400 })
-  }
+  if (parsed.rule.channel_id && !isUuid(parsed.rule.channel_id)) return NextResponse.json({ error: 'channel' }, { status: 400 })
+  const fitted = await fitRuleToChannel(workspace.id, parsed.rule)
+  if (!fitted.ok) return NextResponse.json({ error: fitted.error }, { status: 400 })
+  const { rule } = fitted
   const r = await db.comment_rules.updateMany({
     where: { id },
     data: {

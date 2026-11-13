@@ -2,12 +2,11 @@
   "comments": {
     "tab": "Comentarios",
     "title": "Respuestas a comentarios",
-    "subtitle": "Cuando alguien comenta en tus publicaciones de Instagram o Facebook (cualquier comentario o uno con una palabra clave), Whasalia responde el comentario y le escribe por privado. La conversación sigue en la bandeja. Cada comentario respondido usa 1 token.",
+    "subtitle": "Cuando alguien comenta en tus publicaciones de Instagram, Facebook o TikTok (cualquier comentario o uno con una palabra clave), Whasalia responde el comentario y, en Instagram y Facebook, le escribe por privado. La conversación sigue en la bandeja. Cada comentario respondido usa 1 token.",
     "newRule": "Nueva regla",
-    "noChannels": "Conecta tu cuenta de Instagram o tu página de Facebook en Canales para usar las respuestas a comentarios.",
+    "noChannels": "Conecta tu cuenta de Instagram, tu página de Facebook o tu cuenta de TikTok en Canales para usar las respuestas a comentarios.",
     "goChannels": "Ir a Canales",
     "reconnectTip": "Si conectaste tu cuenta antes de activar esta función, vuelve a conectarla en Canales para dar el permiso de comentarios.",
-    "tiktokSoon": "TikTok: llegará cuando TikTok apruebe la app (solo respuestas públicas; TikTok no permite escribir por privado desde un comentario).",
     "empty": "Todavía no tienes reglas. Crea una, por ejemplo: cuando comenten «precio», responder «¡Te escribimos por privado!» y enviar el precio por mensaje.",
     "anyComment": "Cualquier comentario",
     "allAccounts": "Todas las cuentas",
@@ -69,8 +68,13 @@
         "too_long": "El mensaje privado es demasiado largo (máx. 2000 caracteres).",
         "channel": "Esa cuenta ya no está conectada.",
         "generic": "No se pudo guardar. Inténtalo de nuevo.",
-        "keywords": "Escribe al menos una palabra clave, o elige «Todos los comentarios»."
-      }
+        "keywords": "Escribe al menos una palabra clave, o elige «Todos los comentarios».",
+        "reply_tiktok": "En TikTok escribe al menos una respuesta pública.",
+        "too_long_tiktok": "En TikTok cada respuesta pública puede tener hasta 1200 caracteres."
+      },
+      "publicPlaceholderTiktok": "¡Hola {nombre}! El precio es S/ 59. Escríbenos por WhatsApp para reservar 😊",
+      "tiktokNoPrivate": "En TikTok solo se responde en público, debajo del comentario (máx. 1200 caracteres). TikTok no permite escribir por privado desde un comentario.",
+      "privateHelpAll": "Solo en Instagram y Facebook (TikTok no lo permite). Se envía una sola vez por comentario, dentro de los 7 días (regla de Meta)."
     },
     "activity": {
       "title": "Últimos comentarios respondidos",
@@ -89,6 +93,13 @@
         "no_tokens": "Sin tokens"
       }
     },
-    "bubble": "Respuesta automática a su comentario: «{text}»"
+    "bubble": "Respuesta automática a su comentario: «{text}»",
+    "tiktokPublicOnly": "TikTok: solo respuesta pública (TikTok no permite escribir por privado desde un comentario).",
+    "sandbox": {
+      "note": "Modo de prueba de TikTok: simula que un cliente comenta en un video de la cuenta de ejemplo.",
+      "simulate": "Simular comentario en TikTok",
+      "answered": "{name} comentó «{text}» y se respondió.",
+      "notAnswered": "{name} comentó «{text}», pero ninguna regla lo respondió."
+    }
   }
 }

@@ -5,6 +5,8 @@ import type { LoadedChannel } from '@/lib/channels'
 import { findOrCreateContact, findOrCreateConversation } from '@/lib/messaging/ingest'
 import { fillReply, pickPublicReply, pickRule, type CommentEvent } from './model'
 import { GraphError, replyToComment, sendPrivateReply } from './meta'
+import { TiktokError, replyToTiktokComment } from '@/lib/tiktok/api'
+import { TIKTOK_REPLY_MAX } from '@/lib/tiktok/model'
 import { canSpend, spend } from '@/lib/billing/credits'
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -33,6 +35,9 @@ export async function handleComment(channel: LoadedChannel, ev: CommentEvent): P
   })
   const rule = pickRule(rules, { channelId: channel.id, postId: ev.postId, text: ev.text })
   if (!rule) return 'no_rule'
+  // TikTok has no private message from a comment: a rule with only a private message doesn't apply there.
+  const tiktok = channel.type === 'tiktok'
+  if (tiktok && !rule.public_replies.some((r) => r.trim())) return 'no_rule'
 
   const answeredBefore = ev.postId
     ? await db.comment_replies.findFirst({
@@ -71,11 +76,14 @@ export async function handleComment(channel: LoadedChannel, ev: CommentEvent): P
   let privateMessageId: string | null = null
   let conversationId: string | null = null
   const publicText = pickPublicReply(rule.public_replies)
-  const privateText = rule.private_message?.trim() ? fillReply(rule.private_message, ev.from.name) : null
+  const privateText = !tiktok && rule.private_message?.trim() ? fillReply(rule.private_message, ev.from.name) : null
 
   if (publicText) {
     try {
-      publicReplyId = await replyToComment(channel, ev.commentId, fillReply(publicText, ev.from.name))
+      const text = fillReply(publicText, ev.from.name)
+      publicReplyId = tiktok
+        ? await replyToTiktokComment(channel, ev.postId ?? '', ev.commentId, text)
+        : await replyToComment(channel, ev.commentId, text)
     } catch (err) {
       errors.push(describe('public', err))
     }
@@ -106,7 +114,7 @@ export async function handleComment(channel: LoadedChannel, ev: CommentEvent): P
 
 function describe(kind: 'public' | 'private', err: unknown): string {
   const prefix = kind === 'public' ? 'Respuesta pública' : 'Mensaje privado'
-  if (err instanceof GraphError && err.needsReconnect) return `${prefix}: falta permiso (vuelve a conectar la cuenta). ${err.message}`
+  if ((err instanceof GraphError || err instanceof TiktokError) && err.needsReconnect) return `${prefix}: falta permiso (vuelve a conectar la cuenta). ${err.message}`
   return `${prefix}: ${message(err)}`
 }
 
@@ -153,9 +161,9 @@ export async function handleComments(channel: LoadedChannel, events: CommentEven
 
 // ---------------------------------------------------------------- editor
 
-export const COMMENT_CHANNEL_TYPES = ['instagram', 'messenger'] as const
+export const COMMENT_CHANNEL_TYPES = ['instagram', 'messenger', 'tiktok'] as const
 
-/** Instagram and Facebook accounts of the workspace (the ones rules can apply to). */
+/** Instagram, Facebook and TikTok accounts of the workspace (the ones rules can apply to). */
 export async function commentChannels(workspaceId: string) {
   return tenantDb(workspaceId).channels.findMany({
     where: { type: { in: [...COMMENT_CHANNEL_TYPES] } },
@@ -179,9 +187,25 @@ export async function recentReplies(workspaceId: string, take = 50) {
   })
 }
 
-/** The channel a rule points at must be one of this workspace's Instagram / Facebook accounts. */
-export async function channelAllowed(workspaceId: string, channelId: string | null): Promise<boolean> {
-  if (!channelId) return true
-  const c = await tenantDb(workspaceId).channels.findFirst({ where: { id: channelId, type: { in: [...COMMENT_CHANNEL_TYPES] } }, select: { id: true } })
-  return !!c
+/** The rule's account type (null = every account), or false when it isn't one of this workspace's Instagram / Facebook / TikTok accounts. */
+async function ruleChannelType(workspaceId: string, channelId: string | null): Promise<(typeof COMMENT_CHANNEL_TYPES)[number] | null | false> {
+  if (!channelId) return null
+  const c = await tenantDb(workspaceId).channels.findFirst({ where: { id: channelId, type: { in: [...COMMENT_CHANNEL_TYPES] } }, select: { type: true } })
+  return c ? (c.type as (typeof COMMENT_CHANNEL_TYPES)[number]) : false
+}
+
+/**
+ * Checks a parsed rule against its account. TikTok only allows public replies
+ * (up to 1,200 characters), so a TikTok rule needs one and keeps no private message.
+ */
+export async function fitRuleToChannel<R extends { channel_id: string | null; public_replies: string[]; private_message: string | null }>(
+  workspaceId: string,
+  rule: R,
+): Promise<{ ok: true; rule: R } | { ok: false; error: 'channel' | 'reply_tiktok' | 'too_long_tiktok' }> {
+  const type = await ruleChannelType(workspaceId, rule.channel_id)
+  if (type === false) return { ok: false, error: 'channel' }
+  if (type !== 'tiktok') return { ok: true, rule }
+  if (rule.public_replies.length === 0) return { ok: false, error: 'reply_tiktok' }
+  if (rule.public_replies.some((r) => r.length > TIKTOK_REPLY_MAX)) return { ok: false, error: 'too_long_tiktok' }
+  return { ok: true, rule: { ...rule, private_message: null } }
 }

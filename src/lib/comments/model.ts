@@ -1,12 +1,12 @@
-// Keyword auto-replies to comments on the business's Instagram and
-// Facebook posts. Pure: webhook parsing, rule matching, reply text.
+// Keyword auto-replies to comments on the business's Instagram, Facebook
+// and TikTok posts. Pure: webhook parsing, rule matching, reply text.
 
-export type CommentChannelType = 'instagram' | 'messenger'
+export type CommentChannelType = 'instagram' | 'messenger' | 'tiktok'
 
 /** A new comment from a customer on one of the business's posts. */
 export interface CommentEvent {
   channelType: CommentChannelType
-  /** Instagram account id / Facebook page id (the channel's external_id). */
+  /** Instagram account id / Facebook page id / TikTok open_id (the channel's external_id). */
   channelExternalId: string
   commentId: string
   postId: string | null
