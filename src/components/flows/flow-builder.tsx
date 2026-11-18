@@ -24,6 +24,7 @@ import {
   useRef,
   useState,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -54,7 +55,6 @@ import {
   Inbox,
   GitFork,
   Tag,
-  Zap,
   Bot,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -78,6 +78,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n/client";
+import type { Translator } from "@/i18n/translate";
 import { NUMBERED_LIMITS, numberedMenuText } from "@/lib/flows/options";
 import {
   validateFlowForActivation,
@@ -126,62 +127,68 @@ interface BuilderState {
 }
 
 // ============================================================
-// Per-node-type metadata used to render icons + labels everywhere
-// the user sees a node summary.
+// Per-node-type metadata used to render icons everywhere the user
+// sees a node summary. Labels come from `flows.builder.nodes.*`;
+// `keyBase` seeds the node_key of new nodes (kept stable across
+// languages so keys don't depend on the UI locale).
 // ============================================================
 
 const NODE_META: Record<
   NodeType,
-  { label: string; icon: typeof Workflow; color: string }
+  { keyBase: string; icon: typeof Workflow; color: string }
 > = {
-  start: { label: "Start", icon: PlayCircle, color: "text-emerald-400" },
+  start: { keyBase: "start", icon: PlayCircle, color: "text-emerald-400" },
   send_message: {
-    label: "Send message",
+    keyBase: "send_message",
     icon: MessageCircle,
     color: "text-emerald-400",
   },
   send_buttons: {
-    label: "Send buttons",
+    keyBase: "send_buttons",
     icon: ListChecks,
     color: "text-primary",
   },
   send_list: {
-    label: "Send list",
+    keyBase: "send_list",
     icon: ListPlus,
     color: "text-teal-400",
   },
   collect_input: {
-    label: "Collect input",
+    keyBase: "collect_input",
     icon: Inbox,
     color: "text-teal-400",
   },
   condition: {
-    label: "If / else",
+    keyBase: "if_else",
     icon: GitFork,
     color: "text-fuchsia-400",
   },
   set_tag: {
-    label: "Tag contact",
+    keyBase: "tag_contact",
     icon: Tag,
     color: "text-pink-400",
   },
   handoff: {
-    label: "Handoff to agent",
+    keyBase: "handoff_to_agent",
     icon: UserPlus,
     color: "text-amber-400",
   },
   handoff_ai_agent: {
-    label: "Hand off to AI agent",
+    keyBase: "hand_off_to_ai_agent",
     icon: Bot,
     color: "text-violet-400",
   },
   book_appointment: {
-    label: "Book appointment",
+    keyBase: "book_appointment",
     icon: CalendarClock,
     color: "text-sky-400",
   },
-  end: { label: "End", icon: Flag, color: "text-slate-400" },
+  end: { keyBase: "end", icon: Flag, color: "text-slate-400" },
 };
+
+function nodeLabel(t: Translator, type: NodeType): string {
+  return t(`flows.builder.nodes.${type}`);
+}
 
 // AI agents of the workspace, for the handoff_ai_agent node (null while
 // loading). Context keeps the deep card/form tree free of extra props.
@@ -223,6 +230,7 @@ function truncate(s: string, max = 80): string {
 }
 
 function summarizeNode(
+  t: Translator,
   node: BuilderNode,
   agents: FlowAgent[] | null = null,
 ): string | null {
@@ -258,13 +266,25 @@ function summarizeNode(
         const rows = Array.isArray(s.rows) ? s.rows : [];
         return sum + rows.length;
       }, 0);
+      const optionsStr =
+        rowCount === 1
+          ? t("flows.builder.summary.optionsOne")
+          : t("flows.builder.summary.optionsMany", { count: rowCount });
       if (text.length > 0) {
         return rowCount > 0
-          ? `${truncate(text, 50)} · ${rowCount} option${rowCount === 1 ? "" : "s"}`
+          ? `${truncate(text, 50)} · ${optionsStr}`
           : truncate(text);
       }
       return rowCount > 0
-        ? `${rowCount} option${rowCount === 1 ? "" : "s"} across ${sections.length} section${sections.length === 1 ? "" : "s"}`
+        ? t("flows.builder.summary.across", {
+            options: optionsStr,
+            sections:
+              sections.length === 1
+                ? t("flows.builder.summary.sectionsOne")
+                : t("flows.builder.summary.sectionsMany", {
+                    count: sections.length,
+                  }),
+          })
         : null;
     }
     case "collect_input": {
@@ -286,16 +306,18 @@ function summarizeNode(
             ? "field"
             : "var";
       const subjectStr =
-        subject === "tag" ? `has tag ${truncate(subjectKey, 24)}` : `${subject}.${subjectKey}`;
+        subject === "tag"
+          ? t("flows.builder.summary.hasTag", { tag: truncate(subjectKey, 24) })
+          : `${subject}.${subjectKey}`;
       const op =
         cfg.operator === "equals"
           ? "=="
           : cfg.operator === "contains"
-            ? "contains"
+            ? t("flows.builder.summary.opContains")
             : cfg.operator === "present"
-              ? "exists"
+              ? t("flows.builder.summary.opExists")
               : cfg.operator === "absent"
-                ? "missing"
+                ? t("flows.builder.summary.opMissing")
                 : "";
       const value = typeof cfg.value === "string" ? cfg.value : "";
       const valStr =
@@ -305,12 +327,22 @@ function summarizeNode(
       return subject === "tag" ? subjectStr : `${subjectStr} ${op}${valStr}`;
     }
     case "set_tag": {
-      const mode = cfg.mode === "remove" ? "Remove" : "Add";
+      const remove = cfg.mode === "remove";
       const tagId = typeof cfg.tag_id === "string" ? cfg.tag_id : "";
       // No tag name available without an async lookup here; show a
       // short prefix of the UUID so users can disambiguate between
       // multiple set_tag nodes at a glance.
-      return tagId ? `${mode} tag ${tagId.slice(0, 8)}…` : `${mode} tag (none picked)`;
+      if (!tagId) {
+        return t(
+          remove
+            ? "flows.builder.summary.tagRemoveNone"
+            : "flows.builder.summary.tagAddNone",
+        );
+      }
+      return t(
+        remove ? "flows.builder.summary.tagRemove" : "flows.builder.summary.tagAdd",
+        { tag: `${tagId.slice(0, 8)}…` },
+      );
     }
     case "handoff": {
       const note = typeof cfg.note === "string" ? cfg.note : "";
@@ -329,7 +361,10 @@ function summarizeNode(
   }
 }
 
-function defaultConfigFor(type: NodeType): Record<string, unknown> {
+function defaultConfigFor(
+  t: Translator,
+  type: NodeType,
+): Record<string, unknown> {
   switch (type) {
     case "start":
       return { next_node_key: "" };
@@ -338,17 +373,27 @@ function defaultConfigFor(type: NodeType): Record<string, unknown> {
     case "send_buttons":
       return {
         text: "",
-        buttons: [{ reply_id: "yes", title: "Yes", next_node_key: "" }],
+        buttons: [
+          {
+            reply_id: "yes",
+            title: t("flows.builder.defaults.yes"),
+            next_node_key: "",
+          },
+        ],
       };
     case "send_list":
       return {
         text: "",
-        button_label: "View options",
+        button_label: t("flows.builder.defaults.viewOptions"),
         sections: [
           {
             title: "",
             rows: [
-              { reply_id: "row_1", title: "Option 1", next_node_key: "" },
+              {
+                reply_id: "row_1",
+                title: t("flows.builder.defaults.optionN", { n: 1 }),
+                next_node_key: "",
+              },
             ],
           },
         ],
@@ -394,6 +439,7 @@ function defaultConfigFor(type: NodeType): Record<string, unknown> {
 
 export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
   const router = useRouter();
+  const t = useT();
 
   const [state, setState] = useState<BuilderState>(() => ({
     name: initialFlow.name,
@@ -542,17 +588,18 @@ export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? `Save failed: ${res.status}`);
+        throw new Error(json.error ?? t("flows.builder.toast.saveError"));
       }
       setDirty(false);
-      toast.success("Saved.");
+      toast.success(t("flows.builder.toast.saved"));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Save failed";
+      const msg =
+        err instanceof Error ? err.message : t("flows.builder.toast.saveError");
       toast.error(msg);
     } finally {
       setSaving(false);
     }
-  }, [initialFlow.id, state]);
+  }, [initialFlow.id, state, t]);
 
   // ── Ctrl+S save, Ctrl+Z undo, Ctrl+Y redo ─────────────────────────
   handleSaveRef.current = handleSave;
@@ -580,7 +627,7 @@ export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
   const handleStatus = useCallback(
     async (next: BuilderState["status"]) => {
       if (next === "active" && !canActivate) {
-        toast.error("Fix the issues below before activating.");
+        toast.error(t("flows.builder.toast.fixBeforeActivate"));
         return;
       }
       setActivating(true);
@@ -598,43 +645,47 @@ export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
         });
         if (!res.ok) {
           const json = await res.json().catch(() => ({}));
-          throw new Error(json.error ?? `Status update failed: ${res.status}`);
+          throw new Error(json.error ?? t("flows.builder.toast.statusError"));
         }
         setState((s) => ({ ...s, status: next }));
         toast.success(
           next === "active"
-            ? "Flow activated."
+            ? t("flows.builder.toast.activated")
             : next === "archived"
-              ? "Archived."
-              : "Saved as draft.",
+              ? t("flows.builder.toast.archived")
+              : t("flows.builder.toast.savedDraft"),
         );
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Status update failed";
+        const msg =
+          err instanceof Error
+            ? err.message
+            : t("flows.builder.toast.statusError");
         toast.error(msg);
       } finally {
         setActivating(false);
       }
     },
-    [canActivate, handleSave, initialFlow.id],
+    [canActivate, handleSave, initialFlow.id, t],
   );
 
   // ---- Delete ----
   const handleDelete = useCallback(async () => {
     const yes = window.confirm(
-      `Delete "${state.name}"? Any active runs end immediately. This can't be undone.`,
+      t("flows.builder.toast.deleteConfirm", { name: state.name }),
     );
     if (!yes) return;
     try {
       const res = await fetch(`/api/flows/${initialFlow.id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
+      if (!res.ok) throw new Error(t("flows.builder.toast.deleteError"));
       router.push("/flows");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Delete failed";
+      const msg =
+        err instanceof Error ? err.message : t("flows.builder.toast.deleteError");
       toast.error(msg);
     }
-  }, [initialFlow.id, router, state.name]);
+  }, [initialFlow.id, router, state.name, t]);
 
   // ---- Node helpers ----
   const updateNode = useCallback(
@@ -691,13 +742,13 @@ export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
   const addNode = useCallback(
     (type: NodeType) => {
       const meta = NODE_META[type];
-      const base = slugify(meta.label, type);
+      const base = slugify(meta.keyBase, type);
       setStateDirty((s) => {
         const node_key = uniqueNodeKey(base, s.nodes);
         const newNode: BuilderNode = {
           node_key,
           node_type: type,
-          config: defaultConfigFor(type),
+          config: defaultConfigFor(t, type),
         };
         // Auto-wire: if the last node has a single next_node_key that's
         // empty, point it at this new node so the user doesn't have to
@@ -726,20 +777,20 @@ export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
         };
       });
     },
-    [setStateDirty],
+    [setStateDirty, t],
   );
 
   // Insert a node after a specific existing node (between two nodes).
   const insertNodeAfter = useCallback(
     (afterKey: string, type: NodeType) => {
       const meta = NODE_META[type];
-      const base = slugify(meta.label, type);
+      const base = slugify(meta.keyBase, type);
       setStateDirty((s) => {
         const node_key = uniqueNodeKey(base, s.nodes);
         const newNode: BuilderNode = {
           node_key,
           node_type: type,
-          config: defaultConfigFor(type),
+          config: defaultConfigFor(t, type),
         };
         const idx = s.nodes.findIndex((n) => n.node_key === afterKey);
         if (idx === -1) return { ...s, nodes: [...s.nodes, newNode] };
@@ -762,7 +813,7 @@ export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
         return { ...s, nodes };
       });
     },
-    [setStateDirty],
+    [setStateDirty, t],
   );
 
   const removeNode = useCallback(
@@ -907,7 +958,7 @@ export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
       <section className="flex flex-col gap-0">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-white">
-            Nodes ({state.nodes.length})
+            {t("flows.builder.nodesTitle", { count: state.nodes.length })}
           </h2>
           <AddNodeButton onAdd={addNode} />
         </div>
@@ -915,21 +966,30 @@ export function FlowBuilder({ initialFlow, initialNodes }: FlowBuilderProps) {
         {state.nodes.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-700 bg-slate-900/50 p-8 text-center text-sm text-slate-400">
             <p className="mb-3">
-              Add a <strong>Start</strong> node, then a <strong>Send buttons</strong>
-              {" "}node, then a <strong>Handoff</strong> — that&apos;s the welcome-menu shape.
+              {t("flows.builder.emptyHint.a")}
+              <strong>{nodeLabel(t, "start")}</strong>
+              {t("flows.builder.emptyHint.b")}
+              <strong>{nodeLabel(t, "send_buttons")}</strong>
+              {t("flows.builder.emptyHint.c")}
+              <strong>{t("flows.builder.handoffShort")}</strong>
+              {t("flows.builder.emptyHint.d")}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2">
               <Button size="sm" variant="outline" onClick={() => addNode("start")}>
-                <PlayCircle className="h-3.5 w-3.5 text-emerald-400" /> Start
+                <PlayCircle className="h-3.5 w-3.5 text-emerald-400" />{" "}
+                {nodeLabel(t, "start")}
               </Button>
               <Button size="sm" variant="outline" onClick={() => addNode("send_buttons")}>
-                <ListChecks className="h-3.5 w-3.5 text-primary" /> Send buttons
+                <ListChecks className="h-3.5 w-3.5 text-primary" />{" "}
+                {nodeLabel(t, "send_buttons")}
               </Button>
               <Button size="sm" variant="outline" onClick={() => addNode("handoff")}>
-                <UserPlus className="h-3.5 w-3.5 text-amber-400" /> Handoff
+                <UserPlus className="h-3.5 w-3.5 text-amber-400" />{" "}
+                {t("flows.builder.handoffShort")}
               </Button>
               <Button size="sm" variant="outline" onClick={() => addNode("end")}>
-                <Flag className="h-3.5 w-3.5 text-slate-400" /> End
+                <Flag className="h-3.5 w-3.5 text-slate-400" />{" "}
+                {nodeLabel(t, "end")}
               </Button>
             </div>
           </div>
@@ -1029,6 +1089,7 @@ function Header({
   canUndo: boolean;
   canRedo: boolean;
 }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -1038,7 +1099,7 @@ function Header({
           className="inline-flex items-center gap-1 hover:text-slate-300"
         >
           <ArrowLeft className="h-3 w-3" />
-          Flows
+          {t("flows.builder.header.back")}
         </button>
       </div>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1049,18 +1110,18 @@ function Header({
             onChange={(e) =>
               setState((s) => ({ ...s, name: e.target.value }))
             }
-            placeholder="Flow name"
+            placeholder={t("flows.builder.header.namePlaceholder")}
             className="max-w-md bg-slate-900 text-lg font-semibold"
           />
           <StatusBadge status={state.status} />
           {dirty && (
             <span
               className="inline-flex shrink-0 items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-amber-300"
-              title="Unsaved changes — hit Save to persist"
+              title={t("flows.builder.header.unsavedTitle")}
               aria-live="polite"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-              Edited
+              {t("flows.builder.header.edited")}
             </span>
           )}
         </div>
@@ -1070,7 +1131,7 @@ function Header({
             size="sm"
             onClick={onUndo}
             disabled={!canUndo}
-            title="Undo (Ctrl+Z)"
+            title={t("flows.builder.header.undo")}
           >
             <Undo2 className="h-3.5 w-3.5" />
           </Button>
@@ -1079,7 +1140,7 @@ function Header({
             size="sm"
             onClick={onRedo}
             disabled={!canRedo}
-            title="Redo (Ctrl+Y)"
+            title={t("flows.builder.header.redo")}
           >
             <Redo2 className="h-3.5 w-3.5" />
           </Button>
@@ -1089,7 +1150,7 @@ function Header({
             onClick={() => onViewRuns()}
           >
             <History className="h-3.5 w-3.5" />
-            Runs
+            {t("flows.builder.header.runs")}
           </Button>
           <Button
             variant="ghost"
@@ -1098,7 +1159,7 @@ function Header({
             className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
           >
             <Trash2 className="h-3.5 w-3.5" />
-            Delete
+            {t("flows.builder.header.delete")}
           </Button>
           {state.status === "active" ? (
             <Button
@@ -1112,7 +1173,7 @@ function Header({
               ) : (
                 <PauseCircle className="h-3.5 w-3.5" />
               )}
-              Pause
+              {t("flows.builder.header.pause")}
             </Button>
           ) : (
             <Button
@@ -1122,7 +1183,7 @@ function Header({
               disabled={activating || !canActivate}
               title={
                 !canActivate
-                  ? "Fix the issues below before activating"
+                  ? t("flows.builder.header.fixBeforeActivate")
                   : undefined
               }
             >
@@ -1131,16 +1192,16 @@ function Header({
               ) : (
                 <PlayCircle className="h-3.5 w-3.5" />
               )}
-              Activate
+              {t("flows.builder.header.activate")}
             </Button>
           )}
-          <Button onClick={onSave} disabled={saving} size="sm" title="Save (Ctrl+S)">
+          <Button onClick={onSave} disabled={saving} size="sm" title={t("flows.builder.header.saveTitle")}>
             {saving ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <Save className="h-3.5 w-3.5" />
             )}
-            Save
+            {t("flows.builder.header.save")}
           </Button>
         </div>
       </div>
@@ -1149,7 +1210,7 @@ function Header({
         onChange={(e) =>
           setState((s) => ({ ...s, description: e.target.value }))
         }
-        placeholder="Optional description (internal — customers don't see this)"
+        placeholder={t("flows.builder.header.descriptionPlaceholder")}
         className="bg-slate-900 text-sm"
       />
     </div>
@@ -1157,6 +1218,7 @@ function Header({
 }
 
 function StatusBadge({ status }: { status: BuilderState["status"] }) {
+  const t = useT();
   const cls = {
     draft: "border-slate-700 bg-slate-800 text-slate-300",
     active: "border-emerald-600/40 bg-emerald-500/10 text-emerald-300",
@@ -1164,7 +1226,7 @@ function StatusBadge({ status }: { status: BuilderState["status"] }) {
   }[status];
   return (
     <Badge variant="outline" className={cn("shrink-0", cls)}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {t(`flows.status.${status}`)}
     </Badge>
   );
 }
@@ -1182,12 +1244,17 @@ function TriggerPanel({
   setState: React.Dispatch<React.SetStateAction<BuilderState>>;
   triggerIssues: ValidationIssue[];
 }) {
+  const t = useT();
   return (
     <section className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-      <h2 className="mb-3 text-sm font-semibold text-white">Trigger</h2>
+      <h2 className="mb-3 text-sm font-semibold text-white">
+        {t("flows.builder.trigger.title")}
+      </h2>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-xs text-slate-400">When…</label>
+          <label className="mb-1 block text-xs text-slate-400">
+            {t("flows.builder.trigger.when")}
+          </label>
           <Select
             value={state.trigger_type}
             onValueChange={(v) =>
@@ -1204,13 +1271,13 @@ function TriggerPanel({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="keyword">
-                A message contains a keyword
+                {t("flows.builder.trigger.keyword")}
               </SelectItem>
               <SelectItem value="first_inbound_message">
-                Customer&apos;s first ever inbound message
+                {t("flows.builder.trigger.firstInbound")}
               </SelectItem>
               <SelectItem value="manual">
-                Manual only (no auto-trigger)
+                {t("flows.builder.trigger.manual")}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -1218,7 +1285,7 @@ function TriggerPanel({
         {state.trigger_type === "keyword" && (
           <div>
             <label className="mb-1 block text-xs text-slate-400">
-              Keywords (comma-separated)
+              {t("flows.builder.trigger.keywords")}
             </label>
             <Input
               value={
@@ -1238,7 +1305,7 @@ function TriggerPanel({
                   },
                 }))
               }
-              placeholder="support, help, hi"
+              placeholder={t("flows.builder.trigger.keywordsPlaceholder")}
               className="bg-slate-800"
             />
           </div>
@@ -1266,18 +1333,21 @@ function EntryPicker({
   state: BuilderState;
   setState: React.Dispatch<React.SetStateAction<BuilderState>>;
 }) {
+  const t = useT();
   if (state.nodes.length === 0) return null;
   return (
     <section className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900 p-3">
       <CornerDownRight className="h-4 w-4 shrink-0 text-primary" />
-      <span className="text-xs text-slate-400">Entry node:</span>
+      <span className="text-xs text-slate-400">
+        {t("flows.builder.entry.label")}
+      </span>
       <NodeKeySelect
         value={state.entry_node_id}
         nodes={state.nodes}
         onChange={(key) =>
           setState((s) => ({ ...s, entry_node_id: key }))
         }
-        placeholder="Pick the first node…"
+        placeholder={t("flows.builder.entry.placeholder")}
         className="flex-1 max-w-xs"
       />
     </section>
@@ -1325,10 +1395,11 @@ function NodeCard({
   onMoveDown: () => void;
   onDuplicate: () => void;
 }) {
+  const t = useT();
   const meta = NODE_META[node.node_type];
   const hasError = issues.some((i) => i.severity === "error");
   const flowAgents = useContext(FlowAgentsContext);
-  const preview = summarizeNode(node, flowAgents);
+  const preview = summarizeNode(t, node, flowAgents);
   return (
     <div
       ref={cardRef}
@@ -1352,7 +1423,7 @@ function NodeCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="truncate text-sm font-medium text-white">
-              {meta.label}
+              {nodeLabel(t, node.node_type)}
             </span>
             <code className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">
               {node.node_key}
@@ -1362,7 +1433,7 @@ function NodeCard({
                 variant="outline"
                 className="border-primary/40 bg-primary/10 text-[10px] text-primary"
               >
-                Entry
+                {t("flows.builder.card.entry")}
               </Badge>
             )}
           </div>
@@ -1405,7 +1476,7 @@ function NodeCard({
             <div className="flex items-center gap-1">
               {!isEntry && (
                 <Button variant="ghost" size="sm" onClick={onSetEntry}>
-                  Set as entry
+                  {t("flows.builder.card.setEntry")}
                 </Button>
               )}
               <Button
@@ -1413,7 +1484,7 @@ function NodeCard({
                 size="sm"
                 onClick={onMoveUp}
                 disabled={nodeIndex === 0}
-                title="Move up"
+                title={t("flows.builder.card.moveUp")}
               >
                 <ArrowUp className="h-3.5 w-3.5" />
               </Button>
@@ -1422,11 +1493,11 @@ function NodeCard({
                 size="sm"
                 onClick={onMoveDown}
                 disabled={nodeIndex === nodeCount - 1}
-                title="Move down"
+                title={t("flows.builder.card.moveDown")}
               >
                 <ArrowDown className="h-3.5 w-3.5" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={onDuplicate} title="Duplicate">
+              <Button variant="ghost" size="sm" onClick={onDuplicate} title={t("flows.builder.card.duplicate")}>
                 <Copy className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -1437,7 +1508,7 @@ function NodeCard({
               className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Remove
+              {t("flows.builder.card.remove")}
             </Button>
           </div>
           {issues.length > 0 && (
@@ -1474,6 +1545,7 @@ function NodeConfigForm({
   // default so the form reads as plain editing; expose under "Advanced"
   // for the rare case where someone wants to lock a key for stable
   // analytics or external integration.
+  const t = useT();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const hasReplyIds =
     node.node_type === "send_buttons" || node.node_type === "send_list";
@@ -1485,14 +1557,14 @@ function NodeConfigForm({
           allNodes={allNodes}
           currentKey={node.node_key}
           onChange={(v) => onUpdateConfig({ next_node_key: v })}
-          label="Advances to"
+          label={t("flows.builder.form.advancesTo")}
         />
       )}
 
       {node.node_type === "send_message" && (
         <>
           <TextRow
-            label="Text sent to the customer"
+            label={t("flows.builder.form.messageText")}
             value={(cfg as { text?: string }).text ?? ""}
             onChange={(v) => onUpdateConfig({ text: v })}
           />
@@ -1501,7 +1573,7 @@ function NodeConfigForm({
             allNodes={allNodes}
             currentKey={node.node_key}
             onChange={(v) => onUpdateConfig({ next_node_key: v })}
-            label="Advances to"
+            label={t("flows.builder.form.advancesTo")}
           />
         </>
       )}
@@ -1529,14 +1601,14 @@ function NodeConfigForm({
       {node.node_type === "collect_input" && (
         <>
           <TextRow
-            label="Prompt sent to the customer"
+            label={t("flows.builder.form.promptText")}
             value={(cfg as { prompt_text?: string }).prompt_text ?? ""}
             onChange={(v) => onUpdateConfig({ prompt_text: v })}
             rows={2}
           />
           <div>
             <label className="mb-1 block text-xs text-slate-400">
-              Variable key (stored in flow_runs.vars; alphanumeric + underscore)
+              {t("flows.builder.form.varKey")}
             </label>
             <Input
               value={(cfg as { var_key?: string }).var_key ?? ""}
@@ -1545,11 +1617,11 @@ function NodeConfigForm({
                   var_key: e.target.value.replace(/[^a-zA-Z0-9_]/g, ""),
                 })
               }
-              placeholder="e.g. name, email, company"
+              placeholder={t("flows.builder.form.varKeyPlaceholder")}
               className="bg-slate-800 font-mono text-xs"
             />
             <p className="mt-1 text-[10px] text-slate-500">
-              Interpolate in downstream prompts and handoff notes with{" "}
+              {t("flows.builder.form.interpolateHint")}{" "}
               <code className="rounded bg-slate-800 px-1">
                 {"{{vars."}
                 {(cfg as { var_key?: string }).var_key || "name"}
@@ -1563,7 +1635,7 @@ function NodeConfigForm({
             allNodes={allNodes}
             currentKey={node.node_key}
             onChange={(v) => onUpdateConfig({ next_node_key: v })}
-            label="After capturing, advance to"
+            label={t("flows.builder.form.afterCapture")}
           />
         </>
       )}
@@ -1588,7 +1660,7 @@ function NodeConfigForm({
 
       {node.node_type === "handoff" && (
         <TextRow
-          label="Internal note (for the agent picking up)"
+          label={t("flows.builder.form.handoffNote")}
           value={(cfg as { note?: string }).note ?? ""}
           onChange={(v) => onUpdateConfig({ note: v })}
           rows={2}
@@ -1613,8 +1685,7 @@ function NodeConfigForm({
 
       {node.node_type === "end" && (
         <p className="text-xs text-slate-500">
-          Terminal node. When the runner reaches this node the run is marked
-          complete. No config needed.
+          {t("flows.builder.form.endHelp")}
         </p>
       )}
 
@@ -1629,13 +1700,15 @@ function NodeConfigForm({
           ) : (
             <ChevronDown className="h-3 w-3" />
           )}
-          {showAdvanced ? "Hide" : "Show"} advanced
+          {showAdvanced
+            ? t("flows.builder.form.hideAdvanced")
+            : t("flows.builder.form.showAdvanced")}
         </button>
         {showAdvanced && (
           <div className="mt-3 flex flex-col gap-3">
             <div>
               <label className="mb-1 block text-xs text-slate-400">
-                Node key (internal identifier — keep stable for analytics)
+                {t("flows.builder.form.nodeKey")}
               </label>
               <Input
                 value={node.node_key}
@@ -1647,9 +1720,7 @@ function NodeConfigForm({
             </div>
             {hasReplyIds && (
               <p className="text-[10px] text-slate-500">
-                Reply IDs for each option are shown inline above. They&apos;re
-                returned by WhatsApp when a customer taps; you usually don&apos;t
-                need to touch them.
+                {t("flows.builder.form.replyIdsHelp")}
               </p>
             )}
           </div>
@@ -1681,6 +1752,7 @@ function SendButtonsForm({
   onUpdateConfig: (patch: Record<string, unknown>) => void;
   showAdvanced: boolean;
 }) {
+  const t = useT();
   const buttons = cfg.buttons ?? [];
   const updateButton = (
     idx: number,
@@ -1696,7 +1768,7 @@ function SendButtonsForm({
         ...buttons,
         {
           reply_id: `btn_${buttons.length + 1}`,
-          title: "Option",
+          title: t("flows.builder.defaults.option"),
           next_node_key: "",
         },
       ],
@@ -1715,13 +1787,13 @@ function SendButtonsForm({
         onUpdateConfig={onUpdateConfig}
       />
       <TextRow
-        label="Body text"
+        label={t("flows.builder.form.bodyText")}
         value={cfg.text ?? ""}
         onChange={(v) => onUpdateConfig({ text: v })}
         rows={3}
       />
       <TextRow
-        label="Footer (optional, 60 chars)"
+        label={t("flows.builder.form.footer")}
         value={cfg.footer_text ?? ""}
         onChange={(v) => onUpdateConfig({ footer_text: v })}
       />
@@ -1729,8 +1801,8 @@ function SendButtonsForm({
         <div className="mb-2 flex items-center justify-between">
           <label className="text-xs text-slate-400">
             {numbered
-              ? `Options (1–${maxButtons}) — each one routes to a different next node`
-              : "Buttons (1–3) — each one routes to a different next node"}
+              ? t("flows.builder.form.optionsLabel", { max: maxButtons })
+              : t("flows.builder.form.buttonsLabel")}
           </label>
         </div>
         <div className="flex flex-col gap-3">
@@ -1759,7 +1831,11 @@ function SendButtonsForm({
               <Input
                 value={b.title}
                 onChange={(e) => updateButton(i, { title: e.target.value })}
-                placeholder={numbered ? `Option ${i + 1}` : "Visible title (≤20 chars)"}
+                placeholder={
+                  numbered
+                    ? t("flows.builder.defaults.optionN", { n: i + 1 })
+                    : t("flows.builder.form.buttonTitlePlaceholder")
+                }
                 className="bg-slate-800"
                 maxLength={numbered ? NUMBERED_LIMITS.optionTitleMaxLength : 20}
               />
@@ -1768,7 +1844,7 @@ function SendButtonsForm({
                 nodes={allNodes}
                 excludeKey={currentKey}
                 onChange={(v) => updateButton(i, { next_node_key: v ?? "" })}
-                placeholder="Next node…"
+                placeholder={t("flows.builder.form.nextPlaceholder")}
               />
               <Button
                 variant="ghost"
@@ -1789,7 +1865,9 @@ function SendButtonsForm({
             className="mt-2"
           >
             <Plus className="h-3.5 w-3.5" />
-            {numbered ? "Add option" : "Add button"}
+            {numbered
+              ? t("flows.builder.form.addOption")
+              : t("flows.builder.form.addButton")}
           </Button>
         )}
       </div>
@@ -1910,6 +1988,7 @@ function SendListForm({
   onUpdateConfig: (patch: Record<string, unknown>) => void;
   showAdvanced: boolean;
 }) {
+  const t = useT();
   const sections = cfg.sections ?? [];
   const totalRows = sections.reduce((sum, s) => sum + s.rows.length, 0);
 
@@ -1932,7 +2011,7 @@ function SendListForm({
           rows: [
             {
               reply_id: `row_${totalRows + 1}`,
-              title: `Option ${totalRows + 1}`,
+              title: t("flows.builder.defaults.optionN", { n: totalRows + 1 }),
               next_node_key: "",
             },
           ],
@@ -1969,7 +2048,7 @@ function SendListForm({
                 ...s.rows,
                 {
                   reply_id: `row_${totalRows + 1}`,
-                  title: `Option ${totalRows + 1}`,
+                  title: t("flows.builder.defaults.optionN", { n: totalRows + 1 }),
                   next_node_key: "",
                 },
               ],
@@ -1995,7 +2074,7 @@ function SendListForm({
         onUpdateConfig={onUpdateConfig}
       />
       <TextRow
-        label="Body text"
+        label={t("flows.builder.form.bodyText")}
         value={cfg.text ?? ""}
         onChange={(v) => onUpdateConfig({ text: v })}
         rows={3}
@@ -2003,13 +2082,13 @@ function SendListForm({
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {!numbered && (
           <TextRow
-            label="Tap-to-expand button label (≤20 chars)"
+            label={t("flows.builder.form.listButtonLabel")}
             value={cfg.button_label ?? ""}
             onChange={(v) => onUpdateConfig({ button_label: v })}
           />
         )}
         <TextRow
-          label="Footer (optional, 60 chars)"
+          label={t("flows.builder.form.footer")}
           value={cfg.footer_text ?? ""}
           onChange={(v) => onUpdateConfig({ footer_text: v })}
         />
@@ -2017,7 +2096,7 @@ function SendListForm({
 
       <div className="mt-2">
         <label className="mb-2 block text-xs text-slate-400">
-          Rows (1–10 total across all sections)
+          {t("flows.builder.form.rows")}
         </label>
         {sections.map((section, sIdx) => (
           <div
@@ -2030,7 +2109,7 @@ function SendListForm({
                 onChange={(e) =>
                   updateSection(sIdx, { title: e.target.value })
                 }
-                placeholder={`Section ${sIdx + 1} title (optional)`}
+                placeholder={t("flows.builder.form.sectionTitle", { n: sIdx + 1 })}
                 className="bg-slate-800 text-xs"
               />
               {sections.length > 1 && (
@@ -2039,7 +2118,7 @@ function SendListForm({
                   size="sm"
                   onClick={() => removeSection(sIdx)}
                   className="shrink-0 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                  aria-label="Remove section"
+                  aria-label={t("flows.builder.form.removeSection")}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -2075,7 +2154,11 @@ function SendListForm({
                   onChange={(e) =>
                     updateRow(sIdx, rIdx, { title: e.target.value })
                   }
-                  placeholder={numbered ? "Option title" : "Row title (≤24)"}
+                  placeholder={
+                    numbered
+                      ? t("flows.builder.form.optionTitle")
+                      : t("flows.builder.form.rowTitle")
+                  }
                   className="bg-slate-800"
                   maxLength={numbered ? NUMBERED_LIMITS.optionTitleMaxLength : 24}
                 />
@@ -2086,7 +2169,7 @@ function SendListForm({
                   onChange={(v) =>
                     updateRow(sIdx, rIdx, { next_node_key: v ?? "" })
                   }
-                  placeholder="Next node…"
+                  placeholder={t("flows.builder.form.nextPlaceholder")}
                 />
                 <Button
                   variant="ghost"
@@ -2106,7 +2189,7 @@ function SendListForm({
                 className="mt-1"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Add row
+                {t("flows.builder.form.addRow")}
               </Button>
             )}
           </div>
@@ -2121,7 +2204,7 @@ function SendListForm({
             onClick={addSection}
           >
             <Plus className="h-3.5 w-3.5" />
-            Add section
+            {t("flows.builder.form.addSection")}
           </Button>
         )}
       </div>
@@ -2164,6 +2247,7 @@ function ConditionForm({
   currentKey: string;
   onUpdateConfig: (patch: Record<string, unknown>) => void;
 }) {
+  const t = useT();
   const [tags, setTags] = useState<UserTag[]>([]);
   useEffect(() => {
     let cancelled = false;
@@ -2191,7 +2275,9 @@ function ConditionForm({
     <>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div>
-          <label className="mb-1 block text-xs text-slate-400">If</label>
+          <label className="mb-1 block text-xs text-slate-400">
+            {t("flows.builder.condition.if")}
+          </label>
           <Select
             value={subject}
             onValueChange={(v) =>
@@ -2202,19 +2288,25 @@ function ConditionForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="var">Captured variable</SelectItem>
-              <SelectItem value="tag">Contact has tag</SelectItem>
-              <SelectItem value="contact_field">Contact field</SelectItem>
+              <SelectItem value="var">
+                {t("flows.builder.condition.subjectVar")}
+              </SelectItem>
+              <SelectItem value="tag">
+                {t("flows.builder.condition.subjectTag")}
+              </SelectItem>
+              <SelectItem value="contact_field">
+                {t("flows.builder.condition.subjectField")}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="md:col-span-2">
           <label className="mb-1 block text-xs text-slate-400">
             {subject === "var"
-              ? "var name"
+              ? t("flows.builder.condition.varName")
               : subject === "tag"
-                ? "Tag"
-                : "Field"}
+                ? t("flows.builder.condition.tag")
+                : t("flows.builder.condition.field")}
           </label>
           {subject === "tag" && tags.length > 0 ? (
             <Select
@@ -2222,12 +2314,12 @@ function ConditionForm({
               onValueChange={(v) => onUpdateConfig({ subject_key: v })}
             >
               <SelectTrigger className="bg-slate-800">
-                <SelectValue placeholder="Pick a tag…" />
+                <SelectValue placeholder={t("flows.builder.condition.pickTag")} />
               </SelectTrigger>
               <SelectContent>
-                {tags.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
+                {tags.map((tag) => (
+                  <SelectItem key={tag.id} value={tag.id}>
+                    {tag.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -2238,20 +2330,25 @@ function ConditionForm({
               onValueChange={(v) => onUpdateConfig({ subject_key: v })}
             >
               <SelectTrigger className="bg-slate-800">
-                <SelectValue placeholder="Pick a field…" />
+                <SelectValue placeholder={t("flows.builder.condition.pickField")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="name">name</SelectItem>
-                <SelectItem value="email">email</SelectItem>
-                <SelectItem value="phone">phone</SelectItem>
-                <SelectItem value="company">company</SelectItem>
+                {(["name", "email", "phone", "company"] as const).map((f) => (
+                  <SelectItem key={f} value={f}>
+                    {t(`flows.builder.condition.fields.${f}`)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           ) : (
             <Input
               value={cfg.subject_key ?? ""}
               onChange={(e) => onUpdateConfig({ subject_key: e.target.value })}
-              placeholder={subject === "var" ? "e.g. email" : "tag UUID"}
+              placeholder={
+                subject === "var"
+                  ? t("flows.builder.condition.varPlaceholder")
+                  : t("flows.builder.condition.tagUuid")
+              }
               className="bg-slate-800 font-mono text-xs"
             />
           )}
@@ -2265,7 +2362,9 @@ function ConditionForm({
         )}
       >
         <div>
-          <label className="mb-1 block text-xs text-slate-400">Operator</label>
+          <label className="mb-1 block text-xs text-slate-400">
+            {t("flows.builder.condition.operator")}
+          </label>
           <Select
             value={operator}
             onValueChange={(v) =>
@@ -2276,16 +2375,26 @@ function ConditionForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="present">is present</SelectItem>
-              <SelectItem value="absent">is absent</SelectItem>
-              <SelectItem value="equals">equals</SelectItem>
-              <SelectItem value="contains">contains</SelectItem>
+              <SelectItem value="present">
+                {t("flows.builder.condition.opPresent")}
+              </SelectItem>
+              <SelectItem value="absent">
+                {t("flows.builder.condition.opAbsent")}
+              </SelectItem>
+              <SelectItem value="equals">
+                {t("flows.builder.condition.opEquals")}
+              </SelectItem>
+              <SelectItem value="contains">
+                {t("flows.builder.condition.opContains")}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
         {showValue && (
           <div>
-            <label className="mb-1 block text-xs text-slate-400">Value</label>
+            <label className="mb-1 block text-xs text-slate-400">
+              {t("flows.builder.condition.value")}
+            </label>
             <Input
               value={cfg.value ?? ""}
               onChange={(e) => onUpdateConfig({ value: e.target.value })}
@@ -2301,14 +2410,14 @@ function ConditionForm({
           allNodes={allNodes}
           currentKey={currentKey}
           onChange={(v) => onUpdateConfig({ true_next: v })}
-          label="If true → advance to"
+          label={t("flows.builder.condition.ifTrue")}
         />
         <NextNodeRow
           value={cfg.false_next ?? ""}
           allNodes={allNodes}
           currentKey={currentKey}
           onChange={(v) => onUpdateConfig({ false_next: v })}
-          label="If false → advance to"
+          label={t("flows.builder.condition.ifFalse")}
         />
       </div>
     </>
@@ -2334,6 +2443,7 @@ function SetTagForm({
   currentKey: string;
   onUpdateConfig: (patch: Record<string, unknown>) => void;
 }) {
+  const t = useT();
   const [tags, setTags] = useState<UserTag[]>([]);
   useEffect(() => {
     let cancelled = false;
@@ -2356,7 +2466,9 @@ function SetTagForm({
     <>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-xs text-slate-400">Action</label>
+          <label className="mb-1 block text-xs text-slate-400">
+            {t("flows.builder.tag.action")}
+          </label>
           <Select
             value={cfg.mode ?? "add"}
             onValueChange={(v) =>
@@ -2367,25 +2479,29 @@ function SetTagForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="add">Add tag</SelectItem>
-              <SelectItem value="remove">Remove tag</SelectItem>
+              <SelectItem value="add">{t("flows.builder.tag.add")}</SelectItem>
+              <SelectItem value="remove">
+                {t("flows.builder.tag.remove")}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <label className="mb-1 block text-xs text-slate-400">Tag</label>
+          <label className="mb-1 block text-xs text-slate-400">
+            {t("flows.builder.tag.tag")}
+          </label>
           {tags.length > 0 ? (
             <Select
               value={cfg.tag_id ?? ""}
               onValueChange={(v) => onUpdateConfig({ tag_id: v })}
             >
               <SelectTrigger className="bg-slate-800">
-                <SelectValue placeholder="Pick a tag…" />
+                <SelectValue placeholder={t("flows.builder.tag.pickTag")} />
               </SelectTrigger>
               <SelectContent>
-                {tags.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
+                {tags.map((tag) => (
+                  <SelectItem key={tag.id} value={tag.id}>
+                    {tag.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -2394,7 +2510,7 @@ function SetTagForm({
             <Input
               value={cfg.tag_id ?? ""}
               onChange={(e) => onUpdateConfig({ tag_id: e.target.value })}
-              placeholder="Tag UUID"
+              placeholder={t("flows.builder.tag.uuid")}
               className="bg-slate-800 font-mono text-xs"
             />
           )}
@@ -2405,7 +2521,7 @@ function SetTagForm({
         allNodes={allNodes}
         currentKey={currentKey}
         onChange={(v) => onUpdateConfig({ next_node_key: v })}
-        label="Then advance to"
+        label={t("flows.builder.tag.thenAdvance")}
       />
     </>
   );
@@ -2560,9 +2676,9 @@ function HandoffAiAgentForm({
         ) : agents.length === 0 ? (
           <p className="text-xs text-amber-400">
             {t("routing.flowNode.noAgents")}{" "}
-            <a href="/agents" className="underline underline-offset-2">
+            <Link href="/agents" className="underline underline-offset-2">
               {t("routing.flowNode.createAgent")}
-            </a>
+            </Link>
           </p>
         ) : (
           <Select
@@ -2639,6 +2755,7 @@ function NextNodeRow({
   onChange: (v: string) => void;
   label: string;
 }) {
+  const t = useT();
   return (
     <div>
       <label className="mb-1 block text-xs text-slate-400">{label}</label>
@@ -2647,7 +2764,7 @@ function NextNodeRow({
         nodes={allNodes}
         excludeKey={currentKey}
         onChange={(v) => onChange(v ?? "")}
-        placeholder="Pick a next node…"
+        placeholder={t("flows.builder.form.pickNext")}
       />
     </div>
   );
@@ -2668,6 +2785,7 @@ function NodeKeySelect({
   placeholder?: string;
   className?: string;
 }) {
+  const t = useT();
   const options = nodes.filter((n) => n.node_key !== excludeKey);
   return (
     <Select
@@ -2678,7 +2796,7 @@ function NodeKeySelect({
         <SelectValue placeholder={placeholder ?? "—"} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="__none__">— None —</SelectItem>
+        <SelectItem value="__none__">{t("flows.builder.form.none")}</SelectItem>
         {options.map((n) => {
           const Icon = NODE_META[n.node_type].icon;
           return (
@@ -2703,7 +2821,6 @@ function NodeKeySelect({
 
 function InsertBetweenButton({
   afterKey,
-  nextKey,
   isConnected,
   onInsert,
 }: {
@@ -2712,6 +2829,7 @@ function InsertBetweenButton({
   isConnected: boolean;
   onInsert: (afterKey: string, type: NodeType) => void;
 }) {
+  const t = useT();
   const types: NodeType[] = [
     "send_message",
     "send_buttons",
@@ -2743,17 +2861,17 @@ function InsertBetweenButton({
       <DropdownMenu>
         <DropdownMenuTrigger
           className="relative z-10 mx-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-slate-400 opacity-40 transition-all hover:border-primary hover:bg-primary/10 hover:text-primary hover:opacity-100 group-hover:opacity-100"
-          aria-label="Insert node here"
+          aria-label={t("flows.builder.insertHere")}
         >
           <Plus className="h-3 w-3" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="border-slate-700 bg-slate-900">
-          {types.map((t) => {
-            const meta = NODE_META[t];
+          {types.map((type) => {
+            const meta = NODE_META[type];
             return (
-              <DropdownMenuItem key={t} onClick={() => onInsert(afterKey, t)}>
+              <DropdownMenuItem key={type} onClick={() => onInsert(afterKey, type)}>
                 <meta.icon className={cn("h-3.5 w-3.5", meta.color)} />
-                {meta.label}
+                {nodeLabel(t, type)}
               </DropdownMenuItem>
             );
           })}
@@ -2767,56 +2885,44 @@ function InsertBetweenButton({
 // Add-node menu
 // ============================================================
 
-const NODE_DESCRIPTIONS: Record<NodeType, string> = {
-  start: "Entry point of the flow",
-  send_message: "Send a text message",
-  send_buttons: "Message with up to 3 reply buttons",
-  send_list: "Interactive list menu (up to 10 options)",
-  collect_input: "Ask a question and store the answer",
-  condition: "Branch based on a variable or tag",
-  set_tag: "Add or remove a contact tag",
-  handoff: "Transfer to a human agent",
-  handoff_ai_agent: "Let an AI agent take over the conversation",
-  book_appointment: "The customer books by tapping day and time (no AI)",
-  end: "End the flow",
-};
-
+// Node descriptions live in `flows.builder.nodeDesc.*`.
 function AddNodeButton({ onAdd }: { onAdd: (type: NodeType) => void }) {
+  const t = useT();
   const categories: { label: string; types: NodeType[] }[] = [
-    { label: "Flow control", types: ["start", "condition", "end"] },
-    { label: "Messages", types: ["send_message", "send_buttons", "send_list"] },
-    { label: "Data", types: ["collect_input", "set_tag"] },
-    { label: "Actions", types: ["handoff", "handoff_ai_agent", "book_appointment"] },
+    { label: "flowControl", types: ["start", "condition", "end"] },
+    { label: "messages", types: ["send_message", "send_buttons", "send_list"] },
+    { label: "data", types: ["collect_input", "set_tag"] },
+    { label: "actions", types: ["handoff", "handoff_ai_agent", "book_appointment"] },
   ];
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         className="inline-flex items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-200 transition-colors hover:bg-slate-800"
-        aria-label="Add node"
+        aria-label={t("flows.builder.addNode")}
       >
         <Plus className="h-3.5 w-3.5" />
-        Add node
+        {t("flows.builder.addNode")}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64 border-slate-700 bg-slate-900">
         {categories.map((cat) => (
           <div key={cat.label}>
             <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              {cat.label}
+              {t(`flows.builder.categories.${cat.label}`)}
             </div>
-            {cat.types.map((t) => {
-              const meta = NODE_META[t];
+            {cat.types.map((type) => {
+              const meta = NODE_META[type];
               return (
                 <DropdownMenuItem
-                  key={t}
-                  onClick={() => onAdd(t)}
+                  key={type}
+                  onClick={() => onAdd(type)}
                   className="flex flex-col items-start gap-0 py-1.5"
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <meta.icon className={cn("h-3.5 w-3.5", meta.color)} />
-                    {meta.label}
+                    {nodeLabel(t, type)}
                   </span>
                   <span className="ml-5 text-[10px] text-slate-500">
-                    {NODE_DESCRIPTIONS[t]}
+                    {t(`flows.builder.nodeDesc.${type}`)}
                   </span>
                 </DropdownMenuItem>
               );
@@ -2839,6 +2945,7 @@ function ValidationPanel({
   issues: ValidationIssue[];
   onJump: (key: string) => void;
 }) {
+  const t = useT();
   if (issues.length === 0) {
     // Slate-950 base + emerald accents so the panel stays readable when
     // sticky-positioned over scrolled-behind node cards (a translucent
@@ -2846,7 +2953,7 @@ function ValidationPanel({
     return (
       <div className="flex items-center gap-2 rounded-lg border border-emerald-600/50 bg-slate-950 p-3 text-sm font-medium text-emerald-300">
         <CircleCheck className="h-4 w-4 shrink-0" />
-        No issues. Ready to activate.
+        {t("flows.builder.validation.ready")}
       </div>
     );
   }
@@ -2865,8 +2972,15 @@ function ValidationPanel({
         ) : (
           <CircleAlert className="h-4 w-4 text-amber-400" />
         )}
-        {errors.length} error{errors.length === 1 ? "" : "s"},{" "}
-        {warnings.length} warning{warnings.length === 1 ? "" : "s"}
+        {errors.length === 1
+          ? t("flows.builder.validation.errorsOne")
+          : t("flows.builder.validation.errorsMany", { count: errors.length })}
+        ,{" "}
+        {warnings.length === 1
+          ? t("flows.builder.validation.warningsOne")
+          : t("flows.builder.validation.warningsMany", {
+              count: warnings.length,
+            })}
       </div>
       <div className="flex flex-col gap-1">
         {issues.map((i, ix) => (
@@ -2884,6 +2998,7 @@ function IssueLine({
   issue: ValidationIssue;
   onJump?: (key: string) => void;
 }) {
+  const t = useT();
   const tone =
     issue.severity === "error" ? "text-red-300" : "text-amber-300";
   const iconTone =
@@ -2897,7 +3012,9 @@ function IssueLine({
             {issue.node_key}
           </code>
         )}
-        {issue.message}
+        {issue.code
+          ? t(`flows.issues.${issue.code}`, issue.params)
+          : issue.message}
       </span>
     </>
   );
@@ -2913,7 +3030,7 @@ function IssueLine({
           "flex w-full items-start gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-slate-800/60",
           tone,
         )}
-        aria-label={`Jump to node ${issue.node_key}`}
+        aria-label={t("flows.builder.validation.jumpTo", { key: issue.node_key })}
       >
         {body}
       </button>

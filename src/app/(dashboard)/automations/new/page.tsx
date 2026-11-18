@@ -2,24 +2,42 @@
 
 import { useMemo } from "react"
 import { useSearchParams } from "next/navigation"
+import { Loader2 } from "lucide-react"
 
 import {
   AutomationBuilder,
   type BuilderInitial,
   type BuilderStep,
 } from "@/components/automations/automation-builder"
-import { AUTOMATION_TEMPLATES, type TemplateSlug } from "@/lib/automations/templates"
+import {
+  AUTOMATION_TEMPLATES,
+  localizedTemplate,
+  templateLabels,
+  type TemplateSlug,
+} from "@/lib/automations/templates"
+import { useI18n } from "@/i18n/client"
+import { createTranslator } from "@/i18n/translate"
+import { isLocale } from "@/i18n/config"
+import { useWorkspace } from "@/hooks/use-workspace"
 import type { AutomationStepType, AutomationTriggerType } from "@/types"
 
 export default function NewAutomationPage() {
   const params = useSearchParams()
   const template = params.get("template") as TemplateSlug | null
+  const { t, locale } = useI18n()
+  const { workspace, loading } = useWorkspace()
+  const hasTemplate = !!template && !!AUTOMATION_TEMPLATES[template]
+  // Customer-facing template text follows the workspace language; the
+  // UI language is the fallback while/if the workspace has none.
+  const workspaceLocale = workspace?.locale
+  const messageLocale = isLocale(workspaceLocale) ? workspaceLocale : locale
 
   const initial: BuilderInitial = useMemo(() => {
     if (template && AUTOMATION_TEMPLATES[template]) {
-      const t = AUTOMATION_TEMPLATES[template]
+      const tpl = localizedTemplate(template, createTranslator(messageLocale))
+      const labels = templateLabels(template, t)
       const steps = expandFromSeeds(
-        t.steps.map((seed, idx) => ({
+        tpl.steps.map((seed, idx) => ({
           index: idx,
           step_type: seed.step_type,
           step_config: seed.step_config as Record<string, unknown>,
@@ -28,10 +46,10 @@ export default function NewAutomationPage() {
         })),
       )
       return {
-        name: t.name,
-        description: t.description,
-        trigger_type: t.trigger_type,
-        trigger_config: t.trigger_config as Record<string, unknown>,
+        name: labels.name,
+        description: labels.description,
+        trigger_type: tpl.trigger_type,
+        trigger_config: tpl.trigger_config as Record<string, unknown>,
         is_active: false,
         steps,
       }
@@ -44,7 +62,17 @@ export default function NewAutomationPage() {
       is_active: false,
       steps: [],
     }
-  }, [template])
+  }, [template, t, messageLocale])
+
+  // The builder copies `initial` once, so wait for the workspace locale
+  // before seeding a template's messages.
+  if (hasTemplate && loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return <AutomationBuilder initial={initial} />
 }
