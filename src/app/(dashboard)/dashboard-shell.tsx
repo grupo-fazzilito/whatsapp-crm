@@ -78,7 +78,10 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
         <CreditsBanner />
         <SetupHelpOffer />
         {/* Thinner horizontal padding on mobile so cards have room to breathe. */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+        {/* relative: absolutely positioned children (sr-only labels in tables and
+            lists) anchor here and scroll with the page; without it they anchor to
+            the document and stretch it, adding a second scrollbar and empty space. */}
+        <main className="relative flex-1 overflow-y-auto p-4 sm:p-6">
           <div className={fullWidth ? "w-full" : "mx-auto w-full max-w-screen-xl"}>
             <SectionTabs />
             {children}
