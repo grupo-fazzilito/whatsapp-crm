@@ -18,7 +18,9 @@ import type {
 } from "@/types"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { formatRelative } from "@/lib/automations/trigger-meta"
+import { formatRelative, triggerPillLabel } from "@/lib/automations/trigger-meta"
+import { useI18n, useT } from "@/i18n/client"
+import type { Translator } from "@/i18n/translate"
 
 export default function AutomationLogsPage({
   params,
@@ -27,6 +29,7 @@ export default function AutomationLogsPage({
 }) {
   const { id } = use(params)
   const router = useRouter()
+  const { t, locale } = useI18n()
 
   const [automation, setAutomation] = useState<Automation | null>(null)
   const [logs, setLogs] = useState<AutomationLog[] | null>(null)
@@ -38,22 +41,22 @@ export default function AutomationLogsPage({
       try {
         const res = await fetch(`/api/automations/${id}/logs`, { cache: "no-store" })
         const body = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(body?.error ?? "Failed to load logs")
+        if (!res.ok) throw new Error(body?.error ?? t("automations.logs.loadFailed"))
         setAutomation(body.automation as Automation | null)
         setLogs((body.logs ?? []) as AutomationLog[])
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load logs")
+        setError(err instanceof Error ? err.message : t("automations.logs.loadFailed"))
       }
     }
     load()
-  }, [id])
+  }, [id, t])
 
   if (error) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-3">
         <p className="text-sm text-red-400">{error}</p>
         <Button variant="outline" onClick={() => router.push("/automations")}>
-          Back
+          {t("automations.logs.back")}
         </Button>
       </div>
     )
@@ -74,21 +77,21 @@ export default function AutomationLogsPage({
           type="button"
           onClick={() => router.push("/automations")}
           className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
-          aria-label="Back"
+          aria-label={t("automations.logs.back")}
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div>
           <h1 className="text-2xl font-bold text-white">{automation.name}</h1>
-          <p className="mt-0.5 text-sm text-slate-400">Execution logs</p>
+          <p className="mt-0.5 text-sm text-slate-400">{t("automations.logs.subtitle")}</p>
         </div>
       </div>
 
       {logs.length === 0 ? (
         <div className="flex h-48 flex-col items-center justify-center rounded-xl border border-dashed border-slate-800 bg-slate-900/40">
-          <p className="text-sm text-white">No executions yet</p>
+          <p className="text-sm text-white">{t("automations.logs.emptyTitle")}</p>
           <p className="mt-1 text-xs text-slate-400">
-            Trigger this automation to see runs here.
+            {t("automations.logs.emptyHint")}
           </p>
         </div>
       ) : (
@@ -113,15 +116,17 @@ export default function AutomationLogsPage({
                   <StatusBadge status={log.status} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium text-white">
-                      {log.contact?.name ?? log.contact?.phone ?? "Unknown contact"}
+                      {log.contact?.name ?? log.contact?.phone ?? t("automations.logs.unknownContact")}
                     </div>
                     <div className="truncate text-xs text-slate-500">
-                      {log.trigger_event} · {log.steps_executed?.length ?? 0} step
-                      {log.steps_executed?.length === 1 ? "" : "s"}
+                      {triggerPillLabel(log.trigger_event, t)} ·{" "}
+                      {log.steps_executed?.length === 1
+                        ? t("automations.logs.stepsOne")
+                        : t("automations.logs.stepsMany", { count: log.steps_executed?.length ?? 0 })}
                     </div>
                   </div>
                   <div className="text-xs text-slate-500">
-                    {formatRelative(log.created_at)}
+                    {formatRelative(log.created_at, t, locale)}
                   </div>
                 </button>
                 {isOpen && (
@@ -136,7 +141,7 @@ export default function AutomationLogsPage({
                         <StepRow key={i} result={r} />
                       ))}
                       {(log.steps_executed ?? []).length === 0 && (
-                        <li className="text-xs text-slate-500">No steps recorded.</li>
+                        <li className="text-xs text-slate-500">{t("automations.logs.noSteps")}</li>
                       )}
                     </ul>
                   </div>
@@ -151,6 +156,7 @@ export default function AutomationLogsPage({
 }
 
 function StatusBadge({ status }: { status: AutomationLog["status"] }) {
+  const t = useT()
   const classes =
     status === "success"
       ? "border-primary/30 bg-primary/10 text-primary"
@@ -164,12 +170,13 @@ function StatusBadge({ status }: { status: AutomationLog["status"] }) {
         classes,
       )}
     >
-      {status}
+      {translated(t, `automations.logs.status.${status}`, status)}
     </span>
   )
 }
 
 function StepRow({ result }: { result: AutomationLogStepResult }) {
+  const t = useT()
   const ok = result.status === "success"
   return (
     <li className="flex items-start gap-2 text-xs">
@@ -182,10 +189,18 @@ function StepRow({ result }: { result: AutomationLogStepResult }) {
       >
         {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
       </span>
-      <span className="text-slate-300">{result.step_type}</span>
+      <span className="text-slate-300">
+        {translated(t, `automations.steps.${result.step_type}`, result.step_type)}
+      </span>
       {result.detail && (
         <span className="truncate text-slate-500">— {result.detail}</span>
       )}
     </li>
   )
+}
+
+/** `t(key)`, or `fallback` when the key has no translation. */
+function translated(t: Translator, key: string, fallback: string): string {
+  const out = t(key)
+  return out === key ? fallback : out
 }

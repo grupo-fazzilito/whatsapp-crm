@@ -1,0 +1,221 @@
+{
+  "automations": {
+    "list": {
+      "title": "Automations",
+      "subtitle": "Build workflows that react to WhatsApp® events automatically.",
+      "create": "Create Automation",
+      "templatesTitle": "Quick-start templates",
+      "emptyTitle": "No automations yet",
+      "emptyHint": "Pick a template above or create one from scratch.",
+      "retry": "Retry",
+      "loadFailed": "Failed to load automations",
+      "updateFailed": "Failed to update",
+      "activated": "Automation activated",
+      "paused": "Automation paused",
+      "duplicateFailed": "Failed to duplicate",
+      "duplicated": "Automation duplicated",
+      "deleteFailed": "Failed to delete",
+      "deleted": "Automation deleted",
+      "deleteTitle": "Delete automation",
+      "deleteBodyBefore": "This permanently removes",
+      "deleteBodyAfter": "and its execution history. This cannot be undone.",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "viewLogs": "View Logs",
+      "runsOne": "1 run",
+      "runsMany": "{count} runs",
+      "lastRun": "last {when}",
+      "activeAria": "active",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "openMenu": "Open menu"
+    },
+    "relative": {
+      "never": "never",
+      "justNow": "just now",
+      "minutesAgo": "{n}m ago",
+      "hoursAgo": "{n}h ago",
+      "daysAgo": "{n}d ago"
+    },
+    "edit": {
+      "loadFailed": "Failed to load ({status})",
+      "backToList": "Back to Automations"
+    },
+    "logs": {
+      "loadFailed": "Failed to load logs",
+      "back": "Back",
+      "subtitle": "Execution logs",
+      "emptyTitle": "No executions yet",
+      "emptyHint": "Trigger this automation to see runs here.",
+      "unknownContact": "Unknown contact",
+      "stepsOne": "1 step",
+      "stepsMany": "{count} steps",
+      "noSteps": "No steps recorded.",
+      "status": {
+        "success": "success",
+        "partial": "partial",
+        "failed": "failed"
+      }
+    },
+    "triggers": {
+      "new_message_received": {
+        "pill": "New Message",
+        "label": "New Message Received",
+        "hint": "Any incoming message"
+      },
+      "first_inbound_message": {
+        "pill": "First Message from Contact",
+        "label": "First Message from Contact",
+        "hint": "First time this contact ever messages you (works for manually-added contacts too)"
+      },
+      "keyword_match": {
+        "pill": "Keyword Match",
+        "label": "Keyword Match",
+        "hint": "Message contains specific keyword(s)"
+      },
+      "new_contact_created": {
+        "pill": "New Contact",
+        "label": "New Contact Created",
+        "hint": "When a contact is auto-created from an incoming message"
+      },
+      "conversation_assigned": {
+        "pill": "Conversation Assigned",
+        "label": "Conversation Assigned",
+        "hint": "When assigned to an agent"
+      },
+      "tag_added": {
+        "pill": "Tag Added",
+        "label": "Tag Added",
+        "hint": "When a tag is added to a contact"
+      },
+      "time_based": {
+        "pill": "Time-Based",
+        "label": "Time-Based",
+        "hint": "On a recurring schedule"
+      }
+    },
+    "steps": {
+      "send_message": "Send Message",
+      "send_template": "Send Template",
+      "add_tag": "Add Tag",
+      "remove_tag": "Remove Tag",
+      "assign_conversation": "Assign Conversation",
+      "update_contact_field": "Update Contact Field",
+      "create_deal": "Create Deal",
+      "wait": "Wait",
+      "condition": "Condition (If/Else)",
+      "send_webhook": "Send Webhook",
+      "close_conversation": "Close Conversation",
+      "ai_followup": "AI follow-up"
+    },
+    "builder": {
+      "untitled": "Untitled automation",
+      "issueAt": "at {path}",
+      "saveFailed": "Save failed",
+      "saved": "Automation saved",
+      "created": "Automation created",
+      "backAria": "Back to automations",
+      "active": "Active",
+      "save": "Save",
+      "saveDraft": "Save Draft",
+      "trigger": "Trigger",
+      "triggerType": "Trigger type",
+      "tagIdPlaceholder": "Tag id",
+      "schedulePlaceholder": "Cron expression or HH:mm",
+      "keywords": "Keywords (comma-separated)",
+      "matchType": "Match type",
+      "matchContains": "Contains",
+      "matchExact": "Exact",
+      "kindCondition": "Condition",
+      "kindWait": "Wait",
+      "kindAction": "Action",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "delete": "Delete",
+      "branchYes": "Yes",
+      "branchNo": "No",
+      "addStep": "Add step",
+      "messageText": "Message text",
+      "messagePlaceholder": "Hi! Thanks for reaching out…",
+      "templateName": "Template name",
+      "language": "Language",
+      "tagId": "Tag id",
+      "mode": "Mode",
+      "roundRobin": "Round-robin",
+      "specificAgent": "Specific agent",
+      "agentId": "Agent id",
+      "field": "Field",
+      "fieldName": "Name",
+      "fieldEmail": "Email",
+      "fieldCompany": "Company",
+      "value": "Value",
+      "pipelineId": "Pipeline id",
+      "stageId": "Stage id",
+      "title": "Title",
+      "amount": "Amount",
+      "unit": "Unit",
+      "units": {
+        "minutes": "Minutes",
+        "hours": "Hours",
+        "days": "Days"
+      },
+      "subject": "Subject",
+      "subjects": {
+        "tag_presence": "Tag presence",
+        "contact_field": "Contact field",
+        "message_content": "Message content",
+        "time_of_day": "Time of day"
+      },
+      "operand": "Operand",
+      "operandContactField": "name / email / company",
+      "operandTag": "tag id",
+      "url": "URL",
+      "bodyTemplate": "Body template (JSON)",
+      "closeHelp": "Sets the conversation status to \"closed\". No configuration needed.",
+      "previewNoText": "no text yet",
+      "previewPickTemplate": "pick a template",
+      "previewWhen": "when {subject}",
+      "previewNoUrl": "no url"
+    },
+    "templates": {
+      "welcome_message": {
+        "name": "Welcome Message",
+        "description": "Auto-reply to first-time contacts with a greeting.",
+        "message": "Hi! 👋 Thanks for reaching out. We'll get back to you shortly."
+      },
+      "out_of_office": {
+        "name": "Out of Office",
+        "description": "Auto-reply during off-hours so nobody is left waiting.",
+        "message": "Thanks for your message! Our team is offline right now (9am–6pm) and will reply first thing tomorrow."
+      },
+      "lead_qualifier": {
+        "name": "Lead Qualifier",
+        "description": "Ask qualification questions to filter inbound leads.",
+        "message": "Great — happy to help with pricing! Quick question: roughly how many seats are you looking for?",
+        "keywords": "pricing, quote, buy"
+      },
+      "followup_no_reply_2h": {
+        "name": "No-reply follow-up (2 h)",
+        "description": "If the customer doesn't reply within 2 hours, we write to pick the conversation back up.",
+        "message": "Hi! 👋 Did you get a chance to look at what we sent? If you have any questions, I'm here to help."
+      },
+      "followup_last_call_23h": {
+        "name": "Last call before 24 h",
+        "description": "After 23 h without a reply, the AI writes one last message before WhatsApp's 24-hour window closes.",
+        "instructions": "This is the last message we can send before the conversation closes. Pick up what the customer needed and ask if they want to continue."
+      },
+      "followup_winback_3d": {
+        "name": "Win back customer (3 days, template)",
+        "description": "After 3 days without a reply the 24-hour window is closed, so we send an approved WhatsApp template."
+      },
+      "appointment_booking": {
+        "name": "Doctor Appointment Booking",
+        "description": "Auto-reply to patient booking requests and route them to your clinic staff.",
+        "message": "Hello! 🏥 Thank you for contacting our clinic. To request an appointment, please reply with:\n\n1. Patient's Full Name\n2. Preferred Specialty / Doctor\n3. Preferred Date & Time\n\nYou can also view our schedule and book directly here: https://example.com/booking",
+        "keywords": "book, appointment, doctor, slot, clinic, visit, checkup"
+      }
+    }
+  }
+}

@@ -4,6 +4,7 @@ import type {
   AutomationTriggerConfig,
   AutomationTriggerType,
 } from '@/types'
+import type { Translator } from '@/i18n/translate'
 
 export type TemplateSlug =
   | 'welcome_message'
@@ -191,4 +192,61 @@ export const AUTOMATION_TEMPLATES: Record<TemplateSlug, AutomationTemplateDefini
 
 export function getTemplate(slug: string): AutomationTemplateDefinition | null {
   return AUTOMATION_TEMPLATES[slug as TemplateSlug] ?? null
+}
+
+/** Translated text for `automations.templates.<slug>.<field>`, or `fallback` when the key is missing. */
+function templateString(slug: TemplateSlug, field: string, t: Translator, fallback: string): string {
+  const key = `automations.templates.${slug}.${field}`
+  const out = t(key)
+  return out === key ? fallback : out
+}
+
+/** Template name/description in the UI language (English fallback from the definition). */
+export function templateLabels(
+  slug: TemplateSlug,
+  t: Translator,
+): { name: string; description: string } {
+  const def = AUTOMATION_TEMPLATES[slug]
+  return {
+    name: templateString(slug, 'name', t, def.name),
+    description: templateString(slug, 'description', t, def.description),
+  }
+}
+
+/**
+ * The template with its customer-facing text (message, AI instructions,
+ * keywords) in the language of `t` — pass a translator for the workspace
+ * locale so customers get messages in the business's language.
+ */
+export function localizedTemplate(
+  slug: TemplateSlug,
+  t: Translator,
+): AutomationTemplateDefinition {
+  const def = AUTOMATION_TEMPLATES[slug]
+  const triggerConfig = def.trigger_config as Record<string, unknown>
+  const keywords = Array.isArray(triggerConfig.keywords)
+    ? templateString(slug, 'keywords', t, (triggerConfig.keywords as string[]).join(', '))
+        .split(',')
+        .map((k) => k.trim())
+        .filter(Boolean)
+    : undefined
+  return {
+    ...def,
+    trigger_config: (keywords
+      ? { ...triggerConfig, keywords }
+      : def.trigger_config) as unknown as AutomationTriggerConfig,
+    steps: def.steps.map((seed) => {
+      const cfg = seed.step_config as Record<string, unknown>
+      if (seed.step_type === 'send_message' && typeof cfg.text === 'string') {
+        return { ...seed, step_config: { ...cfg, text: templateString(slug, 'message', t, cfg.text) } as unknown as AutomationStepConfig }
+      }
+      if (seed.step_type === 'ai_followup' && typeof cfg.instructions === 'string') {
+        return {
+          ...seed,
+          step_config: { ...cfg, instructions: templateString(slug, 'instructions', t, cfg.instructions) } as unknown as AutomationStepConfig,
+        }
+      }
+      return seed
+    }),
+  }
 }

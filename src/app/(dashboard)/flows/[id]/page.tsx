@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { FlowBuilder } from "@/components/flows/flow-builder";
 import type { FlowRow, FlowNodeRow } from "@/lib/flows/types";
+import { useT } from "@/i18n/client";
 
 /**
  * Flow editor shell.
@@ -22,6 +23,7 @@ import type { FlowRow, FlowNodeRow } from "@/lib/flows/types";
  */
 export default function FlowEditorPage() {
   const router = useRouter();
+  const t = useT();
   const params = useParams<{ id: string }>();
 
   const [flow, setFlow] = useState<FlowRow | null>(null);
@@ -51,7 +53,7 @@ export default function FlowEditorPage() {
       } catch (err) {
         if (!cancelled) {
           console.error(err);
-          toast.error("Couldn't load flow.");
+          toast.error(t("flows.editor.loadError"));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -60,7 +62,7 @@ export default function FlowEditorPage() {
     return () => {
       cancelled = true;
     };
-  }, [params.id]);
+  }, [params.id, t]);
 
   if (loading) {
     return (
@@ -72,13 +74,13 @@ export default function FlowEditorPage() {
   if (notFound || !flow) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
-        <p className="text-sm text-slate-400">Flow not found.</p>
+        <p className="text-sm text-slate-400">{t("flows.editor.notFound")}</p>
         <button
           type="button"
           onClick={() => router.push("/flows")}
           className="text-sm text-primary hover:opacity-80"
         >
-          ← Back to flows
+          ← {t("flows.editor.backToFlows")}
         </button>
       </div>
     );

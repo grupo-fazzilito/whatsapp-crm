@@ -1,0 +1,221 @@
+{
+  "automations": {
+    "list": {
+      "title": "Automatizaciones",
+      "subtitle": "Crea flujos que responden solos a lo que pasa en WhatsApp®.",
+      "create": "Crear automatización",
+      "templatesTitle": "Plantillas para empezar rápido",
+      "emptyTitle": "Todavía no tienes automatizaciones",
+      "emptyHint": "Elige una plantilla de arriba o crea una desde cero.",
+      "retry": "Reintentar",
+      "loadFailed": "No se pudieron cargar las automatizaciones",
+      "updateFailed": "No se pudo actualizar",
+      "activated": "Automatización activada",
+      "paused": "Automatización pausada",
+      "duplicateFailed": "No se pudo duplicar",
+      "duplicated": "Automatización duplicada",
+      "deleteFailed": "No se pudo eliminar",
+      "deleted": "Automatización eliminada",
+      "deleteTitle": "Eliminar automatización",
+      "deleteBodyBefore": "Esto elimina para siempre",
+      "deleteBodyAfter": "y su historial de ejecuciones. No se puede deshacer.",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "edit": "Editar",
+      "duplicate": "Duplicar",
+      "viewLogs": "Ver registros",
+      "runsOne": "1 ejecución",
+      "runsMany": "{count} ejecuciones",
+      "lastRun": "última: {when}",
+      "activeAria": "activa",
+      "activate": "Activar",
+      "deactivate": "Desactivar",
+      "openMenu": "Abrir menú"
+    },
+    "relative": {
+      "never": "nunca",
+      "justNow": "justo ahora",
+      "minutesAgo": "hace {n} min",
+      "hoursAgo": "hace {n} h",
+      "daysAgo": "hace {n} d"
+    },
+    "edit": {
+      "loadFailed": "No se pudo cargar ({status})",
+      "backToList": "Volver a Automatizaciones"
+    },
+    "logs": {
+      "loadFailed": "No se pudieron cargar los registros",
+      "back": "Volver",
+      "subtitle": "Registro de ejecuciones",
+      "emptyTitle": "Todavía no hay ejecuciones",
+      "emptyHint": "Cuando esta automatización se active, verás sus ejecuciones aquí.",
+      "unknownContact": "Contacto desconocido",
+      "stepsOne": "1 paso",
+      "stepsMany": "{count} pasos",
+      "noSteps": "No se registraron pasos.",
+      "status": {
+        "success": "correcta",
+        "partial": "parcial",
+        "failed": "fallida"
+      }
+    },
+    "triggers": {
+      "new_message_received": {
+        "pill": "Mensaje nuevo",
+        "label": "Mensaje nuevo recibido",
+        "hint": "Cualquier mensaje entrante"
+      },
+      "first_inbound_message": {
+        "pill": "Primer mensaje del contacto",
+        "label": "Primer mensaje del contacto",
+        "hint": "La primera vez que este contacto te escribe (también funciona con contactos agregados a mano)"
+      },
+      "keyword_match": {
+        "pill": "Palabra clave",
+        "label": "Coincide con palabra clave",
+        "hint": "El mensaje contiene una o varias palabras clave"
+      },
+      "new_contact_created": {
+        "pill": "Contacto nuevo",
+        "label": "Contacto nuevo creado",
+        "hint": "Cuando se crea un contacto a partir de un mensaje entrante"
+      },
+      "conversation_assigned": {
+        "pill": "Conversación asignada",
+        "label": "Conversación asignada",
+        "hint": "Cuando se asigna a un agente"
+      },
+      "tag_added": {
+        "pill": "Etiqueta agregada",
+        "label": "Etiqueta agregada",
+        "hint": "Cuando se agrega una etiqueta a un contacto"
+      },
+      "time_based": {
+        "pill": "Programada",
+        "label": "Programada",
+        "hint": "Según un horario recurrente"
+      }
+    },
+    "steps": {
+      "send_message": "Enviar mensaje",
+      "send_template": "Enviar plantilla",
+      "add_tag": "Agregar etiqueta",
+      "remove_tag": "Quitar etiqueta",
+      "assign_conversation": "Asignar conversación",
+      "update_contact_field": "Actualizar campo del contacto",
+      "create_deal": "Crear negocio",
+      "wait": "Esperar",
+      "condition": "Condición (si / si no)",
+      "send_webhook": "Enviar webhook",
+      "close_conversation": "Cerrar conversación",
+      "ai_followup": "Seguimiento con IA"
+    },
+    "builder": {
+      "untitled": "Automatización sin nombre",
+      "issueAt": "en {path}",
+      "saveFailed": "No se pudo guardar",
+      "saved": "Automatización guardada",
+      "created": "Automatización creada",
+      "backAria": "Volver a automatizaciones",
+      "active": "Activa",
+      "save": "Guardar",
+      "saveDraft": "Guardar borrador",
+      "trigger": "Disparador",
+      "triggerType": "Tipo de disparador",
+      "tagIdPlaceholder": "ID de la etiqueta",
+      "schedulePlaceholder": "Expresión cron o HH:mm",
+      "keywords": "Palabras clave (separadas por comas)",
+      "matchType": "Tipo de coincidencia",
+      "matchContains": "Contiene",
+      "matchExact": "Exacta",
+      "kindCondition": "Condición",
+      "kindWait": "Espera",
+      "kindAction": "Acción",
+      "moveUp": "Subir",
+      "moveDown": "Bajar",
+      "delete": "Eliminar",
+      "branchYes": "Sí",
+      "branchNo": "No",
+      "addStep": "Agregar paso",
+      "messageText": "Texto del mensaje",
+      "messagePlaceholder": "¡Hola! Gracias por escribirnos…",
+      "templateName": "Nombre de la plantilla",
+      "language": "Idioma",
+      "tagId": "ID de la etiqueta",
+      "mode": "Modo",
+      "roundRobin": "Por turnos (round-robin)",
+      "specificAgent": "Agente específico",
+      "agentId": "ID del agente",
+      "field": "Campo",
+      "fieldName": "Nombre",
+      "fieldEmail": "Correo",
+      "fieldCompany": "Empresa",
+      "value": "Valor",
+      "pipelineId": "ID del embudo",
+      "stageId": "ID de la etapa",
+      "title": "Título",
+      "amount": "Cantidad",
+      "unit": "Unidad",
+      "units": {
+        "minutes": "Minutos",
+        "hours": "Horas",
+        "days": "Días"
+      },
+      "subject": "Evaluar",
+      "subjects": {
+        "tag_presence": "Tiene la etiqueta",
+        "contact_field": "Campo del contacto",
+        "message_content": "Contenido del mensaje",
+        "time_of_day": "Hora del día"
+      },
+      "operand": "Operando",
+      "operandContactField": "name / email / company",
+      "operandTag": "ID de la etiqueta",
+      "url": "URL",
+      "bodyTemplate": "Plantilla del cuerpo (JSON)",
+      "closeHelp": "Cambia el estado de la conversación a «cerrada». No necesita configuración.",
+      "previewNoText": "todavía sin texto",
+      "previewPickTemplate": "elige una plantilla",
+      "previewWhen": "cuando: {subject}",
+      "previewNoUrl": "sin URL"
+    },
+    "templates": {
+      "welcome_message": {
+        "name": "Mensaje de bienvenida",
+        "description": "Responde solo a quien te escribe por primera vez con un saludo.",
+        "message": "¡Hola! 👋 Gracias por escribirnos. Te respondemos en un momento."
+      },
+      "out_of_office": {
+        "name": "Fuera de horario",
+        "description": "Responde solo fuera de horario para que nadie se quede esperando.",
+        "message": "¡Gracias por tu mensaje! Nuestro equipo no está disponible ahora (9 a. m. – 6 p. m.) y te responde mañana a primera hora."
+      },
+      "lead_qualifier": {
+        "name": "Calificar prospectos",
+        "description": "Haz preguntas para filtrar a los prospectos que llegan.",
+        "message": "¡Claro, con gusto te ayudo con los precios! Una pregunta rápida: ¿para cuántas personas lo necesitas, más o menos?",
+        "keywords": "precio, cotización, comprar"
+      },
+      "followup_no_reply_2h": {
+        "name": "Seguimiento sin respuesta (2 h)",
+        "description": "Si el cliente no responde en 2 horas, le escribimos para retomar la conversación.",
+        "message": "¡Hola! 👋 ¿Pudiste revisar lo que te comentamos? Si tienes alguna duda, aquí estoy para ayudarte."
+      },
+      "followup_last_call_23h": {
+        "name": "Último aviso antes de 24 h",
+        "description": "A las 23 h sin respuesta, la IA escribe un último mensaje antes de que se cierre la ventana de 24 h de WhatsApp.",
+        "instructions": "Es el último mensaje que podemos enviar antes de que se cierre la conversación. Retoma lo que el cliente necesitaba y pregúntale si quiere continuar."
+      },
+      "followup_winback_3d": {
+        "name": "Recuperar cliente (3 días, plantilla)",
+        "description": "Tras 3 días sin respuesta la ventana de 24 h ya está cerrada: enviamos una plantilla aprobada de WhatsApp."
+      },
+      "appointment_booking": {
+        "name": "Agenda de citas médicas",
+        "description": "Responde solo a las solicitudes de cita de pacientes y pásalas al equipo de tu clínica.",
+        "message": "¡Hola! 🏥 Gracias por contactar a nuestra clínica. Para pedir una cita, respóndenos con:\n\n1. Nombre completo del paciente\n2. Especialidad o médico de preferencia\n3. Fecha y hora de preferencia\n\nTambién puedes ver nuestra agenda y reservar directamente aquí: https://example.com/booking",
+        "keywords": "cita, agendar, doctor, médico, turno, clínica, consulta, chequeo"
+      }
+    }
+  }
+}
