@@ -135,6 +135,29 @@ Hay que grabarlo **después** de conectar Instagram y Messenger con esos permiso
 
 ---
 
+## Video 5 (reenvío): comentarios de la página de Facebook
+
+**Por qué:** el 2026-11-18 Meta aprobó todo menos `pages_read_user_content` y `pages_manage_engagement`. Según los revisores, en el video no se veía la lectura de comentarios de la página ni el cambio de estado al interactuar con ellos. Este video es **solo de esos dos permisos** y se graba con el visor de comentarios.
+
+Antes de grabar: desde el perfil "cliente", dejar 2 comentarios en una publicación de la página (por ejemplo "How much is it?" y "Great!").
+
+1. Iniciar sesión en Whasalia (interfaz en inglés) → **Channels** → conectar **Messenger** con el flujo completo de Facebook Login. Detenerse en la pantalla de permisos de Meta, donde aparecen `pages_read_user_content` y `pages_manage_engagement`. Subtítulo: "Granting pages_read_user_content and pages_manage_engagement".
+2. **Automations → Comment replies → Comments on your posts**. En **Account**, elegir la página de Facebook.
+3. **Choose post** → elegir la publicación con los comentarios. Arriba se ve la página con su nombre y foto ("Facebook comments for <Página>"). Subtítulo: "Live retrieval of the Page's comments (pages_read_user_content)".
+4. Se ven los comentarios del cliente con autor, fecha y el estado **Unanswered**.
+5. En un comentario → **Reply** → escribir la respuesta → **Post reply**. El estado cambia a **Replied** y la respuesta aparece debajo como "· Your account". Subtítulo: "Replying as the Page (pages_manage_engagement)".
+6. En el otro comentario → **Hide**. Pasa a **Hidden**. Luego **Unhide** para mostrar el cambio de estado inverso.
+7. Abrir la publicación en Facebook (enlace **View on Facebook**) y mostrar la respuesta de la página y el comentario oculto.
+8. Volver a Whasalia → **Refresh**: los estados siguen igual, leídos otra vez desde Meta.
+
+**Texto para el formulario (pages_read_user_content):**
+> Businesses connect their Facebook Page to Whasalia. In Automations → Comment replies → "Comments on your posts" they pick the Page (its name and picture are shown) and one of its posts, and Whasalia retrieves the post's comments live from the Graph API, with their author, date and replies, labeled with the Page. This lets the business see which customer comments are still unanswered and also lets our keyword rules read new comments.
+
+**Texto para el formulario (pages_manage_engagement):**
+> From the same comment viewer the business replies to a customer's comment as the Page, or hides/unhides it. Each comment shows its state in our UI (Unanswered → Replied, Hidden), and the change is visible on the same post on Facebook. Keyword rules also use this permission to post the business's automatic public reply under matching comments.
+
+---
+
 ## En el formulario de revisión
 
 - **Credenciales de prueba** (en las notas para el revisor):

@@ -4,7 +4,8 @@ import { saveChannelSecrets } from '@/lib/channels/store'
 import type { RecentPost } from '@/lib/comments/meta'
 import { tiktokAppConfig, tiktokSandbox } from './config'
 import { TIKTOK_API, TIKTOK_REPLY_MAX, quoteBigInts, tokenNeedsRefresh } from './model'
-import { SANDBOX_ACCOUNT, SANDBOX_CODE, SANDBOX_VIDEOS } from './sandbox'
+import { fromTiktok, type Thread, type TtComment } from '@/lib/comments/thread'
+import { SANDBOX_ACCOUNT, SANDBOX_CODE, SANDBOX_VIDEOS, sandboxAddReply, sandboxComments, sandboxSetHidden } from './sandbox'
 
 // Accounts API calls (TikTok API for Business v1.3). Every call answers
 // { code, message, request_id, data }; code 0 is success.
@@ -14,6 +15,7 @@ import { SANDBOX_ACCOUNT, SANDBOX_CODE, SANDBOX_VIDEOS } from './sandbox'
 //   GET  /business/video/list/           owned posts     (video.list)
 //   GET  /business/comment/list/         comments        (comment.list)
 //   POST /business/comment/reply/create/ public reply    (comment.list.manage)
+//   POST /business/comment/hide/         hide / unhide   (comment.list.manage)
 //   POST /business/webhook/update/       app-level comment.update subscription
 
 export class TiktokError extends Error {
@@ -182,7 +184,7 @@ export async function getComment(channel: LoadedChannel, videoId: string, commen
 
 /** Public reply under the comment; returns the new reply's id. */
 export async function replyToTiktokComment(channel: LoadedChannel, videoId: string, commentId: string, text: string): Promise<string | null> {
-  if (isSandboxChannel(channel)) return `sandbox-reply-${Date.now()}`
+  if (isSandboxChannel(channel)) return sandboxAddReply(videoId, commentId, text.slice(0, TIKTOK_REPLY_MAX))
   const res = await call<{ comment_id?: string | number }>('/business/comment/reply/create/', {
     token: await accessToken(channel),
     body: { business_id: channel.external_id, video_id: videoId, comment_id: commentId, text: text.slice(0, TIKTOK_REPLY_MAX) },
@@ -195,4 +197,32 @@ export async function subscribeCommentWebhook(callbackUrl: string): Promise<void
   if (tiktokSandbox() && !tiktokAppConfig()) return
   const cfg = app()
   await call('/business/webhook/update/', { body: { app_id: cfg.appId, secret: cfg.appSecret, event_type: 'COMMENT', callback_url: callbackUrl } })
+}
+
+/** The account and the comments of one of its videos (with up to 3 replies each), read live. */
+export async function loadTiktokThread(channel: LoadedChannel, videoId: string): Promise<Thread> {
+  if (isSandboxChannel(channel)) {
+    return { account: { name: SANDBOX_ACCOUNT.displayName, handle: SANDBOX_ACCOUNT.username, avatar: null }, comments: fromTiktok(sandboxComments(videoId)) }
+  }
+  const token = await accessToken(channel)
+  const [profile, d] = await Promise.all([
+    getProfile(token, channel.external_id),
+    call<{ comments?: TtComment[] }>('/business/comment/list/', {
+      token,
+      query: { business_id: channel.external_id, video_id: videoId, include_replies: 'true', status: 'ALL', sort_field: 'create_time', sort_order: 'desc', max_count: '30' },
+    }),
+  ])
+  return {
+    account: { name: profile.displayName ?? profile.username ?? channel.name, handle: profile.username, avatar: profile.avatar },
+    comments: fromTiktok(d.comments ?? []),
+  }
+}
+
+/** Hide (or show again) a comment on one of the account's videos. */
+export async function setTiktokCommentHidden(channel: LoadedChannel, videoId: string, commentId: string, hidden: boolean): Promise<void> {
+  if (isSandboxChannel(channel)) return sandboxSetHidden(videoId, commentId, hidden)
+  await call('/business/comment/hide/', {
+    token: await accessToken(channel),
+    body: { business_id: channel.external_id, video_id: videoId, comment_id: commentId, action: hidden ? 'HIDE' : 'UNHIDE' },
+  })
 }

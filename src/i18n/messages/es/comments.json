@@ -100,6 +100,41 @@
       "simulate": "Simular comentario en TikTok",
       "answered": "{name} comentó «{text}» y se respondió.",
       "notAnswered": "{name} comentó «{text}», pero ninguna regla lo respondió."
+    },
+    "viewer": {
+      "title": "Comentarios de tus publicaciones",
+      "subtitle": "Elige una cuenta y una publicación para ver sus comentarios al momento, responderlos como tu cuenta u ocultarlos. Responder a mano no usa tokens.",
+      "account": "Cuenta",
+      "pickAccount": "Elige una cuenta",
+      "post": "Publicación",
+      "choosePost": "Elegir publicación",
+      "changePost": "Cambiar publicación",
+      "loading": "Cargando comentarios…",
+      "refresh": "Actualizar",
+      "showingFor": "Comentarios en {network} de",
+      "openPost": "Ver en {network}",
+      "empty": "Esta publicación todavía no tiene comentarios.",
+      "error": "No pudimos leer los comentarios de esta publicación.",
+      "reconnect": "Falta permiso: vuelve a conectar la cuenta en Canales.",
+      "count": "{count} comentarios",
+      "status": {
+        "unanswered": "Sin responder",
+        "replied": "Respondido",
+        "hidden": "Oculto"
+      },
+      "you": "Tu cuenta",
+      "reply": "Responder",
+      "replyAs": "Responder como {name}",
+      "replyPlaceholder": "Escribe tu respuesta pública…",
+      "send": "Publicar respuesta",
+      "hide": "Ocultar",
+      "unhide": "Mostrar",
+      "replied": "Respuesta publicada",
+      "hiddenOk": "Comentario oculto",
+      "shownOk": "Comentario visible otra vez",
+      "failed": "No se pudo completar. Inténtalo de nuevo.",
+      "tooLong": "La respuesta es demasiado larga (máx. {max} caracteres).",
+      "hiddenHint": "Solo lo ves tú y la persona que lo escribió."
     }
   }
 }

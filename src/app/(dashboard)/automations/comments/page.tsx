@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CHANNEL_STYLE, selectClass } from "@/components/channels/channel-types";
+import { CommentViewer } from "@/components/comments/comment-viewer";
 import { cn } from "@/lib/utils";
 
 interface Rule {
@@ -370,6 +371,8 @@ export default function CommentRulesPage() {
               })}
             </ul>
           )}
+
+          {isAdmin && <CommentViewer channels={data.channels} locale={locale} />}
 
           <section aria-labelledby="comment-activity" className="space-y-3">
             <h2 id="comment-activity" className="text-sm font-semibold text-foreground">

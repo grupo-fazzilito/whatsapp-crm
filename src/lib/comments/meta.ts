@@ -1,5 +1,6 @@
 import 'server-only'
 import type { LoadedChannel } from '@/lib/channels'
+import { fromFacebook, fromInstagram, type FbComment, type IgComment, type Thread } from './thread'
 
 // Graph API calls for comments, with the channel's page token.
 //   Instagram: reply  POST /{ig-comment-id}/replies     (instagram_manage_comments)
@@ -92,4 +93,46 @@ export async function listRecentPosts(channel: LoadedChannel, limit = 24): Promi
     permalink: p.permalink_url ?? null,
     createdAt: p.created_time ?? null,
   }))
+}
+
+// Comment viewer (read: pages_read_user_content / instagram_manage_comments;
+// hide and reply: pages_manage_engagement / instagram_manage_comments).
+//   Facebook: GET  /{page-id}?fields=name,picture        the Page shown on top
+//             GET  /{post-id}/comments                   top-level comments + replies
+//             POST /{comment-id} {is_hidden}             hide / show
+//   Instagram: GET /{ig-user-id}?fields=username,name,profile_picture_url
+//             GET  /{media-id}/comments                  comments + replies
+//             POST /{ig-comment-id} {hide}               hide / show
+
+/** The account and the comments of one of its posts, read live. */
+export async function loadMetaThread(channel: LoadedChannel, postId: string): Promise<Thread> {
+  if (channel.type === 'instagram') {
+    const [me, list] = await Promise.all([
+      graph<{ username?: string; name?: string; profile_picture_url?: string }>(channel, `${encodeURIComponent(channel.external_id)}?fields=username,name,profile_picture_url`),
+      graph<{ data?: IgComment[] }>(
+        channel,
+        `${encodeURIComponent(postId)}/comments?fields=id,text,username,timestamp,hidden,from{id,username},replies{id,text,username,timestamp,from{id,username}}&limit=50`,
+      ),
+    ])
+    const username = me.username ?? null
+    return {
+      account: { name: me.name ?? username ?? channel.name, handle: username, avatar: me.profile_picture_url ?? null },
+      comments: fromInstagram(list.data ?? [], channel.external_id, username),
+    }
+  }
+  const pageId = pageIdOf(channel)
+  const [page, list] = await Promise.all([
+    graph<{ name?: string; picture?: { data?: { url?: string } } }>(channel, `${encodeURIComponent(pageId)}?fields=name,picture`),
+    graph<{ data?: FbComment[] }>(
+      channel,
+      `${encodeURIComponent(postId)}/comments?filter=toplevel&order=reverse_chronological&limit=50&fields=id,message,created_time,from{id,name},is_hidden,can_hide,comments.limit(25){id,message,created_time,from{id,name}}`,
+    ),
+  ])
+  const name = page.name ?? channel.name
+  return { account: { name, handle: null, avatar: page.picture?.data?.url ?? null }, comments: fromFacebook(list.data ?? [], pageId, name) }
+}
+
+/** Hide (or show again) a comment on the business's post. */
+export async function setMetaCommentHidden(channel: LoadedChannel, commentId: string, hidden: boolean): Promise<void> {
+  await graph(channel, encodeURIComponent(commentId), { body: channel.type === 'instagram' ? { hide: hidden } : { is_hidden: hidden } })
 }

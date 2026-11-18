@@ -55,3 +55,57 @@ export function sandboxComment(index: number) {
     text: c.text,
   }
 }
+
+// Comments of the sandbox videos, kept in memory while the dev server runs so
+// replying and hiding in the comment viewer change what it shows next.
+interface SandboxComment {
+  comment_id: string
+  text: string
+  create_time: number
+  username: string
+  display_name: string
+  owner: boolean
+  status: 'PUBLIC' | 'HIDDEN'
+  reply_list: Omit<SandboxComment, 'reply_list' | 'status'>[]
+}
+
+const g = globalThis as unknown as { __tiktokSandboxComments?: Map<string, SandboxComment[]> }
+const store = () => (g.__tiktokSandboxComments ??= new Map())
+const nowS = () => Math.floor(Date.now() / 1000)
+const newId = () => `sandbox-${crypto.randomBytes(6).toString('hex')}`
+
+/** The comments of a sandbox video, newest first; two sample ones to start with. */
+export function sandboxComments(videoId: string): SandboxComment[] {
+  const s = store()
+  if (!s.has(videoId)) {
+    const t = nowS()
+    const person = (i: number) => SAMPLE_COMMENTS[i]
+    s.set(videoId, [
+      {
+        comment_id: newId(), text: person(2).text, create_time: t - 3 * 3600, username: person(2).id, display_name: person(2).name, owner: false, status: 'PUBLIC', reply_list: [],
+      },
+      {
+        comment_id: newId(), text: person(3).text, create_time: t - 26 * 3600, username: person(3).id, display_name: person(3).name, owner: false, status: 'PUBLIC',
+        reply_list: [{ comment_id: newId(), text: 'Not at all! It is painless and takes about an hour 😊', create_time: t - 25 * 3600, username: SANDBOX_ACCOUNT.username, display_name: SANDBOX_ACCOUNT.displayName, owner: true }],
+      },
+    ])
+  }
+  return s.get(videoId)!
+}
+
+export function sandboxAddComment(videoId: string, c: { commentId: string; authorId: string; authorName: string; text: string }) {
+  sandboxComments(videoId).unshift({ comment_id: c.commentId, text: c.text, create_time: nowS(), username: c.authorId, display_name: c.authorName, owner: false, status: 'PUBLIC', reply_list: [] })
+}
+
+/** The account answers under a comment; returns the reply id. */
+export function sandboxAddReply(videoId: string, commentId: string, text: string): string {
+  const id = newId()
+  const parent = sandboxComments(videoId).find((c) => c.comment_id === commentId)
+  parent?.reply_list.push({ comment_id: id, text, create_time: nowS(), username: SANDBOX_ACCOUNT.username, display_name: SANDBOX_ACCOUNT.displayName, owner: true })
+  return id
+}
+
+export function sandboxSetHidden(videoId: string, commentId: string, hidden: boolean) {
+  const c = sandboxComments(videoId).find((x) => x.comment_id === commentId)
+  if (c) c.status = hidden ? 'HIDDEN' : 'PUBLIC'
+}

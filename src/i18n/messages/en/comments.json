@@ -100,6 +100,41 @@
       "simulate": "Simulate a TikTok comment",
       "answered": "{name} commented “{text}” and got a reply.",
       "notAnswered": "{name} commented “{text}”, but no rule answered it."
+    },
+    "viewer": {
+      "title": "Comments on your posts",
+      "subtitle": "Pick an account and a post to see its comments live, reply as your account or hide them. Manual replies use no tokens.",
+      "account": "Account",
+      "pickAccount": "Pick an account",
+      "post": "Post",
+      "choosePost": "Choose post",
+      "changePost": "Change post",
+      "loading": "Loading comments…",
+      "refresh": "Refresh",
+      "showingFor": "{network} comments for",
+      "openPost": "View on {network}",
+      "empty": "This post has no comments yet.",
+      "error": "We couldn't read this post's comments.",
+      "reconnect": "Permission missing: connect the account again in Channels.",
+      "count": "{count} comments",
+      "status": {
+        "unanswered": "Unanswered",
+        "replied": "Replied",
+        "hidden": "Hidden"
+      },
+      "you": "Your account",
+      "reply": "Reply",
+      "replyAs": "Reply as {name}",
+      "replyPlaceholder": "Write your public reply…",
+      "send": "Post reply",
+      "hide": "Hide",
+      "unhide": "Unhide",
+      "replied": "Reply posted",
+      "hiddenOk": "Comment hidden",
+      "shownOk": "Comment visible again",
+      "failed": "Couldn't complete it. Please try again.",
+      "tooLong": "The reply is too long (max {max} characters).",
+      "hiddenHint": "Only you and the person who wrote it can see it."
     }
   }
 }
