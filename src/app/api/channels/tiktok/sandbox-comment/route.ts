@@ -4,7 +4,7 @@ import { isUuid } from '@/lib/workspace/constants'
 import { loadChannel } from '@/lib/channels/store'
 import { tiktokSandbox } from '@/lib/tiktok/config'
 import { answerTiktokComment } from '@/lib/tiktok/comments'
-import { SANDBOX_ACCOUNT, SANDBOX_VIDEOS, sandboxComment } from '@/lib/tiktok/sandbox'
+import { SANDBOX_ACCOUNT, SANDBOX_VIDEOS, sandboxAddComment, sandboxComment } from '@/lib/tiktok/sandbox'
 
 let round = 0
 
@@ -25,6 +25,8 @@ export async function POST(request: Request) {
   }
   const video = SANDBOX_VIDEOS.find((v) => v.id === body.video_id) ?? SANDBOX_VIDEOS[0]
   const c = sandboxComment(round++)
+  // Shows up in the comment viewer too, like a real comment would.
+  sandboxAddComment(video.id, c)
   const outcome = await answerTiktokComment(channel, { commentId: c.commentId, videoId: video.id, authorId: c.authorId, authorName: c.authorName, text: c.text })
   return NextResponse.json({ outcome, comment: { author: c.authorName, text: c.text, video: video.text } })
 }
