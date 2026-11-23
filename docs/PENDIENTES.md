@@ -95,6 +95,16 @@ Cada cuenta tiene una región (`pe`, `ve`, `us`) con su moneda, precios y pasare
 - [ ] Mientras no haya pasarela, en Venezuela y EE. UU. la recarga muestra "escríbenos y te ayudamos a recargar"; el superadmin puede sumar tokens a mano — 🧑
 - [ ] Datos de facturación por país (hoy el formulario pide DNI/RUC de Perú) y comprobantes: SUNAT en Perú; Stripe emite el recibo; la factura y los impuestos de EE. UU. van por la LLC; Venezuela según el contador — 🧑🤖
 
+## 5c. Suscripción de tokens de IA
+
+CRM gratis para siempre; los tokens de IA se venden solo por suscripción mensual con Stripe (US$, todos los países): 1,000 tokens = US$ 9.90/mes y cada 1,000 más suma US$ 3 (editable en Superadmin → Facturación). Los tokens no usados vencen al renovar. Ya no hay recargas sueltas.
+
+- [x] Slider de tokens con el precio mensual en la página de precios y en Configuración → Tokens; suscribirse (Stripe Checkout), cambiar de plan (subir: cobra la diferencia prorrateada y da los tokens extra al instante; bajar: desde la próxima renovación), portal de Stripe para tarjeta, facturas y cancelar — 🤖 2026-11-23, rama `feat/token-subscriptions`
+- [x] Cada factura pagada (`invoice.paid`) se lee de la API de Stripe y da la cuota del mes una sola vez; al renovar vencen los tokens del mes anterior (migración 34: `token_subscriptions`, `subscription_invoices`) — 🤖
+- [ ] En Stripe: agregar al webhook los eventos `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid` e `invoice.payment_failed`; guardar una vez la configuración del **Customer portal** (Settings → Billing → Customer portal: permitir cancelar y actualizar tarjeta) — 🧑
+- [ ] Probar en modo de prueba: suscribirse con 4242…, subir y bajar de plan, cancelar desde el portal, y simular la renovación con un *test clock* — 🧑🤖
+- [ ] Perú con Payment Latam: la API que tenemos (Payin) solo crea órdenes que el cliente paga cada vez; no hay cobro automático a una tarjeta guardada. Si Payment Latam tiene tokenización o cargos recurrentes, conseguir la documentación; si no, alternativa: un cron que cada mes genera el link de pago y lo envía por correo/WhatsApp — 🧑🤖
+
 ## 6. Sitio y seguridad
 
 - [x] Datos de Grupo Fazzilito E.I.R.L. (RUC, dirección) en pie de página, contacto y políticas; ley peruana; fuera "chatnexgen" — 🤖 (2026-10-12)

@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
 import { handleStripeEvent } from '@/lib/billing/payments'
+import { handleSubscriptionEvent } from '@/lib/billing/subscriptions'
 import { parseStripeEvent, stripeConfig, verifyStripeSignature } from '@/lib/billing/stripe'
 
 /**
- * POST /api/billing/stripe/webhook — Stripe events for token top-ups
- * (checkout.session.completed / async_payment_succeeded / expired,
- * charge.refunded). Signed with STRIPE_WEBHOOK_SECRET; the payment is then
+ * POST /api/billing/stripe/webhook — Stripe events: monthly token subscriptions
+ * (checkout.session.completed, customer.subscription.*, invoice.paid,
+ * invoice.payment_failed) and one-time top-ups (checkout.session.* in
+ * payment mode, charge.refunded). Signed with STRIPE_WEBHOOK_SECRET; the payment is then
  * read back from Stripe's API before any credit is granted.
  */
 export async function POST(request: Request) {
@@ -24,7 +26,10 @@ export async function POST(request: Request) {
   const event = parseStripeEvent(body)
   if (!event) return NextResponse.json({ received: true })
   try {
-    await handleStripeEvent(event)
+    // Monthly token subscriptions, or a one-time top-up (older payments).
+    const subscription = event.mode === 'subscription' || event.type.startsWith('customer.subscription.') || event.type.startsWith('invoice.')
+    if (subscription) await handleSubscriptionEvent(event)
+    else await handleStripeEvent(event)
   } catch (err) {
     // 500 → Stripe retries later.
     console.error('[billing] stripe webhook failed:', err instanceof Error ? err.message : err)

@@ -187,6 +187,27 @@ export function BillingCard() {
       </fieldset>
 
       <fieldset className="space-y-4 border-t border-slate-800 pt-5">
+        <legend className="text-xs font-bold uppercase tracking-wide text-slate-200 mb-3">{t("billingAdmin.sub.title")}</legend>
+        <p className="text-xs text-slate-400">{t("billingAdmin.sub.hint")}</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+          {(["base_price", "step_price", "step_tokens", "max_tokens"] as const).map((k) => (
+            <div key={k}>
+              <label htmlFor={`bill-sub-${k}`} className={labelCls}>{t(`billingAdmin.sub.${k}`)}</label>
+              <input
+                id={`bill-sub-${k}`}
+                type="number"
+                min="0"
+                step={k.endsWith("price") ? "0.01" : "1000"}
+                value={billing.subscription[k]}
+                onChange={(e) => setBilling((b) => (b ? { ...b, subscription: { ...b.subscription, [k]: e.target.value === "" ? 0 : Number(e.target.value) } } : b))}
+                className={inputCls}
+              />
+            </div>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-4 border-t border-slate-800 pt-5">
         <legend className="text-xs font-bold uppercase tracking-wide text-slate-200 mb-3">{t("billingAdmin.regions.title")}</legend>
         <p className="text-xs text-slate-400">{t("billingAdmin.regions.hint")}</p>
         {OTHER_REGIONS.map((r) => (

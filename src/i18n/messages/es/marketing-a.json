@@ -201,6 +201,12 @@
       "label": "Precios para",
       "currencyPEN": "en soles",
       "currencyUSD": "en dólares (USD)"
+    },
+    "sub": {
+      "from": "desde",
+      "perMonth": "/ mes por 1,000 tokens",
+      "renews": "Suscripción mensual: cada mes se renueva tu cuota y los tokens no usados vencen. Cambia o cancela cuando quieras.",
+      "payment": "Pago con tarjeta a través de Stripe, en dólares."
     }
   }
 }

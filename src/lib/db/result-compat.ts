@@ -514,5 +514,13 @@ export const resultCompat = Prisma.defineExtension({
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
     },
+    token_subscriptions: {
+      current_period_end: { needs: { current_period_end: true }, compute: (r) => r.current_period_end === null ? null : r.current_period_end.toISOString() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+    },
+    subscription_invoices: {
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+    },
   },
 })

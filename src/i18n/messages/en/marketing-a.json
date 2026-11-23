@@ -201,6 +201,12 @@
       "label": "Prices for",
       "currencyPEN": "in soles",
       "currencyUSD": "in US dollars"
+    },
+    "sub": {
+      "from": "from",
+      "perMonth": "/ month for 1,000 tokens",
+      "renews": "Monthly subscription: your quota renews every month and unused tokens expire. Change or cancel anytime.",
+      "payment": "Card payment through Stripe, in US dollars."
     }
   }
 }
