@@ -102,6 +102,7 @@
     },
     "bubble": {
       "fromPhone": "Sent from the phone (WhatsApp Business)",
+      "fromTiktok": "Sent from TikTok",
       "history": "Imported history"
     }
   }

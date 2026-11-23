@@ -573,6 +573,9 @@ export function MessageBubble({
       {isAgent && meta.source === "whatsapp_business_app" && (
         <span className="mb-0.5 px-1 text-[10px] text-slate-400">{t("metawa.bubble.fromPhone")}</span>
       )}
+      {isAgent && meta.source === "tiktok_app" && (
+        <span className="mb-0.5 px-1 text-[10px] text-slate-400">{t("metawa.bubble.fromTiktok")}</span>
+      )}
       <div
         className={cn(
           "relative rounded-2xl px-3 py-2",

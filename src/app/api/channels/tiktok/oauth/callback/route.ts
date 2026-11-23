@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db/prisma'
 import { saveChannelSecrets } from '@/lib/channels/store'
 import { tiktokConnectReady } from '@/lib/tiktok/config'
 import { tiktokRedirectUri } from '@/lib/tiktok/model'
-import { exchangeCode, getProfile, subscribeCommentWebhook } from '@/lib/tiktok/api'
+import { exchangeCode, getProfile, subscribeWebhooks, tokenSecrets } from '@/lib/tiktok/api'
 import { insertChannel } from '../../../_lib/create'
 import { verifySigned } from '../../../_lib/shared'
 
@@ -52,11 +52,8 @@ export async function GET(request: NextRequest) {
     return back(request, { error: 'exchange' })
   }
 
-  const secrets = {
-    access_token: tokens.accessToken,
-    refresh_token: tokens.refreshToken || null,
-    token_expires_at: String(tokens.expiresAt),
-  }
+  // Authorizing again replaces every token (and the refresh-token expiry).
+  const secrets = { refresh_expires_at: null, ...tokenSecrets(tokens) }
   const settings = { avatar_url: profile.avatar, scopes: tokens.scope.split(',').filter(Boolean) }
   const name = profile.displayName || (profile.username ? `@${profile.username}` : 'TikTok')
 
@@ -84,9 +81,9 @@ export async function GET(request: NextRequest) {
     if (!created.ok) return back(request, { error: created.conflict ? 'conflict' : 'exchange' })
   }
 
-  // New comments reach /api/webhooks/tiktok (one subscription for the whole app).
+  // New comments and direct messages reach /api/webhooks/tiktok (one subscription per event type for the whole app).
   after(() =>
-    subscribeCommentWebhook(`${origin}/api/webhooks/tiktok`).catch((err) =>
+    subscribeWebhooks(`${origin}/api/webhooks/tiktok`).catch((err) =>
       console.error('[tiktok-oauth] webhook subscription failed:', err instanceof Error ? err.message : err),
     ),
   )

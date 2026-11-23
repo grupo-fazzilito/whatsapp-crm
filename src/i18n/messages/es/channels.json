@@ -112,11 +112,11 @@
     },
     "tiktok": {
       "soon": "Próximamente / requiere aprobación de TikTok",
-      "businessId": "ID de la cuenta de empresa",
       "oauthIntro": "Inicia sesión en TikTok y autoriza a Whasalia en la cuenta de tu negocio. Con eso, Whasalia podrá:",
       "useProfile": "Mostrar el nombre y la foto de tu cuenta.",
       "useVideos": "Listar tus videos, para que una regla responda en uno en particular.",
       "useComments": "Leer los comentarios de tus videos y responderlos en público con tus reglas.",
+      "useMessages": "Recibir los mensajes directos de tu cuenta en la Bandeja y responderlos tú, tu equipo o tu agente de IA.",
       "continue": "Continuar con TikTok",
       "sandboxNote": "Modo de prueba: se conecta una cuenta de ejemplo con videos y comentarios de muestra. No se llama a TikTok.",
       "connected": "Cuenta de TikTok conectada",
@@ -141,6 +141,18 @@
           "comments": "Comentarios de la cuenta",
           "commentsHelp": "Leer y responder los comentarios de tus videos"
         }
+      },
+      "messages": {
+        "title": "Mensajes directos de TikTok",
+        "intro": "Para que los mensajes directos de tus clientes lleguen a la Bandeja:",
+        "step1": "Tu cuenta debe ser de empresa: en TikTok, Perfil → ☰ → Ajustes y privacidad → Cuenta → Cambiar a cuenta de empresa.",
+        "step2": "Permite que todos te escriban: Ajustes y privacidad → Privacidad → Mensajes directos → Todos.",
+        "step3": "Si conectaste la cuenta antes de que existieran los mensajes, pulsa «Actualizar conexión» y vuelve a autorizar en TikTok.",
+        "rules": "Reglas de TikTok: solo puedes responder a quien te escribió primero y dentro de las 48 horas de su último mensaje; no se pueden iniciar conversaciones ni hacer envíos masivos. No disponible para cuentas registradas en la Unión Europea, el Espacio Económico Europeo, Suiza ni el Reino Unido.",
+        "missing": "Esta conexión no tiene permiso para mensajes. Pulsa «Actualizar conexión» para recibirlos.",
+        "ready": "Los mensajes directos llegan a la Bandeja.",
+        "reconnect": "Actualizar conexión",
+        "reauthorize": "TikTok pide volver a autorizar esta cuenta (venció el permiso). Pulsa «Actualizar conexión»."
       }
     },
     "webchat": {

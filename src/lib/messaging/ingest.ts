@@ -5,6 +5,7 @@ import { isPrismaError } from '@/lib/db/errors'
 import { phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { waMediaProxyUrl } from '@/lib/channels/parsers/whatsapp'
 import { TG_FILE_PREFIX } from '@/lib/channels/parsers/telegram'
+import { TT_MEDIA_PREFIX } from '@/lib/tiktok/model'
 import { fetchMetaProfile } from '@/lib/channels/adapters/meta-messaging'
 import type { InboundEvent, LoadedChannel } from '@/lib/channels'
 import type { AiAgentRow } from '@/lib/ai/types'
@@ -401,7 +402,9 @@ export async function ingestMessage(channel: LoadedChannel, ev: MessageEvent): P
     ? waMediaProxyUrl(channel.id, ev.mediaUrl.slice('wa-media:'.length))
     : ev.mediaUrl?.startsWith(TG_FILE_PREFIX)
       ? waMediaProxyUrl(channel.id, ev.mediaUrl.slice(TG_FILE_PREFIX.length))
-      : ev.mediaUrl ?? null
+      : ev.mediaUrl?.startsWith(TT_MEDIA_PREFIX)
+        ? waMediaProxyUrl(channel.id, ev.mediaUrl.slice(TT_MEDIA_PREFIX.length))
+        : ev.mediaUrl ?? null
 
   const priorInbound = await db.messages
     .count({ where: { conversation_id: conversation.id, sender_type: 'customer' } })

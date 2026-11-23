@@ -19,6 +19,7 @@ import { readWelcomeMenu } from './welcome-menu-dialog';
 import { MarketingMessagesBox } from './marketing-messages-box';
 import { CallingBox } from './calling-box';
 import { TelegramBusinessBox } from './telegram-business-box';
+import { TiktokMessagesBox } from './tiktok-messages-box';
 
 const STATUS_STYLE: Record<ChannelDTO['status'], string> = {
   connected: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -99,7 +100,11 @@ export function ChannelCard({ channel, agents, isAdmin, origin, onAgentChange, o
           <p className="flex items-start gap-1.5 rounded-md bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
             <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
             <span className="break-words">
-              {channel.status_detail === 'reply_not_allowed' ? t('channels.telegram.business.replyNotAllowed') : channel.status_detail}
+              {channel.status_detail === 'reply_not_allowed'
+                ? t('channels.telegram.business.replyNotAllowed')
+                : channel.status_detail === 'tiktok_reauthorize'
+                  ? t('channels.tiktok.messages.reauthorize')
+                  : channel.status_detail}
             </span>
           </p>
         )}
@@ -153,6 +158,8 @@ export function ChannelCard({ channel, agents, isAdmin, origin, onAgentChange, o
         {channel.type === 'whatsapp' && <CallingBox channel={channel} isAdmin={isAdmin} />}
 
         {channel.type === 'whatsapp' && <MarketingMessagesBox channel={channel} isAdmin={isAdmin} />}
+
+        {channel.type === 'tiktok' && <TiktokMessagesBox channel={channel} isAdmin={isAdmin} />}
 
         {channel.type === 'telegram' && channel.settings?.business_connection_id ? (
           <p className="text-xs text-muted-foreground">
