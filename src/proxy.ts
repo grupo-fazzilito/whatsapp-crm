@@ -4,10 +4,29 @@ import { isPlatformAdmin } from '@/lib/admin/guard'
 import { getSessionUser } from '@/lib/auth/session'
 import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from '@/i18n/config'
 import { isMarketingPath, localizedPath, splitLocale } from '@/i18n/marketing-routes'
+import { COUNTRY_HEADER, REGION_COOKIE, isRegion, regionForCountry } from '@/lib/regions'
+
+export async function proxy(request: NextRequest) {
+  const res = await route(request)
+  return withRegion(request, res)
+}
+
+/**
+ * First visit: remember the visitor's sales region (Peru, Venezuela, or US for
+ * everyone else) from Cloudflare's country header. The country picker or an
+ * earlier visit already set it otherwise. A new account takes this region.
+ */
+function withRegion(request: NextRequest, res: NextResponse): NextResponse {
+  if (request.nextUrl.pathname.startsWith('/api/') || isRegion(request.cookies.get(REGION_COOKIE)?.value)) return res
+  const country = request.headers.get(COUNTRY_HEADER)
+  if (!country) return res
+  res.cookies.set(REGION_COOKIE, regionForCountry(country), { path: '/', maxAge: 31_536_000, sameSite: 'lax' })
+  return res
+}
 
 // Optimistic routing on the session cookie only. Every page/API still
 // validates the session itself (requireWorkspace / isPlatformAdmin).
-export async function proxy(request: NextRequest) {
+async function route(request: NextRequest): Promise<NextResponse> {
   const path = request.nextUrl.pathname
 
   // Pages opened on www.<domain> or the *.up.railway.app address move to the

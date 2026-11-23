@@ -15,6 +15,7 @@ import { AdminShell } from "../admin-shell";
 import { ChannelIcon } from "@/components/inbox/channel-badge";
 import { CHANNEL_TYPE_LABELS } from "@/lib/channels/capabilities";
 import type { ChannelType } from "@/lib/channels/types";
+import { REGIONS, REGION_INFO, type Region } from "@/lib/regions";
 
 interface Client {
   id: string;
@@ -38,6 +39,7 @@ interface Client {
   wa_connected_at: string | null;
   /** Every channel of the workspace (WhatsApp, Messenger, Instagram, web chat…). */
   channels: ClientChannel[];
+  billing_region: Region | null;
   clinic_name: string | null;
   clinic_type: string | null;
   clinic_city: string | null;
@@ -106,6 +108,7 @@ export default function AdminClientsPage() {
   const [openMenu, setOpenMenu] = useState<string|null>(null);
   const [menuPos,  setMenuPos]  = useState<{top:number;right:number}>({top:0,right:0});
   const [toggling, setToggling] = useState<string|null>(null);
+  const [savingRegion, setSavingRegion] = useState(false);
   const [entering, setEntering] = useState<string|null>(null);
   const t = useT();
 
@@ -167,6 +170,19 @@ export default function AdminClientsPage() {
   };
   const SI = ({ k }: { k: SortKey }) =>
     sortKey === k ? (sortDir === "asc" ? <ChevronUp className="size-3"/> : <ChevronDown className="size-3"/>) : null;
+
+  const setRegion = async (c: Client, region: Region) => {
+    setSavingRegion(true);
+    const res = await fetch("/api/admin/clients", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: c.id, action: "set_region", region }),
+    });
+    setSavingRegion(false);
+    if (!res.ok) return;
+    setClients(p => p.map(x => x.id === c.id ? { ...x, billing_region: region } : x));
+    setDetail(prev => prev && prev.id === c.id ? { ...prev, billing_region: region } : prev);
+  };
 
   const toggleActive = async (c: Client) => {
     setToggling(c.id);
@@ -505,6 +521,24 @@ export default function AdminClientsPage() {
                           ))}
                       </ul>
                     )}
+                  </div>
+
+                  {/* Sales region: currency and payment gateway of this account */}
+                  <div className="space-y-1.5">
+                    <label htmlFor="client-region" className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{t("admin.clients.region.label")}</label>
+                    <select
+                      id="client-region"
+                      value={detail.billing_region ?? ""}
+                      disabled={savingRegion}
+                      onChange={(e) => void setRegion(detail, e.target.value as Region)}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                    >
+                      {!detail.billing_region && <option value="">{t("admin.clients.region.unset")}</option>}
+                      {REGIONS.map((r) => (
+                        <option key={r} value={r}>{REGION_INFO[r].flag} {REGION_INFO[r].country} · {REGION_INFO[r].currency}</option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-500">{t("admin.clients.region.hint")}</p>
                   </div>
 
                   {/* Business */}

@@ -4,7 +4,9 @@ import Link from "next/link";
 import { Check, Gift, Sparkles } from "lucide-react";
 import { SpotlightCard } from "@/components/marketing/spotlight-card";
 import { useI18n } from "@/i18n/client";
-import { formatSoles, type PublicPricing } from "@/lib/billing/plans";
+import type { PublicPricing } from "@/lib/billing/plans";
+import { formatMoney } from "@/lib/regions";
+import { RegionPicker } from "./region-picker";
 
 /** The plan(s) plus the AI tokens card. Used on the home page and on /pricing. */
 export function PricingCards({ pricing }: { pricing: PublicPricing }) {
@@ -12,6 +14,8 @@ export function PricingCards({ pricing }: { pricing: PublicPricing }) {
   const { credits } = pricing;
 
   return (
+    <div className="space-y-6">
+    <RegionPicker region={pricing.region} />
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
       {pricing.plans.map((plan) => (
         <SpotlightCard
@@ -30,7 +34,7 @@ export function PricingCards({ pricing }: { pricing: PublicPricing }) {
               </div>
               <h3 className="text-sm text-[var(--m-text-secondary)] font-semibold">{t("mktPlans.plan.tagline")}</h3>
               <div className="flex items-baseline gap-1.5 py-2 border-y border-[var(--m-border-primary)]/50">
-                <span className="text-4xl font-extrabold text-[var(--m-text-heading)]">{formatSoles(plan.price)}</span>
+                <span className="text-4xl font-extrabold text-[var(--m-text-heading)]">{formatMoney(plan.price, pricing.currency)}</span>
                 <span className="text-xs text-[var(--m-text-muted)]">{t("mktPlans.plan.period")}</span>
               </div>
               <ul className="space-y-2.5 text-xs text-[var(--m-text-tertiary)]">
@@ -63,7 +67,7 @@ export function PricingCards({ pricing }: { pricing: PublicPricing }) {
             </span>
             <h3 className="text-sm text-[var(--m-text-secondary)] font-semibold">{t("mktPlans.tokens.tagline")}</h3>
             <div className="flex items-baseline gap-1.5 py-2 border-y border-[var(--m-border-primary)]/50">
-              <span className="text-4xl font-extrabold text-[var(--m-text-heading)]">{formatSoles(credits.price)}</span>
+              <span className="text-4xl font-extrabold text-[var(--m-text-heading)]">{formatMoney(credits.price, pricing.currency)}</span>
               <span className="text-xs text-[var(--m-text-muted)]">{t("mktPlans.tokens.unit")}</span>
             </div>
             <p className="text-xs text-[var(--m-text-tertiary)]">{t("mktPlans.tokens.equivalence")}</p>
@@ -75,19 +79,20 @@ export function PricingCards({ pricing }: { pricing: PublicPricing }) {
             <ul className="space-y-1.5 text-xs text-[var(--m-text-tertiary)]">
               {credits.packs.map((p) => (
                 <li key={p.amount} className="flex justify-between gap-4 border-b border-[var(--m-border-primary)]/30 pb-1.5">
-                  <span>{formatSoles(p.amount)}</span>
+                  <span>{formatMoney(p.amount, pricing.currency)}</span>
                   <span className="font-semibold text-[var(--m-text-secondary)]">{t("mktPlans.tokens.pack", { n: p.credits.toLocaleString("en-US") })}</span>
                 </li>
               ))}
             </ul>
           </div>
           <div className="space-y-1 text-[10px] text-[var(--m-text-muted)] leading-relaxed">
-            <p>{t("mktPlans.tokens.minimum", { min: formatSoles(credits.minTopup) })}</p>
+            <p>{t("mktPlans.tokens.minimum", { min: formatMoney(credits.minTopup, pricing.currency) })}</p>
             <p>{t("mktPlans.tokens.expiry", { months: credits.expiryMonths })}</p>
             <p>{t("mktPlans.tokens.payment")}</p>
           </div>
         </div>
       </SpotlightCard>
+    </div>
     </div>
   );
 }

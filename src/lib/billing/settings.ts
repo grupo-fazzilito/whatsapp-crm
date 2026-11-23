@@ -4,6 +4,7 @@ import { getPlatformSetting, setPlatformSetting } from '@/lib/platform/settings'
 import { normalizeBilling, type BillingSettings } from './pricing'
 import { publicPricing, type PublicPricing } from './plans'
 import { listPublicPlans } from './plan-store'
+import type { Region } from '@/lib/regions'
 import { DEFAULT_PL_BASE_URL, type AmountFormat, type PaymentLatamConfig } from './payment-latam'
 
 // platform_settings 'billing'        → prices and rules (plain JSON)
@@ -15,10 +16,10 @@ export async function getBillingSettings(): Promise<BillingSettings> {
   return normalizeBilling(await getPlatformSetting<Partial<BillingSettings>>('billing'))
 }
 
-/** Plans and token prices for the public pricing pages. */
-export async function getPublicPricing(): Promise<PublicPricing> {
+/** Plans and token prices for the public pricing pages, in the visitor's region. */
+export async function getPublicPricing(region: Region): Promise<PublicPricing> {
   const [settings, plans] = await Promise.all([getBillingSettings(), listPublicPlans()])
-  return publicPricing(settings, plans)
+  return publicPricing(settings, plans, region)
 }
 
 export async function saveBillingSettings(value: BillingSettings, userId: string | null) {

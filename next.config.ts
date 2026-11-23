@@ -148,6 +148,13 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Home and pricing show prices in the visitor's region (cookie /
+        // country): never store them in a shared cache. After the public rule,
+        // so this one wins.
+        source: "/:lang(es|en)/:page(pricing)?",
+        headers: [{ key: "Cache-Control", value: "private, no-store" }],
+      },
+      {
         source:
           "/:path(admin-panel|dashboard|inbox|contacts|pipelines|broadcasts|automations|flows|settings|healthcare|business|catalog|orders|posts|waitlist|agents|channels|admin|login|signup|forgot-password|invite|auth)/:rest*",
         headers: [{ key: "Cache-Control", value: "private, no-store" }],

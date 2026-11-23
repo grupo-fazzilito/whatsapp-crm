@@ -2316,6 +2316,8 @@ model workspaces {
   industry                      String                          @default("generic")
   country                       String?
   currency                      String                          @default("USD")
+  /// Sales region (pe | ve | us): billing currency and payment gateway.
+  billing_region                String?
   timezone                      String                          @default("UTC")
   locale                        String                          @default("es")
   description                   String?

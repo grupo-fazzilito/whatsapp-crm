@@ -5,6 +5,7 @@ import { tenantDb } from '@/lib/db/tenant'
 import { getWorkspaceContext, listMemberships, workspaceCookieOptions } from '@/lib/workspace/context'
 import { WORKSPACE_COOKIE } from '@/lib/workspace/constants'
 import { INDUSTRY_IDS } from '@/lib/industries'
+import { requestRegion } from '@/lib/regions-server'
 
 // GET — active workspace + every membership (for the switcher).
 export async function GET() {
@@ -53,6 +54,8 @@ export async function POST(req: NextRequest) {
         currency: body.currency || 'USD',
         timezone: body.timezone || 'UTC',
         locale: body.locale === 'en' ? 'en' : 'es',
+        // Sales region of the visitor (country or picker): prices and payment gateway.
+        billing_region: await requestRegion(),
         created_by: user.id,
       },
     })

@@ -12,15 +12,17 @@
     "meteringOnly": "La plataforma aún no cobra tokens: tus agentes responden sin descontar.",
     "buy": {
       "title": "Recargar tokens",
-      "description": "Pago seguro con Payment Latam (tarjeta, Yape, Plin, transferencia). Mínimo S/ {min}. Los tokens vencen {months} meses después de la compra.",
+      "description": "Pago seguro con Payment Latam (tarjeta, Yape, Plin, transferencia). Mínimo {min}. Los tokens vencen {months} meses después de la compra.",
       "credits": "{n} tokens",
-      "custom": "Otro monto (S/)",
-      "pay": "Pagar S/ {amount}",
+      "custom": "Otro monto ({currency})",
+      "pay": "Pagar {amount}",
       "creating": "Generando link de pago…",
       "opened": "Abrimos el pago en otra pestaña. Cuando termines, vuelve aquí y pulsa \"Ya pagué\".",
-      "unitPrice": "1 token = S/ {price}",
+      "unitPrice": "1 token = {price}",
       "gatewayMissing": "Los pagos en línea todavía no están disponibles. Escríbenos para recargar.",
-      "profileFirst": "Completa los datos de facturación antes de pagar."
+      "profileFirst": "Completa los datos de facturación antes de pagar.",
+      "descriptionOther": "Mínimo {min}. Los tokens vencen {months} meses después de la compra.",
+      "gatewayRegion": "El pago en línea para tu país aún no está activo. Escríbenos y te ayudamos a recargar."
     },
     "costs": {
       "title": "Cuánto cuesta cada acción",
@@ -83,8 +85,8 @@
       }
     },
     "errors": {
-      "below_minimum": "El monto mínimo es S/ {min}.",
-      "invalid_amount": "Ingresa un monto en soles enteros.",
+      "below_minimum": "El monto mínimo es {min}.",
+      "invalid_amount": "Ingresa un monto entero.",
       "too_large": "El monto es demasiado alto.",
       "billing_profile_incomplete": "Completa los datos de facturación.",
       "gateway_not_configured": "Los pagos en línea no están configurados.",
@@ -178,7 +180,14 @@
     "colTokens": "Tokens",
     "colReason": "Motivo",
     "colBy": "Hecho por",
-    "bySystem": "Sistema"
+    "bySystem": "Sistema",
+    "regions": {
+      "title": "Precios por país",
+      "hint": "Los precios de arriba son de Perú (en soles). Venezuela y Estados Unidos (y el resto del mundo) pagan en dólares con estos precios.",
+      "creditPrice": "Precio por token (US$)",
+      "minTopup": "Recarga mínima (US$)",
+      "packs": "Paquetes (US$)"
+    }
   },
   "metaUsage": {
     "tab": "WhatsApp (Meta)",

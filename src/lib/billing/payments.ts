@@ -4,7 +4,9 @@ import { prisma } from '@/lib/db/prisma'
 import type { Prisma } from '@/generated/prisma/client'
 import { tenantDb } from '@/lib/db/tenant'
 import { normalizeRaw } from '@/lib/db/compat'
-import { checkTopup } from './pricing'
+import { checkTopup, pricingFor } from './pricing'
+import { workspaceRegion } from '@/lib/regions-server'
+import { REGION_INFO } from '@/lib/regions'
 import { getBillingSettings, getPaymentLatamConfig } from './settings'
 import { createPayin, expiryDate, parsePayinWebhook, queryPayin, PaymentLatamError, type PayinResult } from './payment-latam'
 import { notifyBilling } from './credits'
@@ -90,11 +92,14 @@ export async function createCheckout(input: {
   userId: string
   amount: unknown
 }): Promise<{ ok: true; payment: BillingPayment } | { ok: false; error: CheckoutError; detail?: string }> {
-  const settings = await getBillingSettings()
-  const check = checkTopup(input.amount, settings)
+  const [settings, region] = await Promise.all([getBillingSettings(), workspaceRegion(input.workspaceId)])
+  const prices = pricingFor(settings, region)
+  const check = checkTopup(input.amount, prices)
   if (!check.ok) return { ok: false, error: check.error }
   if (check.credits <= 0) return { ok: false, error: 'invalid_amount' }
 
+  // Each region pays through its own gateway; only Peru's (Payment Latam) is live so far.
+  if (REGION_INFO[region].gateway !== 'payment_latam') return { ok: false, error: 'gateway_not_configured' }
   const cfg = await getPaymentLatamConfig()
   if (!cfg) return { ok: false, error: 'gateway_not_configured' }
 
@@ -113,7 +118,8 @@ export async function createCheckout(input: {
         workspace_id: input.workspaceId,
         amount: check.amount,
         credits: check.credits,
-        unit_price: settings.credit_price,
+        unit_price: prices.credit_price,
+        currency: prices.currency,
         status: 'creating',
         expires_on: expiresOn,
         payer: { doc_type: account.doc_type, doc_number: account.doc_number, name: account.legal_name, email: account.email },
