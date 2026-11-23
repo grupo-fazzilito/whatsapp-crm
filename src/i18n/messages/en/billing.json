@@ -22,7 +22,8 @@
       "gatewayMissing": "Online payments are not available yet. Contact us to top up.",
       "profileFirst": "Fill in your billing details before paying.",
       "descriptionOther": "Minimum {min}. Tokens expire {months} months after purchase.",
-      "gatewayRegion": "Online payment for your country isn't active yet. Message us and we'll help you top up."
+      "gatewayRegion": "Online payment for your country isn't active yet. Message us and we'll help you top up.",
+      "descriptionStripe": "Secure card payment through Stripe. Minimum {min}. Tokens expire {months} months after purchase."
     },
     "costs": {
       "title": "What each action costs",
@@ -60,7 +61,8 @@
       "check": "I already paid",
       "checking": "Checking…",
       "stillPending": "Payment Latam has not confirmed the payment yet. If you already paid, wait a few minutes.",
-      "credited": "Payment confirmed! {n} tokens were added."
+      "credited": "Payment confirmed! {n} tokens were added.",
+      "paidToast": "Payment confirmed: your tokens are ready."
     },
     "status": {
       "creating": "Creating",

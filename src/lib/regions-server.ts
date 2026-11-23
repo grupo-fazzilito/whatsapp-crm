@@ -3,11 +3,17 @@ import { cookies, headers } from 'next/headers'
 import { prisma } from '@/lib/db/prisma'
 import { COUNTRY_HEADER, REGION_COOKIE, isRegion, regionForCountry, type Region } from './regions'
 
-/** The visitor's region: the picker/proxy cookie, else their country (first visit), else US. */
+/**
+ * The visitor's region: the picker/proxy cookie, else their country (first
+ * visit; Cloudflare's header, where XX = unknown → US). Without the header at
+ * all (the site isn't behind Cloudflare yet, or local dev) we can't tell the
+ * country, so Peru — where Whasalia sold before regions existed.
+ */
 export async function requestRegion(): Promise<Region> {
   const saved = (await cookies()).get(REGION_COOKIE)?.value
   if (isRegion(saved)) return saved
-  return regionForCountry((await headers()).get(COUNTRY_HEADER))
+  const country = (await headers()).get(COUNTRY_HEADER)
+  return country ? regionForCountry(country) : 'pe'
 }
 
 /**

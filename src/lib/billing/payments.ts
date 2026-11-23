@@ -10,6 +10,7 @@ import { REGION_INFO } from '@/lib/regions'
 import { getBillingSettings, getPaymentLatamConfig } from './settings'
 import { createPayin, expiryDate, parsePayinWebhook, queryPayin, PaymentLatamError, type PayinResult } from './payment-latam'
 import { notifyBilling } from './credits'
+import { createCheckoutSession, getCheckoutSession, parseStripeEvent, stripeConfig, StripeError, toCents, type StripeSession } from './stripe'
 
 // Top-ups: a billing_payments row + a Payment Latam Payin order. Credits
 // are granted only after the order is confirmed APROBADA by consulta-recaudo
@@ -18,7 +19,9 @@ import { notifyBilling } from './credits'
 export interface BillingPayment {
   id: string
   workspace_id: string
+  provider: string
   amount: number
+  currency: string
   credits: number
   status: 'creating' | 'pending' | 'paid' | 'expired' | 'reversed' | 'failed'
   provider_order_id: string | null
@@ -33,7 +36,9 @@ export interface BillingPayment {
 const PAYMENT_COLUMNS = {
   id: true,
   workspace_id: true,
+  provider: true,
   amount: true,
+  currency: true,
   credits: true,
   status: true,
   provider_order_id: true,
@@ -98,8 +103,10 @@ export async function createCheckout(input: {
   if (!check.ok) return { ok: false, error: check.error }
   if (check.credits <= 0) return { ok: false, error: 'invalid_amount' }
 
-  // Each region pays through its own gateway; only Peru's (Payment Latam) is live so far.
-  if (REGION_INFO[region].gateway !== 'payment_latam') return { ok: false, error: 'gateway_not_configured' }
+  // Each region pays through its own gateway: Peru Payment Latam, the US (and the rest) Stripe.
+  const gateway = REGION_INFO[region].gateway
+  if (gateway === 'stripe') return createStripeCheckout(input, prices.currency, check, prices.credit_price)
+  if (gateway !== 'payment_latam') return { ok: false, error: 'gateway_not_configured' }
   const cfg = await getPaymentLatamConfig()
   if (!cfg) return { ok: false, error: 'gateway_not_configured' }
 
@@ -176,6 +183,7 @@ export async function syncPayment(paymentId: string): Promise<BillingPayment | n
   const payment = p as BillingPayment
   const db = tenantDb(payment.workspace_id)
   if (!payment.provider_order_id || !['pending', 'expired'].includes(payment.status)) return payment
+  if (payment.provider === 'stripe') return syncStripePayment(payment)
   const cfg = await getPaymentLatamConfig()
   if (!cfg) return payment
 
@@ -196,15 +204,7 @@ export async function syncPayment(paymentId: string): Promise<BillingPayment | n
       console.error(`[billing] payment ${payment.id} approved for less than expected`)
       return payment
     }
-    const settings = await getBillingSettings()
-    let applied: boolean | null
-    try {
-      const [row] = await prisma.$queryRaw<{ v: boolean | null }[]>`SELECT public.apply_billing_payment(${payment.id}::uuid, ${settings.expiry_months}::int) AS v`
-      applied = row?.v ?? null
-    } catch (err) {
-      throw new Error(`apply_billing_payment: ${err instanceof Error ? err.message : err}`)
-    }
-    if (applied) await notifyBilling(payment.workspace_id, 'paid', payment.credits)
+    await applyPaid(payment)
   } else if (r.estado === 'VENCIDA' && payment.status === 'pending') {
     await db.billing_payments
       .updateMany({ where: { id: payment.id, status: 'pending' }, data: { status: 'expired', raw: json({ last: r }) } })
@@ -275,4 +275,163 @@ export async function runBillingCron(): Promise<{ checked: number; expiredLots: 
     console.error('[billing] expire_credit_lots failed:', err instanceof Error ? err.message : err)
   }
   return { checked: pending.length, expiredLots: Number(expired ?? 0) }
+}
+
+/** Marks a confirmed payment paid and grants its credits (once: the SQL function is idempotent). */
+async function applyPaid(payment: BillingPayment): Promise<void> {
+  const settings = await getBillingSettings()
+  let applied: boolean | null
+  try {
+    const [row] = await prisma.$queryRaw<{ v: boolean | null }[]>`SELECT public.apply_billing_payment(${payment.id}::uuid, ${settings.expiry_months}::int) AS v`
+    applied = row?.v ?? null
+  } catch (err) {
+    throw new Error(`apply_billing_payment: ${err instanceof Error ? err.message : err}`)
+  }
+  if (applied) await notifyBilling(payment.workspace_id, 'paid', payment.credits)
+}
+
+// ------------------------------------------------------------
+// Stripe (US region)
+// ------------------------------------------------------------
+
+async function createStripeCheckout(
+  input: { workspaceId: string; userId: string },
+  currency: string,
+  check: { amount: number; credits: number },
+  unitPrice: number,
+): Promise<{ ok: true; payment: BillingPayment } | { ok: false; error: CheckoutError; detail?: string }> {
+  const cfg = stripeConfig()
+  if (!cfg) return { ok: false, error: 'gateway_not_configured' }
+  const db = tenantDb(input.workspaceId)
+  // Stripe asks for the card details itself: only an email for the receipt (billing profile, else the admin's).
+  const [account, profile, ws] = await Promise.all([
+    db.billing_accounts.findFirst({ where: { workspace_id: input.workspaceId }, select: { legal_name: true, email: true } }),
+    prisma.profiles.findUnique({ where: { user_id: input.userId }, select: { email: true } }),
+    prisma.workspaces.findUnique({ where: { id: input.workspaceId }, select: { locale: true } }),
+  ])
+  const email = account?.email || profile?.email || null
+
+  let created: { id: string }
+  try {
+    created = await db.billing_payments.create({
+      data: {
+        workspace_id: input.workspaceId,
+        provider: 'stripe',
+        amount: check.amount,
+        currency,
+        credits: check.credits,
+        unit_price: unitPrice,
+        status: 'creating',
+        payer: { email, name: account?.legal_name ?? null },
+        created_by: input.userId,
+      },
+      select: { id: true },
+    })
+  } catch (err) {
+    throw new Error(`billing_payments insert: ${err instanceof Error ? err.message : err}`)
+  }
+
+  try {
+    const locale = ws?.locale === 'en' ? 'en' : 'es'
+    const back = `${siteUrl()}/settings?tab=billing`
+    const session = await createCheckoutSession(cfg, {
+      paymentId: created.id,
+      amount: check.amount,
+      currency,
+      credits: check.credits,
+      productName: locale === 'en' ? `Whasalia — ${check.credits.toLocaleString('en-US')} AI tokens` : `Whasalia — ${check.credits.toLocaleString('es-PE')} tokens de IA`,
+      email,
+      successUrl: `${back}&paid=${created.id}`,
+      cancelUrl: back,
+      locale,
+    })
+    const payment = await db.billing_payments
+      .update({
+        where: { id: created.id },
+        data: {
+          status: 'pending',
+          provider_order_id: session.id,
+          checkout_url: session.url,
+          expires_on: session.expires_at ? new Date(session.expires_at * 1000) : null,
+          raw: json({ created: { id: session.id, expires_at: session.expires_at } }),
+        },
+        select: PAYMENT_COLUMNS,
+      })
+      .catch((e) => {
+        console.error('[billing] payment update failed:', e instanceof Error ? e.message : e)
+        return null
+      })
+    return { ok: true, payment: payment as BillingPayment }
+  } catch (err) {
+    const detail = err instanceof StripeError ? err.message : 'unexpected error'
+    console.error('[billing] stripe session failed:', err instanceof Error ? err.message : err)
+    await db.billing_payments
+      .updateMany({ where: { id: created.id }, data: { status: 'failed', error: detail.slice(0, 300) } })
+      .catch((e) => console.error('[billing] mark failed:', e instanceof Error ? e.message : e))
+    return { ok: false, error: 'gateway_error', detail }
+  }
+}
+
+/** Reads the Checkout Session back from Stripe: paid (full amount, same currency) → credits; expired → expired. */
+async function syncStripePayment(payment: BillingPayment): Promise<BillingPayment> {
+  const cfg = stripeConfig()
+  if (!cfg || !payment.provider_order_id) return payment
+  const db = tenantDb(payment.workspace_id)
+  let session: StripeSession
+  try {
+    session = await getCheckoutSession(cfg, payment.provider_order_id)
+  } catch (err) {
+    console.warn('[billing] stripe session lookup failed:', err instanceof Error ? err.message : err)
+    return payment
+  }
+  if (session.client_reference_id !== payment.id) return payment
+
+  if (session.payment_status === 'paid') {
+    const expected = toCents(Number(payment.amount))
+    if ((session.amount_total ?? 0) < expected || (session.currency ?? '').toUpperCase() !== (payment.currency || 'USD').toUpperCase()) {
+      await db.billing_payments
+        .updateMany({ where: { id: payment.id }, data: { error: `paid ${session.amount_total} ${session.currency} < ${expected}`, raw: json({ last: session }) } })
+        .catch((e) => console.error('[billing] payment update failed:', e instanceof Error ? e.message : e))
+      console.error(`[billing] stripe payment ${payment.id} paid less than expected`)
+      return payment
+    }
+    // The payment intent identifies a later refund (charge.refunded).
+    await db.billing_payments
+      .updateMany({ where: { id: payment.id }, data: { reference: session.payment_intent, raw: json({ last: session }) } })
+      .catch((e) => console.error('[billing] payment update failed:', e instanceof Error ? e.message : e))
+    await applyPaid(payment)
+  } else if (session.status === 'expired' && payment.status === 'pending') {
+    await db.billing_payments
+      .updateMany({ where: { id: payment.id, status: 'pending' }, data: { status: 'expired', raw: json({ last: session }) } })
+      .catch((e) => console.error('[billing] payment update failed:', e instanceof Error ? e.message : e))
+  }
+  const fresh = await db.billing_payments.findFirst({ where: { id: payment.id }, select: PAYMENT_COLUMNS })
+  return (fresh as BillingPayment) ?? payment
+}
+
+/** Stripe webhook (signature checked by the route): look the payment up again, or take back a refund's credits. */
+export async function handleStripeEvent(event: NonNullable<ReturnType<typeof parseStripeEvent>>): Promise<'ok' | 'ignored'> {
+  if (event.type === 'charge.refunded') {
+    // Platform client: the event only carries Stripe's ids.
+    const payment = await prisma.billing_payments
+      .findFirst({
+        where: { provider: 'stripe', OR: [...(event.paymentId && /^[0-9a-f-]{36}$/i.test(event.paymentId) ? [{ id: event.paymentId }] : []), ...(event.paymentIntent ? [{ reference: event.paymentIntent }] : [])] },
+        select: { id: true },
+      })
+      .catch(() => null)
+    if (!payment) return 'ignored'
+    try {
+      const [row] = normalizeRaw(await prisma.$queryRaw<{ v: number | null }[]>`SELECT public.reverse_billing_payment(${payment.id}::uuid) AS v`)
+      console.warn(`[billing] stripe payment ${payment.id} refunded, ${row?.v ?? 0} credits removed`)
+    } catch (err) {
+      console.error('[billing] reverse_billing_payment failed:', err instanceof Error ? err.message : err)
+    }
+    return 'ok'
+  }
+  const id = event.paymentId
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return 'ignored'
+  const p = await prisma.billing_payments.findUnique({ where: { id }, select: { provider: true, provider_order_id: true } }).catch(() => null)
+  if (!p || p.provider !== 'stripe' || (event.sessionId && p.provider_order_id !== event.sessionId)) return 'ignored'
+  await syncPayment(id)
+  return 'ok'
 }

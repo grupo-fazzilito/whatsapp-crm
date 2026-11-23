@@ -13,7 +13,7 @@ export const REGION_COOKIE = 'region'
 /** Cloudflare adds the visitor's ISO country (XX = unknown, T1 = Tor). */
 export const COUNTRY_HEADER = 'cf-ipcountry'
 
-export type Gateway = 'payment_latam' | 'mispidi' | 'paddle'
+export type Gateway = 'payment_latam' | 'mispidi' | 'stripe'
 
 export interface RegionInfo {
   /** ISO 4217 of every price in this region. */
@@ -27,7 +27,7 @@ export interface RegionInfo {
 export const REGION_INFO: Record<Region, RegionInfo> = {
   pe: { currency: 'PEN', gateway: 'payment_latam', flag: '🇵🇪', country: 'Perú' },
   ve: { currency: 'USD', gateway: 'mispidi', flag: '🇻🇪', country: 'Venezuela' },
-  us: { currency: 'USD', gateway: 'paddle', flag: '🇺🇸', country: 'United States' },
+  us: { currency: 'USD', gateway: 'stripe', flag: '🇺🇸', country: 'United States' },
 }
 
 export function isRegion(v: unknown): v is Region {
