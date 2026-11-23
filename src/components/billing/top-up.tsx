@@ -10,10 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { DOC_TYPES } from '@/lib/billing/account';
+import { formatMoney } from '@/lib/regions';
 
 // Buying tokens, shared by Settings → Tokens and the low-balance dialog.
 
 export interface TopUpSettings {
+  /** Currency of every amount below (the account's sales region). */
+  currency: string;
   credit_price: number;
   min_topup: number;
   packs: number[];
@@ -32,9 +35,9 @@ export const accountComplete = (a: BillingAccount | null) => !!(a?.doc_type && a
 export function useBillingError() {
   const { t } = useI18n();
   return useCallback(
-    (code: string | undefined, min?: number) => {
+    (code: string | undefined, min?: string) => {
       const key = `billing.errors.${code ?? 'generic'}`;
-      const s = t(key, { min: min ?? 50 });
+      const s = t(key, { min: min ?? '' });
       return s === key ? t('billing.errors.generic') : s;
     },
     [t],
@@ -75,7 +78,7 @@ export function BuyForm({
     const body = await res.json().catch(() => ({}));
     if (!res.ok || !body.payment?.checkout_url) {
       tab?.close();
-      toast.error(errorText(body.error, s.min_topup));
+      toast.error(errorText(body.error, formatMoney(s.min_topup, s.currency)));
       onCreated(null);
       return;
     }
@@ -107,7 +110,7 @@ export function BuyForm({
                   : 'border-slate-200 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700',
               )}
             >
-              <span className="block text-lg font-semibold text-slate-900 dark:text-white">S/ {nf.format(p)}</span>
+              <span className="block text-lg font-semibold text-slate-900 dark:text-white">{formatMoney(p, s.currency)}</span>
               <span className="block text-xs text-slate-500 dark:text-slate-400">
                 {t('billing.buy.credits', { n: nf.format(Math.floor((p + 1e-9) / s.credit_price)) })}
               </span>
@@ -116,7 +119,7 @@ export function BuyForm({
         })}
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="billing-custom">{t('billing.buy.custom')}</Label>
+        <Label htmlFor="billing-custom">{t('billing.buy.custom', { currency: s.currency === 'PEN' ? 'S/' : 'US$' })}</Label>
         <Input
           id="billing-custom"
           inputMode="numeric"
@@ -125,14 +128,14 @@ export function BuyForm({
           onChange={(e) => setCustom(e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
         />
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          {t('billing.buy.unitPrice', { price: s.credit_price.toFixed(s.credit_price < 0.1 ? 3 : 2) })}
+          {t('billing.buy.unitPrice', { price: formatMoney(Number(s.credit_price.toFixed(s.credit_price < 0.1 ? 3 : 2)), s.currency) })}
           {chosenCredits > 0 && ` · ${t('billing.buy.credits', { n: nf.format(chosenCredits) })}`}
         </p>
       </div>
       {!profileComplete && <p className="text-sm text-amber-700 dark:text-amber-300">{t('billing.buy.profileFirst')}</p>}
       <Button onClick={pay} disabled={paying || !profileComplete || !chosen || chosen < s.min_topup} className="w-full">
         {paying ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <ExternalLink className="size-4" aria-hidden />}
-        {paying ? t('billing.buy.creating') : t('billing.buy.pay', { amount: nf.format(chosen || 0) })}
+        {paying ? t('billing.buy.creating') : t('billing.buy.pay', { amount: formatMoney(chosen || 0, s.currency) })}
       </Button>
     </div>
   );

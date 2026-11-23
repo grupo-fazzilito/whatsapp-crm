@@ -5,6 +5,10 @@ import { Coins, Loader2, PlugZap, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/client";
 import { BILLABLE_ACTIONS, type BillableAction, type BillingSettings } from "@/lib/billing/pricing";
+import { REGION_INFO } from "@/lib/regions";
+
+const OTHER_REGIONS = ["ve", "us"] as const;
+type OtherRegion = (typeof OTHER_REGIONS)[number];
 
 interface PaymentLatamView {
   configured: boolean;
@@ -26,6 +30,8 @@ export function BillingCard() {
   const { t } = useI18n();
   const [billing, setBilling] = useState<BillingSettings | null>(null);
   const [packs, setPacks] = useState("");
+  // Venezuela and US prices (USD): packs typed as "15, 30, 60".
+  const [regionPacks, setRegionPacks] = useState<Record<OtherRegion, string>>({ ve: "", us: "" });
   const [pl, setPl] = useState<PaymentLatamView | null>(null);
   const [plForm, setPlForm] = useState({ base_url: "", merchant_code: "", secret_user: "", secret_pass: "", amount_format: "fixed2" });
   const [saving, setSaving] = useState(false);
@@ -37,6 +43,7 @@ export function BillingCard() {
   const apply = (d: { billing: BillingSettings; payment_latam: PaymentLatamView }) => {
     setBilling(d.billing);
     setPacks(d.billing.packs.join(", "));
+    setRegionPacks({ ve: d.billing.regions.ve.packs.join(", "), us: d.billing.regions.us.packs.join(", ") });
     setPl(d.payment_latam);
     setPlForm({ base_url: d.payment_latam.base_url, merchant_code: d.payment_latam.merchant_code, secret_user: "", secret_pass: "", amount_format: d.payment_latam.amount_format });
   };
@@ -62,6 +69,8 @@ export function BillingCard() {
   }
 
   const setNum = (key: keyof BillingSettings, value: string) => setBilling((b) => (b ? { ...b, [key]: value === "" ? ("" as never) : Number(value) } : b));
+  const setRegionNum = (r: OtherRegion, key: "credit_price" | "min_topup", value: string) =>
+    setBilling((b) => (b ? { ...b, regions: { ...b.regions, [r]: { ...b.regions[r], [key]: value === "" ? 0 : Number(value) } } } : b));
   const setCost = (a: BillableAction, value: string) =>
     setBilling((b) => (b ? { ...b, action_costs: { ...b.action_costs, [a]: value === "" ? 0 : Number(value) } } : b));
 
@@ -79,7 +88,13 @@ export function BillingCard() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        billing: { ...billing, packs: packs.split(/[,\s]+/).filter(Boolean).map(Number) },
+        billing: {
+          ...billing,
+          packs: packs.split(/[,\s]+/).filter(Boolean).map(Number),
+          regions: Object.fromEntries(
+            OTHER_REGIONS.map((r) => [r, { ...billing.regions[r], packs: regionPacks[r].split(/[,\s]+/).filter(Boolean).map(Number) }]),
+          ),
+        },
         payment_latam,
       }),
     });
@@ -169,6 +184,32 @@ export function BillingCard() {
           <input type="checkbox" checked={billing.enforce} onChange={(e) => setBilling((b) => (b ? { ...b, enforce: e.target.checked } : b))} className="size-4 accent-emerald-500" />
           {t("billingAdmin.enforce")}
         </label>
+      </fieldset>
+
+      <fieldset className="space-y-4 border-t border-slate-800 pt-5">
+        <legend className="text-xs font-bold uppercase tracking-wide text-slate-200 mb-3">{t("billingAdmin.regions.title")}</legend>
+        <p className="text-xs text-slate-400">{t("billingAdmin.regions.hint")}</p>
+        {OTHER_REGIONS.map((r) => (
+          <div key={r} className="space-y-2">
+            <p className="text-sm font-semibold text-slate-200">
+              {REGION_INFO[r].flag} {REGION_INFO[r].country} · {REGION_INFO[r].currency}
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div>
+                <label htmlFor={`bill-${r}-price`} className={labelCls}>{t("billingAdmin.regions.creditPrice")}</label>
+                <input id={`bill-${r}-price`} type="number" min="0" step="0.001" value={billing.regions[r].credit_price} onChange={(e) => setRegionNum(r, "credit_price", e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label htmlFor={`bill-${r}-min`} className={labelCls}>{t("billingAdmin.regions.minTopup")}</label>
+                <input id={`bill-${r}-min`} type="number" min="1" step="1" value={billing.regions[r].min_topup} onChange={(e) => setRegionNum(r, "min_topup", e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label htmlFor={`bill-${r}-packs`} className={labelCls}>{t("billingAdmin.regions.packs")}</label>
+                <input id={`bill-${r}-packs`} value={regionPacks[r]} onChange={(e) => setRegionPacks((p) => ({ ...p, [r]: e.target.value }))} className={inputCls} placeholder="15, 30, 60, 150" />
+              </div>
+            </div>
+          </div>
+        ))}
       </fieldset>
 
       <fieldset className="space-y-4 border-t border-slate-800 pt-5">

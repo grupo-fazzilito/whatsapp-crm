@@ -1,7 +1,8 @@
 // Plans (table `plans`, one per workspace via workspaces.plan_id). Today there is
 // one, 'free' (Free Forever); AI usage is paid apart with prepaid tokens
 // (see ./pricing). Pure — safe on the client.
-import { BILLABLE_ACTIONS, type BillableAction, type BillingSettings } from './pricing'
+import { BILLABLE_ACTIONS, pricingFor, type BillableAction, type BillingSettings } from './pricing'
+import { formatMoney, type Region } from '@/lib/regions'
 
 export const FREE_PLAN_ID = 'free'
 
@@ -30,6 +31,9 @@ export function planFromRow(row: { id: string; name: string; price_monthly: unkn
 /** What the public pricing needs from the billing settings (no secrets). */
 export interface PublicPricing {
   plans: Plan[]
+  /** The visitor's sales region and its currency (every price below is in it). */
+  region: Region
+  currency: string
   credits: {
     price: number
     minTopup: number
@@ -40,13 +44,16 @@ export interface PublicPricing {
   }
 }
 
-export function publicPricing(settings: BillingSettings, plans: Plan[]): PublicPricing {
+export function publicPricing(settings: BillingSettings, plans: Plan[], region: Region = 'pe'): PublicPricing {
+  const p = pricingFor(settings, region)
   return {
     plans,
+    region,
+    currency: p.currency,
     credits: {
-      price: settings.credit_price,
-      minTopup: settings.min_topup,
-      packs: settings.packs.map((amount) => ({ amount, credits: Math.floor((amount + 1e-9) / settings.credit_price) })),
+      price: p.credit_price,
+      minTopup: p.min_topup,
+      packs: p.packs.map((amount) => ({ amount, credits: Math.floor((amount + 1e-9) / p.credit_price) })),
       welcome: settings.welcome_credits,
       expiryMonths: settings.expiry_months,
       costs: BILLABLE_ACTIONS.filter((a) => a !== 'playground').map((action) => ({ action, credits: settings.action_costs[action] })),
@@ -56,6 +63,5 @@ export function publicPricing(settings: BillingSettings, plans: Plan[]): PublicP
 
 /** "S/ 0.05", "S/ 50" — soles, as the payment page shows them. */
 export function formatSoles(amount: number): string {
-  const decimals = Number.isInteger(amount) ? 0 : Math.max(2, Math.min(4, (String(amount).split('.')[1] ?? '').length))
-  return `S/ ${amount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`
+  return formatMoney(amount, 'PEN')
 }

@@ -12,15 +12,17 @@
     "meteringOnly": "The platform is not charging tokens yet: your agents reply without deductions.",
     "buy": {
       "title": "Top up tokens",
-      "description": "Secure payment with Payment Latam (card, Yape, Plin, bank transfer). Minimum S/ {min}. Tokens expire {months} months after purchase.",
+      "description": "Secure payment with Payment Latam (card, Yape, Plin, bank transfer). Minimum {min}. Tokens expire {months} months after purchase.",
       "credits": "{n} tokens",
-      "custom": "Other amount (S/)",
-      "pay": "Pay S/ {amount}",
+      "custom": "Other amount ({currency})",
+      "pay": "Pay {amount}",
       "creating": "Creating payment link…",
       "opened": "We opened the payment in a new tab. When you are done, come back and press \"I already paid\".",
-      "unitPrice": "1 token = S/ {price}",
+      "unitPrice": "1 token = {price}",
       "gatewayMissing": "Online payments are not available yet. Contact us to top up.",
-      "profileFirst": "Fill in your billing details before paying."
+      "profileFirst": "Fill in your billing details before paying.",
+      "descriptionOther": "Minimum {min}. Tokens expire {months} months after purchase.",
+      "gatewayRegion": "Online payment for your country isn't active yet. Message us and we'll help you top up."
     },
     "costs": {
       "title": "What each action costs",
@@ -83,8 +85,8 @@
       }
     },
     "errors": {
-      "below_minimum": "The minimum amount is S/ {min}.",
-      "invalid_amount": "Enter a whole amount in soles.",
+      "below_minimum": "The minimum amount is {min}.",
+      "invalid_amount": "Enter a whole amount.",
       "too_large": "The amount is too high.",
       "billing_profile_incomplete": "Fill in your billing details.",
       "gateway_not_configured": "Online payments are not configured.",
@@ -178,7 +180,14 @@
     "colTokens": "Tokens",
     "colReason": "Reason",
     "colBy": "Done by",
-    "bySystem": "System"
+    "bySystem": "System",
+    "regions": {
+      "title": "Prices by country",
+      "hint": "The prices above are for Peru (in soles). Venezuela and the United States (and the rest of the world) pay in dollars with these prices.",
+      "creditPrice": "Price per token (US$)",
+      "minTopup": "Minimum top-up (US$)",
+      "packs": "Packs (US$)"
+    }
   },
   "metaUsage": {
     "tab": "WhatsApp (Meta)",

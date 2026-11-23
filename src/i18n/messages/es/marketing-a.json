@@ -196,6 +196,11 @@
       "cost": "Costo",
       "free": "Si te quedas sin tokens, tus agentes de IA y las respuestas a comentarios se pausan, y los mensajes llegan a la bandeja para que tu equipo responda. Nada más se detiene."
     },
-    "metaFees": "Los mensajes de plantilla de WhatsApp los cobra Meta directamente a tu cuenta de WhatsApp Business, según sus tarifas oficiales. Whasalia no añade recargo."
+    "metaFees": "Los mensajes de plantilla de WhatsApp los cobra Meta directamente a tu cuenta de WhatsApp Business, según sus tarifas oficiales. Whasalia no añade recargo.",
+    "region": {
+      "label": "Precios para",
+      "currencyPEN": "en soles",
+      "currencyUSD": "en dólares (USD)"
+    }
   }
 }

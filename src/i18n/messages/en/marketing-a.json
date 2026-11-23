@@ -196,6 +196,11 @@
       "cost": "Cost",
       "free": "If you run out of tokens, your AI agents and comment replies pause and messages go to the inbox for your team to answer. Nothing else stops."
     },
-    "metaFees": "WhatsApp template messages are charged by Meta directly to your WhatsApp Business account, at its official rates. Whasalia adds no markup."
+    "metaFees": "WhatsApp template messages are charged by Meta directly to your WhatsApp Business account, at its official rates. Whasalia adds no markup.",
+    "region": {
+      "label": "Prices for",
+      "currencyPEN": "in soles",
+      "currencyUSD": "in US dollars"
+    }
   }
 }

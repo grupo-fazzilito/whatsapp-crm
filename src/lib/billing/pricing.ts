@@ -1,5 +1,6 @@
 // Prepaid AI credits: prices and rules edited in the admin panel
 // (platform_settings 'billing'). Pure — safe in tests and on the client.
+import { REGION_INFO, type Region } from '@/lib/regions'
 
 /** Billable actions (AI, and automatic comment replies) and what each one costs in credits. */
 export const BILLABLE_ACTIONS = ['reply', 'followup', 'summary', 'suggest', 'transcription', 'vision', 'comment_reply', 'reminder', 'playground', 'social_caption', 'crm_action'] as const
@@ -22,7 +23,27 @@ export interface BillingSettings {
   action_costs: Record<BillableAction, number>
   /** false = meter only, never pause the AI (e.g. while testing). */
   enforce: boolean
+  /**
+   * Prices of the other sales regions, in their currency (USD). The fields
+   * above (credit_price, min_topup, packs) are Peru's, in soles.
+   */
+  regions: Record<Exclude<Region, 'pe'>, RegionPrices>
 }
+
+/** What a credit costs in one region, in that region's currency. */
+export interface RegionPrices {
+  credit_price: number
+  min_topup: number
+  packs: number[]
+}
+
+/** A region's prices with their currency. */
+export interface RegionPricing extends RegionPrices {
+  region: Region
+  currency: string
+}
+
+const DEFAULT_USD: RegionPrices = { credit_price: 0.015, min_topup: 15, packs: [15, 30, 60, 150] }
 
 export const DEFAULT_BILLING: BillingSettings = {
   credit_price: 0.05,
@@ -33,6 +54,7 @@ export const DEFAULT_BILLING: BillingSettings = {
   low_credit_threshold: 50,
   action_costs: { reply: 1, followup: 1, summary: 1, suggest: 1, transcription: 2, vision: 2, comment_reply: 1, reminder: 1, playground: 1, social_caption: 1, crm_action: 1 },
   enforce: true,
+  regions: { ve: DEFAULT_USD, us: DEFAULT_USD },
 }
 
 const num = (v: unknown, min: number, max: number, fallback: number, int = false): number => {
@@ -41,36 +63,50 @@ const num = (v: unknown, min: number, max: number, fallback: number, int = false
   return int ? Math.round(n) : n
 }
 
+function normalizePrices(s: Partial<RegionPrices> | null | undefined, fallback: RegionPrices): RegionPrices {
+  const v = s ?? {}
+  const min_topup = num(v.min_topup, 1, 100_000, fallback.min_topup, true)
+  const packs = Array.isArray(v.packs)
+    ? [...new Set(v.packs.map((p) => num(p, min_topup, 100_000, 0, true)).filter((p) => p > 0))].sort((a, b) => a - b).slice(0, 6)
+    : fallback.packs.filter((p) => p >= min_topup)
+  return { credit_price: num(v.credit_price, 0.0001, 1000, fallback.credit_price), min_topup, packs: packs.length ? packs : [min_topup] }
+}
+
 /** Merge stored values over the defaults, dropping anything out of range. */
 export function normalizeBilling(stored: Partial<BillingSettings> | null | undefined): BillingSettings {
   const s = stored ?? {}
-  const min_topup = num(s.min_topup, 1, 100_000, DEFAULT_BILLING.min_topup, true)
-  const packs = Array.isArray(s.packs)
-    ? [...new Set(s.packs.map((p) => num(p, min_topup, 100_000, 0, true)).filter((p) => p > 0))].sort((a, b) => a - b).slice(0, 6)
-    : DEFAULT_BILLING.packs.filter((p) => p >= min_topup)
+  const pe = normalizePrices(s, DEFAULT_BILLING)
   const costs = { ...DEFAULT_BILLING.action_costs }
   for (const a of BILLABLE_ACTIONS) costs[a] = num(s.action_costs?.[a], 0, 1000, DEFAULT_BILLING.action_costs[a], true)
   return {
-    credit_price: num(s.credit_price, 0.0001, 1000, DEFAULT_BILLING.credit_price),
-    min_topup,
-    packs: packs.length ? packs : [min_topup],
+    ...pe,
     expiry_months: num(s.expiry_months, 1, 60, DEFAULT_BILLING.expiry_months, true),
     welcome_credits: num(s.welcome_credits, 0, 1_000_000, DEFAULT_BILLING.welcome_credits, true),
     low_credit_threshold: num(s.low_credit_threshold, 0, 1_000_000, DEFAULT_BILLING.low_credit_threshold, true),
     action_costs: costs,
     enforce: s.enforce !== false,
+    regions: {
+      ve: normalizePrices(s.regions?.ve, DEFAULT_USD),
+      us: normalizePrices(s.regions?.us, DEFAULT_USD),
+    },
   }
 }
 
-/** Credits bought with `amount` soles (whole credits, rounded down). */
-export function creditsFor(amount: number, settings: BillingSettings): number {
+/** A region's prices (Peru's are the top-level fields, in soles). */
+export function pricingFor(settings: BillingSettings, region: Region): RegionPricing {
+  const p = region === 'pe' ? settings : settings.regions[region]
+  return { region, currency: REGION_INFO[region].currency, credit_price: p.credit_price, min_topup: p.min_topup, packs: p.packs }
+}
+
+/** Credits bought with `amount` (whole credits, rounded down). */
+export function creditsFor(amount: number, settings: Pick<RegionPrices, 'credit_price'>): number {
   return Math.floor((amount + 1e-9) / settings.credit_price)
 }
 
 export type TopupCheck = { ok: true; amount: number; credits: number } | { ok: false; error: 'invalid_amount' | 'below_minimum' | 'too_large' }
 
-/** Top-ups are whole soles between the minimum and S/ 50,000. */
-export function checkTopup(raw: unknown, settings: BillingSettings): TopupCheck {
+/** Top-ups are whole units of the currency between the minimum and 50,000. */
+export function checkTopup(raw: unknown, settings: Pick<RegionPrices, 'credit_price' | 'min_topup'>): TopupCheck {
   const amount = typeof raw === 'string' ? Number(raw) : raw
   if (typeof amount !== 'number' || !Number.isInteger(amount) || amount <= 0) return { ok: false, error: 'invalid_amount' }
   if (amount < settings.min_topup) return { ok: false, error: 'below_minimum' }

@@ -146,6 +146,11 @@
         "password_required": "Type your password.",
         "wrong_password": "The password is not correct.",
         "too_many_attempts": "Too many attempts. Wait 15 minutes."
+      },
+      "region": {
+        "label": "Billing country",
+        "unset": "Not set (assigned when Tokens is opened)",
+        "hint": "Sets this account’s currency, prices and payment gateway."
       }
     },
     "menu": {

@@ -10,10 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils';
 import { BILLABLE_ACTIONS, type BillableAction } from '@/lib/billing/pricing';
 import { AccountForm, BuyForm, accountComplete, useBillingError, type BillingAccount } from './top-up';
+import { formatMoney } from '@/lib/regions';
 
 interface Payment {
   id: string;
   amount: number;
+  currency: string;
   credits: number;
   status: 'creating' | 'pending' | 'paid' | 'expired' | 'reversed' | 'failed';
   checkout_url: string | null;
@@ -36,6 +38,8 @@ interface BillingData {
   balance: number;
   next_expiry: { at: string; credits: number } | null;
   settings: {
+    region: string;
+    currency: string;
     credit_price: number;
     min_topup: number;
     packs: number[];
@@ -67,7 +71,6 @@ export function BillingPanel() {
   const [checking, setChecking] = useState<string | null>(null);
 
   const nf = new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-PE');
-  const soles = (n: number) => `S/ ${new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
   const date = (iso: string, withTime = false) =>
     new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-PE', withTime ? { dateStyle: 'medium', timeStyle: 'short' } : { dateStyle: 'medium' }).format(new Date(iso));
 
@@ -164,11 +167,11 @@ export function BillingPanel() {
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="size-5 text-primary" aria-hidden /> {t('billing.buy.title')}
             </CardTitle>
-            <CardDescription>{t('billing.buy.description', { min: s.min_topup, months: s.expiry_months })}</CardDescription>
+            <CardDescription>{t(s.region === 'pe' ? 'billing.buy.description' : 'billing.buy.descriptionOther', { min: formatMoney(s.min_topup, s.currency), months: s.expiry_months })}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {!data.gateway_ready ? (
-              <p className="text-sm text-slate-600 dark:text-slate-300">{t('billing.buy.gatewayMissing')}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">{t(s.region === 'pe' ? 'billing.buy.gatewayMissing' : 'billing.buy.gatewayRegion')}</p>
             ) : (
               <BuyForm
                 settings={s}
@@ -218,7 +221,7 @@ export function BillingPanel() {
                   {data.payments.map((p) => (
                     <tr key={p.id} className="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
                       <td className="py-2.5 pr-4 whitespace-nowrap">{date(p.created_at, true)}</td>
-                      <td className="py-2.5 pr-4 tabular-nums">{soles(Number(p.amount))}</td>
+                      <td className="py-2.5 pr-4 tabular-nums">{formatMoney(Number(p.amount), p.currency || 'PEN')}</td>
                       <td className="py-2.5 pr-4 tabular-nums">{nf.format(p.credits)}</td>
                       <td className="py-2.5 pr-4">
                         <Badge variant="secondary" className={STATUS_CLS[p.status]}>{t(`billing.status.${p.status}`)}</Badge>

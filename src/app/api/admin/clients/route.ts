@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getSessionUser } from "@/lib/auth/session";
 import { verifyPassword } from "@/lib/auth/password";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { isRegion } from "@/lib/regions";
 
 // Accounts (list, ban, delete) via src/lib/auth/users; data via the platform Prisma client.
 
@@ -29,10 +30,10 @@ export async function GET() {
   if (!(await isAuthed()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let workspaces: { id: string; name: string; industry: string; business_type_detail: string | null; city: string | null; phone: string | null; created_at: string | null; created_by: string | null }[];
+  let workspaces: { id: string; name: string; industry: string; business_type_detail: string | null; city: string | null; phone: string | null; created_at: string | null; created_by: string | null; billing_region: string | null }[];
   try {
     workspaces = (await prisma.workspaces.findMany({
-      select: { id: true, name: true, industry: true, business_type_detail: true, city: true, phone: true, created_at: true, created_by: true },
+      select: { id: true, name: true, industry: true, business_type_detail: true, city: true, phone: true, created_at: true, created_by: true, billing_region: true },
       orderBy: { created_at: "desc" },
     })) as unknown as typeof workspaces;
   } catch (err) {
@@ -136,6 +137,8 @@ export async function GET() {
       id:              w.id,
       workspace_id:    w.id,
       workspace_name:  w.name,
+      // Sales region (prices and payment gateway); null until the account first opens billing.
+      billing_region:  w.billing_region ?? null,
       owner_id:        ownerId,
       name:            profile?.full_name ?? u?.user_metadata?.full_name ?? w.name ?? "",
       email:           u?.email ?? profile?.email ?? "",
@@ -180,9 +183,16 @@ export async function PATCH(req: NextRequest) {
   if (!(await isAuthed()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id, action } = await req.json() as { id: string; action: "activate" | "deactivate" };
+  const { id, action, region } = await req.json() as { id: string; action: "activate" | "deactivate" | "set_region"; region?: string };
   if (!id || !action)
     return NextResponse.json({ error: "Missing id or action" }, { status: 400 });
+
+  // The account's sales region: its prices and payment gateway from now on.
+  if (action === "set_region") {
+    if (!isRegion(region)) return NextResponse.json({ error: "Invalid region" }, { status: 400 });
+    await prisma.workspaces.updateMany({ where: { id }, data: { billing_region: region } });
+    return NextResponse.json({ ok: true });
+  }
 
   const userId = await resolveOwnerUserId(id);
   try {

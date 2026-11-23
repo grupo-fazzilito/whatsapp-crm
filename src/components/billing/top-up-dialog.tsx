@@ -7,10 +7,11 @@ import { useI18n } from '@/i18n/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AccountForm, BuyForm, accountComplete, useBillingError, type BillingAccount, type TopUpSettings } from './top-up';
+import { formatMoney } from '@/lib/regions';
 
 interface Data {
   balance: number;
-  settings: TopUpSettings & { expiry_months: number };
+  settings: TopUpSettings & { expiry_months: number; region: string };
   gateway_ready: boolean;
   account: BillingAccount | null;
 }
@@ -62,7 +63,7 @@ export function TopUpDialog({ open, onOpenChange, onPaid }: { open: boolean; onO
           <DialogTitle>{t('billing.buy.title')}</DialogTitle>
           {data && (
             <DialogDescription>
-              {t('billing.dialog.balance', { n: nf.format(data.balance) })} {t('billing.buy.description', { min: data.settings.min_topup, months: data.settings.expiry_months })}
+              {t('billing.dialog.balance', { n: nf.format(data.balance) })} {t(data.settings.region === 'pe' ? 'billing.buy.description' : 'billing.buy.descriptionOther', { min: formatMoney(data.settings.min_topup, data.settings.currency), months: data.settings.expiry_months })}
             </DialogDescription>
           )}
         </DialogHeader>
@@ -72,7 +73,7 @@ export function TopUpDialog({ open, onOpenChange, onPaid }: { open: boolean; onO
         ) : !data ? (
           <Loader2 className="size-5 animate-spin text-slate-400" aria-label={t('common.loading')} />
         ) : !data.gateway_ready ? (
-          <p className="text-sm text-slate-600 dark:text-slate-300">{t('billing.buy.gatewayMissing')}</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">{t(data.settings.region === 'pe' ? 'billing.buy.gatewayMissing' : 'billing.buy.gatewayRegion')}</p>
         ) : pending ? (
           <div className="space-y-4">
             <p className="text-sm text-slate-600 dark:text-slate-300">{t('billing.buy.opened')}</p>
