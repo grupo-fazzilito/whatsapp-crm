@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, BookOpenText, Bot, FlaskConical, Loader2, Pencil, Settings2 } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { SideMenu, SideMenuLayout } from '@/components/layout/side-menu';
 import { cn } from '@/lib/utils';
 import { CHANNEL_STYLE } from '@/components/channels/channel-types';
 import type { ChannelType } from '@/lib/channels/types';
@@ -34,7 +35,6 @@ export function AgentWorkspace({ agentId }: { agentId: string }) {
   const { t, locale } = useI18n();
   const { can, workspace } = useWorkspace();
   const isAdmin = can('admin');
-  const router = useRouter();
   const search = useSearchParams();
   const [agent, setAgent] = useState<AiAgent | null>(null);
   const [all, setAll] = useState<AiAgent[]>([]);
@@ -44,10 +44,10 @@ export function AgentWorkspace({ agentId }: { agentId: string }) {
 
   const q = search.get('tab');
   const tab: Tab = (TABS as readonly string[]).includes(q ?? '') ? (q as Tab) : 'training';
-  const setTab = (next: Tab) => {
+  const tabHref = (next: Tab) => {
     const p = new URLSearchParams(search.toString());
     p.set('tab', next);
-    router.replace(`/agents/${agentId}?${p.toString()}`, { scroll: false });
+    return `/agents/${agentId}?${p.toString()}`;
   };
   const template = AGENT_TEMPLATES.find((x) => x.key === search.get('template'));
   const trainingExample = template?.text[locale === 'en' ? 'en' : 'es'].training || undefined;
@@ -126,32 +126,31 @@ export function AgentWorkspace({ agentId }: { agentId: string }) {
 
       {!agent.enabled && <p className="rounded-md border border-amber-500/40 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">{t('agents.page.disabled')}</p>}
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-        <TabsList className="h-10 w-fit max-w-full gap-1 overflow-x-auto">
-          <TabsTrigger value="training">
-            <BookOpenText className="size-4" aria-hidden /> {t('agents.page.tabs.training')}
-          </TabsTrigger>
-          {isAdmin && (
-            <TabsTrigger value="test">
-              <FlaskConical className="size-4" aria-hidden /> {t('agents.page.tabs.test')}
-            </TabsTrigger>
-          )}
-          <TabsTrigger value="settings">
-            <Settings2 className="size-4" aria-hidden /> {t('agents.page.tabs.settings')}
-          </TabsTrigger>
-        </TabsList>
+      <SideMenuLayout
+        menu={
+          <SideMenu
+            label={agent.name}
+            items={[
+              { key: 'training', label: t('agents.page.tabs.training'), icon: BookOpenText, active: tab === 'training', href: tabHref('training') },
+              ...(isAdmin ? [{ key: 'test', label: t('agents.page.tabs.test'), icon: FlaskConical, active: tab === 'test', href: tabHref('test') }] : []),
+              { key: 'settings', label: t('agents.page.tabs.settings'), icon: Settings2, active: tab === 'settings', href: tabHref('settings') },
+            ]}
+          />
+        }
+      >
+      <Tabs value={tab}>
 
-        <TabsContent value="training" className="mt-6">
+        <TabsContent value="training">
           <AgentTraining key={agent.id + (agent.updated_at ?? '')} agent={agent} readOnly={!isAdmin} placeholder={trainingExample} onSaved={setAgent} />
         </TabsContent>
 
         {isAdmin && (
-          <TabsContent value="test" className="mt-6">
+          <TabsContent value="test">
             <AgentTestChat agent={agent} />
           </TabsContent>
         )}
 
-        <TabsContent value="settings" className="mt-6 space-y-6">
+        <TabsContent value="settings" className="space-y-6">
           <section className="grid gap-4 rounded-xl border border-border p-5 sm:grid-cols-2">
             {[
               [t('agents.field.description'), agent.description],
@@ -202,6 +201,7 @@ export function AgentWorkspace({ agentId }: { agentId: string }) {
           </section>
         </TabsContent>
       </Tabs>
+      </SideMenuLayout>
 
       {editing && (
         <AgentEditor
