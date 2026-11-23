@@ -11,7 +11,7 @@ import { formatMoney } from '@/lib/regions';
 
 interface Data {
   balance: number;
-  settings: TopUpSettings & { expiry_months: number; region: string };
+  settings: TopUpSettings & { expiry_months: number; region: string; gateway: string };
   gateway_ready: boolean;
   account: BillingAccount | null;
 }
@@ -54,7 +54,8 @@ export function TopUpDialog({ open, onOpenChange, onPaid }: { open: boolean; onO
     else toast.error(errorText(body.error));
   };
 
-  const complete = accountComplete(data?.account ?? null);
+  // Peru (Payment Latam) needs DNI/RUC billing details; Stripe collects what it needs itself.
+  const complete = (!!data && data.settings.gateway !== 'payment_latam') || accountComplete(data?.account ?? null);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -63,7 +64,7 @@ export function TopUpDialog({ open, onOpenChange, onPaid }: { open: boolean; onO
           <DialogTitle>{t('billing.buy.title')}</DialogTitle>
           {data && (
             <DialogDescription>
-              {t('billing.dialog.balance', { n: nf.format(data.balance) })} {t(data.settings.region === 'pe' ? 'billing.buy.description' : 'billing.buy.descriptionOther', { min: formatMoney(data.settings.min_topup, data.settings.currency), months: data.settings.expiry_months })}
+              {t('billing.dialog.balance', { n: nf.format(data.balance) })} {t(data.settings.gateway === 'payment_latam' ? 'billing.buy.description' : data.settings.gateway === 'stripe' ? 'billing.buy.descriptionStripe' : 'billing.buy.descriptionOther', { min: formatMoney(data.settings.min_topup, data.settings.currency), months: data.settings.expiry_months })}
             </DialogDescription>
           )}
         </DialogHeader>

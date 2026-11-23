@@ -6,6 +6,7 @@ import { workspacePlan } from '@/lib/billing/plan-store'
 import { pricingFor } from '@/lib/billing/pricing'
 import { workspaceRegion } from '@/lib/regions-server'
 import { REGION_INFO } from '@/lib/regions'
+import { stripeConfig } from '@/lib/billing/stripe'
 
 /**
  * GET /api/billing (admins) → plan, balance, next expiry, prices, payer data,
@@ -43,7 +44,8 @@ export async function GET() {
   const next = lots.data?.[0] ?? null
   // Prices and gateway of the account's sales region (Peru: soles, Payment Latam).
   const prices = pricingFor(settings, region)
-  const gatewayReady = REGION_INFO[region].gateway === 'payment_latam' && !!gateway
+  const gatewayName = REGION_INFO[region].gateway
+  const gatewayReady = gatewayName === 'payment_latam' ? !!gateway : gatewayName === 'stripe' ? !!stripeConfig() : false
 
   return NextResponse.json({
     plan: { id: plan.id, name: plan.name, price: plan.price },
@@ -52,6 +54,7 @@ export async function GET() {
     lots: lots.data ?? [],
     settings: {
       region,
+      gateway: gatewayName,
       currency: prices.currency,
       credit_price: prices.credit_price,
       min_topup: prices.min_topup,

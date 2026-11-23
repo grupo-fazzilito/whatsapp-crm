@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { syncPayment } from '@/lib/billing/payments'
 
-/** POST /api/billing/payments/:id/sync (admins) — "I already paid": re-check with Payment Latam now. */
+/** POST /api/billing/payments/:id/sync (admins) — "I already paid": re-check with the gateway (Payment Latam or Stripe) now. */
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response

@@ -39,6 +39,8 @@ interface BillingData {
   next_expiry: { at: string; credits: number } | null;
   settings: {
     region: string;
+    /** payment_latam (Peru) asks for DNI/RUC billing details; stripe collects the card itself. */
+    gateway: string;
     currency: string;
     credit_price: number;
     min_topup: number;
@@ -91,6 +93,21 @@ export function BillingPanel() {
     void load();
   }, [load]);
 
+  // Back from Stripe's checkout (?paid=<payment id>): confirm that payment right away.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const paid = url.searchParams.get('paid');
+    if (!paid || !/^[0-9a-f-]{36}$/i.test(paid)) return;
+    url.searchParams.delete('paid');
+    window.history.replaceState(null, '', url);
+    void fetch(`/api/billing/payments/${paid}/sync`, { method: 'POST' })
+      .then((res) => res.json().catch(() => ({})))
+      .then((body: { payment?: { status?: string } }) => {
+        if (body.payment?.status === 'paid') toast.success(t('billing.payments.paidToast'));
+        void load();
+      });
+  }, [load, t]);
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-sm text-slate-500" role="status">
@@ -101,7 +118,8 @@ export function BillingPanel() {
   if (!data) return <p className="text-sm text-red-600">{t('billing.errors.generic')}</p>;
 
   const s = data.settings;
-  const profileComplete = accountComplete(data.account);
+  const latam = s.gateway === 'payment_latam';
+  const profileComplete = !latam || accountComplete(data.account);
   const replyCost = s.action_costs.reply || 1;
   const depleted = s.enforce && data.balance < replyCost;
   const low = !depleted && data.balance <= s.low_credit_threshold;
@@ -167,7 +185,7 @@ export function BillingPanel() {
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="size-5 text-primary" aria-hidden /> {t('billing.buy.title')}
             </CardTitle>
-            <CardDescription>{t(s.region === 'pe' ? 'billing.buy.description' : 'billing.buy.descriptionOther', { min: formatMoney(s.min_topup, s.currency), months: s.expiry_months })}</CardDescription>
+            <CardDescription>{t(latam ? 'billing.buy.description' : s.gateway === 'stripe' ? 'billing.buy.descriptionStripe' : 'billing.buy.descriptionOther', { min: formatMoney(s.min_topup, s.currency), months: s.expiry_months })}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {!data.gateway_ready ? (
@@ -185,7 +203,8 @@ export function BillingPanel() {
           </CardContent>
         </Card>
 
-        {/* Billing details */}
+        {/* Billing details (Peru: DNI/RUC for the receipt; Stripe asks for what it needs) */}
+        {latam && (
         <Card>
           <CardHeader>
             <CardTitle>{t('billing.account.title')}</CardTitle>
@@ -195,6 +214,7 @@ export function BillingPanel() {
             <AccountForm initial={data.account} onSaved={() => void load()} />
           </CardContent>
         </Card>
+        )}
       </div>
 
       {/* Payments */}

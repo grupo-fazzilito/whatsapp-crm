@@ -22,7 +22,8 @@
       "gatewayMissing": "Los pagos en línea todavía no están disponibles. Escríbenos para recargar.",
       "profileFirst": "Completa los datos de facturación antes de pagar.",
       "descriptionOther": "Mínimo {min}. Los tokens vencen {months} meses después de la compra.",
-      "gatewayRegion": "El pago en línea para tu país aún no está activo. Escríbenos y te ayudamos a recargar."
+      "gatewayRegion": "El pago en línea para tu país aún no está activo. Escríbenos y te ayudamos a recargar.",
+      "descriptionStripe": "Pago seguro con tarjeta a través de Stripe. Mínimo {min}. Los tokens vencen {months} meses después de la compra."
     },
     "costs": {
       "title": "Cuánto cuesta cada acción",
@@ -60,7 +61,8 @@
       "check": "Ya pagué",
       "checking": "Verificando…",
       "stillPending": "Payment Latam aún no confirma el pago. Si ya pagaste, espera unos minutos.",
-      "credited": "¡Pago confirmado! Se sumaron {n} tokens."
+      "credited": "¡Pago confirmado! Se sumaron {n} tokens.",
+      "paidToast": "Pago confirmado: tus tokens ya están disponibles."
     },
     "status": {
       "creating": "Creando",
