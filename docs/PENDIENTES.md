@@ -81,17 +81,17 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 
 Cada cuenta tiene una región (`pe`, `ve`, `us`) con su moneda, precios y pasarela. La visita entra por su país (Cloudflare); fuera de Perú y Venezuela, EE. UU.
 
-- [x] Regiones con moneda y pasarela: Perú en soles con Payment Latam, Venezuela en USD con Mispidi, EE. UU. y resto del mundo en USD con Paddle — 🤖 2026-11-23, rama `feat/regions`
+- [x] Regiones con moneda y pasarela: Perú en soles con Payment Latam, Venezuela en USD con Mispidi, EE. UU. y resto del mundo en USD con Stripe — 🤖 2026-11-23, rama `feat/regions`
 - [x] Detección por país (encabezado `CF-IPCountry` de Cloudflare) en el proxy, guardada en la cookie `region`; selector de país sobre los precios de la web; portada y precios sin caché compartida — 🤖
 - [x] Precios por país en Superadmin → Facturación (Venezuela y EE. UU. en USD); la cuenta guarda su región al crearse o al abrir Tokens por primera vez (las cuentas existentes quedaron en Perú) y solo el superadmin la cambia (Superadmin → Clientes) — 🤖
 - [ ] **Poner Cloudflare delante de whasalia.com**: crear la cuenta, agregar el dominio, cambiar los nameservers en Namecheap a los de Cloudflare, proxy (nube naranja) activo en `@` y `www`, SSL "Full (strict)". Sin esto todos los visitantes ven precios de EE. UU. — 🧑
 - [ ] Revisar los precios en USD de Venezuela y EE. UU. en Superadmin → Facturación (por defecto US$ 0.015 por token, mínimo US$ 15) — 🧑
-- [ ] **Paddle (EE. UU.)**: confirmar con Paddle que acepta una empresa con sede en Perú como vendedora y cobros a su cuenta; abrir cuenta, aprobar el dominio whasalia.com (piden Términos, Privacidad, política de reembolsos y precios públicos) y crear la cuenta sandbox. Paddle **no cobra en Venezuela** — 🧑
-- [ ] Integrar Paddle: transacción del lado del servidor, checkout con Paddle.js en una página propia (`checkout.url`), webhook `transaction.completed` firmado (`Paddle-Signature`) y verificación con `GET /transactions/{id}` — 🤖 (cuando haya cuenta sandbox)
+- [ ] **Stripe (EE. UU. y resto del mundo)**: Stripe **no acepta empresas con sede en Perú**; hace falta una empresa en un país soportado, p. ej. una LLC en EE. UU. con Stripe Atlas (~US$ 500) y su cuenta bancaria. Abrir la cuenta, activar el modo de prueba y crear las claves (`STRIPE_SECRET_KEY`) y el webhook (`STRIPE_WEBHOOK_SECRET`) apuntando a `https://whasalia.com/api/billing/stripe/webhook`. Impuestos de venta en EE. UU.: activar Stripe Tax o ver con un contador — 🧑
+- [ ] Integrar Stripe: Checkout Session de pago único (modo `payment`) con el monto del paquete, `client_reference_id` = id del pago, webhook `checkout.session.completed` verificado con la firma `Stripe-Signature` y confirmación con la API antes de dar los tokens — 🤖 (cuando haya claves de prueba)
 - [ ] **Mispidi / SPIDI (Venezuela)**: pedir el alta (piden RIF, cuenta bancaria venezolana en bolívares y datos de Pago Móvil); confirmar si aceptan una empresa peruana o si hace falta entidad en Venezuela; usar el simulador sim.mispidi.com para desarrollar. Cobra en VES al tipo BCV con el monto en USD — 🧑
 - [ ] Integrar Mispidi: login con token, botón de pago `POST /api/v1/ext/payment-sessions/buttons` (USD), webhook firmado (`spidi-signature`, evento `paid`) y verificación con `GET …/payment-sessions/status/{id}`; mostrar "Desarrollado por SPIDI" como piden para producción — 🤖 (cuando haya credenciales del simulador)
 - [ ] Mientras no haya pasarela, en Venezuela y EE. UU. la recarga muestra "escríbenos y te ayudamos a recargar"; el superadmin puede sumar tokens a mano — 🧑
-- [ ] Datos de facturación por país (hoy el formulario pide DNI/RUC de Perú) y comprobantes: SUNAT en Perú; Paddle emite la factura en EE. UU.; Venezuela según el contador — 🧑🤖
+- [ ] Datos de facturación por país (hoy el formulario pide DNI/RUC de Perú) y comprobantes: SUNAT en Perú; Stripe emite el recibo; la factura y los impuestos de EE. UU. van por la LLC; Venezuela según el contador — 🧑🤖
 
 ## 6. Sitio y seguridad
 
