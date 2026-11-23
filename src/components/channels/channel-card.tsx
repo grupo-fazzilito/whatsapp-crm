@@ -103,7 +103,7 @@ export function ChannelCard({ channel, agents, isAdmin, origin, onAgentChange, o
               {channel.status_detail === 'reply_not_allowed'
                 ? t('channels.telegram.business.replyNotAllowed')
                 : channel.status_detail === 'tiktok_reauthorize'
-                  ? t('channels.tiktok.messages.reauthorize')
+                  ? t('channels.tiktok.reauthorize')
                   : channel.status_detail}
             </span>
           </p>

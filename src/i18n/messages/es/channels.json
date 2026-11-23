@@ -151,9 +151,9 @@
         "rules": "Reglas de TikTok: solo puedes responder a quien te escribió primero y dentro de las 48 horas de su último mensaje; no se pueden iniciar conversaciones ni hacer envíos masivos. No disponible para cuentas registradas en la Unión Europea, el Espacio Económico Europeo, Suiza ni el Reino Unido.",
         "missing": "Esta conexión no tiene permiso para mensajes. Pulsa «Actualizar conexión» para recibirlos.",
         "ready": "Los mensajes directos llegan a la Bandeja.",
-        "reconnect": "Actualizar conexión",
-        "reauthorize": "TikTok pide volver a autorizar esta cuenta (venció el permiso). Pulsa «Actualizar conexión»."
-      }
+        "reconnect": "Actualizar conexión"
+      },
+      "reauthorize": "TikTok pide volver a autorizar esta cuenta (venció el permiso). Pulsa «Actualizar conexión»."
     },
     "webchat": {
       "defaultName": "Chat del sitio web",

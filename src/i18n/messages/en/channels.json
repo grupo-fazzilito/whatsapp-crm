@@ -151,9 +151,9 @@
         "rules": "TikTok's rules: you can only reply to people who wrote to you first and within 48 hours of their last message; you can't start conversations or send bulk messages. Not available for accounts registered in the European Union, the European Economic Area, Switzerland or the United Kingdom.",
         "missing": "This connection doesn't have permission for messages. Press “Update connection” to receive them.",
         "ready": "Direct messages reach the inbox.",
-        "reconnect": "Update connection",
-        "reauthorize": "TikTok needs this account to be authorized again (the permission expired). Press “Update connection”."
-      }
+        "reconnect": "Update connection"
+      },
+      "reauthorize": "TikTok needs this account to be authorized again (the permission expired). Press “Update connection”."
     },
     "webchat": {
       "defaultName": "Website chat",
