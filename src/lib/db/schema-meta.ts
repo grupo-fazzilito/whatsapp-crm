@@ -1885,6 +1885,12 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "meta_catalog_queue": {
       "rel": "meta_catalog_queue"
     },
+    "token_subscriptions": {
+      "rel": "token_subscriptions"
+    },
+    "subscription_invoices": {
+      "rel": "subscription_invoices"
+    },
     "meta_catalogs": {
       "rel": "meta_catalogs"
     },
@@ -2315,6 +2321,20 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "broadcast_recipients": {
       "rel": "broadcast_recipients"
+    }
+  },
+  "token_subscriptions": {
+    "current_period_end": "timestamp",
+    "created_at": "timestamp",
+    "updated_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    }
+  },
+  "subscription_invoices": {
+    "created_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
     }
   }
 }

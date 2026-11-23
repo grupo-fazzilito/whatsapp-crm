@@ -131,16 +131,133 @@ export function verifyStripeSignature(rawBody: string, header: string | null, se
 }
 
 /** What a webhook event says about a top-up, or null for events we don't use. */
-export function parseStripeEvent(body: unknown): { type: string; sessionId: string | null; paymentId: string | null; paymentIntent: string | null } | null {
+export interface StripeEventRef {
+  type: string
+  sessionId: string | null
+  paymentId: string | null
+  paymentIntent: string | null
+  subscriptionId?: string | null
+  invoiceId?: string | null
+  /** checkout.session.*: payment (top-up) or subscription. */
+  mode?: string | null
+}
+
+export function parseStripeEvent(body: unknown): StripeEventRef | null {
   const b = (body ?? {}) as { type?: unknown; data?: { object?: Record<string, unknown> } }
   if (typeof b.type !== 'string') return null
   const o = b.data?.object ?? {}
   const str = (v: unknown) => (typeof v === 'string' && v ? v : null)
   if (b.type.startsWith('checkout.session.')) {
-    return { type: b.type, sessionId: str(o.id), paymentId: str(o.client_reference_id), paymentIntent: str(o.payment_intent) }
+    return { type: b.type, sessionId: str(o.id), paymentId: str(o.client_reference_id), paymentIntent: str(o.payment_intent), mode: str(o.mode), subscriptionId: str(o.subscription) }
+  }
+  // Subscriptions: which one (or which invoice) to read back from the API.
+  if (b.type.startsWith('customer.subscription.')) {
+    return { type: b.type, sessionId: null, paymentId: null, paymentIntent: null, subscriptionId: str(o.id), invoiceId: null }
+  }
+  if (b.type === 'invoice.paid' || b.type === 'invoice.payment_failed') {
+    return { type: b.type, sessionId: null, paymentId: null, paymentIntent: null, subscriptionId: null, invoiceId: str(o.id) }
   }
   if (b.type === 'charge.refunded') {
     return { type: b.type, sessionId: null, paymentId: str((o.metadata as Record<string, unknown> | undefined)?.payment_id), paymentIntent: str(o.payment_intent) }
   }
   return null
+}
+
+// ------------------------------------------------------------
+// Subscriptions (monthly AI tokens)
+//   POST /v1/checkout/sessions (mode=subscription)   first subscription
+//   GET  /v1/subscriptions/{id}                       status, period, item + price
+//   POST /v1/subscriptions/{id}                       change the plan (item price)
+//   GET  /v1/invoices/{id}                            a paid invoice, read back
+//   POST /v1/billing_portal/sessions                  card, invoices, cancel
+// ------------------------------------------------------------
+
+export interface StripeSubscription {
+  id: string
+  customer: string
+  status: string
+  cancel_at_period_end: boolean
+  current_period_end?: number | null
+  metadata?: Record<string, string>
+  items: { data: { id: string; current_period_end?: number | null; price: { id: string; product: string; unit_amount: number | null; currency: string } }[] }
+}
+
+export interface StripeInvoice {
+  id: string
+  status: string
+  billing_reason: string | null
+  amount_paid: number
+  currency: string
+  customer: string
+  subscription?: string | null
+  parent?: { subscription_details?: { subscription?: string | null; metadata?: Record<string, string> } | null } | null
+  lines: { data: { period?: { start: number; end: number } }[] }
+}
+
+/** Period end of a subscription (newer API versions keep it on the item). */
+export function subscriptionPeriodEnd(sub: StripeSubscription): number | null {
+  return sub.items.data[0]?.current_period_end ?? sub.current_period_end ?? null
+}
+
+/** Subscription of an invoice (field moved in newer API versions). */
+export function invoiceSubscriptionId(inv: StripeInvoice): string | null {
+  return inv.subscription ?? inv.parent?.subscription_details?.subscription ?? null
+}
+
+export function createSubscriptionCheckout(
+  cfg: StripeConfig,
+  input: { workspaceId: string; tokens: number; priceCents: number; productName: string; customerId: string | null; email: string | null; successUrl: string; cancelUrl: string; locale: 'es' | 'en' },
+): Promise<StripeSession> {
+  return call<StripeSession>(cfg, 'POST', '/checkout/sessions', {
+    mode: 'subscription',
+    client_reference_id: input.workspaceId,
+    ...(input.customerId ? { customer: input.customerId } : { customer_email: input.email ?? undefined }),
+    locale: input.locale,
+    success_url: input.successUrl,
+    cancel_url: input.cancelUrl,
+    line_items: [
+      {
+        quantity: 1,
+        price_data: { currency: 'usd', unit_amount: input.priceCents, recurring: { interval: 'month' }, product_data: { name: input.productName } },
+      },
+    ],
+    metadata: { workspace_id: input.workspaceId, tokens: input.tokens },
+    subscription_data: { metadata: { workspace_id: input.workspaceId, tokens: input.tokens } },
+  })
+}
+
+export function getSubscription(cfg: StripeConfig, id: string): Promise<StripeSubscription> {
+  if (!/^sub_[A-Za-z0-9_]+$/.test(id)) throw new StripeError('Invalid subscription id')
+  return call<StripeSubscription>(cfg, 'GET', `/subscriptions/${id}`)
+}
+
+/**
+ * New monthly plan on the same subscription. Bigger plans are charged now
+ * (prorated invoice; refused if the card fails); smaller ones apply from the
+ * next renewal with no refund.
+ */
+export function changeSubscriptionPlan(
+  cfg: StripeConfig,
+  sub: StripeSubscription,
+  input: { tokens: number; priceCents: number; upgrade: boolean },
+): Promise<StripeSubscription & { latest_invoice?: string | null }> {
+  const item = sub.items.data[0]
+  if (!item) throw new StripeError('Subscription has no item')
+  return call(cfg, 'POST', `/subscriptions/${sub.id}`, {
+    items: [{ id: item.id, price_data: { currency: 'usd', unit_amount: input.priceCents, recurring: { interval: 'month' }, product: item.price.product } }],
+    metadata: { tokens: input.tokens },
+    proration_behavior: input.upgrade ? 'always_invoice' : 'none',
+    ...(input.upgrade ? { payment_behavior: 'error_if_incomplete' } : {}),
+    // A plan change also undoes a pending cancellation.
+    cancel_at_period_end: false,
+  })
+}
+
+export function getInvoice(cfg: StripeConfig, id: string): Promise<StripeInvoice> {
+  if (!/^in_[A-Za-z0-9_]+$/.test(id)) throw new StripeError('Invalid invoice id')
+  return call<StripeInvoice>(cfg, 'GET', `/invoices/${id}`)
+}
+
+export function createPortalSession(cfg: StripeConfig, customerId: string, returnUrl: string, locale: 'es' | 'en'): Promise<{ url: string }> {
+  return call<{ url: string }>(cfg, 'POST', '/billing_portal/sessions', { customer: customerId, return_url: returnUrl, locale })
 }

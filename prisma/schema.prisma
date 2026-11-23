@@ -2305,6 +2305,8 @@ model plans {
 model workspaces {
   id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   meta_catalog_queue            meta_catalog_queue[]
+  token_subscriptions           token_subscriptions?
+  subscription_invoices         subscription_invoices[]
   meta_catalogs                 meta_catalogs?
   stock_waitlist                stock_waitlist[]
   social_accounts               social_accounts[]
@@ -2653,4 +2655,37 @@ model messenger_subscribers {
 
   @@unique([channel_id, psid], map: "uq_messenger_subscribers")
   @@index([workspace_id, status], map: "idx_messenger_subscribers_ws")
+}
+
+/// Monthly AI-token subscription of a business (Stripe). One per workspace.
+model token_subscriptions {
+  workspace_id         String     @id @db.Uuid
+  provider             String     @default("stripe")
+  customer_id          String
+  subscription_id      String     @unique
+  tokens               Int
+  price_cents          Int
+  currency             String     @default("USD")
+  status               String
+  current_period_end   DateTime?  @db.Timestamptz(6)
+  cancel_at_period_end Boolean    @default(false)
+  created_at           DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime   @default(now()) @db.Timestamptz(6)
+  workspaces           workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([customer_id], map: "token_subscriptions_customer")
+}
+
+/// Paid subscription invoices already turned into tokens (webhook dedupe).
+model subscription_invoices {
+  invoice_id   String     @id
+  workspace_id String     @db.Uuid
+  reason       String?
+  tokens       Int        @default(0)
+  amount_cents Int        @default(0)
+  currency     String     @default("USD")
+  created_at   DateTime   @default(now()) @db.Timestamptz(6)
+  workspaces   workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([workspace_id, created_at(sort: Desc)], map: "subscription_invoices_workspace")
 }

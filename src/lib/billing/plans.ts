@@ -3,6 +3,7 @@
 // (see ./pricing). Pure — safe on the client.
 import { BILLABLE_ACTIONS, pricingFor, type BillableAction, type BillingSettings } from './pricing'
 import { formatMoney, type Region } from '@/lib/regions'
+import type { SubscriptionPricing } from './subscription-pricing'
 
 export const FREE_PLAN_ID = 'free'
 
@@ -34,6 +35,8 @@ export interface PublicPricing {
   /** The visitor's sales region and its currency (every price below is in it). */
   region: Region
   currency: string
+  /** Monthly token subscription (US$, every region). */
+  subscription: SubscriptionPricing
   credits: {
     price: number
     minTopup: number
@@ -50,6 +53,7 @@ export function publicPricing(settings: BillingSettings, plans: Plan[], region: 
     plans,
     region,
     currency: p.currency,
+    subscription: settings.subscription,
     credits: {
       price: p.credit_price,
       minTopup: p.min_topup,

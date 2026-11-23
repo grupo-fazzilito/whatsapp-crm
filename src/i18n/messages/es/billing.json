@@ -189,6 +189,14 @@
       "creditPrice": "Precio por token (US$)",
       "minTopup": "Recarga mínima (US$)",
       "packs": "Paquetes (US$)"
+    },
+    "sub": {
+      "title": "Suscripción de tokens (Stripe, US$)",
+      "hint": "Precio mensual = primeros tokens + cada bloque extra. Ej.: 9.90 + 3 por cada 1,000 más. El slider llega hasta el máximo.",
+      "base_price": "Precio primer bloque (US$)",
+      "step_price": "Precio por bloque extra (US$)",
+      "step_tokens": "Tokens por bloque",
+      "max_tokens": "Máximo del slider"
     }
   },
   "metaUsage": {
@@ -216,5 +224,45 @@
     "nothingYet": "Sin mensajes enviados este mes.",
     "otherMarket": "tarifa general",
     "disclaimer": "Estimación con tarifas de Meta para {market}: respuesta {service}, utilidad {utility}, marketing {marketing} por mensaje. Meta cobra según el país de cada cliente, no cobra dentro de la ventana gratuita de anuncios y la factura real está en tu WhatsApp Manager. No cuenta mensajes enviados desde la app WhatsApp Business."
+  },
+  "subscription": {
+    "title": "Suscripción de tokens de IA",
+    "description": "El CRM es gratis para siempre. Los tokens de IA se pagan con una suscripción mensual: elige cuántos quieres al mes.",
+    "slider": {
+      "label": "Tokens al mes",
+      "perMonth": "tokens / mes",
+      "price": "Precio mensual",
+      "month": "/ mes",
+      "valueText": "{n} tokens al mes, {price} al mes",
+      "formula": "Los primeros {first} tokens cuestan {base}; cada 1,000 más suman {step}."
+    },
+    "current": "Tu plan: {n} tokens al mes · {price} / mes",
+    "status": {
+      "active": "Activa.",
+      "renewsOn": "Se renueva el {date}: ese día vuelves a tener tu cuota completa.",
+      "endsOn": "Cancelada: sigue activa hasta el {date}.",
+      "pastDue": "No pudimos cobrar la renovación. Actualiza tu tarjeta en «Administrar pago».",
+      "canceled": "Suscripción cancelada."
+    },
+    "subscribe": "Suscribirme por {price} / mes",
+    "change": "Cambiar a {price} / mes",
+    "resume": "Reanudar suscripción",
+    "currentPlan": "Es tu plan actual",
+    "manage": "Administrar pago o cancelar",
+    "upgradeNote": "Pagas ahora solo la diferencia por los días que quedan del mes y recibes los tokens extra al instante.",
+    "downgradeNote": "El plan más pequeño se aplica desde la próxima renovación; este mes conservas tus tokens.",
+    "upgraded": "Plan actualizado: ya tienes los tokens extra.",
+    "downgraded": "Plan cambiado: se aplica desde la próxima renovación.",
+    "subscribed": "¡Suscripción activa! Tus tokens ya están disponibles.",
+    "terms": "Pago con tarjeta a través de Stripe, en dólares. Cada mes se renueva tu cuota y los tokens no usados vencen. Cancela cuando quieras.",
+    "notReady": "Las suscripciones aún no están activas. Escríbenos y te ayudamos.",
+    "errors": {
+      "generic": "No pudimos completar la operación. Inténtalo de nuevo.",
+      "invalid_tokens": "Elige una cantidad válida de tokens.",
+      "gateway_not_configured": "Las suscripciones aún no están activas.",
+      "gateway_error": "Stripe no respondió. Inténtalo de nuevo.",
+      "payment_failed": "Tu tarjeta rechazó el cobro. Actualízala en «Administrar pago».",
+      "not_subscribed": "No tienes una suscripción activa."
+    }
   }
 }

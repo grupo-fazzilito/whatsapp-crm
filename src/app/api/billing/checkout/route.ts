@@ -15,6 +15,8 @@ const STATUS: Record<string, number> = {
 export async function POST(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
+  // Tokens are sold by monthly subscription now (POST /api/billing/subscription).
+  if (process.env.BILLING_ONE_TIME_TOPUPS !== 'true') return NextResponse.json({ error: 'topups_disabled' }, { status: 410 })
   const body = (await request.json().catch(() => null)) as { amount?: unknown } | null
   if (!body) return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
 

@@ -7,6 +7,7 @@ import { pricingFor } from '@/lib/billing/pricing'
 import { workspaceRegion } from '@/lib/regions-server'
 import { REGION_INFO } from '@/lib/regions'
 import { stripeConfig } from '@/lib/billing/stripe'
+import { getTokenSubscription } from '@/lib/billing/subscriptions'
 
 /**
  * GET /api/billing (admins) → plan, balance, next expiry, prices, payer data,
@@ -26,7 +27,8 @@ export async function GET() {
   monthStart.setUTCDate(1)
   monthStart.setUTCHours(0, 0, 0, 0)
 
-  const [region, plan, balance, settings, gateway, account, lots, payments, ledger, usage] = await Promise.all([
+  const [subscription, region, plan, balance, settings, gateway, account, lots, payments, ledger, usage] = await Promise.all([
+    getTokenSubscription(ws).catch(() => null),
     workspaceRegion(ws),
     workspacePlan(ws),
     creditBalance(ws),
@@ -65,6 +67,10 @@ export async function GET() {
       enforce: settings.enforce,
     },
     gateway_ready: gatewayReady,
+    // Tokens are sold by monthly subscription (Stripe, US$).
+    subscription,
+    subscription_pricing: settings.subscription,
+    subscription_ready: !!stripeConfig(),
     account: account.data ?? null,
     payments: payments.data ?? [],
     ledger: ledger.data ?? [],

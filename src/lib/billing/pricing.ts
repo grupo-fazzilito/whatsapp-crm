@@ -1,6 +1,7 @@
 // Prepaid AI credits: prices and rules edited in the admin panel
 // (platform_settings 'billing'). Pure — safe in tests and on the client.
 import { REGION_INFO, type Region } from '@/lib/regions'
+import { DEFAULT_SUBSCRIPTION, normalizeSubscription, type SubscriptionPricing } from './subscription-pricing'
 
 /** Billable actions (AI, and automatic comment replies) and what each one costs in credits. */
 export const BILLABLE_ACTIONS = ['reply', 'followup', 'summary', 'suggest', 'transcription', 'vision', 'comment_reply', 'reminder', 'playground', 'social_caption', 'crm_action'] as const
@@ -28,6 +29,8 @@ export interface BillingSettings {
    * above (credit_price, min_topup, packs) are Peru's, in soles.
    */
   regions: Record<Exclude<Region, 'pe'>, RegionPrices>
+  /** Monthly token subscription (Stripe, US$): how tokens are sold. */
+  subscription: SubscriptionPricing
 }
 
 /** What a credit costs in one region, in that region's currency. */
@@ -55,6 +58,7 @@ export const DEFAULT_BILLING: BillingSettings = {
   action_costs: { reply: 1, followup: 1, summary: 1, suggest: 1, transcription: 2, vision: 2, comment_reply: 1, reminder: 1, playground: 1, social_caption: 1, crm_action: 1 },
   enforce: true,
   regions: { ve: DEFAULT_USD, us: DEFAULT_USD },
+  subscription: DEFAULT_SUBSCRIPTION,
 }
 
 const num = (v: unknown, min: number, max: number, fallback: number, int = false): number => {
@@ -89,6 +93,7 @@ export function normalizeBilling(stored: Partial<BillingSettings> | null | undef
       ve: normalizePrices(s.regions?.ve, DEFAULT_USD),
       us: normalizePrices(s.regions?.us, DEFAULT_USD),
     },
+    subscription: normalizeSubscription(s.subscription),
   }
 }
 

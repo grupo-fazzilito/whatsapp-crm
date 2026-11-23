@@ -2,15 +2,17 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { AlertTriangle, Coins, CreditCard, ExternalLink, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Coins, ExternalLink, Loader2, RefreshCw } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { BILLABLE_ACTIONS, type BillableAction } from '@/lib/billing/pricing';
-import { AccountForm, BuyForm, accountComplete, useBillingError, type BillingAccount } from './top-up';
+import { AccountForm, useBillingError, type BillingAccount } from './top-up';
 import { formatMoney } from '@/lib/regions';
+import { SubscriptionCard, type SubscriptionView } from './subscription-card';
+import type { SubscriptionPricing } from '@/lib/billing/subscription-pricing';
 
 interface Payment {
   id: string;
@@ -51,6 +53,9 @@ interface BillingData {
     enforce: boolean;
   };
   gateway_ready: boolean;
+  subscription: SubscriptionView | null;
+  subscription_pricing: SubscriptionPricing;
+  subscription_ready: boolean;
   account: BillingAccount | null;
   payments: Payment[];
   ledger: LedgerRow[];
@@ -93,6 +98,17 @@ export function BillingPanel() {
     void load();
   }, [load]);
 
+  // Back from Stripe's subscription checkout: the webhook grants the tokens within seconds.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('subscribed') !== '1') return;
+    url.searchParams.delete('subscribed');
+    window.history.replaceState(null, '', url);
+    toast.success(t('subscription.subscribed'));
+    const timer = setTimeout(() => void load(), 4000);
+    return () => clearTimeout(timer);
+  }, [load, t]);
+
   // Back from Stripe's checkout (?paid=<payment id>): confirm that payment right away.
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -119,7 +135,6 @@ export function BillingPanel() {
 
   const s = data.settings;
   const latam = s.gateway === 'payment_latam';
-  const profileComplete = !latam || accountComplete(data.account);
   const replyCost = s.action_costs.reply || 1;
   const depleted = s.enforce && data.balance < replyCost;
   const low = !depleted && data.balance <= s.low_credit_threshold;
@@ -179,29 +194,10 @@ export function BillingPanel() {
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Buy */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="size-5 text-primary" aria-hidden /> {t('billing.buy.title')}
-            </CardTitle>
-            <CardDescription>{t(latam ? 'billing.buy.description' : s.gateway === 'stripe' ? 'billing.buy.descriptionStripe' : 'billing.buy.descriptionOther', { min: formatMoney(s.min_topup, s.currency), months: s.expiry_months })}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!data.gateway_ready ? (
-              <p className="text-sm text-slate-600 dark:text-slate-300">{t(s.region === 'pe' ? 'billing.buy.gatewayMissing' : 'billing.buy.gatewayRegion')}</p>
-            ) : (
-              <BuyForm
-                settings={s}
-                profileComplete={profileComplete}
-                onCreated={(payment) => {
-                  if (payment) toast.info(t('billing.buy.opened'));
-                  void load();
-                }}
-              />
-            )}
-          </CardContent>
-        </Card>
+        {/* Monthly token subscription (one-time top-ups are no longer sold) */}
+        <div className={latam ? '' : 'lg:col-span-2'}>
+          <SubscriptionCard pricing={data.subscription_pricing} subscription={data.subscription} ready={data.subscription_ready} onChanged={() => void load()} />
+        </div>
 
         {/* Billing details (Peru: DNI/RUC for the receipt; Stripe asks for what it needs) */}
         {latam && (
