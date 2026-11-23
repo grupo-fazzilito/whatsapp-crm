@@ -1,6 +1,7 @@
 import 'server-only'
 import type { LoadedChannel } from '@/lib/channels'
-import { saveChannelSecrets } from '@/lib/channels/store'
+import { loadChannel, saveChannelSecrets } from '@/lib/channels/store'
+import { prisma } from '@/lib/db/prisma'
 import type { RecentPost } from '@/lib/comments/meta'
 import { tiktokAppConfig, tiktokSandbox } from './config'
 import { TIKTOK_API, TIKTOK_REPLY_MAX, quoteBigInts, tokenNeedsRefresh } from './model'
@@ -68,6 +69,8 @@ export interface TiktokTokens {
   refreshToken: string
   /** ms epoch */
   expiresAt: number
+  /** ms epoch; null when TikTok didn't say */
+  refreshExpiresAt: number | null
   openId: string
   scope: string
 }
@@ -76,6 +79,7 @@ interface TokenData {
   access_token?: string
   refresh_token?: string
   expires_in?: number
+  refresh_token_expires_in?: number
   open_id?: string
   scope?: string
 }
@@ -86,6 +90,7 @@ function tokens(d: TokenData): TiktokTokens {
     accessToken: d.access_token,
     refreshToken: d.refresh_token ?? '',
     expiresAt: Date.now() + (d.expires_in ?? 86_400) * 1000,
+    refreshExpiresAt: d.refresh_token_expires_in ? Date.now() + d.refresh_token_expires_in * 1000 : null,
     openId: d.open_id,
     scope: d.scope ?? '',
   }
@@ -93,7 +98,7 @@ function tokens(d: TokenData): TiktokTokens {
 
 export async function exchangeCode(code: string, redirectUri: string): Promise<TiktokTokens> {
   if (tiktokSandbox() && code === SANDBOX_CODE) {
-    return { accessToken: 'sandbox-access', refreshToken: 'sandbox-refresh', expiresAt: Date.now() + 86_400_000, openId: SANDBOX_ACCOUNT.openId, scope: 'user.info.basic,video.list,comment.list,comment.list.manage' }
+    return { accessToken: 'sandbox-access', refreshToken: 'sandbox-refresh', expiresAt: Date.now() + 86_400_000, refreshExpiresAt: null, openId: SANDBOX_ACCOUNT.openId, scope: 'user.info.basic,video.list,comment.list,comment.list.manage' }
   }
   const cfg = app()
   return tokens(
@@ -105,25 +110,74 @@ export async function exchangeCode(code: string, redirectUri: string): Promise<T
 
 const isSandboxChannel = (channel: LoadedChannel) => tiktokSandbox() && channel.external_id === SANDBOX_ACCOUNT.openId
 
+/** The secrets to save for fresh tokens (refresh tokens rotate: always keep the latest one). */
+export function tokenSecrets(t: TiktokTokens, previousRefresh?: string | null): Record<string, string | null> {
+  return {
+    access_token: t.accessToken,
+    refresh_token: t.refreshToken || previousRefresh || null,
+    token_expires_at: String(t.expiresAt),
+    ...(t.refreshExpiresAt ? { refresh_expires_at: String(t.refreshExpiresAt) } : {}),
+  }
+}
+
+// One refresh at a time per channel: TikTok invalidates a refresh token once
+// it is used, so two parallel refreshes would make the second one fail.
+const g = globalThis as unknown as { __tiktokRefreshing?: Map<string, Promise<string>> }
+const refreshing = (g.__tiktokRefreshing ??= new Map())
+
 /** A valid access token for the channel, renewed (and saved) when it's about to expire. */
 export async function accessToken(channel: LoadedChannel): Promise<string> {
   const s = channel.secrets
   if (!s.access_token) throw new TiktokError('TikTok access token missing', null)
   if (isSandboxChannel(channel) || !tokenNeedsRefresh(s.token_expires_at)) return s.access_token
-  if (!s.refresh_token) throw new TiktokError('TikTok refresh token missing', null)
+  const running = refreshing.get(channel.id)
+  if (running) return running
+  const job = refreshToken(channel).finally(() => refreshing.delete(channel.id))
+  refreshing.set(channel.id, job)
+  return job
+}
+
+async function refreshToken(channel: LoadedChannel): Promise<string> {
+  // Another request may have refreshed it already: start from the stored secrets.
+  const stored = (await loadChannel(channel.workspace_id, channel.id))?.secrets ?? channel.secrets
+  if (stored.access_token && !tokenNeedsRefresh(stored.token_expires_at)) {
+    channel.secrets = { ...channel.secrets, ...stored }
+    return stored.access_token
+  }
+  if (!stored.refresh_token || refreshExpired(stored.refresh_expires_at)) {
+    await markNeedsReauth(channel)
+    throw new TiktokError('TikTok refresh token expired: authorize the account again', null)
+  }
   const cfg = app()
-  const fresh = tokens(
-    await call<TokenData>('/tt_user/oauth2/refresh_token/', {
-      body: { client_id: cfg.appId, client_secret: cfg.appSecret, grant_type: 'refresh_token', refresh_token: s.refresh_token },
-    }),
-  )
-  await saveChannelSecrets(channel.id, {
-    access_token: fresh.accessToken,
-    refresh_token: fresh.refreshToken || s.refresh_token,
-    token_expires_at: String(fresh.expiresAt),
-  })
-  channel.secrets = { ...s, access_token: fresh.accessToken, refresh_token: fresh.refreshToken || s.refresh_token, token_expires_at: String(fresh.expiresAt) }
+  let fresh: TiktokTokens
+  try {
+    fresh = tokens(
+      await call<TokenData>('/tt_user/oauth2/refresh_token/', {
+        body: { client_id: cfg.appId, client_secret: cfg.appSecret, grant_type: 'refresh_token', refresh_token: stored.refresh_token },
+      }),
+    )
+  } catch (err) {
+    if (err instanceof TiktokError && err.needsReconnect) await markNeedsReauth(channel)
+    throw err
+  }
+  const secrets = tokenSecrets(fresh, stored.refresh_token)
+  await saveChannelSecrets(channel.id, secrets)
+  channel.secrets = { ...stored, ...Object.fromEntries(Object.entries(secrets).map(([k, v]) => [k, v ?? undefined])) }
   return fresh.accessToken
+}
+
+function refreshExpired(at: string | undefined): boolean {
+  const n = Number(at)
+  return Number.isFinite(n) && n > 0 && n <= Date.now()
+}
+
+/** The business has to authorize again (Channels shows "Update connection"). */
+export const TIKTOK_REAUTH = 'tiktok_reauthorize'
+
+async function markNeedsReauth(channel: LoadedChannel): Promise<void> {
+  await prisma.channels
+    .updateMany({ where: { id: channel.id }, data: { status: 'error', status_detail: TIKTOK_REAUTH, updated_at: new Date() } })
+    .catch(() => {})
 }
 
 export interface TiktokProfile {
