@@ -87,8 +87,12 @@
         "title": "Business type",
         "description": "Sets the names your team sees, the available modules and how the AI behaves.",
         "modulesTitle": "Modules",
-        "modulesDescription": "Turn on only what your business uses. Disabled modules are hidden from the menu and the AI won't offer them.",
+        "modulesDescription": "Choosing the business type turns on its recommended modules. You can turn on any other one: for example, a restaurant that also takes appointments. Modules that are off are hidden from the menu and the AI doesn’t offer them.",
         "module": {
+          "bookings": "Appointments & bookings",
+          "staff": "Team / professionals",
+          "services": "Services",
+          "products": "Products",
           "orders": "Orders",
           "triage": "Symptom triage"
         },
@@ -113,7 +117,9 @@
           "bookingPlural": "Booking (plural)",
           "customer": "Customer (singular)",
           "customerPlural": "Customer (plural)"
-        }
+        },
+        "recommended": "Recommended",
+        "calledHere": "Called “{name}” here"
       },
       "hours": {
         "title": "Opening hours",
