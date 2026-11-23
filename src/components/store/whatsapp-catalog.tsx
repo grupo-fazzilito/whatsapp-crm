@@ -122,6 +122,10 @@ export function WhatsAppCatalog({ readOnly, storeEnabled }: { readOnly: boolean;
 
       <FeedSection readOnly={readOnly} />
 
+      {/* Instant sync through Meta's catalog API is no longer offered (it needs a
+          Meta permission Whasalia doesn't have); a business connected earlier can
+          still see that connection and turn it off. */}
+      {conn && (
       <section className={card} aria-labelledby="wa-cat-title">
         <div className="space-y-1">
           <h2 id="wa-cat-title" className="text-base font-semibold">{t('store.whatsapp.apiTitle')}</h2>
@@ -224,6 +228,7 @@ export function WhatsAppCatalog({ readOnly, storeEnabled }: { readOnly: boolean;
           </div>
         )}
       </section>
+      )}
 
       {blocked.length > 0 && (
         <section className={card} aria-labelledby="wa-cat-blocked">

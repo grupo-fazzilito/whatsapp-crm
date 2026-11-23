@@ -418,7 +418,7 @@
     "whatsapp": {
       "tab": "WhatsApp",
       "title": "Catálogo de WhatsApp",
-      "description": "Tus productos aparecen en tu WhatsApp: el ícono de tienda en el chat, el carrito y las fichas de producto. Los cambios de precio, foto o stock llegan a WhatsApp en menos de 1 hora con el feed, o al instante con la API.",
+      "description": "Tus productos aparecen en tu WhatsApp: el ícono de tienda en el chat, el carrito y las fichas de producto. Los cambios de precio, foto o stock llegan a WhatsApp en menos de 1 hora con el feed.",
       "sourceOfTruth": "Whasalia es la fuente principal: lo que edites directamente en Meta Commerce Manager se reemplaza en la siguiente sincronización.",
       "noWhatsApp": "Primero conecta tu número de WhatsApp en Canales.",
       "goChannels": "Ir a Canales",

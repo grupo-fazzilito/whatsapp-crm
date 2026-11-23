@@ -418,7 +418,7 @@
     "whatsapp": {
       "tab": "WhatsApp",
       "title": "WhatsApp catalog",
-      "description": "Your products show in your WhatsApp: the shop icon in the chat, the cart and product cards. Price, photo or stock changes reach WhatsApp within 1 hour with the feed, or instantly with the API.",
+      "description": "Your products show in your WhatsApp: the shop icon in the chat, the cart and product cards. Price, photo or stock changes reach WhatsApp within 1 hour with the feed.",
       "sourceOfTruth": "Whasalia is the source of truth: whatever you edit directly in Meta Commerce Manager is replaced on the next sync.",
       "noWhatsApp": "Connect your WhatsApp number in Channels first.",
       "goChannels": "Go to Channels",
