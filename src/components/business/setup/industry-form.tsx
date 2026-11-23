@@ -79,19 +79,20 @@ export function IndustryForm({ workspace, readOnly }: { workspace: Workspace; re
   const presetLabel = (k: keyof IndustryLabels, loc: Loc = locale) => preset.labels[k][loc];
   const effLabel = (k: LabelKey) => labels[locale][k]?.trim() || presetLabel(k);
 
-  const moduleName = (k: ModuleKey) => {
-    switch (k) {
-      case 'staff':
-        return effLabel('staffPlural');
-      case 'services':
-        return effLabel('servicePlural');
-      case 'bookings':
-        return effLabel('bookingPlural');
-      case 'products':
-        return presetLabel('productPlural');
-      default:
-        return t(`business.setup.industry.module.${k}`);
-    }
+  // Fixed names, so a module is recognizable whatever the business type…
+  const moduleName = (k: ModuleKey) => t(`business.setup.industry.module.${k}`);
+  // …plus what this business calls it (Reservations, Barbers, Courses…).
+  const localName = (k: ModuleKey): string | null => {
+    const name =
+      k === 'staff' ? effLabel('staffPlural') : k === 'services' ? effLabel('servicePlural') : k === 'bookings' ? effLabel('bookingPlural') : k === 'products' ? presetLabel('productPlural') : null;
+    return name && name.toLowerCase() !== moduleName(k).toLowerCase() ? name : null;
+  };
+
+  // A new business type starts from its own recommended modules; any other can be turned on after.
+  const pickIndustry = (id: string) => {
+    if (id === industry) return;
+    setIndustry(id);
+    setModuleOverrides({});
   };
 
   const save = async () => {
@@ -144,7 +145,7 @@ export function IndustryForm({ workspace, readOnly }: { workspace: Workspace; re
                   role="radio"
                   aria-checked={active}
                   disabled={readOnly}
-                  onClick={() => setIndustry(p.id)}
+                  onClick={() => pickIndustry(p.id)}
                   className={cn(
                     'flex items-start gap-3 rounded-lg border p-3 text-left transition-colors disabled:cursor-not-allowed',
                     active ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50',
@@ -175,11 +176,17 @@ export function IndustryForm({ workspace, readOnly }: { workspace: Workspace; re
           <CardDescription>{t('business.setup.industry.modulesDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
-          {MODULE_KEYS.filter((k) => k !== 'triage' || industry === 'clinic' || moduleOn('triage')).map((k) => (
+          {MODULE_KEYS.map((k) => (
             <label key={k} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
               <span className="min-w-0">
-                <span className="block text-sm font-medium text-foreground">{moduleName(k)}</span>
+                <span className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-foreground">
+                  {moduleName(k)}
+                  {preset.modules[k] && (
+                    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{t('business.setup.industry.recommended')}</span>
+                  )}
+                </span>
                 <span className="block text-xs text-muted-foreground">{t(`business.setup.industry.moduleHint.${k}`)}</span>
+                {localName(k) && <span className="block text-xs text-muted-foreground">{t('business.setup.industry.calledHere', { name: localName(k)! })}</span>}
               </span>
               <Switch
                 checked={moduleOn(k)}

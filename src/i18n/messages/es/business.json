@@ -87,8 +87,12 @@
         "title": "Tipo de negocio",
         "description": "Define los nombres que ve tu equipo, los módulos disponibles y cómo se comporta la IA.",
         "modulesTitle": "Módulos",
-        "modulesDescription": "Activa solo lo que tu negocio usa. Los módulos apagados se ocultan del menú y la IA no los ofrece.",
+        "modulesDescription": "Al elegir el tipo de negocio se activan sus módulos recomendados. Puedes activar cualquier otro: por ejemplo, un restaurante que también da citas. Los módulos apagados se ocultan del menú y la IA no los ofrece.",
         "module": {
+          "bookings": "Citas y reservas",
+          "staff": "Equipo / profesionales",
+          "services": "Servicios",
+          "products": "Productos",
           "orders": "Pedidos",
           "triage": "Triaje de síntomas"
         },
@@ -113,7 +117,9 @@
           "bookingPlural": "Reserva (plural)",
           "customer": "Cliente (singular)",
           "customerPlural": "Cliente (plural)"
-        }
+        },
+        "recommended": "Recomendado",
+        "calledHere": "Aquí se llama «{name}»"
       },
       "hours": {
         "title": "Horario de atención",
