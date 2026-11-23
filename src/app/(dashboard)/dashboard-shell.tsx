@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { WorkspaceProvider, useWorkspace } from "@/hooks/use-workspace";
 import { useT } from "@/i18n/client";
-import { SectionTabs } from "@/components/layout/section-tabs";
+import { SectionNav } from "@/components/layout/section-tabs";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { CreditsBanner } from "@/components/billing/credits-banner";
@@ -83,8 +83,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
             the document and stretch it, adding a second scrollbar and empty space. */}
         <main className="relative flex-1 overflow-y-auto p-4 sm:p-6">
           <div className={fullWidth ? "w-full" : "mx-auto w-full max-w-screen-xl"}>
-            <SectionTabs />
-            {children}
+            <SectionNav>{children}</SectionNav>
           </div>
         </main>
       </div>

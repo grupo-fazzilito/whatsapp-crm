@@ -46,7 +46,9 @@
     "openMenu": "Abrir menú",
     "accountMenu": "Menú de la cuenta",
     "darkMode": "Cambiar a modo oscuro",
-    "lightMode": "Cambiar a modo claro"
+    "lightMode": "Cambiar a modo claro",
+    "openSectionMenu": "Abrir el menú de esta sección",
+    "sectionMenu": "Menú de la sección"
   },
   "workspace": {
     "switch": "Cambiar de negocio",
@@ -88,5 +90,15 @@
     "createAccount": "Crear cuenta",
     "invalid": "Esta invitación no existe o ya venció.",
     "wrongAccount": "Iniciaste sesión con otra cuenta. Esta invitación es para {email}."
+  },
+  "settingsPage": {
+    "title": "Configuración",
+    "description": "Tu perfil, el equipo, los canales, las plantillas, las etiquetas y más.",
+    "tabs": {
+      "profile": "Perfil",
+      "templates": "Plantillas",
+      "tags": "Etiquetas",
+      "appearance": "Apariencia"
+    }
   }
 }

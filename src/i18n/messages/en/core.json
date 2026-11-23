@@ -46,7 +46,9 @@
     "openMenu": "Open menu",
     "accountMenu": "Account menu",
     "darkMode": "Switch to dark mode",
-    "lightMode": "Switch to light mode"
+    "lightMode": "Switch to light mode",
+    "openSectionMenu": "Open this section’s menu",
+    "sectionMenu": "Section menu"
   },
   "workspace": {
     "switch": "Switch business",
@@ -88,5 +90,15 @@
     "createAccount": "Create account",
     "invalid": "This invitation doesn't exist or has expired.",
     "wrongAccount": "You're signed in with another account. This invitation is for {email}."
+  },
+  "settingsPage": {
+    "title": "Settings",
+    "description": "Your profile, team, channels, templates, tags and more.",
+    "tabs": {
+      "profile": "Profile",
+      "templates": "Templates",
+      "tags": "Tags",
+      "appearance": "Appearance"
+    }
   }
 }

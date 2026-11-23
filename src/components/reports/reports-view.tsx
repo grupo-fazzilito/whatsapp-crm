@@ -7,7 +7,8 @@ import { useWorkspace } from '@/hooks/use-workspace';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { SideMenu, SideMenuLayout, type SideMenuItem } from '@/components/layout/side-menu';
 import { LoadingBlock, Notice, PageHeader, selectClass } from '@/components/business/shared';
 import { cn } from '@/lib/utils';
 import type { Preset } from '@/lib/reports/range';
@@ -85,6 +86,16 @@ export function ReportsView() {
     ? `${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${data.range.fromDate}T00:00:00Z`))} – ${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${data.range.toDate}T00:00:00Z`))}`
     : '';
 
+  const section = (key: Tab, label: string): SideMenuItem => ({ key, label, active: activeTab === key, onSelect: () => setTab(key) });
+  const menu: SideMenuItem[] = [
+    section('attention', t('reports.tabs.attention')),
+    section('volume', t('reports.tabs.volume')),
+    section('team', personal ? t('reports.tabs.me') : t('reports.tabs.team')),
+    ...(showAi ? [section('ai', t('reports.tabs.ai'))] : []),
+    ...(showSales ? [section('sales', t('reports.tabs.sales'))] : []),
+    ...(showMeta ? [section('meta', t('metaUsage.tab'))] : []),
+  ];
+
   return (
     <div className="rpt-viz flex flex-col gap-5">
       <VizStyles />
@@ -107,6 +118,8 @@ export function ReportsView() {
         }
       />
 
+      <SideMenuLayout menu={<SideMenu items={menu} label={t('reports.title')} />}>
+      <div className="flex flex-col gap-5">
       <form
         className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4"
         aria-label={t('reports.filters.label')}
@@ -211,15 +224,7 @@ export function ReportsView() {
             </span>
           )}
           {loading && <Loader2 className="absolute right-2 top-2 size-4 animate-spin text-muted-foreground" aria-hidden />}
-          <Tabs value={activeTab} onValueChange={(v) => setTab(v as Tab)}>
-            <TabsList className="h-auto w-full max-w-full justify-start overflow-x-auto sm:w-fit">
-              <TabsTrigger value="attention" className="min-h-8 flex-none px-3">{t('reports.tabs.attention')}</TabsTrigger>
-              <TabsTrigger value="volume" className="min-h-8 flex-none px-3">{t('reports.tabs.volume')}</TabsTrigger>
-              <TabsTrigger value="team" className="min-h-8 flex-none px-3">{personal ? t('reports.tabs.me') : t('reports.tabs.team')}</TabsTrigger>
-              {showAi && <TabsTrigger value="ai" className="min-h-8 flex-none px-3">{t('reports.tabs.ai')}</TabsTrigger>}
-              {showSales && <TabsTrigger value="sales" className="min-h-8 flex-none px-3">{t('reports.tabs.sales')}</TabsTrigger>}
-              {showMeta && <TabsTrigger value="meta" className="min-h-8 flex-none px-3">{t('metaUsage.tab')}</TabsTrigger>}
-            </TabsList>
+          <Tabs value={activeTab}>
             <TabsContent value="attention" className="mt-4">
               <AttentionSection data={data} />
             </TabsContent>
@@ -247,6 +252,8 @@ export function ReportsView() {
           </Tabs>
         </div>
       )}
+      </div>
+      </SideMenuLayout>
 
       {isAdmin && data && (
         <ReportSettingsDialog

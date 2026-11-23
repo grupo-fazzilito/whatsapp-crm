@@ -8,7 +8,7 @@ import { useI18n, useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SideMenu, SideMenuLayout } from '@/components/layout/side-menu';
 import { EmptyState, LoadingBlock, PageHeader } from '@/components/business/shared';
 import type { SocialAccountView, PostView } from '@/lib/social/server';
 import type { PostStatus, Target } from '@/lib/social/model';
@@ -200,19 +200,20 @@ export function PostsManager() {
 
       <ConnectCard state={accounts} pick={connect === 'pick'} onChange={loadAccounts} />
 
-      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-          <TabsList>
-            <TabsTrigger value="upcoming" className="px-3">{t('posts.tabs.upcoming')}</TabsTrigger>
-            <TabsTrigger value="approval" className="px-3">
-              {t('posts.tabs.approval')}
-              {approvalCount > 0 && <span className="ml-1.5 rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold text-white">{approvalCount}</span>}
-            </TabsTrigger>
-            <TabsTrigger value="published" className="px-3">{t('posts.tabs.published')}</TabsTrigger>
-            <TabsTrigger value="settings" className="px-3">{t('posts.tabs.settings')}</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+      <SideMenuLayout
+        menu={
+          <SideMenu
+            label={t('posts.title')}
+            items={(['upcoming', 'approval', 'published', 'settings'] as const).map((k) => ({
+              key: k,
+              label: t(`posts.tabs.${k}`),
+              active: tab === k,
+              badge: k === 'approval' ? approvalCount : undefined,
+              onSelect: () => setTab(k),
+            }))}
+          />
+        }
+      >
 
       {tab === 'settings' ? (
         <PostsSettings connected={connected} />
@@ -338,6 +339,7 @@ export function PostsManager() {
           ))}
         </div>
       )}
+      </SideMenuLayout>
 
       {editing && (
         <PostEditor
