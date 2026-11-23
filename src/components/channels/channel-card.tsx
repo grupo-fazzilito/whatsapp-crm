@@ -99,7 +99,11 @@ export function ChannelCard({ channel, agents, isAdmin, origin, onAgentChange, o
           <p className="flex items-start gap-1.5 rounded-md bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
             <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
             <span className="break-words">
-              {channel.status_detail === 'reply_not_allowed' ? t('channels.telegram.business.replyNotAllowed') : channel.status_detail}
+              {channel.status_detail === 'reply_not_allowed'
+                ? t('channels.telegram.business.replyNotAllowed')
+                : channel.status_detail === 'tiktok_reauthorize'
+                  ? t('channels.tiktok.reauthorize')
+                  : channel.status_detail}
             </span>
           </p>
         )}

@@ -141,7 +141,8 @@
           "comments": "Account comments",
           "commentsHelp": "Read and reply to comments on your videos"
         }
-      }
+      },
+      "reauthorize": "TikTok needs this account to be authorized again (the permission expired). Connect it again with “Continue with TikTok”."
     },
     "webchat": {
       "defaultName": "Website chat",

@@ -141,7 +141,8 @@
           "comments": "Comentarios de la cuenta",
           "commentsHelp": "Leer y responder los comentarios de tus videos"
         }
-      }
+      },
+      "reauthorize": "TikTok pide volver a autorizar esta cuenta (venció el permiso). Conéctala de nuevo con «Continuar con TikTok»."
     },
     "webchat": {
       "defaultName": "Chat del sitio web",
