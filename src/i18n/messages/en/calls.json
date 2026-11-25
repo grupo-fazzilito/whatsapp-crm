@@ -31,6 +31,70 @@
       "error": "Meta replied: {message}",
       "badgeOn": "On",
       "badgeOff": "Off"
+    },
+    "ai": {
+      "title": "Who answers the calls?",
+      "description": "Choose whether this number's calls are answered by your team from the inbox, by a voice AI agent, or both.",
+      "current": "Answered by:",
+      "open": "Set up AI answering",
+      "modeLabel": "Answering mode",
+      "mode": {
+        "humans": "People only",
+        "ai": "AI only",
+        "schedule": "AI on a schedule",
+        "fallback": "AI if nobody answers"
+      },
+      "modeHelp": {
+        "humans": "Calls ring in the inbox and your team answers them.",
+        "ai": "The AI agent answers every call right away.",
+        "schedule": "The AI answers during the hours you choose; the rest of the time calls ring in the inbox.",
+        "fallback": "Calls ring in the inbox first; if nobody answers in a few seconds, the AI does."
+      },
+      "agent": "AI agent that answers",
+      "pickAgent": "Pick an agent…",
+      "agentOff": "{name} (turned off)",
+      "noAgents": "You don't have AI agents yet. Create one in AI agents and come back.",
+      "agentHelp": "It uses the agent's instructions, knowledge and skills (bookings, catalog, handing over to a person).",
+      "scheduleLabel": "When does the AI answer?",
+      "schedule": {
+        "outside_business_hours": "Outside business hours",
+        "business_hours": "During business hours",
+        "custom": "On its own schedule"
+      },
+      "noHours": "Add the days and hours when the AI answers.",
+      "day": "Day",
+      "from": "From",
+      "to": "To",
+      "addHours": "Add hours",
+      "removeHours": "Remove these hours",
+      "hoursHelp": "Business time. Outside these hours calls ring in the inbox.",
+      "days": {
+        "0": "Sunday",
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday"
+      },
+      "fallbackSeconds": "Seconds ringing before the AI answers",
+      "fallbackHelp": "Between {min} and {max}. WhatsApp drops the call if nobody answers in about 45 seconds.",
+      "voice": "Voice",
+      "maxMinutes": "Maximum length (minutes)",
+      "greeting": "Greeting when answering",
+      "greetingPlaceholder": "Hi, thanks for calling {business}. How can I help you?",
+      "greetingHelp": "Leave it empty to use a greeting with the business and agent names. {business} is replaced by the business name.",
+      "noteCost": "Each minute the AI answers costs {n} tokens (a started minute counts as a full one).",
+      "noteTools": "The AI can check times, book and cancel appointments, and look up products if the agent has those skills. Confirmations also reach the customer on WhatsApp.",
+      "noteHuman": "If the customer asks for a person, the AI hands the conversation to your team and creates the task \"Call the customer back\".",
+      "noteTranscript": "After the call, the transcript and a summary are left as an internal note in the conversation.",
+      "noteFallback": "If the AI can't answer (no tokens or the service is down), the call rings in the inbox.",
+      "block": {
+        "no_service": "The AI voice service isn't active on the platform yet. Meanwhile, calls ring in the inbox.",
+        "no_key": "The OpenAI key isn't set up on the platform. Meanwhile, calls ring in the inbox.",
+        "no_agent": "Pick an active AI agent.",
+        "no_tokens": "You're out of AI tokens. Meanwhile, calls ring in the inbox."
+      }
     }
   }
 }

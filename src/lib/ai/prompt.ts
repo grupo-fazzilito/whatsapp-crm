@@ -147,7 +147,7 @@ export function agentOutputSchema(industry: string | null | undefined, skills: s
   }
 }
 
-const TONES: Record<string, string> = {
+export const TONES: Record<string, string> = {
   friendly: 'warm, friendly and close',
   professional: 'professional and clear',
   formal: 'formal and respectful (use "usted" in Spanish)',
@@ -187,7 +187,8 @@ function money(ctx: BusinessContext, amount: number | null | undefined): string 
   return formatMoney(Number(amount), ctx.workspace.currency, moneyLocale(ctx.workspace))
 }
 
-function availabilityBlock(input: PromptInput): string {
+/** Bookable start times (next 7 days, or the draft's date). */
+export function availabilityBlock(input: Pick<PromptInput, 'ctx' | 'draft' | 'calendlySlots'>): string {
   const { ctx, draft } = input
   const linked = draft?.service_id ? ctx.calendly?.[draft.service_id] : undefined
   if (linked) {
@@ -242,48 +243,17 @@ function availabilityBlock(input: PromptInput): string {
   ].join('\n')
 }
 
-/** System prompt for one agent turn. */
-export function buildSystemPrompt(input: PromptInput): string {
-  const { ctx, agent, draft } = input
+/**
+ * What the agent knows about the business: details, hours, special dates,
+ * services, staff and FAQs. Shared by the chat prompt and the voice calls.
+ */
+export function businessFacts(ctx: BusinessContext, agent: AiAgentRow): string[] {
   const ws = ctx.workspace
-  const preset = getPreset(ws.industry)
   const { modules } = resolveIndustry(ws.industry, ws.settings)
-  const locale = ws.locale
   const L = (k: Parameters<typeof industryLabel>[1]) => industryLabel(ws.industry, k, 'en', ws.settings)
   const skills = new Set(agent.skills)
   const now = zonedNow(ctx.timeZone)
-  const canBook = skills.has('bookings') && modules.bookings
-  const isRouter = skills.has('router')
-
   const sections: string[] = []
-
-  sections.push(
-    [
-      `You are "${agent.name}", a virtual assistant of "${ws.name}" answering customers on ${input.channelLabel}.`,
-      preset.ai.persona.en,
-      agent.persona ? `Your personality: ${agent.persona}` : '',
-      `Tone: ${TONES[agent.tone] ?? agent.tone}.`,
-      agent.language === 'auto'
-        ? `Always reply in the language the customer writes in (default ${locale === 'en' ? 'English' : 'Spanish'}).`
-        : `Always reply in ${agent.language === 'en' ? 'English' : 'Spanish'}.`,
-      /instagram|messenger/i.test(input.channelLabel)
-        ? 'Write short chat messages. This channel shows text literally: do not use *bold*, _italics_ or other markup. Never invent information that is not in this prompt; if you do not know, say so and offer a human.'
-        : 'Write short chat messages (WhatsApp style). Use *bold* sparingly. Never invent information that is not in this prompt; if you do not know, say so and offer a human.',
-      'Never promise actions the system cannot do (e.g. notifying the customer later, holding stock, discounts, sending emails); offer a human instead.',
-    ]
-      .filter(Boolean)
-      .join('\n'),
-  )
-
-  if (agent.instructions?.trim()) sections.push(`OWNER INSTRUCTIONS (follow them):\n${agent.instructions.trim()}`)
-  if (agent.training_context?.trim()) {
-    sections.push(
-      `BUSINESS KNOWLEDGE FROM THE OWNER (your main source: answer from it, never contradict it, never invent beyond it):\n${agent.training_context.trim()}`,
-    )
-  }
-
-  const rules = preset.ai.rules.map((r) => `- ${r.en}`)
-  if (rules.length) sections.push(`INDUSTRY RULES:\n${rules.join('\n')}`)
 
   sections.push(
     [
@@ -354,6 +324,54 @@ export function buildSystemPrompt(input: PromptInput): string {
   if (skills.has('faq') && faqs.length) {
     sections.push('FAQ (answer with these when relevant):\n' + faqs.slice(0, 60).map((f) => `Q: ${f.question}\nA: ${f.answer}`).join('\n'))
   }
+
+  return sections
+}
+
+/** System prompt for one agent turn. */
+export function buildSystemPrompt(input: PromptInput): string {
+  const { ctx, agent, draft } = input
+  const ws = ctx.workspace
+  const preset = getPreset(ws.industry)
+  const { modules } = resolveIndustry(ws.industry, ws.settings)
+  const locale = ws.locale
+  const L = (k: Parameters<typeof industryLabel>[1]) => industryLabel(ws.industry, k, 'en', ws.settings)
+  const skills = new Set(agent.skills)
+  const now = zonedNow(ctx.timeZone)
+  const canBook = skills.has('bookings') && modules.bookings
+  const isRouter = skills.has('router')
+
+  const sections: string[] = []
+
+  sections.push(
+    [
+      `You are "${agent.name}", a virtual assistant of "${ws.name}" answering customers on ${input.channelLabel}.`,
+      preset.ai.persona.en,
+      agent.persona ? `Your personality: ${agent.persona}` : '',
+      `Tone: ${TONES[agent.tone] ?? agent.tone}.`,
+      agent.language === 'auto'
+        ? `Always reply in the language the customer writes in (default ${locale === 'en' ? 'English' : 'Spanish'}).`
+        : `Always reply in ${agent.language === 'en' ? 'English' : 'Spanish'}.`,
+      /instagram|messenger/i.test(input.channelLabel)
+        ? 'Write short chat messages. This channel shows text literally: do not use *bold*, _italics_ or other markup. Never invent information that is not in this prompt; if you do not know, say so and offer a human.'
+        : 'Write short chat messages (WhatsApp style). Use *bold* sparingly. Never invent information that is not in this prompt; if you do not know, say so and offer a human.',
+      'Never promise actions the system cannot do (e.g. notifying the customer later, holding stock, discounts, sending emails); offer a human instead.',
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  )
+
+  if (agent.instructions?.trim()) sections.push(`OWNER INSTRUCTIONS (follow them):\n${agent.instructions.trim()}`)
+  if (agent.training_context?.trim()) {
+    sections.push(
+      `BUSINESS KNOWLEDGE FROM THE OWNER (your main source: answer from it, never contradict it, never invent beyond it):\n${agent.training_context.trim()}`,
+    )
+  }
+
+  const rules = preset.ai.rules.map((r) => `- ${r.en}`)
+  if (rules.length) sections.push(`INDUSTRY RULES:\n${rules.join('\n')}`)
+
+  sections.push(...businessFacts(ctx, agent))
 
   if (canBook) {
     const fields = preset.bookingFields.filter((f) => f.type !== 'product')

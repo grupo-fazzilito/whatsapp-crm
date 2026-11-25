@@ -4,7 +4,7 @@ import { REGION_INFO, type Region } from '@/lib/regions'
 import { DEFAULT_SUBSCRIPTION, normalizeSubscription, type SubscriptionPricing } from './subscription-pricing'
 
 /** Billable actions (AI, and automatic comment replies) and what each one costs in credits. */
-export const BILLABLE_ACTIONS = ['reply', 'followup', 'summary', 'suggest', 'transcription', 'vision', 'comment_reply', 'reminder', 'playground', 'social_caption', 'crm_action'] as const
+export const BILLABLE_ACTIONS = ['reply', 'followup', 'summary', 'suggest', 'transcription', 'vision', 'comment_reply', 'reminder', 'playground', 'social_caption', 'crm_action', 'call_minute'] as const
 export type BillableAction = (typeof BILLABLE_ACTIONS)[number]
 
 export interface BillingSettings {
@@ -55,7 +55,7 @@ export const DEFAULT_BILLING: BillingSettings = {
   expiry_months: 6,
   welcome_credits: 100,
   low_credit_threshold: 50,
-  action_costs: { reply: 1, followup: 1, summary: 1, suggest: 1, transcription: 2, vision: 2, comment_reply: 1, reminder: 1, playground: 1, social_caption: 1, crm_action: 1 },
+  action_costs: { reply: 1, followup: 1, summary: 1, suggest: 1, transcription: 2, vision: 2, comment_reply: 1, reminder: 1, playground: 1, social_caption: 1, crm_action: 1, call_minute: 50 },
   enforce: true,
   regions: { ve: DEFAULT_USD, us: DEFAULT_USD },
   subscription: DEFAULT_SUBSCRIPTION,

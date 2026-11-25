@@ -31,6 +31,70 @@
       "error": "Meta respondió: {message}",
       "badgeOn": "Activadas",
       "badgeOff": "Desactivadas"
+    },
+    "ai": {
+      "title": "¿Quién contesta las llamadas?",
+      "description": "Elige si las llamadas de este número las atiende tu equipo desde la bandeja, un agente de IA con voz, o ambos.",
+      "current": "Contesta:",
+      "open": "Configurar atención con IA",
+      "modeLabel": "Modo de atención",
+      "mode": {
+        "humans": "Solo personas",
+        "ai": "Solo IA",
+        "schedule": "IA por horario",
+        "fallback": "IA si nadie contesta"
+      },
+      "modeHelp": {
+        "humans": "Las llamadas suenan en la bandeja y las contesta tu equipo.",
+        "ai": "El agente de IA contesta todas las llamadas al instante.",
+        "schedule": "La IA contesta en el horario que elijas; el resto del tiempo suenan en la bandeja.",
+        "fallback": "Suenan primero en la bandeja; si nadie contesta en unos segundos, contesta la IA."
+      },
+      "agent": "Agente de IA que contesta",
+      "pickAgent": "Elige un agente…",
+      "agentOff": "{name} (desactivado)",
+      "noAgents": "Todavía no tienes agentes de IA. Crea uno en Agentes de IA y vuelve aquí.",
+      "agentHelp": "Usa las instrucciones, el conocimiento y las habilidades del agente (citas, catálogo, pasar a una persona).",
+      "scheduleLabel": "¿Cuándo contesta la IA?",
+      "schedule": {
+        "outside_business_hours": "Fuera del horario de atención",
+        "business_hours": "Dentro del horario de atención",
+        "custom": "En un horario propio"
+      },
+      "noHours": "Agrega los días y horas en que contesta la IA.",
+      "day": "Día",
+      "from": "Desde",
+      "to": "Hasta",
+      "addHours": "Agregar horario",
+      "removeHours": "Quitar este horario",
+      "hoursHelp": "Hora del negocio. Fuera de estos horarios las llamadas suenan en la bandeja.",
+      "days": {
+        "0": "Domingo",
+        "1": "Lunes",
+        "2": "Martes",
+        "3": "Miércoles",
+        "4": "Jueves",
+        "5": "Viernes",
+        "6": "Sábado"
+      },
+      "fallbackSeconds": "Segundos sonando antes de que conteste la IA",
+      "fallbackHelp": "Entre {min} y {max}. WhatsApp corta la llamada si nadie contesta en unos 45 segundos.",
+      "voice": "Voz",
+      "maxMinutes": "Duración máxima (minutos)",
+      "greeting": "Saludo al contestar",
+      "greetingPlaceholder": "Hola, gracias por llamar a {business}. ¿En qué te puedo ayudar?",
+      "greetingHelp": "Déjalo vacío para usar un saludo con el nombre del negocio y del agente. {business} se reemplaza por el nombre del negocio.",
+      "noteCost": "Cada minuto que atiende la IA cuesta {n} tokens (los minutos empezados cuentan completos).",
+      "noteTools": "La IA puede ver horarios, agendar y cancelar citas, y buscar productos si el agente tiene esas habilidades. Las confirmaciones también llegan al cliente por WhatsApp.",
+      "noteHuman": "Si el cliente pide una persona, la IA pasa la conversación a tu equipo y crea la tarea «Devolver la llamada».",
+      "noteTranscript": "Al colgar, la transcripción y un resumen quedan como nota interna en la conversación.",
+      "noteFallback": "Si la IA no puede contestar (sin tokens o con el servicio caído), la llamada suena en la bandeja.",
+      "block": {
+        "no_service": "El servicio de voz con IA aún no está activo en la plataforma. Mientras tanto, las llamadas suenan en la bandeja.",
+        "no_key": "Falta configurar la clave de OpenAI en la plataforma. Mientras tanto, las llamadas suenan en la bandeja.",
+        "no_agent": "Elige un agente de IA activo.",
+        "no_tokens": "No te quedan tokens de IA. Mientras tanto, las llamadas suenan en la bandeja."
+      }
     }
   }
 }

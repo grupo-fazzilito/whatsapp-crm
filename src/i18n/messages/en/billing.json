@@ -38,7 +38,8 @@
       "playground": "Agent test message",
       "reminder": "Appointment reminder sent",
       "social_caption": "Post caption written by AI",
-      "crm_action": "AI action in the CRM (saved data, deal, tag, task or note)"
+      "crm_action": "AI action in the CRM (saved data, deal, tag, task or note)",
+      "call_minute": "Minute of a call answered by the AI"
     },
     "account": {
       "title": "Billing details",

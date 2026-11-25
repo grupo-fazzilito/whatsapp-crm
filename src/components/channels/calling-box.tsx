@@ -1,20 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { Phone } from 'lucide-react';
+import { Bot, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 import { useT } from '@/i18n/client';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { readCallingState, tierAllowsCalling, type CallingState } from '@/lib/calls/model';
+import { readCallAi, type CallAnswerMode } from '@/lib/calls/ai-config';
 import type { ChannelDTO } from './channel-types';
+import { CallAiDialog } from './call-ai-dialog';
 
-/** WhatsApp channel: turn customer calls on/off (answered from the inbox). */
+/** WhatsApp channel: turn customer calls on/off and choose who answers them (the team or an AI agent). */
 export function CallingBox({ channel, isAdmin }: { channel: ChannelDTO; isAdmin: boolean }) {
   const t = useT();
   const [state, setState] = useState<CallingState | null>(() => readCallingState(channel.settings));
   const [hours, setHours] = useState(() => readCallingState(channel.settings)?.use_business_hours ?? false);
   const [busy, setBusy] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [mode, setMode] = useState<CallAnswerMode>(() => readCallAi(channel.settings).mode);
   const coexistence = channel.settings?.coexistence === true;
   const enabled = !!state?.enabled;
   const lowTier = state?.tier ? tierAllowsCalling(state.tier) === false : false;
@@ -83,6 +87,17 @@ export function CallingBox({ channel, isAdmin }: { channel: ChannelDTO; isAdmin:
               <span className="block text-muted-foreground">{t('calls.settings.hoursHelp')}</span>
             </span>
           </label>
+          {enabled && (
+            <div className="grid gap-1 rounded-md bg-muted/50 p-2">
+              <p className="text-xs text-foreground">
+                {t('calls.ai.current')} <span className="font-medium">{t(`calls.ai.mode.${mode}`)}</span>
+              </p>
+              <Button variant="outline" size="sm" className="justify-self-start" onClick={() => setAiOpen(true)}>
+                <Bot className="size-4" aria-hidden /> {t('calls.ai.open')}
+              </Button>
+              <CallAiDialog channelId={channel.id} open={aiOpen} onOpenChange={setAiOpen} onSaved={(ai) => setMode(ai.mode)} />
+            </div>
+          )}
           <Button
             variant={enabled ? 'ghost' : 'outline'}
             size="sm"
