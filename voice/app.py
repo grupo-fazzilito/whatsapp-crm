@@ -25,6 +25,7 @@ import asyncio
 import hmac
 import json
 import os
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -67,6 +68,13 @@ CONNECT_TIMEOUT = float(os.environ.get("CONNECT_TIMEOUT_SECS", "20"))
 WRAP_UP_SECS = 25
 # Time for the goodbye to finish playing before hanging up.
 GOODBYE_SECS = 4.0
+# The AI said goodbye but didn't call end_call: hang up if the caller stays quiet this long.
+SILENT_AFTER_GOODBYE_SECS = 6.0
+GOODBYE = re.compile(
+    r"gracias por (tu |su )?llamad|gracias por llamar|hasta luego|hasta pronto|adi[oó]s|que tengas? (un )?buen|"
+    r"thanks? (you )?for calling|goodbye|bye|have a (great|nice|good) (day|one)",
+    re.IGNORECASE,
+)
 
 
 def ice_servers() -> list[IceServer]:
@@ -117,6 +125,8 @@ class Call:
     # Watchdog and delayed hang-up; cancelled when the call ends.
     tasks: list[asyncio.Task] = field(default_factory=list)
     bot: asyncio.Task | None = None
+    # Pending hang-up after a spoken goodbye; cancelled if the caller speaks again.
+    goodbye: asyncio.Task | None = None
 
 
 calls: dict[str, Call] = {}
@@ -263,15 +273,37 @@ async def run_bot(call: Call, cfg: dict[str, Any]) -> None:
     async def on_disconnected(_transport, _client):
         await finish(call, hangup=False, reason="caller_left")
 
+    def cancel_goodbye():
+        if call.goodbye and not call.goodbye.done():
+            call.goodbye.cancel()
+        call.goodbye = None
+
+    @user_aggregator.event_handler("on_user_turn_started")
+    async def on_user_started(*_args):
+        cancel_goodbye()  # the caller still has something to say
+
     @user_aggregator.event_handler("on_user_turn_message_added")
     async def on_user(_aggregator, message: UserTurnMessageAddedMessage):
+        cancel_goodbye()
         if message.content:
             call.transcript.append({"role": "user", "text": str(message.content), "at": now_iso()})
 
     @assistant_aggregator.event_handler("on_assistant_turn_stopped")
     async def on_assistant(_aggregator, message: AssistantTurnStoppedMessage):
-        if message.content:
-            call.transcript.append({"role": "assistant", "text": str(message.content), "at": now_iso()})
+        if not message.content:
+            return
+        text = str(message.content)
+        call.transcript.append({"role": "assistant", "text": text, "at": now_iso()})
+        # Backup for end_call: a goodbye followed by silence ends the call.
+        if GOODBYE.search(text[-160:]):
+            cancel_goodbye()
+
+            async def hang_up_if_quiet():
+                await asyncio.sleep(SILENT_AFTER_GOODBYE_SECS)
+                await finish(call, hangup=True, reason="goodbye")
+
+            call.goodbye = asyncio.create_task(hang_up_if_quiet())
+            call.tasks.append(call.goodbye)
 
     max_seconds = max(60, int(cfg.get("max_seconds") or 600))
 

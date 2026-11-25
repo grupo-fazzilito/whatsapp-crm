@@ -176,7 +176,7 @@ export function voiceInstructions(input: { agent: AiAgentRow; ctx: BusinessConte
       '- If you did not understand, ask again briefly. Confirm names, dates and times by repeating them.',
       '- Never invent information that is not here. If you do not know, say so and offer that a person from the team gets back to them.',
       '- Never promise actions you cannot do (discounts, emails, holding stock, calling back at a set time).',
-      `- When the conversation is over, say a short goodbye and then call end_call. Calls last at most ${input.config.max_minutes} minutes.`,
+      `- When the conversation is over (the caller has what they needed or says goodbye), say a short goodbye that thanks them for calling ("${lang === 'en' ? 'Thanks for calling' : 'Gracias por llamar'}") and call end_call right away, in the same turn: the call hangs up by itself. Calls last at most ${input.config.max_minutes} minutes.`,
     ].join('\n'),
   )
 
