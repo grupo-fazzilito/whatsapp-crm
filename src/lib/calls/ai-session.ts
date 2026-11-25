@@ -111,6 +111,22 @@ export function voiceTools(agent: AiAgentRow, ctx: BusinessContext): VoiceTool[]
   return tools
 }
 
+/**
+ * Names that may contain farewell words ("Hasta luego" salon, "Adiós Canas"
+ * dye…): the voice service ignores them when it looks for a goodbye.
+ */
+export function protectedNames(agent: AiAgentRow, ctx: BusinessContext): string[] {
+  const names = [
+    ctx.workspace.name,
+    agent.name,
+    ...ctx.services.map((s) => s.name),
+    ...ctx.staff.map((s) => s.name),
+    ...ctx.catalog.categories.map((c) => c.name),
+    ...(ctx.catalog.products ?? []).map((p) => p.name),
+  ]
+  return [...new Set(names.map((n) => n?.trim()).filter((n): n is string => !!n && n.length > 1))].slice(0, 500)
+}
+
 export type CallLang = 'es' | 'en'
 
 export function callLanguage(agent: AiAgentRow, ctx: BusinessContext): CallLang {
@@ -176,7 +192,7 @@ export function voiceInstructions(input: { agent: AiAgentRow; ctx: BusinessConte
       '- If you did not understand, ask again briefly. Confirm names, dates and times by repeating them.',
       '- Never invent information that is not here. If you do not know, say so and offer that a person from the team gets back to them.',
       '- Never promise actions you cannot do (discounts, emails, holding stock, calling back at a set time).',
-      `- When the conversation is over (the caller has what they needed or says goodbye), say a short goodbye that thanks them for calling ("${lang === 'en' ? 'Thanks for calling' : 'Gracias por llamar'}") and call end_call right away, in the same turn: the call hangs up by itself. Calls last at most ${input.config.max_minutes} minutes.`,
+      `- When the conversation is over (the caller has what they needed or says goodbye), say a short goodbye that thanks them for calling ("${lang === 'en' ? 'Thanks for calling' : 'Gracias por llamar'}") and call end_call right away, in the same turn: the call hangs up by itself. Never end the call just because a service, product or name contains words like "adiós" or "hasta luego". Calls last at most ${input.config.max_minutes} minutes.`,
     ].join('\n'),
   )
 

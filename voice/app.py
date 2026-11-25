@@ -69,12 +69,27 @@ WRAP_UP_SECS = 25
 # Time for the goodbye to finish playing before hanging up.
 GOODBYE_SECS = 4.0
 # The AI said goodbye but didn't call end_call: hang up if the caller stays quiet this long.
-SILENT_AFTER_GOODBYE_SECS = 6.0
+SILENT_AFTER_GOODBYE_SECS = 8.0
 GOODBYE = re.compile(
     r"gracias por (tu |su )?llamad|gracias por llamar|hasta luego|hasta pronto|adi[oó]s|que tengas? (un )?buen|"
     r"thanks? (you )?for calling|goodbye|bye|have a (great|nice|good) (day|one)",
     re.IGNORECASE,
 )
+
+
+def is_goodbye(text: str, protected: set[str]) -> bool:
+    """True when the AI's last sentence is a farewell.
+
+    Names of the business, services, staff and products are removed first,
+    so a service called "Hasta luego" or a dye called "Adiós Canas" never
+    counts. A turn that ends in a question never counts either.
+    """
+    if text.rstrip().endswith("?"):
+        return False
+    for name in sorted(protected, key=len, reverse=True):
+        text = re.sub(re.escape(name), " ", text, flags=re.IGNORECASE)
+    sentences = [s for s in re.split(r"(?<=[.!?…])\s+", text.strip()) if s.strip()]
+    return bool(sentences) and bool(GOODBYE.search(sentences[-1]))
 
 
 def ice_servers() -> list[IceServer]:
@@ -127,6 +142,8 @@ class Call:
     bot: asyncio.Task | None = None
     # Pending hang-up after a spoken goodbye; cancelled if the caller speaks again.
     goodbye: asyncio.Task | None = None
+    # Names that may contain farewell words (see is_goodbye).
+    protected: set[str] = field(default_factory=set)
 
 
 calls: dict[str, Call] = {}
@@ -188,7 +205,11 @@ def tool_schemas(call: Call, tools: list[dict[str, Any]]) -> list[FunctionSchema
                 return
             try:
                 data = await callback(call, "tool", {"name": name, "arguments": params.arguments or {}})
-                await params.result_callback(data.get("result", {}))
+                result = data.get("result", {})
+                for product in (result.get("products") or []) if isinstance(result, dict) else []:
+                    if isinstance(product, dict) and isinstance(product.get("name"), str):
+                        call.protected.add(product["name"])
+                await params.result_callback(result)
             except Exception as e:  # noqa: BLE001
                 logger.warning(f"[{call.id}] tool {name} failed: {e}")
                 await params.result_callback(
@@ -295,7 +316,7 @@ async def run_bot(call: Call, cfg: dict[str, Any]) -> None:
         text = str(message.content)
         call.transcript.append({"role": "assistant", "text": text, "at": now_iso()})
         # Backup for end_call: a goodbye followed by silence ends the call.
-        if GOODBYE.search(text[-160:]):
+        if is_goodbye(text, call.protected):
             cancel_goodbye()
 
             async def hang_up_if_quiet():
@@ -369,6 +390,7 @@ async def start_call(request: Request):
         raise HTTPException(status_code=502, detail="WebRTC setup failed")
 
     call = Call(id=cfg["call"], callback_url=cfg["callback_url"].rstrip("/"), connection=connection)
+    call.protected = {n for n in (cfg.get("protected_names") or []) if isinstance(n, str) and len(n) > 1}
     calls[call.id] = call
     call.bot = asyncio.create_task(run_bot(call, cfg))
     logger.info(f"[{call.id}] answering")

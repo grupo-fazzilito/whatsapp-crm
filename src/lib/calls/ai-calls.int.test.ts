@@ -109,6 +109,7 @@ describe.skipIf(!pg)('WhatsApp calls answered by the AI', async () => {
     expect(String(start.body?.instructions)).toContain('Luis')
     const tools = (start.body?.tools as { name: string }[]).map((t) => t.name)
     expect(tools).toEqual(['transfer_to_human', 'end_call']) // no bookings/catalog skills
+    expect(start.body?.protected_names).toEqual(expect.arrayContaining(['Peluquería Sol', 'Sofía']))
   })
 
   it('transfer_to_human hands the chat to the team and leaves a task', async () => {
