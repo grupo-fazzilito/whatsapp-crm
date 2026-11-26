@@ -100,5 +100,23 @@
       "tags": "Tags",
       "appearance": "Appearance"
     }
+  },
+  "backup": {
+    "tab": "Backup",
+    "title": "Conversations backup",
+    "description": "Download every message of your business as a CSV file that opens in Excel or Google Sheets: one row per message, with the date, channel, contact, who wrote it and the text.",
+    "from": "From",
+    "to": "To",
+    "rangeHelp": "Leave the dates empty to download the whole history. Dates use your business's time zone.",
+    "internal": "Include the team's internal notes",
+    "download": "Download CSV",
+    "downloading": "Preparing…",
+    "done": "Backup downloaded.",
+    "media": "Files (photos, audio, documents) are included as links; opening them requires being signed in to Whasalia.",
+    "errors": {
+      "invalid_dates": "Check the dates: \"From\" can't be after \"To\".",
+      "too_many_attempts": "You've downloaded several backups in the last hour. Try again later.",
+      "generic": "We couldn't create the backup. Try again."
+    }
   }
 }
