@@ -54,6 +54,13 @@ interface ReplyLog {
   comment_rules: { name: string } | null;
 }
 
+/** What answering a comment costs: nothing with a token subscription, else tokens from the balance. */
+interface CommentBilling {
+  unlimited: boolean;
+  cost: number;
+  credits: number;
+}
+
 interface Post {
   id: string;
   text: string;
@@ -104,12 +111,39 @@ function when(iso: string | null, locale: string) {
   return new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(iso));
 }
 
+/** Unlimited with a token subscription; otherwise each answered comment uses tokens until the plan is bought. */
+function CommentPlanNote({ billing }: { billing: CommentBilling }) {
+  const t = useT();
+  if (billing.unlimited || billing.cost <= 0) {
+    return (
+      <p role="status" className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-800 dark:text-emerald-200">
+        {t("comments.plan.unlimited")}
+      </p>
+    );
+  }
+  const out = billing.credits < billing.cost;
+  return (
+    <div
+      role="status"
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 text-sm",
+        out ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200",
+      )}
+    >
+      <p>{out ? t("comments.plan.out") : t("comments.plan.metered", { cost: billing.cost, credits: billing.credits })}</p>
+      <Link href="/settings?tab=billing" className={cn(buttonVariants({ size: "sm", variant: out ? "default" : "outline" }))}>
+        {t("comments.plan.subscribe")}
+      </Link>
+    </div>
+  );
+}
+
 export default function CommentRulesPage() {
   const t = useT();
   const { can, workspace } = useWorkspace();
   const isAdmin = can("admin");
   const locale = workspace?.locale === "en" ? "en" : "es";
-  const [data, setData] = useState<{ rules: Rule[]; channels: CommentChannel[]; replies: ReplyLog[]; tiktokSandbox?: boolean } | null>(null);
+  const [data, setData] = useState<{ rules: Rule[]; channels: CommentChannel[]; replies: ReplyLog[]; billing?: CommentBilling; tiktokSandbox?: boolean } | null>(null);
   const [simulating, setSimulating] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
@@ -274,6 +308,8 @@ export default function CommentRulesPage() {
         </div>
       ) : (
         <>
+          {data.billing && <CommentPlanNote billing={data.billing} />}
+
           <ul className="space-y-1 text-xs text-muted-foreground">
             <li>{t("comments.reconnectTip")}</li>
             <li>{t("comments.tiktokPublicOnly")}</li>

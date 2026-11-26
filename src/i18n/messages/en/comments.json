@@ -2,7 +2,7 @@
   "comments": {
     "tab": "Comments",
     "title": "Comment replies",
-    "subtitle": "When someone comments on your Instagram, Facebook or TikTok posts (any comment, or one with a keyword), Whasalia replies to the comment and, on Instagram and Facebook, messages them privately. The conversation continues in the inbox. Each answered comment uses 1 token.",
+    "subtitle": "When someone comments on your Instagram, Facebook or TikTok posts (any comment, or one with a keyword), Whasalia replies to the comment and, on Instagram and Facebook, messages them privately. The conversation continues in the inbox.",
     "newRule": "New rule",
     "noChannels": "Connect your Instagram account, Facebook page or TikTok account in Channels to use comment replies.",
     "goChannels": "Go to Channels",
@@ -135,6 +135,12 @@
       "failed": "Couldn't complete it. Please try again.",
       "tooLong": "The reply is too long (max {max} characters).",
       "hiddenHint": "Only you and the person who wrote it can see it."
+    },
+    "plan": {
+      "unlimited": "Unlimited replies with your token plan: answered comments don't use tokens.",
+      "metered": "Without a plan, each answered comment uses {cost} token. You have {credits} left. With any token plan, replies are unlimited.",
+      "out": "You're out of tokens and comment replies are paused. Subscribe to a token plan to answer comments without limits.",
+      "subscribe": "See plans"
     }
   }
 }

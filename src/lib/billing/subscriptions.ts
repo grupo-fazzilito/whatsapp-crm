@@ -57,6 +57,23 @@ export async function getTokenSubscription(workspaceId: string): Promise<TokenSu
   }
 }
 
+/**
+ * True while the workspace pays a token subscription (active, trial or a
+ * renewal being retried), up to a few days past its period end. Automatic
+ * comment replies are unlimited then. False on a DB error: the comment is
+ * then charged a token like any workspace without a plan.
+ */
+export async function hasActiveSubscription(workspaceId: string, now = new Date()): Promise<boolean> {
+  try {
+    const row = await prisma.token_subscriptions.findUnique({ where: { workspace_id: workspaceId }, select: { status: true, current_period_end: true } })
+    if (!row || !ACTIVE.has(row.status)) return false
+    return !row.current_period_end || new Date(row.current_period_end).getTime() + GRACE_MS > now.getTime()
+  } catch (err) {
+    console.error('[billing] hasActiveSubscription failed:', err instanceof Error ? err.message : err)
+    return false
+  }
+}
+
 export type SubscribeError = 'invalid_tokens' | 'gateway_not_configured' | 'already_subscribed' | 'gateway_error' | 'not_subscribed' | 'payment_failed'
 
 /** Stripe Checkout for a first subscription, or a plan change on the current one. */
