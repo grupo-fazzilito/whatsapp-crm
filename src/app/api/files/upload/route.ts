@@ -4,6 +4,7 @@ import { requireWorkspace } from '@/lib/workspace/context'
 import { publicUrl, signedUrl, StorageError, uploadObject } from '@/lib/storage'
 import { isBucket, PUBLIC_BUCKETS, safeFileName } from '@/lib/storage/paths'
 import { ownerPrefix, pathAllowed, UPLOAD_LIMITS } from '@/lib/storage/rules'
+import { sniffImage, sniffVideo } from '@/lib/storage/file-safety'
 
 /**
  * POST /api/files/upload (multipart): file, bucket, and either path (inside
@@ -22,8 +23,14 @@ export async function POST(request: Request) {
   if (!(file instanceof File) || !isBucket(bucket)) return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
   const limits = UPLOAD_LIMITS[bucket]
   if (file.size === 0 || file.size > limits.maxBytes) return NextResponse.json({ error: 'file_too_large', max_bytes: limits.maxBytes }, { status: 413 })
-  if (limits.imagesOnly && !file.type.startsWith('image/')) return NextResponse.json({ error: 'images_only' }, { status: 415 })
-  if (limits.mediaOnly && !/^(image|video)\//.test(file.type)) return NextResponse.json({ error: 'media_only' }, { status: 415 })
+  const bytes = Buffer.from(await file.arrayBuffer())
+  // Image/media buckets are public: the file's own bytes decide its type (an SVG or a page renamed .png is refused).
+  let type = file.type || 'application/octet-stream'
+  if (limits.imagesOnly || limits.mediaOnly) {
+    const real = sniffImage(bytes) ?? (limits.mediaOnly ? sniffVideo(bytes) : null)
+    if (!real) return NextResponse.json({ error: limits.imagesOnly ? 'images_only' : 'media_only' }, { status: 415 })
+    type = real
+  }
 
   const given = form?.get('path')
   const folder = String(form?.get('folder') ?? 'uploads').replace(/[^A-Za-z0-9/_-]/g, '').replace(/^\/+|\/+$/g, '') || 'uploads'
@@ -31,7 +38,7 @@ export async function POST(request: Request) {
   if (!pathAllowed(bucket, objectPath, ctx)) return NextResponse.json({ error: 'forbidden_path' }, { status: 403 })
 
   try {
-    await uploadObject(bucket, objectPath, Buffer.from(await file.arrayBuffer()), file.type || 'application/octet-stream', {
+    await uploadObject(bucket, objectPath, bytes, type, {
       upsert: form?.get('upsert') === 'true',
     })
   } catch (err) {

@@ -132,6 +132,9 @@ Cada cuenta tiene una región (`pe`, `ve`, `us`) con su moneda, precios y pasare
 - [x] Página pública de **documentación de la API** en `/es/api-docs` y `/en/api-docs` (autenticación, permisos, errores, paginación, límites, todos los endpoints de `/api/v1` y los webhooks con verificación de firma), enlazada en el pie de página y desde Ajustes → Integraciones. Reemplaza la página heredada de la plantilla, que mostraba un dominio y un SDK inexistentes — 🤖 (2026-10-26, rama `feat/api-docs`)
 - [ ] Botón "Crear bot de preguntas frecuentes" que arme un menú numerado gratis desde la lista de FAQs — 🤖, opcional
 - [ ] Portfolio de Meta: verificación en dos pasos y un segundo administrador — 🧑
+- [x] **Archivos seguros** (2026-11-26, rama `fix/upload-security`): ningún archivo subido o recibido de un cliente (SVG, HTML, PNG falso) puede ejecutar código en el dominio de la app; las imágenes públicas se validan por sus bytes; Next.js 16.4.6 (fallo crítico de bypass del proxy), sharp 0.35.5 (fallos de libvips al procesar imágenes), SheetJS 0.20.3 (contaminación de prototipos al leer Excel) y el resto de `npm audit fix` — 🤖
+- [ ] Activar la **CSP en modo obligatorio** (hoy está en «solo reportar»): pasar a nonces para quitar `'unsafe-inline'`/`'unsafe-eval'` de los scripts — 🤖
+- [ ] Revisar `npm audit` una vez al mes (quedan 3 avisos en la herramienta de Prisma que solo corre al desplegar; se resuelven cuando Prisma publique la corrección) — 🤖
 - [ ] Teléfono o WhatsApp de soporte, si se quiere mostrar — 🧑
 - [x] **Libro de Reclamaciones virtual**: formulario en `/es/libro-de-reclamaciones`, enlace en el pie de cada página, constancia por correo, respuestas desde Superadmin → Complaints con plazo de 15 días hábiles — 🤖 (2026-10-14, rama `feat/complaints-book`, falta fusionar)
 - [ ] Responder cada reclamación en Superadmin → Complaints dentro de 15 días hábiles (llega aviso a `support@whasalia.com`; requiere el buzón del punto 2) — 🧑

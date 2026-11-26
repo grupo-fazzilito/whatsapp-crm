@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { downloadObject, StorageError, verifySignedUrl } from '@/lib/storage'
 import { isBucket, PUBLIC_BUCKETS } from '@/lib/storage/paths'
+import { safeFileHeaders } from '@/lib/storage/file-safety'
 
 /**
  * GET /api/files/<bucket>/<path> — serves stored files. Public buckets
@@ -18,14 +19,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ buck
   }
   try {
     const obj = await downloadObject(bucket, objectPath)
+    // The stored type is whatever the uploader said: never let a file act as a page of the app.
     const headers: Record<string, string> = {
-      'Content-Type': obj.contentType,
+      ...safeFileHeaders(obj.contentType, { download: search.get('dl') }),
       'Content-Length': String(obj.body.length),
-      'X-Content-Type-Options': 'nosniff',
       'Cache-Control': isPublic ? 'public, max-age=86400' : 'private, max-age=300',
     }
-    const dl = search.get('dl')
-    if (dl) headers['Content-Disposition'] = `attachment; filename*=UTF-8''${encodeURIComponent(dl)}`
     headers['Accept-Ranges'] = 'bytes'
     // Byte ranges: browsers (Safari) need them to play videos.
     const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get('range') ?? '')

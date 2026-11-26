@@ -1,4 +1,5 @@
 import 'server-only'
+import { safeFileHeaders } from '@/lib/storage/file-safety'
 import { NextResponse } from 'next/server'
 import { getMediaUrl, downloadMedia } from '@/lib/whatsapp/meta-api'
 import type { LoadedChannel } from '@/lib/channels'
@@ -44,7 +45,7 @@ export async function proxyChannelMedia(channel: LoadedChannel | null, mediaId: 
   if (channel.type === 'telegram' || channel.type === 'tiktok') {
     try {
       const { bytes, contentType } = await fetchChannelMediaBytes(channel, mediaId, channel.type === 'tiktok' ? TIKTOK_MAX_BYTES : TELEGRAM_MAX_BYTES)
-      return new Response(new Uint8Array(bytes), { status: 200, headers: { 'Content-Type': contentType, 'Cache-Control': 'private, max-age=86400' } })
+      return new Response(new Uint8Array(bytes), { status: 200, headers: { ...safeFileHeaders(contentType), 'Cache-Control': 'private, max-age=86400' } })
     } catch (error) {
       console.error(`[media] ${channel.type} proxy failed:`, error instanceof Error ? error.message : error)
       return NextResponse.json({ error: 'Failed to fetch media' }, { status: 502 })
@@ -64,7 +65,8 @@ export async function proxyChannelMedia(channel: LoadedChannel | null, mediaId: 
     return new Response(new Uint8Array(buffer), {
       status: 200,
       headers: {
-        'Content-Type': contentType || mediaInfo.mimeType || 'application/octet-stream',
+        // A customer chooses the file and its type: it must never run as a page of the app.
+        ...safeFileHeaders(contentType || mediaInfo.mimeType),
         // Authenticated, per-workspace content: never cache in shared caches.
         'Cache-Control': 'private, max-age=86400',
       },
