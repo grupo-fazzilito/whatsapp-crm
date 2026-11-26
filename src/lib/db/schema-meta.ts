@@ -2344,6 +2344,7 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "current_period_end": "timestamp",
     "created_at": "timestamp",
     "updated_at": "timestamp",
+    "renewing_at": "timestamp",
     "workspaces": {
       "rel": "workspaces"
     }

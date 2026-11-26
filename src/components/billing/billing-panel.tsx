@@ -9,10 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { BILLABLE_ACTIONS, type BillableAction } from '@/lib/billing/pricing';
-import { AccountForm, useBillingError, type BillingAccount } from './top-up';
+import { AccountForm, accountComplete, useBillingError, type BillingAccount } from './top-up';
 import { formatMoney } from '@/lib/regions';
 import { SubscriptionCard, type OverageView, type SubscriptionView } from './subscription-card';
-import { formatUsdCents } from '@/lib/billing/subscription-pricing';
+import { formatPlanCents } from '@/lib/billing/subscription-pricing';
 import type { SubscriptionPricing } from '@/lib/billing/subscription-pricing';
 
 interface Payment {
@@ -72,6 +72,8 @@ interface BillingData {
   invoices: InvoiceRow[];
   subscription_pricing: SubscriptionPricing;
   subscription_ready: boolean;
+  subscription_provider?: string;
+  culqi_public_key?: string | null;
   account: BillingAccount | null;
   payments: Payment[];
   ledger: LedgerRow[];
@@ -150,7 +152,8 @@ export function BillingPanel() {
   if (!data) return <p className="text-sm text-red-600">{t('billing.errors.generic')}</p>;
 
   const s = data.settings;
-  const latam = s.gateway === 'payment_latam';
+  // Peru: the billing details (DNI/RUC, address, phone) for Culqi and the receipt.
+  const latam = s.gateway === 'payment_latam' || data.subscription_provider === 'culqi';
   const replyCost = s.action_costs.reply || 1;
   const depleted = s.enforce && data.balance < replyCost;
   const low = !depleted && data.balance <= s.low_credit_threshold;
@@ -218,6 +221,10 @@ export function BillingPanel() {
             overage={data.overage}
             ready={data.subscription_ready}
             onChanged={() => void load()}
+            provider={data.subscription_provider}
+            culqiPublicKey={data.culqi_public_key ?? null}
+            accountReady={accountComplete(data.account)}
+            email={data.account?.email ?? null}
           />
         </div>
 
@@ -265,7 +272,7 @@ export function BillingPanel() {
                         </p>
                         {inv.overage_credits > 0 && (
                           <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {t('billing.invoices.extra', { n: nf.format(inv.overage_credits), price: formatUsdCents(inv.overage_cents) })}
+                            {t('billing.invoices.extra', { n: nf.format(inv.overage_credits), price: formatPlanCents(inv.overage_cents, inv.currency) })}
                           </p>
                         )}
                       </td>

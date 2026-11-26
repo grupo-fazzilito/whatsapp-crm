@@ -2,7 +2,7 @@ import 'server-only'
 import { prisma } from '@/lib/db/prisma'
 import { getBillingSettings } from './settings'
 import { createInvoiceItem, invoicePendingItems, stripeConfig, StripeError } from './stripe'
-import { overageCentsFor, type SubscriptionPricing } from './subscription-pricing'
+import { overageCentsFor, pricingForProvider, type SubscriptionPricing, type SubscriptionProvider } from './subscription-pricing'
 
 // Extra credits for subscribers. When a subscribed business runs out of
 // credits, more are handed out at once (lots of up to 1,000), up to the limit
@@ -99,6 +99,13 @@ async function usedInPeriod(workspaceId: string, periodEnd: Date): Promise<numbe
   return Math.max(0, Number(row?.used ?? 0))
 }
 
+/** The plan's prices in the currency this business is charged in (soles with Culqi). */
+async function pricingOf(workspaceId: string): Promise<SubscriptionPricing> {
+  const sub = await prisma.token_subscriptions.findUnique({ where: { workspace_id: workspaceId }, select: { provider: true } })
+  const provider: SubscriptionProvider = sub?.provider === 'culqi' ? 'culqi' : 'stripe'
+  return pricingForProvider((await getBillingSettings()).subscription, provider)
+}
+
 const DESCRIPTION = {
   es: (n: number) => `${n.toLocaleString('es-PE')} créditos adicionales del mes anterior`,
   en: (n: number) => `${n.toLocaleString('en-US')} extra credits from last month`,
@@ -106,8 +113,9 @@ const DESCRIPTION = {
 
 /**
  * Closes every ended period that had extra credits (once each): counts what
- * was used, expires the rest, and bills it on `invoiceId` (the renewal draft)
- * or, without one, as a pending item for the next invoice. Returns the cents billed.
+ * was used, expires the rest and records the amount. Stripe: billed on
+ * `invoiceId` (the renewal draft) or as a pending item for the next invoice.
+ * Culqi: left for the renewal charge to collect. Returns the cents billed to Stripe.
  */
 export async function closeOverage(workspaceId: string, opts: { invoiceId?: string | null; includeCurrent?: boolean; now?: Date } = {}): Promise<number> {
   const now = opts.now ?? new Date()
@@ -118,7 +126,7 @@ export async function closeOverage(workspaceId: string, opts: { invoiceId?: stri
     distinct: ['period_end'],
     select: { period_end: true },
   })
-  const pricing = (await getBillingSettings()).subscription
+  const pricing = await pricingOf(workspaceId)
   let billed = 0
   for (const { period_end } of ended) {
     const periodEnd = new Date(period_end)
@@ -145,8 +153,10 @@ async function billPeriod(workspaceId: string, periodEnd: Date, invoiceId: strin
   const cfg = stripeConfig()
   const [p, ws] = await Promise.all([
     prisma.subscription_overage_periods.findUnique({ where: { workspace_id_period_end: { workspace_id: workspaceId, period_end: periodEnd } } }),
-    prisma.workspaces.findUnique({ where: { id: workspaceId }, select: { locale: true, token_subscriptions: { select: { customer_id: true } } } }),
+    prisma.workspaces.findUnique({ where: { id: workspaceId }, select: { locale: true, token_subscriptions: { select: { customer_id: true, provider: true } } } }),
   ])
+  // Culqi plans: the monthly charge collects it.
+  if (ws?.token_subscriptions?.provider === 'culqi') return false
   const customerId = ws?.token_subscriptions?.customer_id
   if (!cfg || !p || p.invoice_item_id || p.amount_cents <= 0 || !customerId) return !!p?.invoice_item_id
   const key = `overage-${workspaceId}-${periodEnd.getTime()}`
@@ -196,7 +206,8 @@ export async function closeStaleOverage(now = new Date()): Promise<number> {
 /** Billing cron: closed periods whose invoice item couldn't be created yet. */
 export async function retryOverageBilling(): Promise<number> {
   const rows = await prisma.subscription_overage_periods.findMany({
-    where: { invoice_item_id: null, amount_cents: { gt: 0 } },
+    // Stripe only: Culqi plans collect it in the monthly charge.
+    where: { invoice_item_id: null, amount_cents: { gt: 0 }, workspaces: { token_subscriptions: { provider: 'stripe' } } },
     select: { workspace_id: true, period_end: true },
     take: 100,
   })
@@ -226,7 +237,7 @@ export async function invoiceOverageAfterCancel(workspaceId: string, subscriptio
 export async function overageUsage(workspaceId: string, pricing?: SubscriptionPricing): Promise<OverageUsage | null> {
   const sub = await prisma.token_subscriptions.findUnique({ where: { workspace_id: workspaceId }, select: { overage_limit: true, current_period_end: true } })
   if (!sub) return null
-  const p = pricing ?? (await getBillingSettings()).subscription
+  const p = pricing ?? (await pricingOf(workspaceId))
   const used = sub.current_period_end ? await usedInPeriod(workspaceId, new Date(sub.current_period_end)) : 0
   return { limit: sub.overage_limit, credits: used, cents: overageCentsFor(used, p) }
 }

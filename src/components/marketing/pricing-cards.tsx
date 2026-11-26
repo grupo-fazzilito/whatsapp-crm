@@ -6,12 +6,14 @@ import { SpotlightCard } from "@/components/marketing/spotlight-card";
 import { useI18n } from "@/i18n/client";
 import type { PublicPricing } from "@/lib/billing/plans";
 import { formatMoney } from "@/lib/regions";
-import { formatUsdCents, monthlyCents } from "@/lib/billing/subscription-pricing";
+import { formatPlanCents, monthlyCents, pricingForProvider } from "@/lib/billing/subscription-pricing";
 
 /** The plan(s) plus the AI tokens card. Used on the home page and on /pricing. */
 export function PricingCards({ pricing }: { pricing: PublicPricing }) {
   const { t } = useI18n();
   const { credits } = pricing;
+  // Whasalia sells in Peru: the plan in soles (Culqi).
+  const plan = pricingForProvider(pricing.subscription, "culqi");
 
   return (
     <div className="space-y-6">
@@ -70,14 +72,14 @@ export function PricingCards({ pricing }: { pricing: PublicPricing }) {
             </span>
             <h3 className="text-sm text-[var(--m-text-secondary)] font-semibold">{t("mktPlans.tokens.tagline")}</h3>
             <div className="flex items-baseline gap-1.5 py-2 border-y border-[var(--m-border-primary)]/50">
-              <span className="text-4xl font-extrabold text-[var(--m-text-heading)]">{formatUsdCents(monthlyCents(pricing.subscription.step_tokens, pricing.subscription))}</span>
+              <span className="text-4xl font-extrabold text-[var(--m-text-heading)]">{formatPlanCents(monthlyCents(plan.step_tokens, plan), plan.currency)}</span>
               <span className="text-xs text-[var(--m-text-muted)]">{t("mktPlans.sub.perMonth", { n: pricing.subscription.step_tokens.toLocaleString("en-US") })}</span>
             </div>
             <ul className="space-y-2.5 text-xs text-[var(--m-text-tertiary)]">
               {[
                 t("mktPlans.sub.credits", { n: pricing.subscription.step_tokens.toLocaleString("en-US") }),
                 t("mktPlans.sub.accounts"),
-                t("mktPlans.sub.extra", { price: formatUsdCents(Math.round(pricing.subscription.step_price * 100)), n: pricing.subscription.step_tokens.toLocaleString("en-US") }),
+                t("mktPlans.sub.extra", { price: formatPlanCents(Math.round(plan.step_price * 100), plan.currency), n: plan.step_tokens.toLocaleString("en-US") }),
                 t("mktPlans.sub.limit"),
               ].map((line) => (
                 <li key={line} className="flex items-start gap-2">

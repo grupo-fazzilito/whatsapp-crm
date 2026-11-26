@@ -210,7 +210,7 @@
       "extra": "Si se acaban, la IA sigue: {price} por cada {n} créditos adicionales, solo lo que uses",
       "limit": "Tú eliges el límite de consumo extra; se cobra en la factura del mes siguiente",
       "renews": "Suscripción mensual: cada mes se renuevan tus créditos y los no usados vencen. Cancela cuando quieras.",
-      "payment": "Pago con tarjeta a través de Stripe, en dólares."
+      "payment": "Pago con tarjeta a través de Culqi, en soles."
     }
   }
 }

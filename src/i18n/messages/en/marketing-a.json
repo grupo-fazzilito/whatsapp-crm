@@ -210,7 +210,7 @@
       "extra": "If they run out, the AI keeps going: {price} per {n} extra credits, only what you use",
       "limit": "You pick the extra usage limit; it's billed on the next month's invoice",
       "renews": "Monthly subscription: your credits renew every month and unused ones expire. Cancel anytime.",
-      "payment": "Card payment through Stripe, in US dollars."
+      "payment": "Card payment through Culqi, in soles."
     }
   }
 }

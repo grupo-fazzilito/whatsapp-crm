@@ -49,7 +49,10 @@
       "legalName": "Name or company name",
       "email": "Email for receipts",
       "save": "Save details",
-      "saved": "Details saved"
+      "saved": "Details saved",
+      "address": "Address",
+      "city": "City",
+      "phone": "Phone"
     },
     "payments": {
       "title": "Payments",
@@ -101,7 +104,10 @@
       "invalid_doc_number": "The document number is not valid for that type.",
       "invalid_legal_name": "Enter the name or company name.",
       "invalid_email": "Enter a valid email.",
-      "generic": "The action could not be completed."
+      "generic": "The action could not be completed.",
+      "invalid_address": "Enter the address (5 to 100 characters).",
+      "invalid_city": "Enter the city.",
+      "invalid_phone": "Enter a valid phone number."
     },
     "banner": {
       "depleted": "Out of AI tokens: your agents are paused.",
@@ -209,12 +215,14 @@
       "packs": "Packs (US$)"
     },
     "sub": {
-      "title": "Token subscription (Stripe, US$)",
-      "hint": "Monthly price = first block + each extra block. E.g. 9.90 + 3 for each extra 1,000. The slider goes up to the maximum.",
-      "base_price": "First block price (US$)",
-      "step_price": "Price per extra block (US$)",
-      "step_tokens": "Tokens per block",
-      "max_tokens": "Slider maximum"
+      "title": "Credit plan",
+      "hint": "Peru (Culqi, soles): monthly plan price and price per 1,000 extra credits (billed prorated). US$ prices (Stripe) are kept for later.",
+      "base_price": "Plan (US$, Stripe)",
+      "step_price": "Extra per 1,000 (US$, Stripe)",
+      "step_tokens": "Plan credits",
+      "max_tokens": "Max (unused)",
+      "pen_base_price": "Plan in Peru (S/ a month)",
+      "pen_step_price": "Extra in Peru (S/ per 1,000)"
     }
   },
   "metaUsage": {
@@ -280,10 +288,29 @@
       "generic": "We couldn't complete that. Please try again.",
       "invalid_limit": "Pick a valid limit (in thousands of credits).",
       "gateway_not_configured": "Subscriptions aren't available yet.",
-      "gateway_error": "Stripe didn't respond. Please try again.",
-      "payment_failed": "Your card declined the charge. Update it in “Manage payment”.",
+      "gateway_error": "The payment processor didn't respond. Please try again.",
+      "payment_failed": "Your card declined the charge. Try another card.",
       "not_subscribed": "You don't have an active subscription.",
-      "already_subscribed": "You already have the plan."
+      "already_subscribed": "You already have the plan.",
+      "billing_profile_incomplete": "Fill in your billing details to subscribe.",
+      "invalid_token": "We couldn't read the card. Please try again.",
+      "too_many_attempts": "Too many attempts. Wait a few minutes."
+    },
+    "culqi": {
+      "card": "Card: {card}",
+      "changeCard": "Change card",
+      "cancel": "Cancel plan",
+      "cancelTitle": "Cancel the plan?",
+      "cancelBody": "It stays active until the end of the month. That day only the extra credits you used are charged and you go back to the free plan (1 account per service; extra accounts get 30 days before they disconnect).",
+      "needDetails": "Fill in your billing details (ID, address, city and phone) to subscribe.",
+      "pastDue": "We couldn't charge the renewal. We retry every day: change your card to keep the plan.",
+      "terms": "Card payment through Culqi, in soles. Every month the plan and the previous month's extra credits are charged together. Cancel anytime.",
+      "done": {
+        "subscribe": "Done! Your plan is active and your credits are ready.",
+        "card": "Card updated.",
+        "cancel": "Plan canceled: it stays active until the end of the month.",
+        "resume": "Plan resumed."
+      }
     }
   }
 }

@@ -1,10 +1,10 @@
-// AI tokens by monthly subscription: the CRM is free; a business picks how
-// many tokens it wants per month, in steps of 1,000. The first 1,000 cost the
-// base price and each extra 1,000 adds the step price (US$ 9.90 + US$ 3 each).
-// Edited in the admin billing settings. Pure — safe on the client.
+// The credit plan: base_price buys step_tokens credits a month; extra credits
+// cost step_price per step_tokens, prorated. Prices in dollars (Stripe, every
+// region but Peru) and in soles (Peru, charged with Culqi): US$ 9.90 + US$ 3,
+// S/ 39.90 + S/ 14.90. Edited in the admin billing settings. Pure — safe on the client.
 
 export interface SubscriptionPricing {
-  currency: 'USD'
+  currency: 'USD' | 'PEN'
   /** Tokens per step (and the smallest plan). */
   step_tokens: number
   /** Price of the first step, in dollars. */
@@ -13,6 +13,9 @@ export interface SubscriptionPricing {
   step_price: number
   /** Largest plan on the slider (more: talk to us). */
   max_tokens: number
+  /** Peru (Culqi, soles): price of the plan and of each extra step_tokens. */
+  pen_base_price: number
+  pen_step_price: number
 }
 
 export const DEFAULT_SUBSCRIPTION: SubscriptionPricing = {
@@ -21,6 +24,8 @@ export const DEFAULT_SUBSCRIPTION: SubscriptionPricing = {
   base_price: 9.9,
   step_price: 3,
   max_tokens: 100_000,
+  pen_base_price: 39.9,
+  pen_step_price: 14.9,
 }
 
 const num = (v: unknown, min: number, max: number, fallback: number) => {
@@ -39,6 +44,8 @@ export function normalizeSubscription(s: Partial<SubscriptionPricing> | null | u
     step_price: Math.round(num(v.step_price, 0, 100_000, DEFAULT_SUBSCRIPTION.step_price) * 100) / 100,
     // A whole number of steps.
     max_tokens: Math.max(step_tokens, Math.floor(max / step_tokens) * step_tokens),
+    pen_base_price: Math.round(num(v.pen_base_price, 0.5, 1_000_000, DEFAULT_SUBSCRIPTION.pen_base_price) * 100) / 100,
+    pen_step_price: Math.round(num(v.pen_step_price, 0, 1_000_000, DEFAULT_SUBSCRIPTION.pen_step_price) * 100) / 100,
   }
 }
 
@@ -86,4 +93,26 @@ export function validOverageLimit(raw: unknown, p: SubscriptionPricing): number 
 export function overageCentsFor(credits: number, p: SubscriptionPricing): number {
   if (credits <= 0 || p.step_tokens <= 0) return 0
   return Math.round((credits * Math.round(p.step_price * 100)) / p.step_tokens)
+}
+
+/**
+ * Who charges the plan. Whasalia sells in Peru only (2026-11-26): always
+ * Culqi, in soles. Stripe (dollars) stays wired for a future brand.
+ */
+export type SubscriptionProvider = 'stripe' | 'culqi'
+export function subscriptionProvider(_region?: string | null): SubscriptionProvider {
+  void _region
+  return 'culqi'
+}
+
+/** The plan's prices in the currency a provider charges (soles for Culqi). */
+export function pricingForProvider(p: SubscriptionPricing, provider: SubscriptionProvider): SubscriptionPricing {
+  if (provider !== 'culqi') return { ...p, currency: 'USD' }
+  return { ...p, currency: 'PEN', base_price: p.pen_base_price, step_price: p.pen_step_price }
+}
+
+/** "S/ 39.90" or "US$ 9.90". */
+export function formatPlanCents(cents: number, currency: string): string {
+  const n = (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return currency === 'PEN' ? `S/ ${n}` : `US$ ${n}`
 }

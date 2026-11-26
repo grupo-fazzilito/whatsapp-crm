@@ -1,6 +1,7 @@
 import 'server-only'
 import { closeStaleOverage, retryOverageBilling } from './overage'
 import { enforceAccountLimits } from './accounts'
+import { renewCulqiSubscriptions } from './culqi-subscriptions'
 import crypto from 'node:crypto'
 import { prisma } from '@/lib/db/prisma'
 import type { Prisma } from '@/generated/prisma/client'
@@ -275,6 +276,12 @@ export async function runBillingCron(): Promise<{ checked: number; expiredLots: 
     await retryOverageBilling()
   } catch (err) {
     console.error('[billing] overage cron failed:', err instanceof Error ? err.message : err)
+  }
+  // Culqi plans (Peru) whose month ended: plan + extra credits in one charge.
+  try {
+    await renewCulqiSubscriptions()
+  } catch (err) {
+    console.error('[billing] culqi renewals failed:', err instanceof Error ? err.message : err)
   }
   // Free plan: one account per service (30 days to subscribe, then the extra ones disconnect).
   try {

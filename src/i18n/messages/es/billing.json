@@ -49,7 +49,10 @@
       "legalName": "Nombre o razón social",
       "email": "Correo para comprobantes",
       "save": "Guardar datos",
-      "saved": "Datos guardados"
+      "saved": "Datos guardados",
+      "address": "Dirección",
+      "city": "Ciudad",
+      "phone": "Teléfono"
     },
     "payments": {
       "title": "Pagos",
@@ -101,7 +104,10 @@
       "invalid_doc_number": "El número de documento no es válido para ese tipo.",
       "invalid_legal_name": "Escribe el nombre o razón social.",
       "invalid_email": "Escribe un correo válido.",
-      "generic": "No se pudo completar la acción."
+      "generic": "No se pudo completar la acción.",
+      "invalid_address": "Escribe la dirección (5 a 100 caracteres).",
+      "invalid_city": "Escribe la ciudad.",
+      "invalid_phone": "Escribe un teléfono válido."
     },
     "banner": {
       "depleted": "Sin tokens de IA: tus agentes están en pausa.",
@@ -209,12 +215,14 @@
       "packs": "Paquetes (US$)"
     },
     "sub": {
-      "title": "Suscripción de tokens (Stripe, US$)",
-      "hint": "Precio mensual = primeros tokens + cada bloque extra. Ej.: 9.90 + 3 por cada 1,000 más. El slider llega hasta el máximo.",
-      "base_price": "Precio primer bloque (US$)",
-      "step_price": "Precio por bloque extra (US$)",
-      "step_tokens": "Tokens por bloque",
-      "max_tokens": "Máximo del slider"
+      "title": "Plan de créditos",
+      "hint": "Perú (Culqi, soles): precio del plan al mes y de cada 1,000 créditos adicionales (se cobran prorrateados). Los precios en US$ (Stripe) quedan para más adelante.",
+      "base_price": "Plan (US$, Stripe)",
+      "step_price": "Adicionales por 1,000 (US$, Stripe)",
+      "step_tokens": "Créditos del plan",
+      "max_tokens": "Máximo (sin uso)",
+      "pen_base_price": "Plan en Perú (S/ al mes)",
+      "pen_step_price": "Adicionales en Perú (S/ por cada 1,000)"
     }
   },
   "metaUsage": {
@@ -280,10 +288,29 @@
       "generic": "No pudimos completar la operación. Inténtalo de nuevo.",
       "invalid_limit": "Elige un límite válido (en miles de créditos).",
       "gateway_not_configured": "Las suscripciones aún no están activas.",
-      "gateway_error": "Stripe no respondió. Inténtalo de nuevo.",
-      "payment_failed": "Tu tarjeta rechazó el cobro. Actualízala en «Administrar pago».",
+      "gateway_error": "El procesador de pagos no respondió. Inténtalo de nuevo.",
+      "payment_failed": "Tu tarjeta rechazó el cobro. Prueba con otra tarjeta.",
       "not_subscribed": "No tienes una suscripción activa.",
-      "already_subscribed": "Ya tienes el plan activo."
+      "already_subscribed": "Ya tienes el plan activo.",
+      "billing_profile_incomplete": "Completa tus datos de facturación para suscribirte.",
+      "invalid_token": "No pudimos leer la tarjeta. Inténtalo de nuevo.",
+      "too_many_attempts": "Hiciste muchos intentos. Espera unos minutos."
+    },
+    "culqi": {
+      "card": "Tarjeta: {card}",
+      "changeCard": "Cambiar tarjeta",
+      "cancel": "Cancelar plan",
+      "cancelTitle": "¿Cancelar el plan?",
+      "cancelBody": "Sigue activo hasta el fin del mes. Ese día se cobran solo los créditos adicionales que hayas usado y vuelves al plan gratis (1 cuenta por servicio; las cuentas adicionales tendrán 30 días antes de desconectarse).",
+      "needDetails": "Completa tus datos de facturación (documento, dirección, ciudad y teléfono) para suscribirte.",
+      "pastDue": "No pudimos cobrar la renovación. Lo intentamos de nuevo cada día: cambia tu tarjeta para no perder el plan.",
+      "terms": "Pago con tarjeta a través de Culqi, en soles. Cada mes se cobra el plan y los créditos adicionales del mes anterior en un solo cargo. Cancela cuando quieras.",
+      "done": {
+        "subscribe": "¡Listo! Tu plan está activo y tus créditos ya están disponibles.",
+        "card": "Tarjeta actualizada.",
+        "cancel": "Plan cancelado: sigue activo hasta el fin del mes.",
+        "resume": "Plan reanudado."
+      }
     }
   }
 }

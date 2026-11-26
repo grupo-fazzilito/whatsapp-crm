@@ -36,6 +36,12 @@ export interface TokenSubscription {
   cancel_at_period_end: boolean
   /** Most extra credits a month. */
   overage_limit: number
+  /** 'culqi' (Peru, soles) or 'stripe'. */
+  provider: string
+  /** Culqi: the saved card ("Visa •••• 1111"). */
+  card_label: string | null
+  /** Why the last renewal failed (Culqi). */
+  last_error: string | null
 }
 
 /** Grace after the period end, so tokens don't vanish while the renewal invoice is being paid. */
@@ -60,6 +66,9 @@ export async function getTokenSubscription(workspaceId: string): Promise<TokenSu
     current_period_end: row.current_period_end ? new Date(row.current_period_end).toISOString() : null,
     cancel_at_period_end: row.cancel_at_period_end,
     overage_limit: row.overage_limit,
+    provider: row.provider,
+    card_label: row.card_label,
+    last_error: row.last_error,
   }
 }
 

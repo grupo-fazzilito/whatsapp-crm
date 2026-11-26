@@ -189,8 +189,8 @@ export function BillingCard() {
       <fieldset className="space-y-4 border-t border-slate-800 pt-5">
         <legend className="text-xs font-bold uppercase tracking-wide text-slate-200 mb-3">{t("billingAdmin.sub.title")}</legend>
         <p className="text-xs text-slate-400">{t("billingAdmin.sub.hint")}</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-          {(["base_price", "step_price", "step_tokens", "max_tokens"] as const).map((k) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {(["pen_base_price", "pen_step_price", "base_price", "step_price", "step_tokens", "max_tokens"] as const).map((k) => (
             <div key={k}>
               <label htmlFor={`bill-sub-${k}`} className={labelCls}>{t(`billingAdmin.sub.${k}`)}</label>
               <input

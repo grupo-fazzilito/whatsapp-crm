@@ -24,7 +24,7 @@ describe('token subscription prices', () => {
   it('cleans admin settings', () => {
     expect(normalizeSubscription(null)).toEqual(DEFAULT_SUBSCRIPTION)
     expect(normalizeSubscription({ base_price: 12.345, step_price: -1, step_tokens: 1000, max_tokens: 50_500 })).toEqual({
-      currency: 'USD', step_tokens: 1000, base_price: 12.35, step_price: 3, max_tokens: 50_000,
+      currency: 'USD', step_tokens: 1000, base_price: 12.35, step_price: 3, max_tokens: 50_000, pen_base_price: 39.9, pen_step_price: 14.9,
     })
   })
 })

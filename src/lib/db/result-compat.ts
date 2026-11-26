@@ -520,6 +520,7 @@ export const resultCompat = Prisma.defineExtension({
       current_period_end: { needs: { current_period_end: true }, compute: (r) => r.current_period_end === null ? null : r.current_period_end.toISOString() },
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
+      renewing_at: { needs: { renewing_at: true }, compute: (r) => r.renewing_at === null ? null : r.renewing_at.toISOString() },
     },
     subscription_overage_grants: {
       period_end: { needs: { period_end: true }, compute: (r) => r.period_end.toISOString() },

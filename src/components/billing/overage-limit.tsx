@@ -4,7 +4,7 @@ import { useId } from 'react';
 import { useI18n } from '@/i18n/client';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { OVERAGE_MAX_STEPS, OVERAGE_SLIDER_STEPS, formatUsdCents, overageCentsFor, type SubscriptionPricing } from '@/lib/billing/subscription-pricing';
+import { OVERAGE_MAX_STEPS, OVERAGE_SLIDER_STEPS, formatPlanCents, overageCentsFor, type SubscriptionPricing } from '@/lib/billing/subscription-pricing';
 
 /**
  * Most extra credits a month once the plan's run out: a slider in credits
@@ -31,7 +31,7 @@ export function OverageLimit({
   const steps = Math.max(1, Math.round(value / step));
   const muted = tone === 'marketing' ? 'text-[var(--m-text-tertiary)]' : 'text-muted-foreground';
   const strong = tone === 'marketing' ? 'text-[var(--m-text-heading)]' : 'text-foreground';
-  const max = formatUsdCents(overageCentsFor(steps * step, pricing));
+  const max = formatPlanCents(overageCentsFor(steps * step, pricing), pricing.currency);
 
   return (
     <div className="space-y-3">
@@ -81,7 +81,7 @@ export function OverageLimit({
         />
       </div>
       <p className={cn('text-xs', muted)}>
-        {t('subscription.overage.help', { price: formatUsdCents(Math.round(pricing.step_price * 100)), n: nf.format(step) })}
+        {t('subscription.overage.help', { price: formatPlanCents(Math.round(pricing.step_price * 100), pricing.currency), n: nf.format(step) })}
       </p>
     </div>
   );
