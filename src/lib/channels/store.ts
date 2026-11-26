@@ -35,6 +35,8 @@ export async function loadChannel(workspaceId: string, channelId: string): Promi
 export async function findChannelByExternalId(type: ChannelType, externalId: string): Promise<LoadedChannel | null> {
   // Platform lookup: the workspace is not known yet.
   const data = await prisma.channels.findFirst({ where: { type, external_id: externalId } })
+  // An account the free plan disconnected (1 per service) gets nothing until the business subscribes.
+  if ((data?.settings as Record<string, unknown> | null | undefined)?.plan_disabled === true) return null
   return withSecrets(data as unknown as ChannelRow | null)
 }
 

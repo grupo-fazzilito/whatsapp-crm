@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { checkBillingAccount } from '@/lib/billing/account'
 
-/** PUT /api/billing/account { doc_type, doc_number, legal_name, email } (admins) — payer data for Payment Latam. */
+/** PUT /api/billing/account { doc_type, doc_number, legal_name, email, address, city, phone } (admins) — payer data (Peru: Culqi, SUNAT). */
 export async function PUT(request: Request) {
   const guard = await requireWorkspace('admin')
   if (!guard.ok) return guard.response
@@ -17,7 +17,7 @@ export async function PUT(request: Request) {
       where: { workspace_id: ws },
       create: { workspace_id: ws, ...check.value },
       update: check.value,
-      select: { doc_type: true, doc_number: true, legal_name: true, email: true },
+      select: { doc_type: true, doc_number: true, legal_name: true, email: true, address: true, city: true, phone: true },
     })
   } catch (err) {
     console.error('[billing] account save failed:', err instanceof Error ? err.message : err)

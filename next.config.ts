@@ -36,7 +36,7 @@ const SECURITY_HEADERS = [
       // Next.js needs 'unsafe-inline' for its inline hydration script
       // and 'unsafe-eval' in dev + some production optimisations.
       // Nonce-based CSP is a later project.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.culqi.com https://checkout.culqi.com https://3ds.culqi.com",
       // Tailwind + inline style attributes on lots of components.
       "style-src 'self' 'unsafe-inline'",
       // Avatars and catalog images (/api/files), contact avatars (arbitrary
@@ -46,7 +46,10 @@ const SECURITY_HEADERS = [
       "font-src 'self' data:",
       // Same-origin API, realtime (SSE) and files. All Meta API calls
       // happen server-side, so graph.facebook.com does not belong here.
-      "connect-src 'self'",
+      // Culqi Checkout talks to Culqi from the browser (card → token).
+      "connect-src 'self' https://*.culqi.com",
+      // Culqi Checkout (cards → token) opens its own frames.
+      "frame-src 'self' https://*.culqi.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

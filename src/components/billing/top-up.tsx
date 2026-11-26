@@ -27,9 +27,12 @@ export interface BillingAccount {
   doc_number: string | null;
   legal_name: string | null;
   email: string | null;
+  address?: string | null;
+  city?: string | null;
+  phone?: string | null;
 }
 
-export const accountComplete = (a: BillingAccount | null) => !!(a?.doc_type && a.doc_number && a.legal_name && a.email);
+export const accountComplete = (a: BillingAccount | null) => !!(a?.doc_type && a.doc_number && a.legal_name && a.email && a.address && a.city && a.phone);
 
 /** Translated message for an API error code. */
 export function useBillingError() {
@@ -150,6 +153,9 @@ export function AccountForm({ initial, onSaved }: { initial: BillingAccount | nu
     doc_number: initial?.doc_number ?? '',
     legal_name: initial?.legal_name ?? '',
     email: initial?.email ?? '',
+    address: initial?.address ?? '',
+    city: initial?.city ?? '',
+    phone: initial?.phone ?? '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -200,6 +206,20 @@ export function AccountForm({ initial, onSaved }: { initial: BillingAccount | nu
       <div className="space-y-1.5">
         <Label htmlFor="billing-email">{t('billing.account.email')}</Label>
         <Input id="billing-email" type="email" value={account.email} onChange={(e) => setAccount((a) => ({ ...a, email: e.target.value }))} maxLength={60} autoComplete="email" />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="billing-address">{t('billing.account.address')}</Label>
+        <Input id="billing-address" value={account.address} onChange={(e) => setAccount((a) => ({ ...a, address: e.target.value }))} maxLength={100} autoComplete="street-address" />
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="billing-city">{t('billing.account.city')}</Label>
+          <Input id="billing-city" value={account.city} onChange={(e) => setAccount((a) => ({ ...a, city: e.target.value }))} maxLength={30} autoComplete="address-level2" />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="billing-phone">{t('billing.account.phone')}</Label>
+          <Input id="billing-phone" type="tel" inputMode="tel" value={account.phone} onChange={(e) => setAccount((a) => ({ ...a, phone: e.target.value }))} maxLength={20} autoComplete="tel" />
+        </div>
       </div>
       <Button variant="outline" onClick={save} disabled={saving}>
         {saving && <Loader2 className="size-4 animate-spin" aria-hidden />}

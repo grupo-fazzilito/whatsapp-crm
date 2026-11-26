@@ -49,7 +49,10 @@
       "legalName": "Name or company name",
       "email": "Email for receipts",
       "save": "Save details",
-      "saved": "Details saved"
+      "saved": "Details saved",
+      "address": "Address",
+      "city": "City",
+      "phone": "Phone"
     },
     "payments": {
       "title": "Payments",
@@ -84,7 +87,9 @@
         "usage": "Usage",
         "expiry": "Expiry",
         "reversal": "Reversal",
-        "adjustment": "Adjustment"
+        "adjustment": "Adjustment",
+        "overage": "Extra credits",
+        "subscription": "Monthly plan"
       }
     },
     "errors": {
@@ -99,7 +104,10 @@
       "invalid_doc_number": "The document number is not valid for that type.",
       "invalid_legal_name": "Enter the name or company name.",
       "invalid_email": "Enter a valid email.",
-      "generic": "The action could not be completed."
+      "generic": "The action could not be completed.",
+      "invalid_address": "Enter the address (5 to 100 characters).",
+      "invalid_city": "Enter the city.",
+      "invalid_phone": "Enter a valid phone number."
     },
     "banner": {
       "depleted": "Out of AI tokens: your agents are paused.",
@@ -120,6 +128,21 @@
     },
     "dialog": {
       "balance": "Your current balance is {n} tokens."
+    },
+    "invoices": {
+      "title": "Invoices",
+      "description": "Every month: the plan and the extra credits you used the month before. Open an invoice to see or download it.",
+      "empty": "No invoices yet.",
+      "date": "Date",
+      "detail": "Detail",
+      "total": "Total",
+      "plan": "Plan: {n} credits a month",
+      "extra": "+ {n} extra credits from last month: {price}",
+      "reason": {
+        "update": "Plan change",
+        "other": "Charge"
+      },
+      "view": "View invoice"
     }
   },
   "billingAdmin": {
@@ -192,12 +215,14 @@
       "packs": "Packs (US$)"
     },
     "sub": {
-      "title": "Token subscription (Stripe, US$)",
-      "hint": "Monthly price = first block + each extra block. E.g. 9.90 + 3 for each extra 1,000. The slider goes up to the maximum.",
-      "base_price": "First block price (US$)",
-      "step_price": "Price per extra block (US$)",
-      "step_tokens": "Tokens per block",
-      "max_tokens": "Slider maximum"
+      "title": "Credit plan",
+      "hint": "Peru (Culqi, soles): monthly plan price and price per 1,000 extra credits (billed prorated). US$ prices (Stripe) are kept for later.",
+      "base_price": "Plan (US$, Stripe)",
+      "step_price": "Extra per 1,000 (US$, Stripe)",
+      "step_tokens": "Plan credits",
+      "max_tokens": "Max (unused)",
+      "pen_base_price": "Plan in Peru (S/ a month)",
+      "pen_step_price": "Extra in Peru (S/ per 1,000)"
     }
   },
   "metaUsage": {
@@ -227,43 +252,65 @@
     "disclaimer": "Estimate with Meta rates for {market}: reply {service}, utility {utility}, marketing {marketing} per message. Meta bills by each customer's country, does not charge inside the free ad entry window, and the real invoice is in your WhatsApp Manager. Messages sent from the WhatsApp Business app are not counted."
   },
   "subscription": {
-    "title": "AI token subscription",
-    "description": "The CRM is free forever. AI tokens are paid with a monthly subscription: choose how many you want each month.",
-    "slider": {
-      "label": "Tokens per month",
-      "perMonth": "tokens / month",
-      "price": "Monthly price",
-      "month": "/ month",
-      "valueText": "{n} tokens a month, {price} a month",
-      "formula": "The first {first} tokens cost {base}; each extra 1,000 adds {step}."
-    },
-    "current": "Your plan: {n} tokens a month · {price} / month",
+    "title": "Credit plan",
+    "description": "Whasalia is free forever with 1 account per service. The plan gives you credits every month, unlimited accounts, and extra credits if they run out, so the AI never stops.",
+    "plan": "{n} credits a month",
+    "planIncludes": "Unlimited accounts of every service · extra credits if they run out",
+    "perMonth": "/ month",
+    "current": "Your plan: {n} credits a month · {price} / month",
     "status": {
       "active": "Active.",
-      "renewsOn": "Renews on {date}: that day your full quota is back.",
-      "endsOn": "Canceled: active until {date}.",
-      "pastDue": "We couldn’t charge the renewal. Update your card in “Manage billing”.",
+      "renewsOn": "Renews on {date}: that day you get your month's credits again.",
+      "endsOn": "Canceled: stays active until {date}.",
+      "pastDue": "We couldn't charge the renewal. Update your card in “Manage payment”.",
       "canceled": "Subscription canceled."
     },
+    "overage": {
+      "label": "Monthly extra usage limit",
+      "atMost": "extra at most",
+      "valueText": "Up to {n} extra credits, {price} at most",
+      "credits": "Up to {n} extra credits if the plan's run out",
+      "more": "Need more? Type the limit in credits:",
+      "help": "When the month's credits run out, the AI keeps going with extra credits at {price} per {n}. Only what you use is billed (prorated) on your next invoice. At the limit, the AI pauses.",
+      "used": "This month you used {n} extra credits: {price}, billed on your next invoice.",
+      "none": "No extra credits used this month yet.",
+      "save": "Save limit",
+      "saved": "Extra usage limit saved"
+    },
     "subscribe": "Subscribe for {price} / month",
-    "change": "Change to {price} / month",
     "resume": "Resume subscription",
-    "currentPlan": "This is your current plan",
-    "manage": "Manage billing or cancel",
-    "upgradeNote": "You pay now only the difference for the rest of this month and get the extra tokens right away.",
-    "downgradeNote": "The smaller plan applies from the next renewal; you keep this month’s tokens.",
-    "upgraded": "Plan updated: your extra tokens are ready.",
-    "downgraded": "Plan changed: it applies from the next renewal.",
-    "subscribed": "Subscription active! Your tokens are ready.",
-    "terms": "Card payment through Stripe, in US dollars. Your quota renews every month and unused tokens expire. Cancel anytime.",
-    "notReady": "Subscriptions aren’t active yet. Message us and we’ll help.",
+    "resumed": "Subscription resumed.",
+    "manage": "Manage payment or cancel",
+    "subscribed": "Subscription active! Your credits are ready.",
+    "terms": "Card payment through Stripe, in US dollars. Your credits renew every month and unused ones expire. Cancel anytime.",
+    "notReady": "Subscriptions aren't available yet. Write to us and we'll help.",
     "errors": {
-      "generic": "We couldn’t complete that. Please try again.",
-      "invalid_tokens": "Choose a valid number of tokens.",
-      "gateway_not_configured": "Subscriptions aren’t active yet.",
-      "gateway_error": "Stripe didn’t respond. Please try again.",
-      "payment_failed": "Your card declined the charge. Update it in “Manage billing”.",
-      "not_subscribed": "You don’t have an active subscription."
+      "generic": "We couldn't complete that. Please try again.",
+      "invalid_limit": "Pick a valid limit (in thousands of credits).",
+      "gateway_not_configured": "Subscriptions aren't available yet.",
+      "gateway_error": "The payment processor didn't respond. Please try again.",
+      "payment_failed": "Your card declined the charge. Try another card.",
+      "not_subscribed": "You don't have an active subscription.",
+      "already_subscribed": "You already have the plan.",
+      "billing_profile_incomplete": "Fill in your billing details to subscribe.",
+      "invalid_token": "We couldn't read the card. Please try again.",
+      "too_many_attempts": "Too many attempts. Wait a few minutes."
+    },
+    "culqi": {
+      "card": "Card: {card}",
+      "changeCard": "Change card",
+      "cancel": "Cancel plan",
+      "cancelTitle": "Cancel the plan?",
+      "cancelBody": "It stays active until the end of the month. That day only the extra credits you used are charged and you go back to the free plan (1 account per service; extra accounts get 30 days before they disconnect).",
+      "needDetails": "Fill in your billing details (ID, address, city and phone) to subscribe.",
+      "pastDue": "We couldn't charge the renewal. We retry every day: change your card to keep the plan.",
+      "terms": "Card payment through Culqi, in soles. Every month the plan and the previous month's extra credits are charged together. Cancel anytime.",
+      "done": {
+        "subscribe": "Done! Your plan is active and your credits are ready.",
+        "card": "Card updated.",
+        "cancel": "Plan canceled: it stays active until the end of the month.",
+        "resume": "Plan resumed."
+      }
     }
   }
 }

@@ -54,9 +54,9 @@ interface ReplyLog {
   comment_rules: { name: string } | null;
 }
 
-/** What answering a comment costs: nothing with a token subscription, else tokens from the balance. */
+/** What answering a comment costs, the balance, and whether the plan adds extra credits when it runs out. */
 interface CommentBilling {
-  unlimited: boolean;
+  subscribed: boolean;
   cost: number;
   credits: number;
 }
@@ -111,13 +111,14 @@ function when(iso: string | null, locale: string) {
   return new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(iso));
 }
 
-/** Unlimited with a token subscription; otherwise each answered comment uses tokens until the plan is bought. */
+/** Each answered comment uses credits: with the plan it never stops (extra credits); without it, it pauses at 0. */
 function CommentPlanNote({ billing }: { billing: CommentBilling }) {
   const t = useT();
-  if (billing.unlimited || billing.cost <= 0) {
+  if (billing.cost <= 0) return null;
+  if (billing.subscribed) {
     return (
       <p role="status" className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-800 dark:text-emerald-200">
-        {t("comments.plan.unlimited")}
+        {t("comments.plan.subscribed", { cost: billing.cost })}
       </p>
     );
   }

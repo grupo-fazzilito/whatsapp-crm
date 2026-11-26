@@ -184,7 +184,7 @@ export function WhatsAppSignup({ agents, onCreated, onManual, onDone }: Props) {
       onCreated();
       toast.success(t('channels.connected', { name: data.channel.name }));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('common.error'));
+      toast.error(err instanceof Error ? (err.message === 'plan_limit' ? t('channels.plan.limitError') : err.message) : t('common.error'));
     } finally {
       attempt.current = null;
       setBusy(false);

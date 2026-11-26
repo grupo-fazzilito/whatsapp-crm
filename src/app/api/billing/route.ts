@@ -8,6 +8,9 @@ import { workspaceRegion } from '@/lib/regions-server'
 import { REGION_INFO } from '@/lib/regions'
 import { stripeConfig } from '@/lib/billing/stripe'
 import { getTokenSubscription } from '@/lib/billing/subscriptions'
+import { overageUsage, subscriptionInvoices } from '@/lib/billing/overage'
+import { culqiConfig } from '@/lib/billing/culqi'
+import { pricingForProvider, subscriptionProvider } from '@/lib/billing/subscription-pricing'
 
 /**
  * GET /api/billing (admins) → plan, balance, next expiry, prices, payer data,
@@ -27,14 +30,16 @@ export async function GET() {
   monthStart.setUTCDate(1)
   monthStart.setUTCHours(0, 0, 0, 0)
 
-  const [subscription, region, plan, balance, settings, gateway, account, lots, payments, ledger, usage] = await Promise.all([
+  const [subscription, overage, invoices, region, plan, balance, settings, gateway, account, lots, payments, ledger, usage] = await Promise.all([
     getTokenSubscription(ws).catch(() => null),
+    overageUsage(ws).catch(() => null),
+    subscriptionInvoices(ws).catch(() => []),
     workspaceRegion(ws),
     workspacePlan(ws),
     creditBalance(ws),
     getBillingSettings(),
     getPaymentLatamConfig(),
-    safe(db.billing_accounts.findFirst({ where: { workspace_id: ws }, select: { doc_type: true, doc_number: true, legal_name: true, email: true } })),
+    safe(db.billing_accounts.findFirst({ where: { workspace_id: ws }, select: { doc_type: true, doc_number: true, legal_name: true, email: true, address: true, city: true, phone: true } })),
     safe(db.credit_lots.findMany({ where: { credits_remaining: { gt: 0 }, expires_at: { gt: new Date() } }, select: { credits_remaining: true, expires_at: true, source: true }, orderBy: { expires_at: 'asc' }, take: 20 })),
     safe(db.billing_payments.findMany({ select: { id: true, amount: true, currency: true, credits: true, status: true, checkout_url: true, expires_on: true, paid_at: true, error: true, created_at: true }, orderBy: { created_at: 'desc' }, take: 20 })),
     safe(db.credit_ledger.findMany({ select: { id: true, kind: true, credits: true, action: true, conversation_id: true, note: true, created_at: true }, orderBy: { created_at: 'desc' }, take: 50 })),
@@ -69,8 +74,16 @@ export async function GET() {
     gateway_ready: gatewayReady,
     // Tokens are sold by monthly subscription (Stripe, US$).
     subscription,
-    subscription_pricing: settings.subscription,
-    subscription_ready: !!stripeConfig(),
+    /** Extra credits used this period (subscribers), billed prorated on the next invoice. */
+    overage,
+    /** Paid subscription invoices, newest first, with the extra credits each one carried. */
+    invoices,
+    // Whasalia sells in Peru only: the plan is charged with Culqi, in soles.
+    subscription_provider: subscriptionProvider(region),
+    subscription_pricing: pricingForProvider(settings.subscription, subscriptionProvider(region)),
+    subscription_ready: subscriptionProvider(region) === 'culqi' ? !!culqiConfig() : !!stripeConfig(),
+    /** Culqi Checkout runs in the browser with the public key (never the secret one). */
+    culqi_public_key: culqiConfig()?.publicKey ?? null,
     account: account.data ?? null,
     payments: payments.data ?? [],
     ledger: ledger.data ?? [],

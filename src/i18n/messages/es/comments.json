@@ -2,7 +2,7 @@
   "comments": {
     "tab": "Comentarios",
     "title": "Respuestas a comentarios",
-    "subtitle": "Cuando alguien comenta en tus publicaciones de Instagram, Facebook o TikTok (cualquier comentario o uno con una palabra clave), Whasalia responde el comentario y, en Instagram y Facebook, le escribe por privado. La conversación sigue en la bandeja.",
+    "subtitle": "Cuando alguien comenta en tus publicaciones de Instagram, Facebook o TikTok (cualquier comentario o uno con una palabra clave), Whasalia responde el comentario y, en Instagram y Facebook, le escribe por privado. La conversación sigue en la bandeja. Cada comentario respondido usa 1 crédito.",
     "newRule": "Nueva regla",
     "noChannels": "Conecta tu cuenta de Instagram, tu página de Facebook o tu cuenta de TikTok en Canales para usar las respuestas a comentarios.",
     "goChannels": "Ir a Canales",
@@ -137,10 +137,10 @@
       "hiddenHint": "Solo lo ves tú y la persona que lo escribió."
     },
     "plan": {
-      "unlimited": "Respuestas ilimitadas con tu plan de tokens: los comentarios respondidos no usan tokens.",
-      "metered": "Sin plan, cada comentario respondido usa {cost} token. Te quedan {credits}. Con cualquier plan de tokens las respuestas son ilimitadas.",
-      "out": "Se acabaron tus tokens y las respuestas a comentarios están en pausa. Suscríbete a un plan de tokens para responder comentarios sin límite.",
-      "subscribe": "Ver planes"
+      "subscribed": "Cada comentario respondido usa {cost} crédito de tu plan. Si se acaban, sigue con créditos adicionales hasta tu límite de consumo extra.",
+      "metered": "Cada comentario respondido usa {cost} crédito. Te quedan {credits}. Con el plan, al acabarse sigue con créditos adicionales y no se pausa.",
+      "out": "Se acabaron tus créditos y las respuestas a comentarios están en pausa. Suscríbete al plan para que sigan respondiendo.",
+      "subscribe": "Ver plan"
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'server-only'
+import { canAddChannel } from '@/lib/billing/accounts'
 import crypto from 'node:crypto'
 import type { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/lib/db/prisma'
@@ -184,6 +185,11 @@ export async function applyBusinessConnection(bot: LoadedChannel, conn: TgBusine
     return
   }
   if (!conn.is_enabled) return
+  // Free plan: one Telegram account (the bot itself counts).
+  if (!(await canAddChannel(bot.workspace_id, 'telegram'))) {
+    console.warn(`[telegram] business connection for ${bot.workspace_id} skipped: free plan allows 1 Telegram account`)
+    return
+  }
   const ws = await prisma.workspaces.findUnique({ where: { id: bot.workspace_id }, select: { locale: true } })
   const created = await db.channels.create({
     data: {

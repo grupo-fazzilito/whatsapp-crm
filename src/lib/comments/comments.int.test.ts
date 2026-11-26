@@ -148,7 +148,7 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
     expect((await ws.db.comment_replies.findFirstOrThrow({ where: { comment_id: 'C9' } })).status).toBe('no_tokens')
   })
 
-  it('answers without limits or charges while the workspace has a token subscription', async () => {
+  it('with the plan, a comment still costs 1 credit, and extra credits keep it answering', async () => {
     expect(await creditBalance(ws.workspaceId)).toBe(0)
     await prisma.token_subscriptions.create({
       data: {
@@ -159,23 +159,19 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
         price_cents: 990,
         status: 'active',
         current_period_end: new Date(Date.now() + 20 * 86400_000),
+        overage_limit: 1000,
       },
     })
-    expect(await commentBilling(ws.workspaceId)).toMatchObject({ unlimited: true, credits: 0 })
+    expect(await commentBilling(ws.workspaceId)).toMatchObject({ subscribed: true, credits: 0, cost: 1 })
     expect(await handleComment(await channel(), ev('C10', 'precio', 'SUB-U6'))).toBe('replied')
     expect(await handleComment(await channel(), ev('C11', 'precio', 'SUB-U7'))).toBe('replied')
-    expect(await creditBalance(ws.workspaceId)).toBe(0)
+    // 1,000 extra credits handed out, 2 used.
+    expect(await creditBalance(ws.workspaceId)).toBe(998)
   })
 
-  it('charges again once the subscription is canceled or long past its period', async () => {
+  it('a canceled plan gets no extra credits', async () => {
     const where = { workspace_id: ws.workspaceId }
     await prisma.token_subscriptions.update({ where, data: { status: 'canceled' } })
-    expect(await handleComment(await channel(), ev('C12', 'precio', 'SUB-U8'))).toBe('no_tokens')
-    await prisma.token_subscriptions.update({ where, data: { status: 'active', current_period_end: new Date(Date.now() - 5 * 86400_000) } })
-    expect(await handleComment(await channel(), ev('C13', 'precio', 'SUB-U9'))).toBe('no_tokens')
-    // A renewal being retried (past_due) within the grace days still counts.
-    await prisma.token_subscriptions.update({ where, data: { status: 'past_due', current_period_end: new Date(Date.now() - 86400_000) } })
-    expect(await handleComment(await channel(), ev('C14', 'precio', 'SUB-U10'))).toBe('replied')
-    expect(await commentBilling(ws.workspaceId)).toMatchObject({ unlimited: true })
+    expect(await commentBilling(ws.workspaceId)).toMatchObject({ subscribed: false })
   })
 })

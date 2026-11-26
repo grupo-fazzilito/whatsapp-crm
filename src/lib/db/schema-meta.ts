@@ -846,6 +846,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "workspaces": {
       "rel": "workspaces"
+    },
+    "subscription_overage_grants": {
+      "rel": "subscription_overage_grants"
     }
   },
   "custom_fields": {
@@ -1895,6 +1898,12 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "token_subscriptions": {
       "rel": "token_subscriptions"
     },
+    "subscription_overage_grants": {
+      "rel": "subscription_overage_grants"
+    },
+    "subscription_overage_periods": {
+      "rel": "subscription_overage_periods"
+    },
     "subscription_invoices": {
       "rel": "subscription_invoices"
     },
@@ -1918,6 +1927,7 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "created_at": "timestamp",
     "updated_at": "timestamp",
+    "extra_accounts_since": "timestamp",
     "plan_changed_at": "timestamp",
     "plans": {
       "rel": "plans"
@@ -2334,12 +2344,32 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "current_period_end": "timestamp",
     "created_at": "timestamp",
     "updated_at": "timestamp",
+    "renewing_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    }
+  },
+  "subscription_overage_grants": {
+    "period_end": "timestamp",
+    "created_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    },
+    "credit_lots": {
+      "rel": "credit_lots"
+    }
+  },
+  "subscription_overage_periods": {
+    "period_end": "timestamp",
+    "closed_at": "timestamp",
     "workspaces": {
       "rel": "workspaces"
     }
   },
   "subscription_invoices": {
     "created_at": "timestamp",
+    "period_start": "timestamp",
+    "period_end": "timestamp",
     "workspaces": {
       "rel": "workspaces"
     }

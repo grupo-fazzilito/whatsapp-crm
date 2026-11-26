@@ -235,6 +235,18 @@
         "channelNote": "Answers from your personal account through your bot. Replies go out with your name.",
         "accountLink": "Your account link"
       }
+    },
+    "plan": {
+      "main": "Main",
+      "disabled": "Disconnected: the free plan allows 1 account per service. Subscribe to reconnect it.",
+      "disconnectsOn": "Gets disconnected on {date} unless you subscribe (free plan: 1 account per service).",
+      "banner": "The free plan allows 1 account per service. Your extra accounts will be disconnected on {date}; the main one (the first you connected) stays. Subscribe to keep them all.",
+      "bannerSoon": "The free plan allows 1 account per service. You have 30 days to subscribe before the extra accounts are disconnected.",
+      "bannerDisabled": "Extra accounts disconnected: {count}. The free plan allows 1 per service; subscribe to reconnect them.",
+      "subscribe": "See plan",
+      "oneAccount": "You already have 1: the free plan allows 1 per service.",
+      "dialogNote": "On the free plan you can connect 1 account of each service. With the plan, unlimited accounts.",
+      "limitError": "The free plan allows 1 account per service. Subscribe to the plan to connect more."
     }
   }
 }

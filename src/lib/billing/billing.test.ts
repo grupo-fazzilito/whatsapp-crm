@@ -50,10 +50,14 @@ describe('pricing', () => {
 describe('billing account', () => {
   it('validates document by type', () => {
     expect(checkBillingAccount({ doc_type: 1, doc_number: '1234567', legal_name: 'Ana', email: 'a@b.pe' })).toEqual({ ok: false, error: 'doc_number' })
-    expect(checkBillingAccount({ doc_type: 2, doc_number: '20123456789', legal_name: ' Inmobiliaria  Sol SAC ', email: 'Pagos@Sol.PE' })).toEqual({
+    const where = { address: ' Av.  Larco 123 ', city: 'Lima', phone: '+51 987 654 321' }
+    expect(checkBillingAccount({ doc_type: 2, doc_number: '20123456789', legal_name: ' Inmobiliaria  Sol SAC ', email: 'Pagos@Sol.PE', ...where })).toEqual({
       ok: true,
-      value: { doc_type: 2, doc_number: '20123456789', legal_name: 'Inmobiliaria Sol SAC', email: 'pagos@sol.pe' },
+      value: { doc_type: 2, doc_number: '20123456789', legal_name: 'Inmobiliaria Sol SAC', email: 'pagos@sol.pe', address: 'Av. Larco 123', city: 'Lima', phone: '51987654321' },
     })
+    // Culqi asks for the address, city and phone.
+    expect(checkBillingAccount({ doc_type: 1, doc_number: '12345678', legal_name: 'Ana', email: 'a@b.pe', ...where, address: 'x' })).toEqual({ ok: false, error: 'address' })
+    expect(checkBillingAccount({ doc_type: 1, doc_number: '12345678', legal_name: 'Ana', email: 'a@b.pe', ...where, phone: '12' })).toEqual({ ok: false, error: 'phone' })
     expect(checkBillingAccount({ doc_type: 9, doc_number: '1', legal_name: 'x', email: 'x' })).toEqual({ ok: false, error: 'doc_type' })
     expect(checkBillingAccount({ doc_type: 1, doc_number: '12345678', legal_name: 'Ana', email: 'nope' })).toEqual({ ok: false, error: 'email' })
   })

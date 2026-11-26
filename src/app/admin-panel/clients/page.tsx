@@ -40,6 +40,8 @@ interface Client {
   /** Every channel of the workspace (WhatsApp, Messenger, Instagram, web chat…). */
   channels: ClientChannel[];
   billing_region: Region | null;
+  /** Courtesy: unlimited accounts without the plan. */
+  unlimited_accounts?: boolean;
   clinic_name: string | null;
   clinic_type: string | null;
   clinic_city: string | null;
@@ -170,6 +172,19 @@ export default function AdminClientsPage() {
   };
   const SI = ({ k }: { k: SortKey }) =>
     sortKey === k ? (sortDir === "asc" ? <ChevronUp className="size-3"/> : <ChevronDown className="size-3"/>) : null;
+
+  const setUnlimited = async (c: Client, value: boolean) => {
+    setSavingRegion(true);
+    const res = await fetch("/api/admin/clients", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: c.id, action: "set_unlimited_accounts", value }),
+    });
+    setSavingRegion(false);
+    if (!res.ok) return;
+    setClients(p => p.map(x => x.id === c.id ? { ...x, unlimited_accounts: value } : x));
+    setDetail(prev => prev && prev.id === c.id ? { ...prev, unlimited_accounts: value } : prev);
+  };
 
   const setRegion = async (c: Client, region: Region) => {
     setSavingRegion(true);
@@ -540,6 +555,21 @@ export default function AdminClientsPage() {
                     </select>
                     <p className="text-[10px] text-slate-500">{t("admin.clients.region.hint")}</p>
                   </div>
+
+                  {/* Courtesy: unlimited accounts without the plan */}
+                  <label className="flex items-start gap-2.5 text-sm text-slate-200">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 size-4 accent-emerald-500"
+                      checked={!!detail.unlimited_accounts}
+                      disabled={savingRegion}
+                      onChange={(e) => void setUnlimited(detail, e.target.checked)}
+                    />
+                    <span>
+                      {t("admin.clients.unlimited.label")}
+                      <span className="block text-[10px] text-slate-500">{t("admin.clients.unlimited.hint")}</span>
+                    </span>
+                  </label>
 
                   {/* Business */}
                   {detail.clinic_name && (

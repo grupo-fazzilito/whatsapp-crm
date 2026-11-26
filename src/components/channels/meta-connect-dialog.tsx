@@ -70,9 +70,12 @@ export function MetaConnectDialog({ error, agents, onClose, onCreated }: Props) 
         body: JSON.stringify({ pageIds, instagramIds: igIds, purpose: purpose || null, ai_agent_id: agentId || null }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok && !data.created?.length) throw new Error(data.error ?? data.errors?.[0]?.error ?? t('common.error'));
+      if (!res.ok && !data.created?.length) {
+        const first = data.error ?? data.errors?.[0]?.error;
+        throw new Error(first === 'plan_limit' ? t('channels.plan.limitError') : (first ?? t('common.error')));
+      }
       if (data.created?.length) toast.success(t('channels.meta.createdCount', { count: data.created.length }));
-      for (const e of data.errors ?? []) toast.error(e.error);
+      for (const e of data.errors ?? []) toast.error(e.error === 'plan_limit' ? t('channels.plan.limitError') : e.error);
       onCreated();
       onClose();
     } catch (err) {

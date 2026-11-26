@@ -154,7 +154,7 @@ export function parseStripeEvent(body: unknown): StripeEventRef | null {
   if (b.type.startsWith('customer.subscription.')) {
     return { type: b.type, sessionId: null, paymentId: null, paymentIntent: null, subscriptionId: str(o.id), invoiceId: null }
   }
-  if (b.type === 'invoice.paid' || b.type === 'invoice.payment_failed') {
+  if (b.type === 'invoice.paid' || b.type === 'invoice.payment_failed' || b.type === 'invoice.created') {
     return { type: b.type, sessionId: null, paymentId: null, paymentIntent: null, subscriptionId: null, invoiceId: str(o.id) }
   }
   if (b.type === 'charge.refunded') {
@@ -192,6 +192,9 @@ export interface StripeInvoice {
   subscription?: string | null
   parent?: { subscription_details?: { subscription?: string | null; metadata?: Record<string, string> } | null } | null
   lines: { data: { period?: { start: number; end: number } }[] }
+  hosted_invoice_url?: string | null
+  period_start?: number
+  period_end?: number
 }
 
 /** Period end of a subscription (newer API versions keep it on the item). */
@@ -206,7 +209,7 @@ export function invoiceSubscriptionId(inv: StripeInvoice): string | null {
 
 export function createSubscriptionCheckout(
   cfg: StripeConfig,
-  input: { workspaceId: string; tokens: number; priceCents: number; productName: string; customerId: string | null; email: string | null; successUrl: string; cancelUrl: string; locale: 'es' | 'en' },
+  input: { workspaceId: string; tokens: number; priceCents: number; overageLimit: number; productName: string; customerId: string | null; email: string | null; successUrl: string; cancelUrl: string; locale: 'es' | 'en' },
 ): Promise<StripeSession> {
   return call<StripeSession>(cfg, 'POST', '/checkout/sessions', {
     mode: 'subscription',
@@ -222,7 +225,7 @@ export function createSubscriptionCheckout(
       },
     ],
     metadata: { workspace_id: input.workspaceId, tokens: input.tokens },
-    subscription_data: { metadata: { workspace_id: input.workspaceId, tokens: input.tokens } },
+    subscription_data: { metadata: { workspace_id: input.workspaceId, tokens: input.tokens, overage_limit: input.overageLimit } },
   })
 }
 
@@ -260,4 +263,44 @@ export function getInvoice(cfg: StripeConfig, id: string): Promise<StripeInvoice
 
 export function createPortalSession(cfg: StripeConfig, customerId: string, returnUrl: string, locale: 'es' | 'en'): Promise<{ url: string }> {
   return call<{ url: string }>(cfg, 'POST', '/billing_portal/sessions', { customer: customerId, return_url: returnUrl, locale })
+}
+
+// ------------------------------------------------------------
+// Extra credits (overage), billed in arrears
+//   POST /v1/invoiceitems   the extra credits used in a month, on the renewal
+//                           invoice while it is a draft (invoice.created), or
+//                           pending for the next one
+//   POST /v1/invoices       after a cancellation, one last invoice that
+//                           collects the extra credits still pending
+// ------------------------------------------------------------
+
+/** A charge on the customer's next invoice, or on `invoiceId` while that invoice is still a draft. */
+export function createInvoiceItem(
+  cfg: StripeConfig,
+  input: { customerId: string; amountCents: number; description: string; metadata: Record<string, string>; idempotencyKey: string; invoiceId?: string | null },
+): Promise<{ id: string; invoice?: string | null }> {
+  return call<{ id: string; invoice?: string | null }>(
+    cfg,
+    'POST',
+    '/invoiceitems',
+    {
+      customer: input.customerId,
+      amount: input.amountCents,
+      currency: 'usd',
+      description: input.description,
+      metadata: input.metadata,
+      ...(input.invoiceId ? { invoice: input.invoiceId } : {}),
+    },
+    input.idempotencyKey,
+  )
+}
+
+export function invoicePendingItems(cfg: StripeConfig, input: { customerId: string; description: string; idempotencyKey: string }): Promise<{ id: string }> {
+  return call<{ id: string }>(
+    cfg,
+    'POST',
+    '/invoices',
+    { customer: input.customerId, pending_invoice_items_behavior: 'include', collection_method: 'charge_automatically', auto_advance: true, description: input.description },
+    input.idempotencyKey,
+  )
 }

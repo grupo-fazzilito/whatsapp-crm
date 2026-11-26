@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { BILLABLE_ACTIONS, type BillableAction } from '@/lib/billing/pricing';
-import { AccountForm, useBillingError, type BillingAccount } from './top-up';
+import { AccountForm, accountComplete, useBillingError, type BillingAccount } from './top-up';
 import { formatMoney } from '@/lib/regions';
-import { SubscriptionCard, type SubscriptionView } from './subscription-card';
+import { SubscriptionCard, type OverageView, type SubscriptionView } from './subscription-card';
+import { formatPlanCents } from '@/lib/billing/subscription-pricing';
 import type { SubscriptionPricing } from '@/lib/billing/subscription-pricing';
 
 interface Payment {
@@ -35,6 +36,19 @@ interface LedgerRow {
   created_at: string;
 }
 
+/** A paid subscription invoice: the plan, plus the previous month's extra credits when there were any. */
+interface InvoiceRow {
+  id: string;
+  created_at: string;
+  reason: string | null;
+  amount_cents: number;
+  currency: string;
+  credits: number;
+  hosted_url: string | null;
+  overage_credits: number;
+  overage_cents: number;
+}
+
 interface BillingData {
   plan: { id: string; name: string; price: number };
   balance: number;
@@ -54,8 +68,12 @@ interface BillingData {
   };
   gateway_ready: boolean;
   subscription: SubscriptionView | null;
+  overage: OverageView | null;
+  invoices: InvoiceRow[];
   subscription_pricing: SubscriptionPricing;
   subscription_ready: boolean;
+  subscription_provider?: string;
+  culqi_public_key?: string | null;
   account: BillingAccount | null;
   payments: Payment[];
   ledger: LedgerRow[];
@@ -134,7 +152,8 @@ export function BillingPanel() {
   if (!data) return <p className="text-sm text-red-600">{t('billing.errors.generic')}</p>;
 
   const s = data.settings;
-  const latam = s.gateway === 'payment_latam';
+  // Peru: the billing details (DNI/RUC, address, phone) for Culqi and the receipt.
+  const latam = s.gateway === 'payment_latam' || data.subscription_provider === 'culqi';
   const replyCost = s.action_costs.reply || 1;
   const depleted = s.enforce && data.balance < replyCost;
   const low = !depleted && data.balance <= s.low_credit_threshold;
@@ -196,7 +215,17 @@ export function BillingPanel() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Monthly token subscription (one-time top-ups are no longer sold) */}
         <div className={latam ? '' : 'lg:col-span-2'}>
-          <SubscriptionCard pricing={data.subscription_pricing} subscription={data.subscription} ready={data.subscription_ready} onChanged={() => void load()} />
+          <SubscriptionCard
+            pricing={data.subscription_pricing}
+            subscription={data.subscription}
+            overage={data.overage}
+            ready={data.subscription_ready}
+            onChanged={() => void load()}
+            provider={data.subscription_provider}
+            culqiPublicKey={data.culqi_public_key ?? null}
+            accountReady={accountComplete(data.account)}
+            email={data.account?.email ?? null}
+          />
         </div>
 
         {/* Billing details (Peru: DNI/RUC for the receipt; Stripe asks for what it needs) */}
@@ -213,7 +242,64 @@ export function BillingPanel() {
         )}
       </div>
 
-      {/* Payments */}
+      {/* Monthly invoices: plan + extra credits used, with Stripe's invoice */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('billing.invoices.title')}</CardTitle>
+          <CardDescription>{t('billing.invoices.description')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {data.invoices.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400">{t('billing.invoices.empty')}</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                    <th scope="col" className="py-2 pr-4 font-medium">{t('billing.invoices.date')}</th>
+                    <th scope="col" className="py-2 pr-4 font-medium">{t('billing.invoices.detail')}</th>
+                    <th scope="col" className="py-2 pr-4 text-right font-medium">{t('billing.invoices.total')}</th>
+                    <th scope="col" className="py-2 font-medium"><span className="sr-only">{t('common.actions')}</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.invoices.map((inv) => (
+                    <tr key={inv.id} className="border-b border-slate-100 align-top last:border-0 dark:border-slate-800/60">
+                      <td className="py-2.5 pr-4 whitespace-nowrap">{date(inv.created_at)}</td>
+                      <td className="py-2.5 pr-4">
+                        <p className="text-slate-900 dark:text-white">
+                          {inv.credits > 0 ? t('billing.invoices.plan', { n: nf.format(inv.credits) }) : t(`billing.invoices.reason.${inv.reason === 'subscription_update' ? 'update' : 'other'}`)}
+                        </p>
+                        {inv.overage_credits > 0 && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {t('billing.invoices.extra', { n: nf.format(inv.overage_credits), price: formatPlanCents(inv.overage_cents, inv.currency) })}
+                          </p>
+                        )}
+                      </td>
+                      <td className="py-2.5 pr-4 text-right tabular-nums">{formatMoney(inv.amount_cents / 100, inv.currency || 'USD')}</td>
+                      <td className="py-2.5 text-right whitespace-nowrap">
+                        {inv.hosted_url && (
+                          <a
+                            href={inv.hosted_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                          >
+                            {t('billing.invoices.view')} <ExternalLink className="size-3" aria-hidden />
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* One-time top-ups of the old prepaid model, while an account has any */}
+      {data.payments.length > 0 && (
       <Card>
         <CardHeader>
           <CardTitle>{t('billing.payments.title')}</CardTitle>
@@ -270,6 +356,7 @@ export function BillingPanel() {
           )}
         </CardContent>
       </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Costs + month usage */}

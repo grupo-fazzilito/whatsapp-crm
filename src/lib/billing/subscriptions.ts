@@ -3,7 +3,8 @@ import { prisma } from '@/lib/db/prisma'
 import { normalizeRaw } from '@/lib/db/compat'
 import { getBillingSettings } from './settings'
 import { notifyBilling } from './credits'
-import { monthlyCents, validTokens } from './subscription-pricing'
+import { defaultOverageLimit, monthlyCents, validOverageLimit } from './subscription-pricing'
+import { closeOverage, invoiceOverageAfterCancel } from './overage'
 import {
   changeSubscriptionPlan,
   createPortalSession,
@@ -19,10 +20,12 @@ import {
   type StripeSubscription,
 } from './stripe'
 
-// Monthly AI-token subscriptions (Stripe, US$, every region). Tokens come
-// from paid invoices only: each one is read back from Stripe's API and
-// applied once (subscription_invoices). On a new month the unused tokens of
-// the previous one expire and the plan's quota is granted again.
+// Monthly credit subscription (Stripe, US$, every region): one plan, US$ 9.90
+// for 1,000 credits, plus extra credits when they run out, billed prorated on
+// the next invoice (see ./overage). Credits come from paid invoices only: each one is read back
+// from Stripe's API and applied once (subscription_invoices). On a new month
+// the unused credits of the previous one (plan and extra) expire and the
+// plan's quota is granted again.
 
 export interface TokenSubscription {
   tokens: number
@@ -31,6 +34,14 @@ export interface TokenSubscription {
   status: string
   current_period_end: string | null
   cancel_at_period_end: boolean
+  /** Most extra credits a month. */
+  overage_limit: number
+  /** 'culqi' (Peru, soles) or 'stripe'. */
+  provider: string
+  /** Culqi: the saved card ("Visa •••• 1111"). */
+  card_label: string | null
+  /** Why the last renewal failed (Culqi). */
+  last_error: string | null
 }
 
 /** Grace after the period end, so tokens don't vanish while the renewal invoice is being paid. */
@@ -54,14 +65,17 @@ export async function getTokenSubscription(workspaceId: string): Promise<TokenSu
     status: row.status,
     current_period_end: row.current_period_end ? new Date(row.current_period_end).toISOString() : null,
     cancel_at_period_end: row.cancel_at_period_end,
+    overage_limit: row.overage_limit,
+    provider: row.provider,
+    card_label: row.card_label,
+    last_error: row.last_error,
   }
 }
 
 /**
- * True while the workspace pays a token subscription (active, trial or a
- * renewal being retried), up to a few days past its period end. Automatic
- * comment replies are unlimited then. False on a DB error: the comment is
- * then charged a token like any workspace without a plan.
+ * True while the workspace pays the plan (active, trial or a renewal being
+ * retried), up to a few days past its period end: unlimited accounts and
+ * extra credits. False on a DB error (treated as the free plan).
  */
 export async function hasActiveSubscription(workspaceId: string, now = new Date()): Promise<boolean> {
   try {
@@ -74,23 +88,31 @@ export async function hasActiveSubscription(workspaceId: string, now = new Date(
   }
 }
 
-export type SubscribeError = 'invalid_tokens' | 'gateway_not_configured' | 'already_subscribed' | 'gateway_error' | 'not_subscribed' | 'payment_failed'
+export type SubscribeError = 'invalid_tokens' | 'invalid_limit' | 'gateway_not_configured' | 'already_subscribed' | 'gateway_error' | 'not_subscribed' | 'payment_failed'
 
-/** Stripe Checkout for a first subscription, or a plan change on the current one. */
+/**
+ * Stripe Checkout for the plan (with the extra-credit limit chosen), or, on a
+ * subscription set to end, undo the cancellation.
+ */
 export async function subscribe(input: {
   workspaceId: string
   userId: string
-  tokens: unknown
+  overageLimit?: unknown
 }): Promise<{ ok: true; url?: string; subscription?: TokenSubscription } | { ok: false; error: SubscribeError; detail?: string }> {
   const cfg = stripeConfig()
   if (!cfg) return { ok: false, error: 'gateway_not_configured' }
   const pricing = (await getBillingSettings()).subscription
-  const tokens = validTokens(input.tokens, pricing)
-  if (!tokens) return { ok: false, error: 'invalid_tokens' }
-  const priceCents = monthlyCents(tokens, pricing)
+  const overageLimit = input.overageLimit === undefined || input.overageLimit === null ? defaultOverageLimit(pricing) : validOverageLimit(input.overageLimit, pricing)
+  if (!overageLimit) return { ok: false, error: 'invalid_limit' }
 
   const current = await prisma.token_subscriptions.findUnique({ where: { workspace_id: input.workspaceId } })
-  if (current && ACTIVE.has(current.status)) return changePlan(cfg, input.workspaceId, current.subscription_id, tokens, priceCents)
+  if (current && ACTIVE.has(current.status)) {
+    if (!current.cancel_at_period_end) return { ok: false, error: 'already_subscribed' }
+    // Resume: same plan as today.
+    return changePlan(cfg, input.workspaceId, current.subscription_id, current.tokens, current.price_cents)
+  }
+  const tokens = pricing.step_tokens
+  const priceCents = monthlyCents(tokens, pricing)
 
   const [account, profile, ws] = await Promise.all([
     prisma.billing_accounts.findFirst({ where: { workspace_id: input.workspaceId }, select: { email: true } }),
@@ -103,7 +125,8 @@ export async function subscribe(input: {
       workspaceId: input.workspaceId,
       tokens,
       priceCents,
-      productName: locale === 'en' ? `Whasalia — ${tokens.toLocaleString('en-US')} AI tokens / month` : `Whasalia — ${tokens.toLocaleString('es-PE')} tokens de IA al mes`,
+      overageLimit,
+      productName: locale === 'en' ? `Whasalia — ${tokens.toLocaleString('en-US')} credits / month` : `Whasalia — ${tokens.toLocaleString('es-PE')} créditos al mes`,
       // A canceled subscription's customer keeps its card and invoices.
       customerId: current?.customer_id ?? null,
       email: account?.email || profile?.email || null,
@@ -140,6 +163,15 @@ async function changePlan(cfg: StripeConfig, workspaceId: string, subscriptionId
   return { ok: true as const, subscription: (await getTokenSubscription(workspaceId)) ?? undefined }
 }
 
+/** Changes the most extra credits a subscriber may use a month (from now on, this period included). */
+export async function setOverageLimit(workspaceId: string, raw: unknown): Promise<{ ok: true; overage_limit: number } | { ok: false; error: 'invalid_limit' | 'not_subscribed' }> {
+  const limit = validOverageLimit(raw, (await getBillingSettings()).subscription)
+  if (!limit) return { ok: false, error: 'invalid_limit' }
+  const done = await prisma.token_subscriptions.updateMany({ where: { workspace_id: workspaceId }, data: { overage_limit: limit, updated_at: new Date() } })
+  if (!done.count) return { ok: false, error: 'not_subscribed' }
+  return { ok: true, overage_limit: limit }
+}
+
 /** Stripe's customer portal: card, invoices and cancellation. */
 export async function portalUrl(workspaceId: string, locale: 'es' | 'en'): Promise<string | null> {
   const cfg = stripeConfig()
@@ -167,9 +199,12 @@ async function saveSubscription(workspaceId: string, sub: StripeSubscription, pl
     await prisma.token_subscriptions.updateMany({ where: { workspace_id: workspaceId }, data })
     return
   }
+  // The extra-credit limit chosen at checkout (only when the row is created; later it is edited here).
+  const pricing = (await getBillingSettings()).subscription
+  const overageLimit = validOverageLimit(Number(sub.metadata?.overage_limit), pricing) ?? defaultOverageLimit(pricing)
   await prisma.token_subscriptions.upsert({
     where: { workspace_id: workspaceId },
-    create: { workspace_id: workspaceId, ...data, tokens, price_cents: priceCents, currency: 'USD' },
+    create: { workspace_id: workspaceId, ...data, tokens, price_cents: priceCents, currency: 'USD', overage_limit: overageLimit },
     update: data,
   })
 }
@@ -207,7 +242,17 @@ async function applyInvoice(cfg: StripeConfig, invoiceId: string, opts: { extraT
   // Claim the invoice first: a repeated webhook (or the upgrade call and its webhook) applies it once.
   try {
     await prisma.subscription_invoices.create({
-      data: { invoice_id: inv.id, workspace_id: workspaceId, reason: inv.billing_reason, tokens, amount_cents: inv.amount_paid, currency: inv.currency.toUpperCase() },
+      data: {
+        invoice_id: inv.id,
+        workspace_id: workspaceId,
+        reason: inv.billing_reason,
+        tokens,
+        amount_cents: inv.amount_paid,
+        currency: inv.currency.toUpperCase(),
+        period_start: inv.period_start ? new Date(inv.period_start * 1000) : null,
+        period_end: inv.period_end ? new Date(inv.period_end * 1000) : null,
+        hosted_url: inv.hosted_invoice_url ?? null,
+      },
     })
   } catch {
     return
@@ -218,8 +263,10 @@ async function applyInvoice(cfg: StripeConfig, invoiceId: string, opts: { extraT
   const expires = new Date(periodEnd + GRACE_MS)
   try {
     if (newPeriod) {
-      // Unused tokens of the previous month expire now.
-      await prisma.$executeRaw`UPDATE public.credit_lots SET expires_at = NOW() WHERE workspace_id = ${workspaceId}::uuid AND source = 'subscription' AND credits_remaining > 0`
+      // Extra credits of the month that ended are counted first (if invoice.created didn't), then
+      // the unused credits of that month (plan and extra) expire.
+      await closeOverage(workspaceId)
+      await prisma.$executeRaw`UPDATE public.credit_lots SET expires_at = NOW() WHERE workspace_id = ${workspaceId}::uuid AND source IN ('subscription', 'overage') AND credits_remaining > 0`
       await prisma.$queryRaw`SELECT public.expire_credit_lots()`
     }
     const why = `${inv.billing_reason ?? 'invoice'} ${inv.id}`
@@ -248,6 +295,18 @@ export async function handleSubscriptionEvent(event: StripeEventRef): Promise<'o
     const workspaceId = await workspaceOf(sub)
     if (!workspaceId) return 'ignored'
     await saveSubscription(workspaceId, sub)
+    // No renewal will carry the extra credits of the last month: bill them now.
+    if (event.type === 'customer.subscription.deleted') await invoiceOverageAfterCancel(workspaceId, sub.id)
+    return 'ok'
+  }
+  // The renewal draft: the month that just ended closes and its extra credits go on it.
+  if (event.type === 'invoice.created' && event.invoiceId) {
+    const inv = await getInvoice(cfg, event.invoiceId)
+    const subId = invoiceSubscriptionId(inv)
+    if (!subId || inv.status !== 'draft' || inv.billing_reason !== 'subscription_cycle') return 'ignored'
+    const workspaceId = await workspaceOf(await getSubscription(cfg, subId))
+    if (!workspaceId) return 'ignored'
+    await closeOverage(workspaceId, { invoiceId: inv.id })
     return 'ok'
   }
   if (event.type === 'invoice.paid' && event.invoiceId) {

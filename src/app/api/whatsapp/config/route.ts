@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { PLAN_LIMIT, canAddChannel } from '@/lib/billing/accounts'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { prisma } from '@/lib/db/prisma'
 import type { Prisma } from '@/generated/prisma/client'
@@ -190,6 +191,8 @@ export async function POST(request: Request) {
       }
       channelId = targetId
     } else {
+      // Free plan: one WhatsApp number.
+      if (!(await canAddChannel(workspace.id, 'whatsapp'))) return NextResponse.json({ error: PLAN_LIMIT }, { status: 402 })
       let created: { id: string } | null = null
       let insertError: unknown = null
       try {
