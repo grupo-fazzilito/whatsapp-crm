@@ -60,7 +60,6 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
   const [appSecret, setAppSecret] = useState('');
   const [pageId, setPageId] = useState('');
   const [instagramId, setInstagramId] = useState('');
-  const [businessId, setBusinessId] = useState('');
   const [botToken, setBotToken] = useState('');
   const [webchat, setWebchat] = useState<WebchatForm>(DEFAULT_WEBCHAT_FORM);
 
@@ -80,7 +79,6 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
     setAppSecret('');
     setPageId('');
     setInstagramId('');
-    setBusinessId('');
     setBotToken('');
     setWebchat(DEFAULT_WEBCHAT_FORM);
   };
@@ -90,7 +88,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
     if (!next) setTimeout(reset, 200);
   };
 
-  const tiktokAvailable = features.tiktok || !!features.tiktokConnect;
+  const tiktokAvailable = !!features.tiktokConnect;
 
   const pick = (type: ChannelType) => {
     if (type === 'tiktok' && !tiktokAvailable) return;
@@ -108,7 +106,6 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
     if (type === 'whatsapp') Object.assign(body, { phone_number_id: phoneNumberId, waba_id: wabaId || null, access_token: accessToken, verify_token: verifyToken || null, app_secret: appSecret || null });
     if (type === 'messenger') Object.assign(body, { page_id: pageId, access_token: accessToken, app_secret: appSecret || null });
     if (type === 'instagram') Object.assign(body, { instagram_id: instagramId, page_id: pageId, access_token: accessToken, app_secret: appSecret || null });
-    if (type === 'tiktok') Object.assign(body, { business_id: businessId, access_token: accessToken });
     if (type === 'telegram') body.bot_token = botToken.trim();
     if (type === 'webchat') body.settings = webchatSettingsPayload({ ...webchat, title: webchat.title || name });
 
@@ -218,7 +215,16 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
                   <li>• {t('channels.tiktok.useProfile')}</li>
                   <li>• {t('channels.tiktok.useVideos')}</li>
                   <li>• {t('channels.tiktok.useComments')}</li>
+                  <li>• {t('channels.tiktok.useMessages')}</li>
                 </ul>
+                <div role="note" className="grid gap-1 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                  <p className="font-medium text-foreground">{t('channels.tiktok.messages.intro')}</p>
+                  <ol className="list-decimal space-y-1 pl-4">
+                    <li>{t('channels.tiktok.messages.step1')}</li>
+                    <li>{t('channels.tiktok.messages.step2')}</li>
+                  </ol>
+                  <p>{t('channels.tiktok.messages.rules')}</p>
+                </div>
                 <button
                   type="button"
                   onClick={() => window.location.assign('/api/channels/tiktok/oauth/start')}
@@ -309,17 +315,6 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
                         {t('channels.meta.useOauth')}
                       </button>
                     )}
-                  </>
-                )}
-
-                {type === 'tiktok' && (
-                  <>
-                    <Field id="ch-tt" label={t('channels.tiktok.businessId')}>
-                      <Input id="ch-tt" required value={businessId} onChange={(e) => setBusinessId(e.target.value.trim())} />
-                    </Field>
-                    <Field id="ch-ttok" label={t('channels.form.accessToken')}>
-                      <Input id="ch-ttok" required type="password" autoComplete="off" value={accessToken} onChange={(e) => setAccessToken(e.target.value)} />
-                    </Field>
                   </>
                 )}
 

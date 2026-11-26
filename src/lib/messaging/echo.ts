@@ -2,6 +2,7 @@ import 'server-only'
 import { tenantDb } from '@/lib/db/tenant'
 import { waMediaProxyUrl, type CoexBatch, type CoexMessage } from '@/lib/channels/parsers/whatsapp'
 import { TG_FILE_PREFIX } from '@/lib/channels/parsers/telegram'
+import { TT_MEDIA_PREFIX } from '@/lib/tiktok/model'
 import type { LoadedChannel } from '@/lib/channels'
 import { findOrCreateContact, findOrCreateConversation } from './ingest'
 
@@ -44,6 +45,7 @@ export function mediaUrlFor(channelId: string, url: string | null | undefined): 
   if (!url) return null
   if (url.startsWith('wa-media:')) return waMediaProxyUrl(channelId, url.slice('wa-media:'.length))
   if (url.startsWith(TG_FILE_PREFIX)) return waMediaProxyUrl(channelId, url.slice(TG_FILE_PREFIX.length))
+  if (url.startsWith(TT_MEDIA_PREFIX)) return waMediaProxyUrl(channelId, url.slice(TT_MEDIA_PREFIX.length))
   return url
 }
 
@@ -145,7 +147,7 @@ export async function storeEchoes(channel: LoadedChannel, echoes: CoexMessage[])
     if (!fresh.length) continue
     const replies = await replyTargets(ws, conversation.id, fresh.map((m) => m.replyToExternalId))
     const rows = fresh.map((m) => ({
-      ...coexMessageRow(m, { workspaceId: ws, conversationId: conversation.id, channelId: channel.id, history: false, source: channel.type === 'telegram' ? 'telegram_business_app' : COEX_SOURCE }),
+      ...coexMessageRow(m, { workspaceId: ws, conversationId: conversation.id, channelId: channel.id, history: false, source: channel.type === 'telegram' ? 'telegram_business_app' : channel.type === 'tiktok' ? 'tiktok_app' : COEX_SOURCE }),
       reply_to_message_id: m.replyToExternalId ? replies.get(m.replyToExternalId) ?? null : null,
     }))
     try {

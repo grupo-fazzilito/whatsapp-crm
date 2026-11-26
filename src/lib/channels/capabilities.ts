@@ -7,7 +7,7 @@ export const CHANNEL_CAPABILITIES: Record<ChannelType, ChannelCapabilities> = {
   whatsapp: { templates: true, reactions: true, interactive: true, replyWindowHours: 24, media: true },
   messenger: { templates: false, reactions: false, interactive: true, replyWindowHours: 24, media: true },
   instagram: { templates: false, reactions: true, interactive: true, replyWindowHours: 24, media: true },
-  tiktok: { templates: false, reactions: false, interactive: false, replyWindowHours: 48, media: false },
+  tiktok: { templates: false, reactions: false, interactive: false, replyWindowHours: 48, media: true },
   telegram: { templates: false, reactions: false, interactive: true, replyWindowHours: null, media: true },
   webchat: { templates: false, reactions: false, interactive: true, replyWindowHours: null, media: true },
 }

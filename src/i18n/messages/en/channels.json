@@ -112,11 +112,11 @@
     },
     "tiktok": {
       "soon": "Coming soon / requires TikTok approval",
-      "businessId": "Business account ID",
       "oauthIntro": "Log in to TikTok and authorize Whasalia on your business account. Whasalia will then be able to:",
       "useProfile": "Show your account's name and picture.",
       "useVideos": "List your videos, so a rule can answer on one of them.",
       "useComments": "Read the comments on your videos and reply publicly with your rules.",
+      "useMessages": "Receive your account's direct messages in the inbox and answer them yourself, with your team or your AI agent.",
       "continue": "Continue with TikTok",
       "sandboxNote": "Sandbox mode: connects a sample account with sample videos and comments. TikTok is not called.",
       "connected": "TikTok account connected",
@@ -142,7 +142,18 @@
           "commentsHelp": "Read and reply to comments on your videos"
         }
       },
-      "reauthorize": "TikTok needs this account to be authorized again (the permission expired). Connect it again with “Continue with TikTok”."
+      "messages": {
+        "title": "TikTok direct messages",
+        "intro": "For your customers' direct messages to reach the inbox:",
+        "step1": "Your account must be a business account: in TikTok, Profile → ☰ → Settings and privacy → Account → Switch to Business Account.",
+        "step2": "Let everyone message you: Settings and privacy → Privacy → Direct messages → Everyone.",
+        "step3": "If you connected the account before messages were available, press “Update connection” and authorize again on TikTok.",
+        "rules": "TikTok's rules: you can only reply to people who wrote to you first and within 48 hours of their last message; you can't start conversations or send bulk messages. Not available for accounts registered in the European Union, the European Economic Area, Switzerland or the United Kingdom.",
+        "missing": "This connection doesn't have permission for messages. Press “Update connection” to receive them.",
+        "ready": "Direct messages reach the inbox.",
+        "reconnect": "Update connection"
+      },
+      "reauthorize": "TikTok needs this account to be authorized again (the permission expired). Press “Update connection”."
     },
     "webchat": {
       "defaultName": "Website chat",

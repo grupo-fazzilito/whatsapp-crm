@@ -3,7 +3,6 @@ import { tiktokConnectReady, tiktokSandbox } from '@/lib/tiktok/config'
 import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { verifyPhoneNumber } from '@/lib/whatsapp/meta-api'
-import { tiktokEnabled } from '@/lib/channels/adapters/tiktok'
 import { botIdFromToken, looksLikeBotToken } from '@/lib/channels/adapters/telegram'
 import { getBot, newWebhookSecret, setBotWebhook, telegramWebhookUrl } from '@/lib/channels/telegram-server'
 import { publicOrigin } from '@/lib/site-origin'
@@ -33,7 +32,7 @@ import { newWidgetKey, parseWebchatSettings, webchatHandle } from './_lib/webcha
  * app_secret: only for businesses using THEIR OWN Meta app (manual setup) —
  * it verifies that app's webhook signatures. Stored encrypted, never returned.
  *   webchat   {name, purpose?, settings:{color,title,greeting,position,allowed_origins,prechat_fields}}
- *   tiktok    {name, purpose?, business_id, access_token}   (TIKTOK_MESSAGING_ENABLED=true only)
+ *   tiktok    — not here: "Continue with TikTok" (/api/channels/tiktok/oauth/start)
  *   telegram  {name, purpose?, bot_token}   (token from @BotFather; Whasalia sets the bot's webhook)
  * Optional on every type: ai_agent_id.
  * `?skip_verify=1` skips provider verification outside production (tests).
@@ -62,7 +61,7 @@ export async function GET() {
       metaOAuth: metaAppReady(meta),
       /** WhatsApp Embedded Signup (Facebook Login for Business configuration set). */
       whatsappSignup: metaAppReady(meta) && !!meta.esConfigId,
-      tiktok: tiktokEnabled(),
+      tiktok: tiktokConnectReady(),
       /** "Connect TikTok" (Accounts API OAuth: comments on the business's videos). */
       tiktokConnect: tiktokConnectReady(),
       /** Local demo data instead of TikTok (TIKTOK_SANDBOX, never in production). */
@@ -237,24 +236,8 @@ export async function POST(request: Request) {
       break
     }
 
-    case 'tiktok': {
-      if (!tiktokEnabled()) {
-        return bad(
-          'TikTok messaging is not available yet: it requires approval from TikTok for the Business Messaging API (set TIKTOK_MESSAGING_ENABLED=true once approved).',
-        )
-      }
-      const businessId = str(body.business_id, 128)
-      const accessToken = str(body.access_token, 2000)
-      if (!businessId || !accessToken) return bad('business_id and access_token are required')
-      input = {
-        ...base,
-        externalId: businessId,
-        displayHandle: str(body.handle, 80),
-        settings: {},
-        secrets: { access_token: accessToken },
-      }
-      break
-    }
+    case 'tiktok':
+      return bad('Connect TikTok with "Continue with TikTok" (TikTok authorization).')
   }
 
   const result = await insertChannel(input)

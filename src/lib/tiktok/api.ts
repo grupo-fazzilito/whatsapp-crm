@@ -4,7 +4,7 @@ import { loadChannel, saveChannelSecrets } from '@/lib/channels/store'
 import { prisma } from '@/lib/db/prisma'
 import type { RecentPost } from '@/lib/comments/meta'
 import { tiktokAppConfig, tiktokSandbox } from './config'
-import { TIKTOK_API, TIKTOK_REPLY_MAX, quoteBigInts, tokenNeedsRefresh } from './model'
+import { TIKTOK_API, TIKTOK_DM_MAX, TIKTOK_REPLY_MAX, decodeDmMedia, isDmWindowError, quoteBigInts, tokenNeedsRefresh } from './model'
 import { fromTiktok, type Thread, type TtComment } from '@/lib/comments/thread'
 import { SANDBOX_ACCOUNT, SANDBOX_CODE, SANDBOX_VIDEOS, sandboxAddReply, sandboxComments, sandboxSetHidden } from './sandbox'
 
@@ -17,7 +17,12 @@ import { SANDBOX_ACCOUNT, SANDBOX_CODE, SANDBOX_VIDEOS, sandboxAddReply, sandbox
 //   GET  /business/comment/list/         comments        (comment.list)
 //   POST /business/comment/reply/create/ public reply    (comment.list.manage)
 //   POST /business/comment/hide/         hide / unhide   (comment.list.manage)
-//   POST /business/webhook/update/       app-level comment.update subscription
+//   POST /business/webhook/update/       app-level webhooks (COMMENT, DIRECT_MESSAGE)
+// Business Messaging API (message.list.read / message.list.send):
+//   POST /business/message/send/              reply in a conversation (text or image)
+//   POST /business/message/media/upload/      image → media_id (JPG/PNG, 3 MB)
+//   POST /business/message/media/download/    inbound media → download_url (needs header x-user)
+//   GET  /business/message/content/list/      last messages + participants (customer name, avatar)
 
 export class TiktokError extends Error {
   constructor(message: string, readonly code: number | null) {
@@ -246,11 +251,22 @@ export async function replyToTiktokComment(channel: LoadedChannel, videoId: stri
   return res.comment_id != null ? String(res.comment_id) : null
 }
 
-/** App-level: send comment.update events for every authorized account to our webhook. Idempotent. */
-export async function subscribeCommentWebhook(callbackUrl: string): Promise<void> {
+/**
+ * App-level: send comment events and direct-message events of every
+ * authorized account to our webhook (one subscription per event type). Idempotent.
+ */
+export async function subscribeWebhooks(callbackUrl: string): Promise<void> {
   if (tiktokSandbox() && !tiktokAppConfig()) return
   const cfg = app()
-  await call('/business/webhook/update/', { body: { app_id: cfg.appId, secret: cfg.appSecret, event_type: 'COMMENT', callback_url: callbackUrl } })
+  const failures: string[] = []
+  for (const event_type of ['COMMENT', 'DIRECT_MESSAGE']) {
+    try {
+      await call('/business/webhook/update/', { body: { app_id: cfg.appId, secret: cfg.appSecret, event_type, callback_url: callbackUrl } })
+    } catch (err) {
+      failures.push(`${event_type}: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+  if (failures.length) throw new TiktokError(failures.join('; '), null)
 }
 
 /** The account and the comments of one of its videos (with up to 3 replies each), read live. */
@@ -279,4 +295,93 @@ export async function setTiktokCommentHidden(channel: LoadedChannel, videoId: st
     token: await accessToken(channel),
     body: { business_id: channel.external_id, video_id: videoId, comment_id: commentId, action: hidden ? 'HIDE' : 'UNHIDE' },
   })
+}
+
+// ------------------------------------------------------------
+// Direct messages (Business Messaging API)
+// ------------------------------------------------------------
+
+/** TikTok refused to send: the 48-hour window (or the message limit) is closed. */
+export class TiktokWindowError extends TiktokError {}
+
+async function sendDm(channel: LoadedChannel, conversationId: string, message: Record<string, unknown>): Promise<string | null> {
+  try {
+    const d = await call<{ message?: { message_id?: string } }>('/business/message/send/', {
+      token: await accessToken(channel),
+      body: { business_id: channel.external_id, recipient_type: 'CONVERSATION', recipient: conversationId, ...message },
+    })
+    return d.message?.message_id || null
+  } catch (err) {
+    if (err instanceof TiktokError && isDmWindowError(err.code, err.message)) throw new TiktokWindowError(err.message, err.code)
+    throw err
+  }
+}
+
+/** Text reply in a conversation; returns TikTok's message id. */
+export function sendTiktokText(channel: LoadedChannel, conversationId: string, text: string): Promise<string | null> {
+  return sendDm(channel, conversationId, { message_type: 'TEXT', text: { body: text.slice(0, TIKTOK_DM_MAX) } })
+}
+
+const IMAGE_MAX_BYTES = 3 * 1024 * 1024
+
+/** Image reply: the file is uploaded first (JPG or PNG, up to 3 MB). */
+export async function sendTiktokImage(channel: LoadedChannel, conversationId: string, image: { bytes: Uint8Array; contentType: string }): Promise<string | null> {
+  if (!/^image\/(jpe?g|png)$/i.test(image.contentType)) throw new TiktokError('TikTok only accepts JPG or PNG images', null)
+  if (image.bytes.byteLength > IMAGE_MAX_BYTES) throw new TiktokError('TikTok images can be up to 3 MB', null)
+  const form = new FormData()
+  form.set('business_id', channel.external_id)
+  form.set('media_type', 'IMAGE')
+  form.set('file', new Blob([new Uint8Array(image.bytes)], { type: image.contentType }), /png/i.test(image.contentType) ? 'image.png' : 'image.jpg')
+  const res = await fetch(`${TIKTOK_API}/business/message/media/upload/`, {
+    method: 'POST',
+    headers: { 'Access-Token': await accessToken(channel) },
+    body: form,
+    cache: 'no-store',
+  })
+  let data: Envelope<{ media_id?: string }> = {}
+  try {
+    data = JSON.parse(quoteBigInts(await res.text())) as Envelope<{ media_id?: string }>
+  } catch {
+    // reported below
+  }
+  if (!res.ok || data.code !== 0 || !data.data?.media_id) {
+    throw new TiktokError(`${data.message ?? `TikTok upload error: ${res.status}`}${data.request_id ? ` (request ${data.request_id})` : ''}`, data.code ?? null)
+  }
+  return sendDm(channel, conversationId, { message_type: 'IMAGE', image: { media_id: data.data.media_id } })
+}
+
+/** Bytes of an image/video a customer sent (proxy token from encodeDmMedia). */
+export async function downloadTiktokMedia(channel: LoadedChannel, token: string, maxBytes: number): Promise<{ bytes: Uint8Array; contentType: string }> {
+  const ref = decodeDmMedia(token)
+  if (!ref) throw new TiktokError('Invalid TikTok media reference', null)
+  const access = await accessToken(channel)
+  const d = await call<{ download_url?: string }>('/business/message/media/download/', {
+    token: access,
+    body: { business_id: channel.external_id, conversation_id: ref.conversationId, message_id: ref.messageId, media_id: ref.mediaId, media_type: ref.mediaType },
+  })
+  if (!d.download_url) throw new TiktokError('TikTok did not return a download URL', null)
+  const res = await fetch(d.download_url, { headers: { 'x-user': access }, cache: 'no-store' })
+  if (!res.ok) throw new TiktokError(`TikTok media download failed: ${res.status}`, null)
+  const declared = Number(res.headers.get('content-length'))
+  if (Number.isFinite(declared) && declared > maxBytes) throw new TiktokError('Media too large', null)
+  const buf = new Uint8Array(await res.arrayBuffer())
+  if (buf.byteLength > maxBytes) throw new TiktokError('Media too large', null)
+  return { bytes: buf, contentType: res.headers.get('content-type') || (ref.mediaType === 'IMAGE' ? 'image/jpeg' : 'video/mp4') }
+}
+
+export interface TiktokParticipant {
+  displayName: string | null
+  username: string | null
+  avatar: string | null
+}
+
+/** The customer's nickname and picture, from the conversation's participants. */
+export async function getConversationCustomer(channel: LoadedChannel, conversationId: string): Promise<TiktokParticipant | null> {
+  const d = await call<{ participants?: { role?: string; id?: string; display_name?: string; username?: string; profile_image?: string }[] }>(
+    '/business/message/content/list/',
+    { token: await accessToken(channel), query: { business_id: channel.external_id, conversation_id: conversationId } },
+  )
+  const p = (d.participants ?? []).find((x) => x.role !== 'business_account' && x.id !== channel.external_id)
+  if (!p) return null
+  return { displayName: p.display_name ?? null, username: p.username ?? null, avatar: p.profile_image ?? null }
 }

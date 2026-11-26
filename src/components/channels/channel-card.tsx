@@ -19,6 +19,7 @@ import { readWelcomeMenu } from './welcome-menu-dialog';
 import { MarketingMessagesBox } from './marketing-messages-box';
 import { CallingBox } from './calling-box';
 import { TelegramBusinessBox } from './telegram-business-box';
+import { TiktokMessagesBox } from './tiktok-messages-box';
 
 const STATUS_STYLE: Record<ChannelDTO['status'], string> = {
   connected: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -157,6 +158,8 @@ export function ChannelCard({ channel, agents, isAdmin, origin, onAgentChange, o
         {channel.type === 'whatsapp' && <CallingBox channel={channel} isAdmin={isAdmin} />}
 
         {channel.type === 'whatsapp' && <MarketingMessagesBox channel={channel} isAdmin={isAdmin} />}
+
+        {channel.type === 'tiktok' && <TiktokMessagesBox channel={channel} isAdmin={isAdmin} />}
 
         {channel.type === 'telegram' && channel.settings?.business_connection_id ? (
           <p className="text-xs text-muted-foreground">
