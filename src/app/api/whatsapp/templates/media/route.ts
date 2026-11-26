@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { publicUrl, uploadObject } from '@/lib/storage'
+import { isPdf, sniffImage, sniffVideo } from '@/lib/storage/file-safety'
 
 // Header sample of a template (image / video / document). Stored in the
 // public catalog bucket so the preview can show it; on submit it is
@@ -24,6 +25,10 @@ export async function POST(request: Request) {
   if (!type) return NextResponse.json({ error: 'unsupported_type' }, { status: 415 })
   if (file.size > type.max) return NextResponse.json({ error: 'file_too_large' }, { status: 413 })
   const path = `${guard.ctx.workspace.id}/templates/${randomUUID()}.${type.ext}`
-  await uploadObject('catalog', path, Buffer.from(await file.arrayBuffer()), file.type)
+  const bytes = Buffer.from(await file.arrayBuffer())
+  // The bytes must be what the type says (public bucket).
+  const real = file.type === 'application/pdf' ? (isPdf(bytes) ? file.type : null) : file.type.startsWith('video/') ? sniffVideo(bytes) : sniffImage(bytes)
+  if (real !== file.type) return NextResponse.json({ error: 'unsupported_type' }, { status: 415 })
+  await uploadObject('catalog', path, bytes, file.type)
   return NextResponse.json({ url: publicUrl('catalog', path) })
 }

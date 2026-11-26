@@ -8,6 +8,8 @@ import { tenantDb } from '@/lib/db/tenant'
 import { decrypt, encrypt } from '@/lib/whatsapp/encryption'
 import { downloadObject, publicUrl, uploadObject } from '@/lib/storage'
 import { storagePathFromUrl } from '@/lib/storage/paths'
+import { sniffImage } from '@/lib/storage/file-safety'
+import { safeFetch } from '@/lib/net/safe-fetch'
 import { siteUrl } from '@/lib/real-estate/listing/url'
 import { storePath, storeSettings } from '@/lib/store/settings'
 import { fallbackCaption, writeCaption, type CaptionInput } from './ai'
@@ -352,11 +354,12 @@ async function jpegFor(workspaceId: string, url: string): Promise<string> {
   const own = (['catalog', 'social'] as const).map((b) => [b, storagePathFromUrl(url, b)] as const).find(([, p]) => !!p)
   if (own) input = (await downloadObject(own[0], own[1]!)).body
   else {
-    const res = await fetch(url, { signal: AbortSignal.timeout(30_000) })
-    if (!res.ok) throw new Error(`image_download_${res.status}`)
-    input = Buffer.from(await res.arrayBuffer())
+    // Any URL a member typed: never one inside our network.
+    input = Buffer.from((await safeFetch(url, { maxBytes: 30 * 1024 * 1024, timeoutMs: 30_000 })).bytes)
   }
-  const jpg = await sharp(input).rotate().flatten({ background: '#ffffff' }).jpeg({ quality: 90 }).toBuffer()
+  // Raster images only (an SVG is a document, not a photo); and a bounded size so a crafted file can't exhaust memory.
+  if (!sniffImage(input)) throw new Error('image_format')
+  const jpg = await sharp(input, { limitInputPixels: 50_000_000 }).rotate().flatten({ background: '#ffffff' }).jpeg({ quality: 90 }).toBuffer()
   await uploadObject('social', out, jpg, 'image/jpeg', { upsert: true })
   return publicUrl('social', out)
 }
