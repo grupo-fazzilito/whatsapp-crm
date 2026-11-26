@@ -294,7 +294,8 @@
       "already_subscribed": "Ya tienes el plan activo.",
       "billing_profile_incomplete": "Completa tus datos de facturación para suscribirte.",
       "invalid_token": "No pudimos leer la tarjeta. Inténtalo de nuevo.",
-      "too_many_attempts": "Hiciste muchos intentos. Espera unos minutos."
+      "too_many_attempts": "Hiciste muchos intentos. Espera unos minutos.",
+      "needs_3ds": "Tu banco pide verificar el pago. Prueba de nuevo."
     },
     "culqi": {
       "card": "Tarjeta: {card}",
@@ -303,14 +304,19 @@
       "cancelTitle": "¿Cancelar el plan?",
       "cancelBody": "Sigue activo hasta el fin del mes. Ese día se cobran solo los créditos adicionales que hayas usado y vuelves al plan gratis (1 cuenta por servicio; las cuentas adicionales tendrán 30 días antes de desconectarse).",
       "needDetails": "Completa tus datos de facturación (documento, dirección, ciudad y teléfono) para suscribirte.",
-      "pastDue": "No pudimos cobrar la renovación. Lo intentamos de nuevo cada día: cambia tu tarjeta para no perder el plan.",
+      "pastDue": "No pudimos cobrar la renovación. Lo intentamos de nuevo cada día; usa «Pagar ahora» para no perder el plan.",
       "terms": "Pago con tarjeta a través de Culqi, en soles. Los precios incluyen IGV. Cada mes se cobra el plan y los créditos adicionales del mes anterior en un solo cargo. Cancela cuando quieras.",
       "done": {
         "subscribe": "¡Listo! Tu plan está activo y tus créditos ya están disponibles.",
         "card": "Tarjeta actualizada.",
         "cancel": "Plan cancelado: sigue activo hasta el fin del mes.",
-        "resume": "Plan reanudado."
-      }
+        "resume": "Plan reanudado.",
+        "paid": "Pago recibido: tu plan sigue activo."
+      },
+      "payNow": "Pagar ahora",
+      "verifying": "Tu banco pide verificar el pago. Sigue los pasos en la ventana del banco.",
+      "verifyClosed": "Cerraste la verificación del banco. No se cobró nada.",
+      "verifyFailed": "El banco no pudo verificar el pago. No se cobró nada; prueba de nuevo o usa otra tarjeta."
     }
   }
 }

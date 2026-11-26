@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { defaultOverageLimit, formatPlanCents, monthlyCents, type SubscriptionPricing } from '@/lib/billing/subscription-pricing';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { culqiCardToken } from './culqi-checkout';
+import { culqi3DS, culqiCardToken, culqiDeviceId, type Culqi3DSResult } from './culqi-checkout';
 import { OverageLimit } from './overage-limit';
 
 export interface SubscriptionView {
@@ -81,9 +81,14 @@ export function SubscriptionCard({
     toast.error(msg === key ? t('subscription.errors.generic') : msg);
   };
 
-  /** Culqi: card → token in Culqi's own window, then our server saves and charges it. */
+  /**
+   * Culqi: card → token in Culqi's own window, then our server charges it.
+   * When the bank asks for 3D Secure, its verification opens here and the
+   * same request goes again with the result.
+   */
   const culqiAction = async (action: 'subscribe' | 'card' | 'cancel' | 'resume') => {
     let token: string | null = null;
+    let deviceId: string | null = null;
     if (action === 'subscribe' || action === 'card') {
       if (!accountReady) {
         toast.error(t('subscription.culqi.needDetails'));
@@ -101,14 +106,30 @@ export function SubscriptionCard({
       }
     }
     setBusy(action === 'resume' ? 'cancel' : action === 'card' ? 'card' : action === 'cancel' ? 'cancel' : 'subscribe');
-    const res = await fetch('/api/billing/culqi', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, token_id: token, overage_limit: limit }),
-    });
+    if (token && culqiPublicKey) deviceId = await culqiDeviceId(culqiPublicKey);
+    const send = (authentication_3ds: Culqi3DSResult | null) =>
+      fetch('/api/billing/culqi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, token_id: token, overage_limit: limit, device_id: deviceId, authentication_3ds }),
+      });
+    let res = await send(null);
+    let body = (await res.clone().json().catch(() => ({}))) as { error?: string; detail?: string | null; amount_cents?: number | null };
+    if (!res.ok && body.error === 'needs_3ds' && token && culqiPublicKey && body.amount_cents) {
+      let auth: Culqi3DSResult;
+      try {
+        toast.info(t('subscription.culqi.verifying'));
+        auth = await culqi3DS({ publicKey: culqiPublicKey, tokenId: token, amountCents: body.amount_cents, email: email ?? '' });
+      } catch (err) {
+        setBusy(null);
+        toast.error(t(err instanceof Error && err.message === 'culqi_3ds_closed' ? 'subscription.culqi.verifyClosed' : 'subscription.culqi.verifyFailed'));
+        return;
+      }
+      res = await send(auth);
+      body = (await res.json().catch(() => ({}))) as typeof body;
+    }
     setBusy(null);
     if (!res.ok) {
-      const body = (await res.json().catch(() => ({}))) as { error?: string; detail?: string | null };
       if (body.error === 'payment_failed' && body.detail) toast.error(body.detail);
       else {
         const key = `subscription.errors.${body.error ?? 'generic'}`;
@@ -117,7 +138,7 @@ export function SubscriptionCard({
       }
       return;
     }
-    toast.success(t(`subscription.culqi.done.${action}`));
+    toast.success(t(`subscription.culqi.done.${action === 'card' && subscription?.status === 'past_due' ? 'paid' : action}`));
     onChanged();
   };
 
@@ -181,7 +202,9 @@ export function SubscriptionCard({
             {culqi && active && subscription.card_label && <p className="text-muted-foreground">{t('subscription.culqi.card', { card: subscription.card_label })}</p>}
             <p className="text-muted-foreground">
               {subscription.status === 'past_due'
-                ? t(culqi ? 'subscription.culqi.pastDue' : 'subscription.status.pastDue')
+                ? culqi
+                  ? `${t('subscription.culqi.pastDue')}${subscription.last_error ? ` (${subscription.last_error})` : ''}`
+                  : t('subscription.status.pastDue')
                 : !active
                   ? t('subscription.status.canceled')
                   : subscription.cancel_at_period_end && subscription.current_period_end
@@ -227,9 +250,9 @@ export function SubscriptionCard({
                   </Button>
                 )}
                 {culqi && active && (
-                  <Button variant="outline" onClick={() => void culqiAction('card')} disabled={!!busy}>
+                  <Button variant={subscription!.status === 'past_due' ? 'default' : 'outline'} onClick={() => void culqiAction('card')} disabled={!!busy}>
                     {busy === 'card' ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <CreditCard className="size-4" aria-hidden />}
-                    {t('subscription.culqi.changeCard')}
+                    {t(subscription!.status === 'past_due' ? 'subscription.culqi.payNow' : 'subscription.culqi.changeCard')}
                   </Button>
                 )}
                 {culqi && active && !subscription!.cancel_at_period_end && (

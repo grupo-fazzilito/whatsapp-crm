@@ -4,15 +4,18 @@ import { normalizeRaw } from '@/lib/db/compat'
 import { getBillingSettings } from './settings'
 import { BILLING_LINK, notifyBilling } from './credits'
 import { closeOverage } from './overage'
-import { cardLabel, chargeCard, createCard, createCustomer, culqiConfig, CulqiError, type CulqiConfig } from './culqi'
+import { cardLabel, chargeCard, createCard, createCustomer, culqiConfig, CulqiError, needs3DS, type CulqiCard, type CulqiConfig, type Culqi3DSResult } from './culqi'
 import { defaultOverageLimit, monthlyCents, pricingForProvider, validOverageLimit, type SubscriptionPricing } from './subscription-pricing'
 
 // The credit plan charged with Culqi (Peru, soles). Culqi Checkout turns the
-// card into a token in the browser; we save it on a Culqi customer and charge
-// the saved card ourselves: the first month when subscribing, then every
-// month (a cron) the plan plus the previous month's extra credits in one
-// charge. A failed renewal is retried once a day; after the grace days the
-// plan ends and the business is back on the free plan.
+// card into a token in the browser; we charge the token (the first month,
+// customer present: when the bank asks for 3D Secure the browser runs
+// Culqi3DS and the charge is sent again with its result), then save it as a
+// card on a Culqi customer. Every month a cron charges the saved card the
+// plan plus the previous month's extra credits in one charge. A failed
+// renewal (a 3D Secure request included: nobody is there to answer it) is
+// retried once a day and the business can pay it with "Pay now" (token +
+// 3D Secure); after the grace days the plan ends and it is back on the free plan.
 
 const PROVIDER = 'culqi'
 const ACTIVE = new Set(['active', 'trialing', 'past_due'])
@@ -30,8 +33,16 @@ export type CulqiSubscribeError =
   | 'payment_failed'
   | 'gateway_error'
   | 'not_subscribed'
+  | 'needs_3ds'
 
-type Result<T = object> = ({ ok: true } & T) | { ok: false; error: CulqiSubscribeError; detail?: string | null }
+/** On 'needs_3ds', `amountCents` is what the browser shows in Culqi3DS before sending the same request with the result. */
+type Result<T = object> = ({ ok: true } & T) | { ok: false; error: CulqiSubscribeError; detail?: string | null; amountCents?: number }
+
+/** The browser's part of a card payment: its Culqi3DS device id and, on the second try, the 3D Secure result. */
+export interface CardPresent {
+  deviceId?: string | null
+  authentication3DS?: Culqi3DSResult | null
+}
 
 async function planPricing(): Promise<SubscriptionPricing> {
   return pricingForProvider((await getBillingSettings()).subscription, PROVIDER)
@@ -47,6 +58,7 @@ export function addMonth(d: Date): Date {
 
 function failure(err: unknown): { error: CulqiSubscribeError; detail: string | null } {
   if (err instanceof CulqiError) {
+    if (err.code === 'needs_3ds') return { error: 'payment_failed', detail: err.userMessage ?? 'Tu banco no autorizó el pago.' }
     const declined = err.type === 'card_error' || err.status === 402
     if (err.code === 'invalid_token') return { error: 'invalid_token', detail: null }
     return { error: declined ? 'payment_failed' : 'gateway_error', detail: err.userMessage ?? err.message }
@@ -106,14 +118,25 @@ async function payer(workspaceId: string) {
   }
 }
 
+/** Saves a token already charged as the plan's card; null (logged) if Culqi refuses: the renewal then asks for a card. */
+async function saveCard(cfg: CulqiConfig, customerId: string, tokenId: string): Promise<CulqiCard | null> {
+  try {
+    return await createCard(cfg, customerId, tokenId)
+  } catch (err) {
+    console.error('[culqi] card not saved:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
 /**
- * Subscribe with a card token from Culqi Checkout: save the card, charge the
- * first month and give the credits. Also for a business whose plan ended.
+ * Subscribe with a card token from Culqi Checkout: charge the first month
+ * (3D Secure when the bank asks: 'needs_3ds', then the same call with its
+ * result), save the card and give the credits. Also for a business whose plan ended.
  */
-export async function subscribeCulqi(input: { workspaceId: string; tokenId: unknown; overageLimit?: unknown }): Promise<Result> {
+export async function subscribeCulqi(input: { workspaceId: string; tokenId: unknown; overageLimit?: unknown } & CardPresent): Promise<Result> {
   const cfg = culqiConfig()
   if (!cfg) return { ok: false, error: 'gateway_not_configured' }
-  if (typeof input.tokenId !== 'string') return { ok: false, error: 'invalid_token' }
+  if (typeof input.tokenId !== 'string' || !/^tkn_(test|live)_[A-Za-z0-9]+$/.test(input.tokenId)) return { ok: false, error: 'invalid_token' }
   const pricing = await planPricing()
   const overageLimit = input.overageLimit === undefined || input.overageLimit === null ? defaultOverageLimit(pricing) : validOverageLimit(input.overageLimit, pricing)
   if (!overageLimit) return { ok: false, error: 'invalid_limit' }
@@ -123,12 +146,10 @@ export async function subscribeCulqi(input: { workspaceId: string; tokenId: unkn
   if (!who) return { ok: false, error: 'billing_profile_incomplete' }
 
   let customerId = current?.provider === PROVIDER ? current.customer_id : null
-  let card
   try {
     if (!customerId) customerId = (await createCustomer(cfg, who)).id
-    card = await createCard(cfg, customerId, input.tokenId)
   } catch (err) {
-    console.error('[culqi] card failed:', err instanceof Error ? err.message : err)
+    console.error('[culqi] customer failed:', err instanceof Error ? err.message : err)
     return { ok: false, ...failure(err) }
   }
 
@@ -137,17 +158,23 @@ export async function subscribeCulqi(input: { workspaceId: string; tokenId: unkn
   let charge
   try {
     charge = await chargeCard(cfg, {
-      cardId: card.id,
+      sourceId: input.tokenId,
       amountCents: priceCents,
       currency: 'PEN',
       email: who.email,
       description: `Whasalia - plan ${tokens} creditos`,
       metadata: { workspace_id: input.workspaceId, kind: 'subscription_create' },
+      payer: who,
+      deviceId: input.deviceId,
+      authentication3DS: input.authentication3DS,
     })
   } catch (err) {
+    // The bank wants the cardholder: the browser authenticates and sends the same request again.
+    if (needs3DS(err) && !input.authentication3DS) return { ok: false, error: 'needs_3ds', amountCents: priceCents }
     console.error('[culqi] first charge failed:', err instanceof Error ? err.message : err)
     return { ok: false, ...failure(err) }
   }
+  const card = await saveCard(cfg, customerId, input.tokenId)
 
   const now = new Date()
   const periodEnd = addMonth(now)
@@ -162,8 +189,8 @@ export async function subscribeCulqi(input: { workspaceId: string; tokenId: unkn
     current_period_end: periodEnd,
     cancel_at_period_end: false,
     overage_limit: overageLimit,
-    card_id: card.id,
-    card_label: cardLabel(card),
+    card_id: card?.id ?? null,
+    card_label: card ? cardLabel(card) : null,
     renewing_at: null,
     last_error: null,
     updated_at: now,
@@ -173,26 +200,33 @@ export async function subscribeCulqi(input: { workspaceId: string; tokenId: unkn
   return { ok: true }
 }
 
-/** A new card for the plan. If the last renewal failed, it is charged right away. */
-export async function updateCulqiCard(workspaceId: string, tokenId: unknown, now = new Date()): Promise<Result<{ renewed: boolean }>> {
+/**
+ * A new card for the plan. When the last renewal failed ("Pay now"), the new
+ * card pays it right away (3D Secure when the bank asks, as when subscribing)
+ * and is saved once paid.
+ */
+export async function updateCulqiCard(workspaceId: string, tokenId: unknown, now = new Date(), present: CardPresent = {}): Promise<Result<{ renewed: boolean }>> {
   const cfg = culqiConfig()
   if (!cfg) return { ok: false, error: 'gateway_not_configured' }
-  if (typeof tokenId !== 'string') return { ok: false, error: 'invalid_token' }
+  if (typeof tokenId !== 'string' || !/^tkn_(test|live)_[A-Za-z0-9]+$/.test(tokenId)) return { ok: false, error: 'invalid_token' }
   const row = await prisma.token_subscriptions.findUnique({ where: { workspace_id: workspaceId } })
   if (!row || row.provider !== PROVIDER || !ACTIVE.has(row.status)) return { ok: false, error: 'not_subscribed' }
-  let card
-  try {
-    card = await createCard(cfg, row.customer_id, tokenId)
-  } catch (err) {
-    return { ok: false, ...failure(err) }
+  if (row.status !== 'past_due') {
+    let card
+    try {
+      card = await createCard(cfg, row.customer_id, tokenId)
+    } catch (err) {
+      return { ok: false, ...failure(err) }
+    }
+    await prisma.token_subscriptions.updateMany({ where: { workspace_id: workspaceId }, data: { card_id: card.id, card_label: cardLabel(card), updated_at: now } })
+    return { ok: true, renewed: false }
   }
-  await prisma.token_subscriptions.updateMany({
-    where: { workspace_id: workspaceId },
-    data: { card_id: card.id, card_label: cardLabel(card), updated_at: now, ...(row.status === 'past_due' ? { renewing_at: null } : {}) },
-  })
-  if (row.status !== 'past_due') return { ok: true, renewed: false }
-  const out = await renewOne(cfg, workspaceId, now)
-  return out === 'renewed' ? { ok: true, renewed: true } : { ok: false, error: 'payment_failed', detail: null }
+  // Paying now: no waiting for the daily retry (unless a charge started in the last minutes is still running).
+  await prisma.token_subscriptions.updateMany({ where: { workspace_id: workspaceId, renewing_at: { lt: new Date(now.getTime() - 5 * 60_000) } }, data: { renewing_at: null } })
+  const out = await renewOne(cfg, workspaceId, now, { tokenId, ...present })
+  if (out.outcome === 'renewed' || out.outcome === 'ended') return { ok: true, renewed: true }
+  if (out.outcome === 'needs_3ds') return { ok: false, error: 'needs_3ds', amountCents: out.amountCents }
+  return { ok: false, error: 'payment_failed', detail: out.detail ?? null }
 }
 
 /** Cancel at the end of the month (the extra credits used are charged then), or undo it. */
@@ -208,14 +242,14 @@ const NOTICE = {
   es: {
     failed: (date: string) => ({
       title: 'No pudimos cobrar tu plan',
-      body: `Tu tarjeta rechazó el cobro del plan. Lo intentaremos de nuevo cada día; actualiza tu tarjeta en Configuración → Tokens antes del ${date} para no perder el plan.`,
+      body: `Tu tarjeta rechazó el cobro del plan. Lo intentaremos de nuevo cada día; entra a Configuración → Tokens y usa «Pagar ahora» antes del ${date} para no perder el plan.`,
     }),
     ended: () => ({ title: 'Tu plan terminó', body: 'No pudimos cobrar el plan y volviste al plan gratis (1 cuenta por servicio). Suscríbete de nuevo cuando quieras.' }),
   },
   en: {
     failed: (date: string) => ({
       title: "We couldn't charge your plan",
-      body: `Your card declined the plan's charge. We'll retry every day; update your card in Settings → Tokens before ${date} to keep the plan.`,
+      body: `Your card declined the plan's charge. We'll retry every day; use "Pay now" in Settings → Tokens before ${date} to keep the plan.`,
     }),
     ended: () => ({ title: 'Your plan ended', body: "We couldn't charge the plan and you're back on the free plan (1 account per service). Subscribe again anytime." }),
   },
@@ -235,24 +269,32 @@ async function notify(workspaceId: string, kind: 'failed' | 'ended', graceEnd: D
   })
 }
 
+type Renewal = { outcome: 'renewed' | 'ended' | 'failed' | 'skipped' | 'needs_3ds'; amountCents?: number; detail?: string | null }
+
+/** Stored on the plan and shown when the bank wants the cardholder on a renewal nobody is there for. */
+const NEEDS_3DS_ERROR = 'Tu banco pide verificar este pago (3D Secure). Paga ahora con tu tarjeta para no perder el plan.'
+
 /**
  * Renews one plan whose month ended: closes the extra credits, charges plan +
  * extra in one charge and starts the next month; or, when it was canceled,
- * charges only the extra and ends it. Returns what happened.
+ * charges only the extra and ends it. `present` = the cardholder paying now
+ * with a new card token ("Pay now"): 3D Secure can be asked, and the card is
+ * saved once paid. Returns what happened.
  */
-async function renewOne(cfg: CulqiConfig, workspaceId: string, now: Date): Promise<'renewed' | 'ended' | 'failed' | 'skipped'> {
+async function renewOne(cfg: CulqiConfig, workspaceId: string, now: Date, present?: { tokenId: string } & CardPresent): Promise<Renewal> {
   // Claim it: two cron runs (or a card update) never charge twice; a failure waits RETRY_MS.
   const claimed = await prisma.token_subscriptions.updateMany({
     where: { workspace_id: workspaceId, provider: PROVIDER, OR: [{ renewing_at: null }, { renewing_at: { lt: new Date(now.getTime() - RETRY_MS) } }] },
     data: { renewing_at: now },
   })
-  if (!claimed.count) return 'skipped'
+  if (!claimed.count) return { outcome: 'skipped' }
   const row = await prisma.token_subscriptions.findUniqueOrThrow({ where: { workspace_id: workspaceId } })
-  if (!row.current_period_end || !row.card_id || !ACTIVE.has(row.status)) return 'skipped'
+  const release = () => prisma.token_subscriptions.updateMany({ where: { workspace_id: workspaceId }, data: { renewing_at: null } })
+  if (!row.current_period_end || !ACTIVE.has(row.status)) return { outcome: 'skipped' }
   const periodEnd = new Date(row.current_period_end)
   if (periodEnd.getTime() > now.getTime()) {
-    await prisma.token_subscriptions.updateMany({ where: { workspace_id: workspaceId }, data: { renewing_at: null } })
-    return 'skipped'
+    await release()
+    return { outcome: 'skipped' }
   }
 
   // The extra credits of the month(s) that ended, not charged yet.
@@ -265,24 +307,35 @@ async function renewOne(cfg: CulqiConfig, workspaceId: string, now: Date): Promi
   const extraCredits = pending.reduce((s, p) => s + p.credits_used, 0)
   const planCents = row.cancel_at_period_end ? 0 : row.price_cents
   const total = planCents + extraCents
-  const email = (await payer(workspaceId))?.email ?? 'facturacion@whasalia.com'
+  const who = await payer(workspaceId)
+  const email = who?.email ?? 'facturacion@whasalia.com'
 
   let chargeId: string | null = null
   if (total > 0) {
     try {
+      const sourceId = present?.tokenId ?? row.card_id
+      if (!sourceId) throw new CulqiError('No saved card', 400, 'card_error', 'no_card', null, 'No hay una tarjeta guardada.')
       const charge = await chargeCard(cfg, {
-        cardId: row.card_id,
+        sourceId,
         amountCents: total,
         currency: 'PEN',
         email,
         description: planCents ? `Whasalia - plan${extraCredits ? ` + ${extraCredits} creditos adicionales` : ''}` : `Whasalia - ${extraCredits} creditos adicionales`,
         metadata: { workspace_id: workspaceId, kind: planCents ? 'subscription_cycle' : 'final', extra_credits: String(extraCredits) },
+        payer: who,
+        deviceId: present?.deviceId,
+        authentication3DS: present?.authentication3DS,
       })
       chargeId = charge.id
     } catch (err) {
+      // The cardholder is here: authenticate in the browser and try again (nothing changes meanwhile).
+      if (present && needs3DS(err) && !present.authentication3DS) {
+        await release()
+        return { outcome: 'needs_3ds', amountCents: total }
+      }
       const graceEnd = new Date(periodEnd.getTime() + GRACE_MS)
-      const msg = err instanceof Error ? err.message : String(err)
-      console.error(`[culqi] renewal for ${workspaceId} failed:`, msg)
+      const msg = needs3DS(err) && !present ? NEEDS_3DS_ERROR : err instanceof Error ? err.message : String(err)
+      console.error(`[culqi] renewal for ${workspaceId} failed:`, err instanceof Error ? err.message : err)
       const over = now.getTime() >= graceEnd.getTime()
       // Canceled plans don't get retries for the extra: they end now.
       const ends = over || row.cancel_at_period_end
@@ -292,7 +345,7 @@ async function renewOne(cfg: CulqiConfig, workspaceId: string, now: Date): Promi
       })
       if (ends && !row.cancel_at_period_end) await notify(workspaceId, 'ended', graceEnd).catch(() => {})
       else if (row.status !== 'past_due' && !ends) await notify(workspaceId, 'failed', graceEnd).catch(() => {})
-      return ends ? 'ended' : 'failed'
+      return { outcome: ends ? 'ended' : 'failed', detail: err instanceof CulqiError ? (err.userMessage ?? err.message) : null }
     }
     if (pending.length) {
       await prisma.subscription_overage_periods.updateMany({
@@ -300,6 +353,11 @@ async function renewOne(cfg: CulqiConfig, workspaceId: string, now: Date): Promi
         data: { invoice_id: chargeId },
       })
     }
+  }
+  // Paid with a new card: it becomes the plan's card.
+  if (present) {
+    const card = await saveCard(cfg, row.customer_id, present.tokenId)
+    if (card) await prisma.token_subscriptions.updateMany({ where: { workspace_id: workspaceId }, data: { card_id: card.id, card_label: cardLabel(card) } })
   }
 
   if (row.cancel_at_period_end) {
@@ -309,7 +367,7 @@ async function renewOne(cfg: CulqiConfig, workspaceId: string, now: Date): Promi
       })
     }
     await prisma.token_subscriptions.updateMany({ where: { workspace_id: workspaceId }, data: { status: 'canceled', renewing_at: null, last_error: null, updated_at: now } })
-    return 'ended'
+    return { outcome: 'ended' }
   }
 
   const nextEnd = addMonth(periodEnd)
@@ -318,13 +376,13 @@ async function renewOne(cfg: CulqiConfig, workspaceId: string, now: Date): Promi
     data: { status: 'active', current_period_end: nextEnd, renewing_at: null, last_error: null, updated_at: now },
   })
   await applyPaidMonth({ workspaceId, chargeId: chargeId!, reason: 'subscription_cycle', tokens: row.tokens, amountCents: total, periodStart: periodEnd, periodEnd: nextEnd })
-  return 'renewed'
+  return { outcome: 'renewed' }
 }
 
 /** Billing cron: every Culqi plan whose month ended. */
 export async function renewCulqiSubscriptions(now = new Date()): Promise<Record<string, number>> {
   const cfg = culqiConfig()
-  const out: Record<string, number> = { renewed: 0, ended: 0, failed: 0, skipped: 0 }
+  const out: Record<string, number> = { renewed: 0, ended: 0, failed: 0, skipped: 0, needs_3ds: 0 }
   if (!cfg) return out
   const due = await prisma.token_subscriptions.findMany({
     where: { provider: PROVIDER, status: { in: [...ACTIVE] }, current_period_end: { lte: now } },
@@ -333,7 +391,7 @@ export async function renewCulqiSubscriptions(now = new Date()): Promise<Record<
   })
   for (const { workspace_id } of due) {
     try {
-      out[await renewOne(cfg, workspace_id, now)] += 1
+      out[(await renewOne(cfg, workspace_id, now)).outcome] += 1
     } catch (err) {
       // The claim stays: a charge may have gone through, so it is not retried before RETRY_MS (check Culqi's panel).
       console.error(`[culqi] renewal for ${workspace_id} crashed:`, err instanceof Error ? err.message : err)
