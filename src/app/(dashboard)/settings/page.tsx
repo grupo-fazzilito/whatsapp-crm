@@ -25,6 +25,7 @@ import { CalendlyCard } from '@/components/integrations/calendly/calendly-card';
 import { GoogleCalendarCard } from '@/components/integrations/google/google-calendar-card';
 import { ApiKeysCard } from '@/components/integrations/api/api-keys-card';
 import { WebhooksCard } from '@/components/integrations/api/webhooks-card';
+import { BackupCard } from '@/components/settings/backup-card';
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
@@ -106,6 +107,12 @@ export default function SettingsPage() {
             <CalendlyCard />
             <ApiKeysCard />
             <WebhooksCard />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="backup">
+            <BackupCard />
           </TabsContent>
         )}
       </Tabs>

@@ -100,5 +100,23 @@
       "tags": "Etiquetas",
       "appearance": "Apariencia"
     }
+  },
+  "backup": {
+    "tab": "Respaldo",
+    "title": "Respaldo de conversaciones",
+    "description": "Descarga todos los mensajes de tu negocio en un archivo CSV que se abre en Excel o Google Sheets: una fila por mensaje, con la fecha, el canal, el contacto, quién escribió y el texto.",
+    "from": "Desde",
+    "to": "Hasta",
+    "rangeHelp": "Deja las fechas vacías para descargar todo el historial. Las fechas usan la zona horaria de tu negocio.",
+    "internal": "Incluir notas internas del equipo",
+    "download": "Descargar CSV",
+    "downloading": "Preparando…",
+    "done": "Respaldo descargado.",
+    "media": "Los archivos (fotos, audios, documentos) van como enlace; para abrirlos hay que haber iniciado sesión en Whasalia.",
+    "errors": {
+      "invalid_dates": "Revisa las fechas: «Desde» no puede ser después de «Hasta».",
+      "too_many_attempts": "Ya descargaste varios respaldos en la última hora. Intenta de nuevo más tarde.",
+      "generic": "No pudimos generar el respaldo. Intenta de nuevo."
+    }
   }
 }
