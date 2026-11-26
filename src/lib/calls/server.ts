@@ -6,6 +6,8 @@ import type { LoadedChannel } from '@/lib/channels/types'
 import { findOrCreateContact, findOrCreateConversation } from '@/lib/messaging/ingest'
 import { recordEvent } from '@/lib/inbox/server'
 import { callAction, messagingTier, updateCallingSettings } from './meta'
+import { billAiCall, routeIncomingCall, stopVoiceCall } from './ai'
+import { normalizeCallAi, type CallAiConfig } from './ai-config'
 import { callingSettingsBody, finalStatus, formatDuration, isLive, type CallEvent, type CallingState, type CallStatus } from './model'
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -23,8 +25,10 @@ async function onConnect(channel: LoadedChannel, ev: Extract<CallEvent, { kind: 
     handle: ev.phone,
   })
   const conversation = contact ? await findOrCreateConversation(channel, contact.id) : null
+  let created: { id: string } | null = null
   try {
-    await db.whatsapp_calls.create({
+    created = await db.whatsapp_calls.create({
+      select: { id: true },
       data: {
         workspace_id: channel.workspace_id,
         channel_id: channel.id,
@@ -39,6 +43,8 @@ async function onConnect(channel: LoadedChannel, ev: Extract<CallEvent, { kind: 
     // Meta retried the webhook: the call is already ringing.
     if (!isPrismaError(err, 'P2002')) throw err
   }
+  // The AI may answer it (now or if nobody does), per the number's settings.
+  if (created) await routeIncomingCall(channel, created.id).catch((err) => console.error('[calls] AI routing failed:', message(err)))
 }
 
 /** The call ended (or was never picked up): close the row and leave it in the conversation. */
@@ -53,8 +59,20 @@ async function onTerminate(channel: LoadedChannel, ev: Extract<CallEvent, { kind
     where: { id: row.id, ended_at: null },
     data: { status, ended_at: ended, duration_seconds: duration, error: ev.error, sdp_offer: null, updated_at: new Date() },
   })
-  if (closed.count === 0 || !row.conversation_id) return
-  await logInConversation(channel.workspace_id, row.conversation_id, { status, duration, answeredBy: row.answered_by, callId: row.call_id, at: ended })
+  if (closed.count === 0) return
+  if (row.ai_agent_id) {
+    await stopVoiceCall(row.id)
+    await billAiCall(channel.workspace_id, row.id)
+  }
+  if (!row.conversation_id) return
+  await logInConversation(channel.workspace_id, row.conversation_id, {
+    status,
+    duration,
+    answeredBy: row.answered_by,
+    aiAgentId: status === 'completed' ? row.ai_agent_id : null,
+    callId: row.call_id,
+    at: ended,
+  })
 }
 
 function secondsBetween(from: Date | string | null, to: Date): number | null {
@@ -64,15 +82,22 @@ function secondsBetween(from: Date | string | null, to: Date): number | null {
 async function logInConversation(
   workspaceId: string,
   conversationId: string,
-  c: { status: CallStatus; duration: number | null; answeredBy: string | null; callId: string; at: Date },
+  c: { status: CallStatus; duration: number | null; answeredBy: string | null; aiAgentId?: string | null; callId: string; at: Date },
 ) {
   const db = tenantDb(workspaceId)
+  const agent = c.aiAgentId ? await db.ai_agents.findFirst({ where: { id: c.aiAgentId }, select: { name: true } }) : null
   await recordEvent({
     workspaceId,
     conversationId,
     type: 'call',
     fromUser: c.status === 'completed' ? c.answeredBy : null,
-    data: { status: c.status, duration: c.duration, call_id: c.callId, direction: 'inbound' },
+    data: {
+      status: c.status,
+      duration: c.duration,
+      call_id: c.callId,
+      direction: 'inbound',
+      ...(c.aiAgentId ? { ai_agent_id: c.aiAgentId, ai_agent_name: agent?.name ?? null } : {}),
+    },
   })
   const ws = await db.workspaces.findFirst({ where: { id: workspaceId }, select: { locale: true } })
   const en = ws?.locale === 'en'
@@ -287,7 +312,21 @@ export async function setCalling(
     updated_at: new Date().toISOString(),
   }
   const row = await db.channels.findFirst({ where: { id: channel.id }, select: { settings: true } })
-  const settings: Record<string, unknown> = { ...((row?.settings as Record<string, unknown>) ?? {}), calling: { ...state } }
+  const prev = (row?.settings as Record<string, unknown>) ?? {}
+  // Keep the AI answering settings (calling.ai) saved next to it.
+  const settings: Record<string, unknown> = { ...prev, calling: { ...((prev.calling as Record<string, unknown>) ?? {}), ...state } }
   await db.channels.updateMany({ where: { id: channel.id }, data: { settings: settings as Prisma.InputJsonObject } })
   return error ? { ok: false, error: 'provider', message: error, state } : { ok: true, state }
+}
+
+/** Saves who answers the calls (channels.settings.calling.ai). No Meta request: it applies to the next call. */
+export async function setCallAi(channel: LoadedChannel, raw: unknown): Promise<CallAiConfig> {
+  const ai = normalizeCallAi(raw)
+  const db = tenantDb(channel.workspace_id)
+  if (ai.agent_id && !(await db.ai_agents.findFirst({ where: { id: ai.agent_id }, select: { id: true } }))) ai.agent_id = null
+  const row = await db.channels.findFirst({ where: { id: channel.id }, select: { settings: true } })
+  const prev = (row?.settings as Record<string, unknown>) ?? {}
+  const calling = { ...((prev.calling as Record<string, unknown>) ?? {}), ai }
+  await db.channels.updateMany({ where: { id: channel.id }, data: { settings: { ...prev, calling } as unknown as Prisma.InputJsonObject } })
+  return ai
 }

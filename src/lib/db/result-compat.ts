@@ -123,6 +123,7 @@ export const resultCompat = Prisma.defineExtension({
     whatsapp_calls: {
       answered_at: { needs: { answered_at: true }, compute: (r) => r.answered_at === null ? null : r.answered_at.toISOString() },
       ended_at: { needs: { ended_at: true }, compute: (r) => r.ended_at === null ? null : r.ended_at.toISOString() },
+      billed_at: { needs: { billed_at: true }, compute: (r) => r.billed_at === null ? null : r.billed_at.toISOString() },
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
     },

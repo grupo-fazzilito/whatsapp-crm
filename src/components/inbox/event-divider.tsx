@@ -89,7 +89,9 @@ export function describeEvent(e: ConversationEvent, t: T, nameOf: (userId: strin
     case "call":
       text =
         data.status === "completed"
-          ? e.from_user
+          ? data.ai_agent_id
+            ? t("inboxpro.events.callAi", { agent: String(data.ai_agent_name ?? "IA"), duration: formatDuration(Number(data.duration ?? 0)) })
+            : e.from_user
             ? t("inboxpro.events.callAnswered", { actor, duration: formatDuration(Number(data.duration ?? 0)) })
             : t("inboxpro.events.callCompleted", { duration: formatDuration(Number(data.duration ?? 0)) })
           : data.status === "rejected"

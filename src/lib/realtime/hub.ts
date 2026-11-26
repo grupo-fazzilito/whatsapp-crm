@@ -62,8 +62,12 @@ async function dispatch(raw: string) {
   } else {
     const row = await loadRow(table, n.id)
     if (!row) return
-    // The WebRTC offer is fetched only by whoever answers the call.
-    if (table === 'whatsapp_calls') delete row.sdp_offer
+    // The WebRTC offer is fetched only by whoever answers the call; an AI
+    // call's transcript is read from the conversation note, not pushed.
+    if (table === 'whatsapp_calls') {
+      delete row.sdp_offer
+      delete row.ai_transcript
+    }
     change = { table, eventType: n.op, new: row, old: { id: n.id } }
   }
   for (const s of targets) if (audience(change, s)) s.send(change)

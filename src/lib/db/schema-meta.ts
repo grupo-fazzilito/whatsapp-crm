@@ -36,6 +36,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "orders": {
       "rel": "orders"
+    },
+    "whatsapp_calls": {
+      "rel": "whatsapp_calls"
     }
   },
   "ai_chat_logs": {
@@ -391,6 +394,7 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
   "whatsapp_calls": {
     "answered_at": "timestamp",
     "ended_at": "timestamp",
+    "billed_at": "timestamp",
     "created_at": "timestamp",
     "updated_at": "timestamp",
     "workspaces": {
@@ -398,6 +402,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "channels": {
       "rel": "channels"
+    },
+    "ai_agents": {
+      "rel": "ai_agents"
     },
     "conversations": {
       "rel": "conversations"
