@@ -256,7 +256,7 @@
     "description": "Whasalia is free forever with 1 account per service. The plan gives you credits every month, unlimited accounts, and extra credits if they run out, so the AI never stops.",
     "plan": "{n} credits a month",
     "planIncludes": "Unlimited accounts of every service · extra credits if they run out",
-    "perMonth": "/ month",
+    "perMonth": "/ month · IGV included",
     "current": "Your plan: {n} credits a month · {price} / month",
     "status": {
       "active": "Active.",
@@ -271,7 +271,7 @@
       "valueText": "Up to {n} extra credits, {price} at most",
       "credits": "Up to {n} extra credits if the plan's run out",
       "more": "Need more? Type the limit in credits:",
-      "help": "When the month's credits run out, the AI keeps going with extra credits at {price} per {n}. Only what you use is billed (prorated) on your next invoice. At the limit, the AI pauses.",
+      "help": "When the month's credits run out, the AI keeps going with extra credits at {price} per {n} (IGV included). Only what you use is billed (prorated) on your next invoice. At the limit, the AI pauses.",
       "used": "This month you used {n} extra credits: {price}, billed on your next invoice.",
       "none": "No extra credits used this month yet.",
       "save": "Save limit",
@@ -304,7 +304,7 @@
       "cancelBody": "It stays active until the end of the month. That day only the extra credits you used are charged and you go back to the free plan (1 account per service; extra accounts get 30 days before they disconnect).",
       "needDetails": "Fill in your billing details (ID, address, city and phone) to subscribe.",
       "pastDue": "We couldn't charge the renewal. We retry every day: change your card to keep the plan.",
-      "terms": "Card payment through Culqi, in soles. Every month the plan and the previous month's extra credits are charged together. Cancel anytime.",
+      "terms": "Card payment through Culqi, in soles. Prices include IGV (Peruvian sales tax). Every month the plan and the previous month's extra credits are charged together. Cancel anytime.",
       "done": {
         "subscribe": "Done! Your plan is active and your credits are ready.",
         "card": "Card updated.",

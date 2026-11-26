@@ -204,13 +204,13 @@
       "currencyUSD": "in US dollars"
     },
     "sub": {
-      "perMonth": "/ month for {n} credits",
+      "perMonth": "/ month for {n} credits · IGV included",
       "credits": "{n} credits a month for the AI and comment replies",
       "accounts": "Unlimited accounts of every service",
-      "extra": "If they run out, the AI keeps going: {price} per {n} extra credits, only what you use",
+      "extra": "If they run out, the AI keeps going: {price} per {n} extra credits (IGV included), only what you use",
       "limit": "You pick the extra usage limit; it's billed on the next month's invoice",
       "renews": "Monthly subscription: your credits renew every month and unused ones expire. Cancel anytime.",
-      "payment": "Card payment through Culqi, in soles."
+      "payment": "Card payment through Culqi, in soles. All prices include IGV."
     }
   }
 }
