@@ -20,9 +20,9 @@ export type CommentOutcome = 'no_rule' | 'duplicate' | 'skipped' | 'no_tokens' |
  * Answers one new comment with the first rule that matches it: a public
  * reply under the comment and/or a private message to its author, which
  * opens (or continues) their conversation in the inbox. Each comment is
- * handled once, and each person is answered once per post. With a token
- * subscription replies are unlimited and free; without one every answered
- * comment costs tokens ('comment_reply'), and with none left it is only logged.
+ * handled once, and each person is answered once per post. Every answered
+ * comment costs credits ('comment_reply'); a subscriber gets extra credits
+ * when they run out, anyone else is only logged once out of credits.
  */
 export async function handleComment(channel: LoadedChannel, ev: CommentEvent): Promise<CommentOutcome> {
   const db = tenantDb(channel.workspace_id)
@@ -49,8 +49,7 @@ export async function handleComment(channel: LoadedChannel, ev: CommentEvent): P
         select: { id: true },
       })
     : null
-  const unlimited = !answeredBefore && (await hasActiveSubscription(channel.workspace_id))
-  const hasTokens = answeredBefore || unlimited ? true : await canSpend(channel.workspace_id, 'comment_reply')
+  const hasTokens = answeredBefore ? true : await canSpend(channel.workspace_id, 'comment_reply')
 
   // Claim the comment first: Meta retries webhooks, and a retry must not reply twice.
   let row: { id: string }
@@ -111,7 +110,7 @@ export async function handleComment(channel: LoadedChannel, ev: CommentEvent): P
     data: { status, public_reply_id: publicReplyId, private_message_id: privateMessageId, conversation_id: conversationId, error: errors.join(' · ').slice(0, 500) || null },
   })
   if (status !== 'failed') {
-    if (!unlimited) await spend(channel.workspace_id, 'comment_reply', { conversationId })
+    await spend(channel.workspace_id, 'comment_reply', { conversationId })
     await db.comment_rules.updateMany({ where: { id: rule.id }, data: { replies_count: { increment: 1 }, last_triggered_at: new Date() } })
   }
   return status
@@ -169,10 +168,10 @@ export async function handleComments(channel: LoadedChannel, events: CommentEven
 export const COMMENT_CHANNEL_TYPES = ['instagram', 'messenger', 'tiktok'] as const
 
 /** Instagram, Facebook and TikTok accounts of the workspace (the ones rules can apply to). */
-/** What answering a comment costs this workspace: nothing with a subscription, else tokens from its balance. */
-export async function commentBilling(workspaceId: string): Promise<{ unlimited: boolean; cost: number; credits: number }> {
-  const [unlimited, settings, credits] = await Promise.all([hasActiveSubscription(workspaceId), getBillingSettings(), creditBalance(workspaceId)])
-  return { unlimited, cost: actionCost('comment_reply', settings), credits }
+/** What answering a comment costs this workspace, its balance, and whether the plan tops it up. */
+export async function commentBilling(workspaceId: string): Promise<{ subscribed: boolean; cost: number; credits: number }> {
+  const [subscribed, settings, credits] = await Promise.all([hasActiveSubscription(workspaceId), getBillingSettings(), creditBalance(workspaceId)])
+  return { subscribed, cost: actionCost('comment_reply', settings), credits }
 }
 
 export async function commentChannels(workspaceId: string) {

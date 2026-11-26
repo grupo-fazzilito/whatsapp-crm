@@ -1,4 +1,6 @@
 import 'server-only'
+import { closeStaleOverage, retryOverageBilling } from './overage'
+import { enforceAccountLimits } from './accounts'
 import crypto from 'node:crypto'
 import { prisma } from '@/lib/db/prisma'
 import type { Prisma } from '@/generated/prisma/client'
@@ -266,6 +268,19 @@ export async function runBillingCron(): Promise<{ checked: number; expiredLots: 
     } catch (err) {
       console.error('[billing] sync failed:', err instanceof Error ? err.message : err)
     }
+  }
+  // Extra credits of subscribers: months never closed, and invoice items to retry.
+  try {
+    await closeStaleOverage()
+    await retryOverageBilling()
+  } catch (err) {
+    console.error('[billing] overage cron failed:', err instanceof Error ? err.message : err)
+  }
+  // Free plan: one account per service (30 days to subscribe, then the extra ones disconnect).
+  try {
+    await enforceAccountLimits()
+  } catch (err) {
+    console.error('[billing] account limits failed:', err instanceof Error ? err.message : err)
   }
   let expired: number | null = null
   try {

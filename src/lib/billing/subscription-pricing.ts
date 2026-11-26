@@ -59,3 +59,31 @@ export function monthlyCents(tokens: number, p: SubscriptionPricing): number {
 export function formatUsdCents(cents: number): string {
   return `US$ ${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
+
+// One plan: base_price buys step_tokens credits a month. When they run out,
+// extra credits are handed out up to the business's limit and only the ones
+// used are billed, prorated at step_price per step_tokens (US$ 3 per 1,000:
+// 100 credits = US$ 0.30), on the next invoice.
+
+/** Extra-credit limit: the slider goes up to 9 × step_tokens; a business may type up to OVERAGE_MAX_STEPS. */
+export const OVERAGE_SLIDER_STEPS = 9
+export const OVERAGE_MAX_STEPS = 1000
+export const DEFAULT_OVERAGE_STEPS = 9
+
+/** Default extra-credit limit (9,000 credits). */
+export function defaultOverageLimit(p: SubscriptionPricing): number {
+  return DEFAULT_OVERAGE_STEPS * p.step_tokens
+}
+
+/** A valid extra-credit limit (whole steps, 1 to OVERAGE_MAX_STEPS), or null. */
+export function validOverageLimit(raw: unknown, p: SubscriptionPricing): number | null {
+  const n = typeof raw === 'string' ? Number(raw) : raw
+  if (typeof n !== 'number' || !Number.isInteger(n) || n < p.step_tokens || n > OVERAGE_MAX_STEPS * p.step_tokens || n % p.step_tokens !== 0) return null
+  return n
+}
+
+/** What `credits` extra credits cost, in cents (prorated, rounded to the cent). */
+export function overageCentsFor(credits: number, p: SubscriptionPricing): number {
+  if (credits <= 0 || p.step_tokens <= 0) return 0
+  return Math.round((credits * Math.round(p.step_price * 100)) / p.step_tokens)
+}

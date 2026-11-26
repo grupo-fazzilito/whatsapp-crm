@@ -145,6 +145,9 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
 
   try {
     if (!channel) throw new ChannelSendError('No channel connected for this conversation', 'not_configured')
+    if ((channel.settings as Record<string, unknown> | null)?.plan_disabled === true) {
+      throw new ChannelSendError('This account was disconnected: the free plan allows 1 account per service', 'not_configured')
+    }
     const recipient = await resolveRecipient(channel, conversation.contact_id)
     if (!recipient) throw new ChannelSendError(`Contact has no ${channel.type} identity`, 'unsupported')
     const outbound = channel.type === 'whatsapp' && content.type === 'template' ? await withTemplateCategory(channel, content) : content

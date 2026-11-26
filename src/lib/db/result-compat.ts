@@ -457,6 +457,7 @@ export const resultCompat = Prisma.defineExtension({
     workspaces: {
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at === null ? null : r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at === null ? null : r.updated_at.toISOString() },
+      extra_accounts_since: { needs: { extra_accounts_since: true }, compute: (r) => r.extra_accounts_since === null ? null : r.extra_accounts_since.toISOString() },
       plan_changed_at: { needs: { plan_changed_at: true }, compute: (r) => r.plan_changed_at.toISOString() },
     },
     platform_webhook_endpoints: {
@@ -520,8 +521,18 @@ export const resultCompat = Prisma.defineExtension({
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
       updated_at: { needs: { updated_at: true }, compute: (r) => r.updated_at.toISOString() },
     },
+    subscription_overage_grants: {
+      period_end: { needs: { period_end: true }, compute: (r) => r.period_end.toISOString() },
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+    },
+    subscription_overage_periods: {
+      period_end: { needs: { period_end: true }, compute: (r) => r.period_end.toISOString() },
+      closed_at: { needs: { closed_at: true }, compute: (r) => r.closed_at.toISOString() },
+    },
     subscription_invoices: {
       created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      period_start: { needs: { period_start: true }, compute: (r) => r.period_start === null ? null : r.period_start.toISOString() },
+      period_end: { needs: { period_end: true }, compute: (r) => r.period_end === null ? null : r.period_end.toISOString() },
     },
   },
 })

@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       settings,
       secrets,
     })
-    if (!created.ok) return back(request, { error: created.conflict ? 'conflict' : 'exchange' })
+    if (!created.ok) return back(request, { error: created.conflict ? 'conflict' : created.error === 'plan_limit' ? 'plan_limit' : 'exchange' })
   }
 
   // New comments and direct messages reach /api/webhooks/tiktok (one subscription per event type for the whole app).

@@ -5,18 +5,19 @@ import { Loader2 } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { SubscriptionPricing } from '@/lib/billing/subscription-pricing';
-import { SubscriptionCard, type SubscriptionView } from './subscription-card';
+import { SubscriptionCard, type OverageView, type SubscriptionView } from './subscription-card';
 
 interface Data {
   balance: number;
   subscription: SubscriptionView | null;
+  overage: OverageView | null;
   subscription_pricing: SubscriptionPricing;
   subscription_ready: boolean;
 }
 
 /**
  * Getting more tokens without leaving the page (opened from the low-balance
- * banner): subscribe, or move to a bigger monthly plan.
+ * banner): subscribe, or raise the extra-credit limit.
  */
 export function TopUpDialog({ open, onOpenChange, onPaid }: { open: boolean; onOpenChange: (open: boolean) => void; onPaid: () => void }) {
   const { t, locale } = useI18n();
@@ -52,6 +53,7 @@ export function TopUpDialog({ open, onOpenChange, onPaid }: { open: boolean; onO
           <SubscriptionCard
             pricing={data.subscription_pricing}
             subscription={data.subscription}
+            overage={data.overage}
             ready={data.subscription_ready}
             onChanged={() => {
               onPaid();

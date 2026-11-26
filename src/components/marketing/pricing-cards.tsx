@@ -6,15 +6,12 @@ import { SpotlightCard } from "@/components/marketing/spotlight-card";
 import { useI18n } from "@/i18n/client";
 import type { PublicPricing } from "@/lib/billing/plans";
 import { formatMoney } from "@/lib/regions";
-import { useState } from "react";
-import { TokenSlider } from "@/components/billing/token-slider";
-import { formatUsdCents } from "@/lib/billing/subscription-pricing";
+import { formatUsdCents, monthlyCents } from "@/lib/billing/subscription-pricing";
 
 /** The plan(s) plus the AI tokens card. Used on the home page and on /pricing. */
 export function PricingCards({ pricing }: { pricing: PublicPricing }) {
   const { t } = useI18n();
   const { credits } = pricing;
-  const [tokens, setTokens] = useState(Math.min(5 * pricing.subscription.step_tokens, pricing.subscription.max_tokens));
 
   return (
     <div className="space-y-6">
@@ -40,6 +37,10 @@ export function PricingCards({ pricing }: { pricing: PublicPricing }) {
                 <span className="text-xs text-[var(--m-text-muted)]">{t("mktPlans.plan.period")}</span>
               </div>
               <ul className="space-y-2.5 text-xs text-[var(--m-text-tertiary)]">
+                <li className="flex items-start gap-2">
+                  <Check className="size-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>{t("mktPlans.plan.accounts")}</span>
+                </li>
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <Check className="size-3.5 text-emerald-400 shrink-0 mt-0.5" />
@@ -69,11 +70,22 @@ export function PricingCards({ pricing }: { pricing: PublicPricing }) {
             </span>
             <h3 className="text-sm text-[var(--m-text-secondary)] font-semibold">{t("mktPlans.tokens.tagline")}</h3>
             <div className="flex items-baseline gap-1.5 py-2 border-y border-[var(--m-border-primary)]/50">
-              <span className="text-xs text-[var(--m-text-muted)]">{t("mktPlans.sub.from")}</span>
-              <span className="text-4xl font-extrabold text-[var(--m-text-heading)]">{formatUsdCents(Math.round(pricing.subscription.base_price * 100))}</span>
-              <span className="text-xs text-[var(--m-text-muted)]">{t("mktPlans.sub.perMonth")}</span>
+              <span className="text-4xl font-extrabold text-[var(--m-text-heading)]">{formatUsdCents(monthlyCents(pricing.subscription.step_tokens, pricing.subscription))}</span>
+              <span className="text-xs text-[var(--m-text-muted)]">{t("mktPlans.sub.perMonth", { n: pricing.subscription.step_tokens.toLocaleString("en-US") })}</span>
             </div>
-            <TokenSlider pricing={pricing.subscription} value={tokens} onChange={setTokens} tone="marketing" />
+            <ul className="space-y-2.5 text-xs text-[var(--m-text-tertiary)]">
+              {[
+                t("mktPlans.sub.credits", { n: pricing.subscription.step_tokens.toLocaleString("en-US") }),
+                t("mktPlans.sub.accounts"),
+                t("mktPlans.sub.extra", { price: formatUsdCents(Math.round(pricing.subscription.step_price * 100)), n: pricing.subscription.step_tokens.toLocaleString("en-US") }),
+                t("mktPlans.sub.limit"),
+              ].map((line) => (
+                <li key={line} className="flex items-start gap-2">
+                  <Check className="size-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
             {credits.welcome > 0 && (
               <p className="flex items-center gap-2 text-xs font-semibold text-emerald-400">
                 <Gift className="size-3.5 shrink-0" /> {t("mktPlans.tokens.welcome", { n: credits.welcome.toLocaleString("en-US") })}

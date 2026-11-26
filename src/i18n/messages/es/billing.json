@@ -84,7 +84,9 @@
         "usage": "Uso",
         "expiry": "Vencimiento",
         "reversal": "Reversión",
-        "adjustment": "Ajuste"
+        "adjustment": "Ajuste",
+        "overage": "Créditos adicionales",
+        "subscription": "Plan mensual"
       }
     },
     "errors": {
@@ -120,6 +122,21 @@
     },
     "dialog": {
       "balance": "Tu saldo actual es de {n} tokens."
+    },
+    "invoices": {
+      "title": "Facturas",
+      "description": "Cada mes: el plan y los créditos adicionales que usaste el mes anterior. Abre la factura para ver o descargar el detalle.",
+      "empty": "Todavía no tienes facturas.",
+      "date": "Fecha",
+      "detail": "Detalle",
+      "total": "Total",
+      "plan": "Plan: {n} créditos al mes",
+      "extra": "+ {n} créditos adicionales del mes anterior: {price}",
+      "reason": {
+        "update": "Cambio de plan",
+        "other": "Cargo"
+      },
+      "view": "Ver factura"
     }
   },
   "billingAdmin": {
@@ -227,43 +244,46 @@
     "disclaimer": "Estimación con tarifas de Meta para {market}: respuesta {service}, utilidad {utility}, marketing {marketing} por mensaje. Meta cobra según el país de cada cliente, no cobra dentro de la ventana gratuita de anuncios y la factura real está en tu WhatsApp Manager. No cuenta mensajes enviados desde la app WhatsApp Business."
   },
   "subscription": {
-    "title": "Suscripción de tokens de IA",
-    "description": "El CRM es gratis para siempre. Los tokens de IA se pagan con una suscripción mensual: elige cuántos quieres al mes.",
-    "slider": {
-      "label": "Tokens al mes",
-      "perMonth": "tokens / mes",
-      "price": "Precio mensual",
-      "month": "/ mes",
-      "valueText": "{n} tokens al mes, {price} al mes",
-      "formula": "Los primeros {first} tokens cuestan {base}; cada 1,000 más suman {step}."
-    },
-    "current": "Tu plan: {n} tokens al mes · {price} / mes",
+    "title": "Plan de créditos",
+    "description": "Whasalia es gratis para siempre con 1 cuenta por servicio. Con el plan tienes créditos cada mes, cuentas ilimitadas y créditos adicionales si se acaban, para que la IA nunca se detenga.",
+    "plan": "{n} créditos al mes",
+    "planIncludes": "Cuentas ilimitadas de cada servicio · créditos adicionales si se acaban",
+    "perMonth": "/ mes",
+    "current": "Tu plan: {n} créditos al mes · {price} / mes",
     "status": {
       "active": "Activa.",
-      "renewsOn": "Se renueva el {date}: ese día vuelves a tener tu cuota completa.",
+      "renewsOn": "Se renueva el {date}: ese día vuelves a tener tus créditos del mes.",
       "endsOn": "Cancelada: sigue activa hasta el {date}.",
       "pastDue": "No pudimos cobrar la renovación. Actualiza tu tarjeta en «Administrar pago».",
       "canceled": "Suscripción cancelada."
     },
+    "overage": {
+      "label": "Límite de consumo extra al mes",
+      "atMost": "adicionales como máximo",
+      "valueText": "Hasta {n} créditos adicionales, {price} como máximo",
+      "credits": "Hasta {n} créditos adicionales si se acaban los del plan",
+      "more": "¿Necesitas más? Escribe el límite en créditos:",
+      "help": "Cuando se acaban los créditos del mes, la IA sigue con créditos adicionales a {price} por cada {n}. Solo se cobra lo que uses (prorrateado) en tu próxima factura. Al llegar al límite, la IA se pausa.",
+      "used": "Este mes usaste {n} créditos adicionales: {price}, se cobran en tu próxima factura.",
+      "none": "Este mes aún no usas créditos adicionales.",
+      "save": "Guardar límite",
+      "saved": "Límite de consumo extra guardado"
+    },
     "subscribe": "Suscribirme por {price} / mes",
-    "change": "Cambiar a {price} / mes",
     "resume": "Reanudar suscripción",
-    "currentPlan": "Es tu plan actual",
+    "resumed": "Suscripción reanudada.",
     "manage": "Administrar pago o cancelar",
-    "upgradeNote": "Pagas ahora solo la diferencia por los días que quedan del mes y recibes los tokens extra al instante.",
-    "downgradeNote": "El plan más pequeño se aplica desde la próxima renovación; este mes conservas tus tokens.",
-    "upgraded": "Plan actualizado: ya tienes los tokens extra.",
-    "downgraded": "Plan cambiado: se aplica desde la próxima renovación.",
-    "subscribed": "¡Suscripción activa! Tus tokens ya están disponibles.",
-    "terms": "Pago con tarjeta a través de Stripe, en dólares. Cada mes se renueva tu cuota y los tokens no usados vencen. Cancela cuando quieras.",
+    "subscribed": "¡Suscripción activa! Tus créditos ya están disponibles.",
+    "terms": "Pago con tarjeta a través de Stripe, en dólares. Cada mes se renuevan tus créditos y los no usados vencen. Cancela cuando quieras.",
     "notReady": "Las suscripciones aún no están activas. Escríbenos y te ayudamos.",
     "errors": {
       "generic": "No pudimos completar la operación. Inténtalo de nuevo.",
-      "invalid_tokens": "Elige una cantidad válida de tokens.",
+      "invalid_limit": "Elige un límite válido (en miles de créditos).",
       "gateway_not_configured": "Las suscripciones aún no están activas.",
       "gateway_error": "Stripe no respondió. Inténtalo de nuevo.",
       "payment_failed": "Tu tarjeta rechazó el cobro. Actualízala en «Administrar pago».",
-      "not_subscribed": "No tienes una suscripción activa."
+      "not_subscribed": "No tienes una suscripción activa.",
+      "already_subscribed": "Ya tienes el plan activo."
     }
   }
 }

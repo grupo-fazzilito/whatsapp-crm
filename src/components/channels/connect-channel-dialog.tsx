@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ArrowLeft, ExternalLink, Info, Loader2 } from 'lucide-react';
@@ -38,11 +39,13 @@ interface Props {
   features: ChannelFeatures;
   agents: AgentOption[];
   onCreated: () => void;
+  /** Free plan: services that already have their one account (empty with unlimited accounts). */
+  usedTypes?: string[];
 }
 
 export const PURPOSE_SUGGESTIONS = ['attention', 'sales', 'marketing', 'support'] as const;
 
-export function ConnectChannelDialog({ open, onOpenChange, features, agents, onCreated }: Props) {
+export function ConnectChannelDialog({ open, onOpenChange, features, agents, onCreated, usedTypes = [] }: Props) {
   const t = useT();
   const [step, setStep] = useState<Step>({ kind: 'pick' });
   const [saving, setSaving] = useState(false);
@@ -123,7 +126,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
         close(false);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('common.error'));
+      toast.error(err instanceof Error ? (err.message === 'plan_limit' ? t('channels.plan.limitError') : err.message) : t('common.error'));
     } finally {
       setSaving(false);
     }
@@ -141,10 +144,19 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
               <DialogTitle>{t('channels.connect.title')}</DialogTitle>
               <DialogDescription>{t('channels.connect.description')}</DialogDescription>
             </DialogHeader>
+            {usedTypes.length > 0 && (
+              <p className="rounded-md bg-muted/50 p-2.5 text-xs text-muted-foreground">
+                {t('channels.plan.dialogNote')}{' '}
+                <Link href="/settings?tab=billing" className="font-medium text-primary underline underline-offset-2">
+                  {t('channels.plan.subscribe')}
+                </Link>
+              </p>
+            )}
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {CHANNEL_ORDER.map((ct) => {
                 const s = CHANNEL_STYLE[ct];
-                const disabled = ct === 'tiktok' && !tiktokAvailable;
+                const limited = usedTypes.includes(ct);
+                const disabled = limited || (ct === 'tiktok' && !tiktokAvailable);
                 return (
                   <button
                     key={ct}
@@ -162,7 +174,7 @@ export function ConnectChannelDialog({ open, onOpenChange, features, agents, onC
                     <span className="min-w-0">
                       <span className="block text-sm font-medium text-foreground">{t(`channels.type.${ct}`)}</span>
                       <span className="block text-xs text-muted-foreground">
-                        {disabled ? t('channels.tiktok.soon') : t(`channels.typeHint.${ct}`)}
+                        {limited ? t('channels.plan.oneAccount') : disabled ? t('channels.tiktok.soon') : t(`channels.typeHint.${ct}`)}
                       </span>
                     </span>
                   </button>

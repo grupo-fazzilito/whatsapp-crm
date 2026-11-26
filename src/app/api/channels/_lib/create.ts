@@ -6,6 +6,7 @@ import { loadChannel, saveChannelSecrets } from '@/lib/channels/store'
 import { refreshMarketingState } from '@/lib/whatsapp/marketing-server'
 import type { ChannelRow, ChannelType } from '@/lib/channels/types'
 import { PUBLIC_SELECT, isUniqueViolation } from './shared'
+import { PLAN_LIMIT, canAddChannel } from '@/lib/billing/accounts'
 
 export interface NewChannel {
   workspaceId: string
@@ -27,9 +28,13 @@ export type CreateResult =
   | { ok: false; conflict: true }
   | { ok: false; conflict: false; error: string }
 
-/** Inserts the channel (service role, explicit workspace) and its encrypted secrets. */
+/**
+ * Inserts the channel (service role, explicit workspace) and its encrypted
+ * secrets. On the free plan only one account per service: `error: 'plan_limit'`.
+ */
 export async function insertChannel(input: NewChannel): Promise<CreateResult> {
   const db = tenantDb(input.workspaceId)
+  if (!(await canAddChannel(input.workspaceId, input.type))) return { ok: false, conflict: false, error: PLAN_LIMIT }
   let data: unknown
   try {
     data = await db.channels.create({

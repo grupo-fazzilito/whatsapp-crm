@@ -1,7 +1,7 @@
 'use client';
 
 import { Bot, EllipsisVertical, ListTree, Pencil, Power, Trash2, TriangleAlert } from 'lucide-react';
-import { useT } from '@/i18n/client';
+import { useI18n, useT } from '@/i18n/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,10 +37,18 @@ interface Props {
   onEditMenu: () => void;
   onToggleStatus: () => void;
   onDelete: () => void;
+  /**
+   * Free plan (1 account per service), when the business has more than one of
+   * this service: main = the first connected; the others get disconnected on
+   * `disconnectOn`, or already were (`disabled`).
+   */
+  plan?: { main: boolean; disconnectOn: string | null; disabled: boolean } | null;
 }
 
-export function ChannelCard({ channel, agents, isAdmin, origin, onAgentChange, onEdit, onEditMenu, onToggleStatus, onDelete }: Props) {
+export function ChannelCard({ channel, agents, isAdmin, origin, onAgentChange, onEdit, onEditMenu, onToggleStatus, onDelete, plan }: Props) {
   const t = useT();
+  const { locale } = useI18n();
+  const longDate = (iso: string) => new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-PE', { dateStyle: 'long' }).format(new Date(iso));
   const style = CHANNEL_STYLE[channel.type];
   const agent = agents.find((a) => a.id === channel.ai_agent_id);
   const menu = readWelcomeMenu(channel.settings);
@@ -57,11 +65,17 @@ export function ChannelCard({ channel, agents, isAdmin, origin, onAgentChange, o
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="truncate text-sm font-semibold text-foreground">{channel.name}</h3>
               {channel.purpose && <Badge variant="secondary">{channel.purpose}</Badge>}
+              {plan?.main && <Badge className="bg-primary/10 text-primary">{t('channels.plan.main')}</Badge>}
             </div>
             <p className="truncate text-xs text-muted-foreground">
               {t(`channels.type.${channel.type}`)}
               {channel.display_handle ? ` · ${channel.display_handle}` : ''}
             </p>
+            {plan && !plan.main && (plan.disabled || plan.disconnectOn) && (
+              <p className={cn('mt-1 text-xs', plan.disabled ? 'text-destructive' : 'text-amber-700 dark:text-amber-300')}>
+                {plan.disabled ? t('channels.plan.disabled') : t('channels.plan.disconnectsOn', { date: longDate(plan.disconnectOn!) })}
+              </p>
+            )}
           </div>
           {isAdmin && (
             <DropdownMenu>

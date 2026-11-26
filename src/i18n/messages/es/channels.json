@@ -235,6 +235,18 @@
         "channelNote": "Responde desde tu cuenta personal a través de tu bot. Las respuestas salen con tu nombre.",
         "accountLink": "Enlace de tu cuenta"
       }
+    },
+    "plan": {
+      "main": "Principal",
+      "disabled": "Desconectada: el plan gratis permite 1 cuenta por servicio. Suscríbete para reconectarla.",
+      "disconnectsOn": "Se desconecta el {date} si no te suscribes (plan gratis: 1 cuenta por servicio).",
+      "banner": "El plan gratis permite 1 cuenta por servicio. Tus cuentas adicionales se desconectarán el {date}; la principal (la primera que conectaste) se mantiene. Suscríbete para conservarlas todas.",
+      "bannerSoon": "El plan gratis permite 1 cuenta por servicio. Tienes 30 días para suscribirte antes de que se desconecten las cuentas adicionales.",
+      "bannerDisabled": "Cuentas adicionales desconectadas: {count}. El plan gratis permite 1 por servicio; suscríbete para reconectarlas.",
+      "subscribe": "Ver plan",
+      "oneAccount": "Ya tienes 1 cuenta: el plan gratis permite 1 por servicio.",
+      "dialogNote": "En el plan gratis puedes conectar 1 cuenta de cada servicio. Con el plan, cuentas ilimitadas.",
+      "limitError": "El plan gratis permite 1 cuenta por servicio. Suscríbete al plan para conectar más."
     }
   }
 }

@@ -8,6 +8,7 @@ import { workspaceRegion } from '@/lib/regions-server'
 import { REGION_INFO } from '@/lib/regions'
 import { stripeConfig } from '@/lib/billing/stripe'
 import { getTokenSubscription } from '@/lib/billing/subscriptions'
+import { overageUsage, subscriptionInvoices } from '@/lib/billing/overage'
 
 /**
  * GET /api/billing (admins) → plan, balance, next expiry, prices, payer data,
@@ -27,8 +28,10 @@ export async function GET() {
   monthStart.setUTCDate(1)
   monthStart.setUTCHours(0, 0, 0, 0)
 
-  const [subscription, region, plan, balance, settings, gateway, account, lots, payments, ledger, usage] = await Promise.all([
+  const [subscription, overage, invoices, region, plan, balance, settings, gateway, account, lots, payments, ledger, usage] = await Promise.all([
     getTokenSubscription(ws).catch(() => null),
+    overageUsage(ws).catch(() => null),
+    subscriptionInvoices(ws).catch(() => []),
     workspaceRegion(ws),
     workspacePlan(ws),
     creditBalance(ws),
@@ -69,6 +72,10 @@ export async function GET() {
     gateway_ready: gatewayReady,
     // Tokens are sold by monthly subscription (Stripe, US$).
     subscription,
+    /** Extra credits used this period (subscribers), billed prorated on the next invoice. */
+    overage,
+    /** Paid subscription invoices, newest first, with the extra credits each one carried. */
+    invoices,
     subscription_pricing: settings.subscription,
     subscription_ready: !!stripeConfig(),
     account: account.data ?? null,

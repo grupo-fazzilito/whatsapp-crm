@@ -151,6 +151,10 @@
         "label": "País de facturación",
         "unset": "Sin asignar (se asigna al abrir Tokens)",
         "hint": "Define la moneda, los precios y la pasarela de pago de esta cuenta."
+      },
+      "unlimited": {
+        "label": "Cuentas ilimitadas sin plan (cortesía)",
+        "hint": "Puede conectar varias cuentas de cada servicio sin suscribirse. Los créditos de IA se siguen cobrando aparte."
       }
     },
     "menu": {

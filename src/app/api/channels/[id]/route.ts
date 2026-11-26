@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { PLAN_LIMIT, planDisabled, unlimitedAccounts } from '@/lib/billing/accounts'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { prisma } from '@/lib/db/prisma'
 import { tenantDb } from '@/lib/db/tenant'
@@ -70,6 +71,8 @@ export async function PATCH(request: Request, { params }: Params) {
     if (body.status !== 'connected' && body.status !== 'disconnected') {
       return bad("status must be 'connected' or 'disconnected'")
     }
+    // An account the free plan disconnected comes back only with the plan.
+    if (body.status === 'connected' && planDisabled(channel) && !(await unlimitedAccounts(wsId))) return bad(PLAN_LIMIT, 402)
     patch.status = body.status
     if (body.status === 'connected') patch.status_detail = null
   }
@@ -110,6 +113,9 @@ export async function PATCH(request: Request, { params }: Params) {
       if (welcomeMenu.value) next.welcome_menu = welcomeMenu.value
       else delete next.welcome_menu
     }
+    // Set only by the plan's limits, never from here.
+    if (planDisabled(channel)) next.plan_disabled = true
+    else delete next.plan_disabled
     patch.settings = next
   }
 

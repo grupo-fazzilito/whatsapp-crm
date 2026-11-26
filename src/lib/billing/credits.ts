@@ -5,6 +5,7 @@ import { normalizeRaw } from '@/lib/db/compat'
 import { actionCost, type BillableAction } from './pricing'
 import { getBillingSettings } from './settings'
 import { emitPlatformEvent } from '@/lib/webhooks/platform'
+import { overageRoom, topUpOverage } from './overage'
 
 // Credit checks and spending for AI actions. The AI asks `canSpend` before
 // calling a model and `spend` once the action produced something for the
@@ -74,9 +75,11 @@ export async function canSpend(workspaceId: string, action: BillableAction): Pro
     const settings = await getBillingSettings()
     const cost = actionCost(action, settings)
     if (!settings.enforce || cost <= 0) return true
-    const ok = (await creditBalance(workspaceId)) >= cost
-    if (!ok) await notifyBilling(workspaceId, 'depleted')
-    return ok
+    if ((await creditBalance(workspaceId)) >= cost) return true
+    // Subscribers get extra credits automatically, up to their limit.
+    if (await addOverage(workspaceId, cost)) return true
+    await notifyBilling(workspaceId, 'depleted')
+    return false
   } catch (err) {
     console.error('[billing] canSpend failed (allowing):', err instanceof Error ? err.message : err)
     return true
@@ -89,9 +92,14 @@ export async function spend(workspaceId: string, action: BillableAction, opts: {
     const settings = await getBillingSettings()
     const cost = actionCost(action, settings) * Math.max(1, Math.floor(opts.times ?? 1))
     if (cost <= 0) return null
+    // The action already happened: top up first so a subscriber's extra credits pay it whole.
+    if ((await creditBalance(workspaceId)) < cost) await addOverage(workspaceId, cost)
     const left = await spendCredits({ workspaceId, amount: cost, action, conversationId: opts.conversationId ?? null, partial: true, note: opts.note ?? null })
-    if (left < Math.max(1, Math.min(...Object.values(settings.action_costs).filter((c) => c > 0)))) await notifyBilling(workspaceId, 'depleted')
-    else if (left <= settings.low_credit_threshold) await notifyBilling(workspaceId, 'low', left)
+    const smallest = Math.max(1, Math.min(...Object.values(settings.action_costs).filter((c) => c > 0)))
+    if (left < smallest) {
+      // A subscriber under its extra limit gets more when an action needs them; anyone else is out.
+      if (!(await overageRoom(workspaceId))) await notifyBilling(workspaceId, 'depleted')
+    } else if (left <= settings.low_credit_threshold) await notifyBilling(workspaceId, 'low', left)
     return left
   } catch (err) {
     console.error(`[billing] spend ${action} failed:`, err instanceof Error ? err.message : err)
@@ -99,15 +107,29 @@ export async function spend(workspaceId: string, action: BillableAction, opts: {
   }
 }
 
+/** Extra credits for a subscriber short of `needed`; tells the admins the first time a month. True when it now has enough. */
+async function addOverage(workspaceId: string, needed: number): Promise<boolean> {
+  try {
+    const { added, first } = await topUpOverage(workspaceId, needed)
+    if (first) await notifyBilling(workspaceId, 'overage')
+    return added > 0
+  } catch (err) {
+    console.error('[billing] overage failed:', err instanceof Error ? err.message : err)
+    return false
+  }
+}
+
 const TEXTS = {
   es: {
-    low: (n: number) => ({ title: 'Te quedan pocos tokens de IA', body: `Quedan ${n} tokens. Elige o sube tu plan de tokens para que tus agentes de IA sigan respondiendo.` }),
-    depleted: () => ({ title: 'Se acabaron tus tokens de IA', body: 'Tus agentes de IA y las respuestas a comentarios están en pausa, y los mensajes llegan a la bandeja para tu equipo. Suscríbete a un plan de tokens para reactivarlos; con plan, los comentarios se responden sin límite.' }),
+    low: (n: number) => ({ title: 'Te quedan pocos créditos', body: `Quedan ${n} créditos. Con el plan, al acabarse sigue con créditos adicionales hasta tu límite de consumo extra; sin plan, la IA y las respuestas a comentarios se pausan.` }),
+    depleted: () => ({ title: 'Se acabaron tus créditos', body: 'Tus agentes de IA y las respuestas a comentarios están en pausa, y los mensajes llegan a la bandeja para tu equipo. Suscríbete al plan o sube tu límite de consumo extra en Configuración → Tokens para reactivarlos.' }),
+    overage: () => ({ title: 'Estás usando créditos adicionales', body: 'Se acabaron los créditos del mes y la IA sigue con créditos adicionales, hasta tu límite de consumo extra. Solo se cobra lo que uses, en tu próxima factura.' }),
     paid: (n: number) => ({ title: 'Recarga acreditada', body: `Se sumaron ${n} tokens a tu cuenta.` }),
   },
   en: {
-    low: (n: number) => ({ title: 'Your AI tokens are running low', body: `${n} tokens left. Pick or upgrade your token plan so your AI agents keep replying.` }),
-    depleted: () => ({ title: 'You are out of AI tokens', body: 'Your AI agents and comment replies are paused, and messages go to your team inbox. Subscribe to a token plan to turn them back on; with a plan, comments are answered without limits.' }),
+    low: (n: number) => ({ title: 'Your credits are running low', body: `${n} credits left. With the plan, it keeps going with extra credits up to your extra usage limit; without it, the AI and comment replies pause.` }),
+    depleted: () => ({ title: 'You are out of credits', body: 'Your AI agents and comment replies are paused, and messages go to your team inbox. Subscribe to the plan or raise your extra usage limit in Settings → Tokens to turn them back on.' }),
+    overage: () => ({ title: 'You are using extra credits', body: "The month's credits ran out and the AI keeps going with extra credits, up to your extra usage limit. Only what you use is billed, on your next invoice." }),
     paid: (n: number) => ({ title: 'Top-up credited', body: `${n} tokens were added to your account.` }),
   },
 }
@@ -116,10 +138,10 @@ const TEXTS = {
  * Notifies the workspace's owners/admins. 'low' and 'depleted' fire once
  * until the next top-up (marks in billing_accounts, reset by grant_credits).
  */
-export async function notifyBilling(workspaceId: string, kind: 'low' | 'depleted' | 'paid', credits = 0): Promise<void> {
+export async function notifyBilling(workspaceId: string, kind: 'low' | 'depleted' | 'paid' | 'overage', credits = 0): Promise<void> {
   try {
     const db = tenantDb(workspaceId)
-    if (kind !== 'paid') {
+    if (kind === 'low' || kind === 'depleted') {
       const column = kind === 'low' ? 'low_notified_at' : 'depleted_notified_at'
       await db.billing_accounts.createMany({ data: [{ workspace_id: workspaceId }], skipDuplicates: true })
       // Claim the mark atomically so concurrent replies notify once.

@@ -151,6 +151,10 @@
         "label": "Billing country",
         "unset": "Not set (assigned when Tokens is opened)",
         "hint": "Sets this account’s currency, prices and payment gateway."
+      },
+      "unlimited": {
+        "label": "Unlimited accounts without the plan (courtesy)",
+        "hint": "Can connect several accounts of each service without subscribing. AI credits are still charged separately."
       }
     },
     "menu": {

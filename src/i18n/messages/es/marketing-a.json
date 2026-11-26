@@ -27,7 +27,7 @@
       },
       "comments": {
         "name": "Respuestas automáticas a comentarios",
-        "desc": "Cuando alguien comenta «precio» o «info» en tus publicaciones de Facebook o Instagram, Whasalia responde el comentario al instante y le escribe por privado; la conversación sigue en tu bandeja. Ilimitado con cualquier plan de tokens; sin plan, 1 token por comentario respondido."
+        "desc": "Cuando alguien comenta «precio» o «info» en tus publicaciones de Facebook o Instagram, Whasalia responde el comentario al instante y le escribe por privado; la conversación sigue en tu bandeja. 1 crédito por comentario respondido."
       },
       "broadcasts": {
         "name": "Difusiones con plantillas",
@@ -164,13 +164,14 @@
       "tagline": "Toda la plataforma, sin mensualidad.",
       "period": "/mes, para siempre",
       "cta": "Crear cuenta gratis",
-      "note": "Sin tarjeta y sin periodo de prueba."
+      "note": "Sin tarjeta y sin periodo de prueba.",
+      "accounts": "1 cuenta por servicio: 1 WhatsApp, 1 Instagram, 1 Facebook, 1 TikTok, 1 Telegram y 1 chat web"
     },
     "features": {
       "channels": "Bandeja compartida para WhatsApp, Instagram, Messenger, Telegram y chat web",
       "crm": "Contactos, embudos de venta, etiquetas y tareas",
       "automations": "Flujos, automatizaciones y difusiones con plantillas aprobadas por Meta",
-      "comments": "Respuestas automáticas a comentarios de Facebook e Instagram, ilimitadas con cualquier plan de tokens",
+      "comments": "Respuestas automáticas a comentarios de Facebook e Instagram, 1 crédito por comentario",
       "faqBot": "Bot de preguntas frecuentes con menús numerados, sin gastar tokens",
       "commerce": "Catálogo, pedidos y reservas",
       "calendars": "Google Calendar y Calendly para tus citas",
@@ -191,7 +192,7 @@
     },
     "costs": {
       "title": "¿Qué consume tokens?",
-      "subtitle": "Solo las acciones de IA, y los comentarios respondidos automáticamente si no tienes un plan de tokens. Todo lo demás es gratis.",
+      "subtitle": "Solo las acciones de IA y los comentarios respondidos automáticamente. Todo lo demás es gratis.",
       "action": "Acción de IA",
       "cost": "Costo",
       "free": "Si te quedas sin tokens, tus agentes de IA y las respuestas a comentarios se pausan, y los mensajes llegan a la bandeja para que tu equipo responda. Nada más se detiene."
@@ -203,9 +204,12 @@
       "currencyUSD": "en dólares (USD)"
     },
     "sub": {
-      "from": "desde",
-      "perMonth": "/ mes por 1,000 tokens",
-      "renews": "Suscripción mensual: cada mes se renueva tu cuota y los tokens no usados vencen. Cambia o cancela cuando quieras.",
+      "perMonth": "/ mes por {n} créditos",
+      "credits": "{n} créditos al mes para la IA y las respuestas a comentarios",
+      "accounts": "Cuentas ilimitadas de cada servicio",
+      "extra": "Si se acaban, la IA sigue: {price} por cada {n} créditos adicionales, solo lo que uses",
+      "limit": "Tú eliges el límite de consumo extra; se cobra en la factura del mes siguiente",
+      "renews": "Suscripción mensual: cada mes se renuevan tus créditos y los no usados vencen. Cancela cuando quieras.",
       "payment": "Pago con tarjeta a través de Stripe, en dólares."
     }
   }

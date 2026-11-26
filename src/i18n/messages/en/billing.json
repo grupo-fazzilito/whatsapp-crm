@@ -84,7 +84,9 @@
         "usage": "Usage",
         "expiry": "Expiry",
         "reversal": "Reversal",
-        "adjustment": "Adjustment"
+        "adjustment": "Adjustment",
+        "overage": "Extra credits",
+        "subscription": "Monthly plan"
       }
     },
     "errors": {
@@ -120,6 +122,21 @@
     },
     "dialog": {
       "balance": "Your current balance is {n} tokens."
+    },
+    "invoices": {
+      "title": "Invoices",
+      "description": "Every month: the plan and the extra credits you used the month before. Open an invoice to see or download it.",
+      "empty": "No invoices yet.",
+      "date": "Date",
+      "detail": "Detail",
+      "total": "Total",
+      "plan": "Plan: {n} credits a month",
+      "extra": "+ {n} extra credits from last month: {price}",
+      "reason": {
+        "update": "Plan change",
+        "other": "Charge"
+      },
+      "view": "View invoice"
     }
   },
   "billingAdmin": {
@@ -227,43 +244,46 @@
     "disclaimer": "Estimate with Meta rates for {market}: reply {service}, utility {utility}, marketing {marketing} per message. Meta bills by each customer's country, does not charge inside the free ad entry window, and the real invoice is in your WhatsApp Manager. Messages sent from the WhatsApp Business app are not counted."
   },
   "subscription": {
-    "title": "AI token subscription",
-    "description": "The CRM is free forever. AI tokens are paid with a monthly subscription: choose how many you want each month.",
-    "slider": {
-      "label": "Tokens per month",
-      "perMonth": "tokens / month",
-      "price": "Monthly price",
-      "month": "/ month",
-      "valueText": "{n} tokens a month, {price} a month",
-      "formula": "The first {first} tokens cost {base}; each extra 1,000 adds {step}."
-    },
-    "current": "Your plan: {n} tokens a month · {price} / month",
+    "title": "Credit plan",
+    "description": "Whasalia is free forever with 1 account per service. The plan gives you credits every month, unlimited accounts, and extra credits if they run out, so the AI never stops.",
+    "plan": "{n} credits a month",
+    "planIncludes": "Unlimited accounts of every service · extra credits if they run out",
+    "perMonth": "/ month",
+    "current": "Your plan: {n} credits a month · {price} / month",
     "status": {
       "active": "Active.",
-      "renewsOn": "Renews on {date}: that day your full quota is back.",
-      "endsOn": "Canceled: active until {date}.",
-      "pastDue": "We couldn’t charge the renewal. Update your card in “Manage billing”.",
+      "renewsOn": "Renews on {date}: that day you get your month's credits again.",
+      "endsOn": "Canceled: stays active until {date}.",
+      "pastDue": "We couldn't charge the renewal. Update your card in “Manage payment”.",
       "canceled": "Subscription canceled."
     },
+    "overage": {
+      "label": "Monthly extra usage limit",
+      "atMost": "extra at most",
+      "valueText": "Up to {n} extra credits, {price} at most",
+      "credits": "Up to {n} extra credits if the plan's run out",
+      "more": "Need more? Type the limit in credits:",
+      "help": "When the month's credits run out, the AI keeps going with extra credits at {price} per {n}. Only what you use is billed (prorated) on your next invoice. At the limit, the AI pauses.",
+      "used": "This month you used {n} extra credits: {price}, billed on your next invoice.",
+      "none": "No extra credits used this month yet.",
+      "save": "Save limit",
+      "saved": "Extra usage limit saved"
+    },
     "subscribe": "Subscribe for {price} / month",
-    "change": "Change to {price} / month",
     "resume": "Resume subscription",
-    "currentPlan": "This is your current plan",
-    "manage": "Manage billing or cancel",
-    "upgradeNote": "You pay now only the difference for the rest of this month and get the extra tokens right away.",
-    "downgradeNote": "The smaller plan applies from the next renewal; you keep this month’s tokens.",
-    "upgraded": "Plan updated: your extra tokens are ready.",
-    "downgraded": "Plan changed: it applies from the next renewal.",
-    "subscribed": "Subscription active! Your tokens are ready.",
-    "terms": "Card payment through Stripe, in US dollars. Your quota renews every month and unused tokens expire. Cancel anytime.",
-    "notReady": "Subscriptions aren’t active yet. Message us and we’ll help.",
+    "resumed": "Subscription resumed.",
+    "manage": "Manage payment or cancel",
+    "subscribed": "Subscription active! Your credits are ready.",
+    "terms": "Card payment through Stripe, in US dollars. Your credits renew every month and unused ones expire. Cancel anytime.",
+    "notReady": "Subscriptions aren't available yet. Write to us and we'll help.",
     "errors": {
-      "generic": "We couldn’t complete that. Please try again.",
-      "invalid_tokens": "Choose a valid number of tokens.",
-      "gateway_not_configured": "Subscriptions aren’t active yet.",
-      "gateway_error": "Stripe didn’t respond. Please try again.",
-      "payment_failed": "Your card declined the charge. Update it in “Manage billing”.",
-      "not_subscribed": "You don’t have an active subscription."
+      "generic": "We couldn't complete that. Please try again.",
+      "invalid_limit": "Pick a valid limit (in thousands of credits).",
+      "gateway_not_configured": "Subscriptions aren't available yet.",
+      "gateway_error": "Stripe didn't respond. Please try again.",
+      "payment_failed": "Your card declined the charge. Update it in “Manage payment”.",
+      "not_subscribed": "You don't have an active subscription.",
+      "already_subscribed": "You already have the plan."
     }
   }
 }

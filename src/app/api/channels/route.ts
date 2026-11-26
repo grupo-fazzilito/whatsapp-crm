@@ -20,6 +20,7 @@ import {
   subscribeWaba,
 } from './_lib/shared'
 import { insertChannel, type NewChannel } from './_lib/create'
+import { PLAN_LIMIT, accountsPlan } from '@/lib/billing/accounts'
 import { newWidgetKey, parseWebchatSettings, webchatHandle } from './_lib/webchat'
 
 /**
@@ -54,9 +55,11 @@ export async function GET() {
     return bad(err instanceof Error ? err.message : 'Failed to load channels', 500)
   }
 
-  const meta = await getMetaConfig()
+  const [meta, accounts] = await Promise.all([getMetaConfig(), accountsPlan(workspace.id)])
   return NextResponse.json({
     channels: data ?? [],
+    /** Free plan: 1 account per service; when the extra ones get disconnected. */
+    accounts,
     features: {
       metaOAuth: metaAppReady(meta),
       /** WhatsApp Embedded Signup (Facebook Login for Business configuration set). */
@@ -242,7 +245,7 @@ export async function POST(request: Request) {
 
   const result = await insertChannel(input)
   if (!result.ok) {
-    return result.conflict ? bad(CONFLICT_MESSAGE, 409) : bad(result.error, 500)
+    return result.conflict ? bad(CONFLICT_MESSAGE, 409) : result.error === PLAN_LIMIT ? bad(PLAN_LIMIT, 402) : bad(result.error, 500)
   }
   return NextResponse.json(
     { channel: result.channel, ...(verifyToken ? { verify_token: verifyToken } : {}) },
