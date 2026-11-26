@@ -256,7 +256,7 @@
     "description": "Whasalia es gratis para siempre con 1 cuenta por servicio. Con el plan tienes créditos cada mes, cuentas ilimitadas y créditos adicionales si se acaban, para que la IA nunca se detenga.",
     "plan": "{n} créditos al mes",
     "planIncludes": "Cuentas ilimitadas de cada servicio · créditos adicionales si se acaban",
-    "perMonth": "/ mes",
+    "perMonth": "/ mes · incluye IGV",
     "current": "Tu plan: {n} créditos al mes · {price} / mes",
     "status": {
       "active": "Activa.",
@@ -271,7 +271,7 @@
       "valueText": "Hasta {n} créditos adicionales, {price} como máximo",
       "credits": "Hasta {n} créditos adicionales si se acaban los del plan",
       "more": "¿Necesitas más? Escribe el límite en créditos:",
-      "help": "Cuando se acaban los créditos del mes, la IA sigue con créditos adicionales a {price} por cada {n}. Solo se cobra lo que uses (prorrateado) en tu próxima factura. Al llegar al límite, la IA se pausa.",
+      "help": "Cuando se acaban los créditos del mes, la IA sigue con créditos adicionales a {price} por cada {n} (incluye IGV). Solo se cobra lo que uses (prorrateado) en tu próxima factura. Al llegar al límite, la IA se pausa.",
       "used": "Este mes usaste {n} créditos adicionales: {price}, se cobran en tu próxima factura.",
       "none": "Este mes aún no usas créditos adicionales.",
       "save": "Guardar límite",
@@ -304,7 +304,7 @@
       "cancelBody": "Sigue activo hasta el fin del mes. Ese día se cobran solo los créditos adicionales que hayas usado y vuelves al plan gratis (1 cuenta por servicio; las cuentas adicionales tendrán 30 días antes de desconectarse).",
       "needDetails": "Completa tus datos de facturación (documento, dirección, ciudad y teléfono) para suscribirte.",
       "pastDue": "No pudimos cobrar la renovación. Lo intentamos de nuevo cada día: cambia tu tarjeta para no perder el plan.",
-      "terms": "Pago con tarjeta a través de Culqi, en soles. Cada mes se cobra el plan y los créditos adicionales del mes anterior en un solo cargo. Cancela cuando quieras.",
+      "terms": "Pago con tarjeta a través de Culqi, en soles. Los precios incluyen IGV. Cada mes se cobra el plan y los créditos adicionales del mes anterior en un solo cargo. Cancela cuando quieras.",
       "done": {
         "subscribe": "¡Listo! Tu plan está activo y tus créditos ya están disponibles.",
         "card": "Tarjeta actualizada.",

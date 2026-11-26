@@ -204,13 +204,13 @@
       "currencyUSD": "en dólares (USD)"
     },
     "sub": {
-      "perMonth": "/ mes por {n} créditos",
+      "perMonth": "/ mes por {n} créditos · incluye IGV",
       "credits": "{n} créditos al mes para la IA y las respuestas a comentarios",
       "accounts": "Cuentas ilimitadas de cada servicio",
-      "extra": "Si se acaban, la IA sigue: {price} por cada {n} créditos adicionales, solo lo que uses",
+      "extra": "Si se acaban, la IA sigue: {price} por cada {n} créditos adicionales (incluye IGV), solo lo que uses",
       "limit": "Tú eliges el límite de consumo extra; se cobra en la factura del mes siguiente",
       "renews": "Suscripción mensual: cada mes se renuevan tus créditos y los no usados vencen. Cancela cuando quieras.",
-      "payment": "Pago con tarjeta a través de Culqi, en soles."
+      "payment": "Pago con tarjeta a través de Culqi, en soles. Todos los precios incluyen IGV."
     }
   }
 }
