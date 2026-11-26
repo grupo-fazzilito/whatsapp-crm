@@ -294,7 +294,8 @@
       "already_subscribed": "You already have the plan.",
       "billing_profile_incomplete": "Fill in your billing details to subscribe.",
       "invalid_token": "We couldn't read the card. Please try again.",
-      "too_many_attempts": "Too many attempts. Wait a few minutes."
+      "too_many_attempts": "Too many attempts. Wait a few minutes.",
+      "needs_3ds": "Your bank wants to verify the payment. Try again."
     },
     "culqi": {
       "card": "Card: {card}",
@@ -303,14 +304,19 @@
       "cancelTitle": "Cancel the plan?",
       "cancelBody": "It stays active until the end of the month. That day only the extra credits you used are charged and you go back to the free plan (1 account per service; extra accounts get 30 days before they disconnect).",
       "needDetails": "Fill in your billing details (ID, address, city and phone) to subscribe.",
-      "pastDue": "We couldn't charge the renewal. We retry every day: change your card to keep the plan.",
+      "pastDue": "We couldn't charge the renewal. We retry every day; use \"Pay now\" to keep the plan.",
       "terms": "Card payment through Culqi, in soles. Prices include IGV (Peruvian sales tax). Every month the plan and the previous month's extra credits are charged together. Cancel anytime.",
       "done": {
         "subscribe": "Done! Your plan is active and your credits are ready.",
         "card": "Card updated.",
         "cancel": "Plan canceled: it stays active until the end of the month.",
-        "resume": "Plan resumed."
-      }
+        "resume": "Plan resumed.",
+        "paid": "Payment received: your plan is active."
+      },
+      "payNow": "Pay now",
+      "verifying": "Your bank wants to verify the payment. Follow the steps in the bank's window.",
+      "verifyClosed": "You closed the bank's verification. Nothing was charged.",
+      "verifyFailed": "The bank couldn't verify the payment. Nothing was charged; try again or use another card."
     }
   }
 }

@@ -3,7 +3,8 @@ import 'server-only'
 // Culqi (Peru) — official REST API, server side with the secret key.
 //   POST /v2/customers   the business, once (Culqi asks for address, city, phone)
 //   POST /v2/cards       a card token from Culqi Checkout saved on the customer
-//   POST /v2/charges     charge the saved card (crd_…): no customer present
+//   POST /v2/charges     charge the card token (customer present, 3D Secure when the
+//                        bank asks) or the saved card (crd_…, the monthly renewal)
 //   GET  /v2/charges/:id read a charge back
 // The browser only ever sees the public key (Culqi Checkout turns the card
 // into a token there); card data never reaches our server. Test and live are
@@ -125,26 +126,86 @@ export interface CulqiCharge {
   outcome?: { type?: string; code?: string; merchant_message?: string; user_message?: string }
 }
 
+/** What Culqi3DS hands the browser once the bank authenticated the cardholder. */
+export interface Culqi3DSResult {
+  eci: string
+  xid?: string
+  cavv: string
+  protocolVersion: string
+  directoryServerTransactionId?: string
+}
+
+/** The 3DS result sent by the browser, with only Culqi's fields and sane lengths; null when it isn't one. */
+export function parse3DS(v: unknown): Culqi3DSResult | null {
+  if (!v || typeof v !== 'object') return null
+  const o = v as Record<string, unknown>
+  const str = (k: string, max: number) => (typeof o[k] === 'string' && (o[k] as string).length <= max ? (o[k] as string) : undefined)
+  const eci = str('eci', 4)
+  const cavv = str('cavv', 200)
+  const protocolVersion = str('protocolVersion', 20)
+  if (!eci || !cavv || !protocolVersion) return null
+  const out: Culqi3DSResult = { eci, cavv, protocolVersion }
+  const xid = str('xid', 200)
+  const ds = str('directoryServerTransactionId', 100)
+  if (xid) out.xid = xid
+  if (ds) out.directoryServerTransactionId = ds
+  return out
+}
+
+/** Culqi3DS.generateDevice() output: a UUID, or null. */
+export function parseDeviceId(v: unknown): string | null {
+  return typeof v === 'string' && /^[0-9a-f-]{16,64}$/i.test(v) ? v : null
+}
+
+/** The bank asks the cardholder to authenticate (3D Secure) before the charge. */
+export function needs3DS(err: unknown): err is CulqiError {
+  return err instanceof CulqiError && err.code === 'needs_3ds'
+}
+
 /**
- * Charges a saved card. Approved = HTTP 201 with outcome.type 'venta_exitosa'
- * (Culqi's `paid` stays false until the money settles, so it isn't used).
- * Anything else (a 3D Secure challenge included: we don't run one) is a failure.
+ * Charges a card token (tkn_…) or a saved card (crd_…). Approved = HTTP 201
+ * with outcome.type 'venta_exitosa' (Culqi's `paid` stays false until the
+ * money settles, so it isn't used). HTTP 200 with action_code 'REVIEW' means
+ * the bank wants 3D Secure: thrown as code 'needs_3ds'; the browser runs
+ * Culqi3DS on the token and the charge is sent again with `authentication3DS`
+ * (same source and device id).
  */
 export async function chargeCard(
   cfg: CulqiConfig,
-  input: { cardId: string; amountCents: number; currency: 'PEN' | 'USD'; email: string; description: string; metadata: Record<string, string> },
+  input: {
+    sourceId: string
+    amountCents: number
+    currency: 'PEN' | 'USD'
+    email: string
+    description: string
+    metadata: Record<string, string>
+    payer?: CulqiCustomerInput | null
+    deviceId?: string | null
+    authentication3DS?: Culqi3DSResult | null
+  },
 ): Promise<CulqiCharge> {
-  const { data, status } = await call<CulqiCharge>(cfg, 'POST', '/charges', {
+  if (!/^(tkn|crd)_(test|live)_[A-Za-z0-9]+$/.test(input.sourceId)) throw new CulqiError('Invalid card token', 400, 'invalid_request_error', 'invalid_token')
+  const who = input.payer ? customerPayload(input.payer) : null
+  const antifraud = {
+    ...(who ? { first_name: who.first_name, last_name: who.last_name, address: who.address, address_city: who.address_city, country_code: 'PE', phone_number: who.phone_number } : {}),
+    ...(input.deviceId ? { device_finger_print_id: input.deviceId } : {}),
+  }
+  const { data, status } = await call<CulqiCharge & { action_code?: string; user_message?: string }>(cfg, 'POST', '/charges', {
     amount: input.amountCents,
     currency_code: input.currency,
     email: input.email,
-    source_id: input.cardId,
+    source_id: input.sourceId,
     // Culqi limits the description to 80 characters.
     description: input.description.slice(0, 80),
     metadata: input.metadata,
+    ...(Object.keys(antifraud).length ? { antifraud_details: antifraud } : {}),
+    ...(input.authentication3DS ? { authentication_3DS: input.authentication3DS } : {}),
   })
+  if (status === 200 && data.action_code === 'REVIEW') {
+    throw new CulqiError('The bank asks for 3D Secure', 200, 'card_error', 'needs_3ds', null, data.user_message ?? null)
+  }
   if (status !== 201 || data.outcome?.type !== 'venta_exitosa') {
-    throw new CulqiError(data.outcome?.merchant_message ?? 'The charge needs a verification we do not support (3D Secure)', status, 'card_error', 'needs_3ds', null, data.outcome?.user_message ?? null)
+    throw new CulqiError(data.outcome?.merchant_message ?? 'The charge was not approved', status, 'card_error', 'not_approved', null, data.outcome?.user_message ?? null)
   }
   return data
 }
