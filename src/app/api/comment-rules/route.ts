@@ -3,15 +3,15 @@ import { NextResponse } from 'next/server'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { isUuid } from '@/lib/workspace/constants'
 import { parseRuleInput } from '@/lib/comments/model'
-import { fitRuleToChannel, commentChannels, listRules, recentReplies } from '@/lib/comments/server'
+import { commentBilling, fitRuleToChannel, commentChannels, listRules, recentReplies } from '@/lib/comments/server'
 
-/** GET /api/comment-rules — rules, the accounts they can use and the latest answered comments. */
+/** GET /api/comment-rules — rules, the accounts they can use, the latest answered comments and what a reply costs. */
 export async function GET() {
   const guard = await requireWorkspace()
   if (!guard.ok) return guard.response
   const ws = guard.ctx.workspace.id
-  const [rules, channels, replies] = await Promise.all([listRules(ws), commentChannels(ws), recentReplies(ws)])
-  return NextResponse.json({ rules, channels, replies, tiktokSandbox: tiktokSandbox() })
+  const [rules, channels, replies, billing] = await Promise.all([listRules(ws), commentChannels(ws), recentReplies(ws), commentBilling(ws)])
+  return NextResponse.json({ rules, channels, replies, billing, tiktokSandbox: tiktokSandbox() })
 }
 
 /** POST /api/comment-rules — new rule (admins). */

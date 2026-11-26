@@ -27,7 +27,7 @@
       },
       "comments": {
         "name": "Automatic comment replies",
-        "desc": "When someone comments “price” or “info” on your Facebook or Instagram posts, Whasalia replies to the comment instantly and messages them privately; the conversation continues in your inbox. 1 token per answered comment."
+        "desc": "When someone comments “price” or “info” on your Facebook or Instagram posts, Whasalia replies to the comment instantly and messages them privately; the conversation continues in your inbox. Unlimited with any token plan; without one, 1 token per answered comment."
       },
       "broadcasts": {
         "name": "Template broadcasts",
@@ -170,7 +170,7 @@
       "channels": "Shared inbox for WhatsApp, Instagram, Messenger, Telegram and web chat",
       "crm": "Contacts, sales pipelines, tags and tasks",
       "automations": "Flows, automations and broadcasts with Meta-approved templates",
-      "comments": "Automatic replies to Facebook and Instagram comments, 1 token per comment",
+      "comments": "Automatic replies to Facebook and Instagram comments, unlimited with any token plan",
       "faqBot": "FAQ bot with numbered menus, no tokens used",
       "commerce": "Catalog, orders and bookings",
       "calendars": "Google Calendar and Calendly for your appointments",
@@ -191,7 +191,7 @@
     },
     "costs": {
       "title": "What uses tokens?",
-      "subtitle": "Only AI actions and automatically answered comments. Everything else is free.",
+      "subtitle": "Only AI actions, and automatically answered comments if you don't have a token plan. Everything else is free.",
       "action": "AI action",
       "cost": "Cost",
       "free": "If you run out of tokens, your AI agents and comment replies pause and messages go to the inbox for your team to answer. Nothing else stops."

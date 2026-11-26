@@ -29,7 +29,8 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
     return json({ error: { message: 'unhandled' } }, 404)
   })
 
-  const { handleComment } = await import('./server')
+  const { handleComment, commentBilling } = await import('./server')
+  const { prisma } = await import('@/lib/db/prisma')
   const { creditBalance, spendCredits, grantCredits } = await import('@/lib/billing/credits')
   const { saveChannelSecrets, loadChannel } = await import('@/lib/channels/store')
   const ws = await pg.workspace()
@@ -145,5 +146,36 @@ describe.skipIf(!pg)('comment auto-replies', async () => {
     expect(await handleComment(await channel(), ev('C9', 'precio', 'U5'))).toBe('no_tokens')
     expect(calls.length).toBe(before)
     expect((await ws.db.comment_replies.findFirstOrThrow({ where: { comment_id: 'C9' } })).status).toBe('no_tokens')
+  })
+
+  it('answers without limits or charges while the workspace has a token subscription', async () => {
+    expect(await creditBalance(ws.workspaceId)).toBe(0)
+    await prisma.token_subscriptions.create({
+      data: {
+        workspace_id: ws.workspaceId,
+        customer_id: 'cus_test',
+        subscription_id: `sub_test_${ws.workspaceId}`,
+        tokens: 1000,
+        price_cents: 990,
+        status: 'active',
+        current_period_end: new Date(Date.now() + 20 * 86400_000),
+      },
+    })
+    expect(await commentBilling(ws.workspaceId)).toMatchObject({ unlimited: true, credits: 0 })
+    expect(await handleComment(await channel(), ev('C10', 'precio', 'SUB-U6'))).toBe('replied')
+    expect(await handleComment(await channel(), ev('C11', 'precio', 'SUB-U7'))).toBe('replied')
+    expect(await creditBalance(ws.workspaceId)).toBe(0)
+  })
+
+  it('charges again once the subscription is canceled or long past its period', async () => {
+    const where = { workspace_id: ws.workspaceId }
+    await prisma.token_subscriptions.update({ where, data: { status: 'canceled' } })
+    expect(await handleComment(await channel(), ev('C12', 'precio', 'SUB-U8'))).toBe('no_tokens')
+    await prisma.token_subscriptions.update({ where, data: { status: 'active', current_period_end: new Date(Date.now() - 5 * 86400_000) } })
+    expect(await handleComment(await channel(), ev('C13', 'precio', 'SUB-U9'))).toBe('no_tokens')
+    // A renewal being retried (past_due) within the grace days still counts.
+    await prisma.token_subscriptions.update({ where, data: { status: 'past_due', current_period_end: new Date(Date.now() - 86400_000) } })
+    expect(await handleComment(await channel(), ev('C14', 'precio', 'SUB-U10'))).toBe('replied')
+    expect(await commentBilling(ws.workspaceId)).toMatchObject({ unlimited: true })
   })
 })
