@@ -5,14 +5,8 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { zonedTimeToUtc } from '@/lib/bookings/reminders'
 import { backupStream } from '@/lib/backup/messages-csv'
 import { backupFileName } from '@/lib/backup/messages-format'
+import { isDay, nextDay } from '@/lib/backup/params'
 import { siteUrl } from '@/lib/real-estate/listing/url'
-
-const DAY = /^\d{4}-\d{2}-\d{2}$/
-
-function nextDay(day: string): string {
-  const [y, m, d] = day.split('-').map(Number)
-  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
-}
 
 /**
  * GET /api/backup/conversations?from=YYYY-MM-DD&to=YYYY-MM-DD&internal=1&lang=es (admins)
@@ -26,7 +20,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const from = url.searchParams.get('from') || null
   const to = url.searchParams.get('to') || null
-  if ((from && !DAY.test(from)) || (to && !DAY.test(to)) || (from && to && from > to)) {
+  if ((from && !isDay(from)) || (to && !isDay(to)) || (from && to && from > to)) {
     return NextResponse.json({ error: 'invalid_dates' }, { status: 400 })
   }
   // A full backup reads the whole history: a few per hour is plenty.
