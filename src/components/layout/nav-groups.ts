@@ -1,7 +1,7 @@
 // Pages that share one menu entry, listed in the page's inner menu on the
 // left (SectionNav), each with its own options as sub-options. The sidebar
 // marks the entry active on any of them.
-import { Coins, DatabaseBackup, Receipt, Factory, Clock, ListPlus, MessageSquare, Palette, Plug, Radio, Route, ShoppingBag, Store, Tag, User, Users, UsersRound, Zap, type LucideIcon } from 'lucide-react'
+import { Coins, DatabaseBackup, Receipt, Factory, Clock, ListPlus, MessageSquare, Plug, Route, ShoppingBag, Store, Tag, User, Users, UsersRound, Zap, type LucideIcon } from 'lucide-react'
 
 /** One option inside a page, opened with ?tab=<key> (the first one is the default). */
 export interface SubTab {
@@ -30,14 +30,11 @@ export function settingsTabs(ctx: Pick<NavContext, 't' | 'isAdmin'>): SubTab[] {
   return [
     { key: 'profile', label: ctx.t('settingsPage.tabs.profile'), icon: User },
     { key: 'team', label: ctx.t('team.tab'), icon: Users },
-    // Kept as 'whatsapp' so old /settings?tab=whatsapp links still land there.
-    { key: 'whatsapp', label: ctx.t('channels.navTitle'), icon: Radio },
+    { key: 'teams', label: ctx.t('inboxpro.teams.tab'), icon: UsersRound },
     { key: 'templates', label: ctx.t('settingsPage.tabs.templates'), icon: MessageSquare },
     { key: 'tags', label: ctx.t('settingsPage.tabs.tags'), icon: Tag },
     { key: 'custom-fields', label: ctx.t('crm.customFields.tab'), icon: ListPlus },
     { key: 'quick-replies', label: ctx.t('inboxpro.quickReplies.tab'), icon: Zap },
-    { key: 'teams', label: ctx.t('inboxpro.teams.tab'), icon: UsersRound },
-    { key: 'appearance', label: ctx.t('settingsPage.tabs.appearance'), icon: Palette },
     ...(ctx.isAdmin
       ? [
           { key: 'billing', label: ctx.t('billing.tab'), icon: Coins },
