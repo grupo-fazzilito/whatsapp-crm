@@ -97,7 +97,7 @@ export function MessengerBroadcastForm() {
     if (!res?.ok) {
       const code = body?.error as string | undefined;
       if (code === 'broadcast_limit') {
-        toast.error(t('bc.limit.blockedMessenger', { remaining: body.remaining ?? 0, limit: body.limit ?? 1000 }));
+        toast.error(t('bc.limit.blockedMessenger', { remaining: body.remaining ?? 0, limit: body.limit ?? 500 }));
         return;
       }
       toast.error(code && ['empty', 'not_connected', 'invalid_budget'].includes(code) ? t(`mm.form.errors.${code}`) : t('mm.form.errors.generic'));

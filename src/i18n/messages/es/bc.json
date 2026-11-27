@@ -189,12 +189,12 @@
       }
     },
     "limit": {
-      "usage": "Plan gratis: {used} de {limit} envíos de difusión este mes",
+      "usage": "Plan gratis: {used} de {limit} envíos de difusión en este ciclo",
       "upgrade": "Envíos ilimitados con el plan",
-      "help": "Cada contacto que recibe una difusión cuenta como un envío (WhatsApp y Messenger). El conteo vuelve a cero el {date}.",
-      "out": "Llegaste al límite del mes. Suscríbete al plan para seguir enviando, o espera al {date}.",
-      "blocked": "Esta difusión va a {requested} contactos y en el plan gratis te quedan {remaining} de {limit} envíos este mes. Elige menos contactos o suscríbete al plan para enviar sin límite.",
-      "blockedMessenger": "En el plan gratis te quedan {remaining} de {limit} envíos de difusión este mes. Elige menos contactos o suscríbete al plan para enviar sin límite."
+      "help": "Cada contacto que recibe una difusión cuenta como un envío (WhatsApp y Messenger). El conteo vuelve a cero el {date}, cada mes en la fecha en que creaste tu cuenta.",
+      "out": "Llegaste al límite de este ciclo. Suscríbete al plan para seguir enviando, o espera al {date}.",
+      "blocked": "Esta difusión va a {requested} contactos y en el plan gratis te quedan {remaining} de {limit} envíos en este ciclo. Elige menos contactos o suscríbete al plan para enviar sin límite.",
+      "blockedMessenger": "En el plan gratis te quedan {remaining} de {limit} envíos de difusión en este ciclo. Elige menos contactos o suscríbete al plan para enviar sin límite."
     }
   }
 }

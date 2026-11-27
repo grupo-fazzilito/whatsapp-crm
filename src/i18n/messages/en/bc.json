@@ -189,12 +189,12 @@
       }
     },
     "limit": {
-      "usage": "Free plan: {used} of {limit} broadcast sends this month",
+      "usage": "Free plan: {used} of {limit} broadcast sends this cycle",
       "upgrade": "Unlimited sends with the plan",
-      "help": "Each contact that gets a broadcast counts as one send (WhatsApp and Messenger). The count resets on {date}.",
-      "out": "You've reached this month's limit. Subscribe to keep sending, or wait until {date}.",
-      "blocked": "This broadcast goes to {requested} contacts and the free plan has {remaining} of {limit} sends left this month. Pick fewer contacts or subscribe to send without limits.",
-      "blockedMessenger": "The free plan has {remaining} of {limit} broadcast sends left this month. Pick fewer contacts or subscribe to send without limits."
+      "help": "Each contact that gets a broadcast counts as one send (WhatsApp and Messenger). The count resets on {date}, every month on the date you created your account.",
+      "out": "You've reached this cycle's limit. Subscribe to keep sending, or wait until {date}.",
+      "blocked": "This broadcast goes to {requested} contacts and the free plan has {remaining} of {limit} sends left this cycle. Pick fewer contacts or subscribe to send without limits.",
+      "blockedMessenger": "The free plan has {remaining} of {limit} broadcast sends left this cycle. Pick fewer contacts or subscribe to send without limits."
     }
   }
 }

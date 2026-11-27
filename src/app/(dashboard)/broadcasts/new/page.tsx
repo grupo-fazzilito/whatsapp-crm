@@ -60,7 +60,7 @@ export default function NewBroadcastPage() {
       const data = (err as { data?: { error?: string; remaining?: number; requested?: number; limit?: number } }).data;
       const message =
         data?.error === 'broadcast_limit'
-          ? t('bc.limit.blocked', { requested: data.requested ?? 0, remaining: data.remaining ?? 0, limit: data.limit ?? 1000 })
+          ? t('bc.limit.blocked', { requested: data.requested ?? 0, remaining: data.remaining ?? 0, limit: data.limit ?? 500 })
           : err instanceof Error
             ? err.message
             : t('bc.wizard.failed');
