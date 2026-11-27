@@ -136,7 +136,7 @@
       "reset": "New conversation",
       "cost": "Each test message uses {cost} token(s) · Balance: {balance}",
       "noCredits": "You have no tokens left to test the agent.",
-      "topup": "Top up",
+      "topup": "See plan",
       "thinking": "Typing…",
       "empty": "Ask something a customer would ask to see how it answers.",
       "handover": "The agent would hand the conversation to a team member.",

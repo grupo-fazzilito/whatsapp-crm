@@ -250,6 +250,9 @@ export interface InvoiceView {
   currency: string
   credits: number
   hosted_url: string | null
+  /** The month this charge pays for. */
+  period_start: string | null
+  period_end: string | null
   /** Extra credits of the previous month billed on this invoice. */
   overage_credits: number
   overage_cents: number
@@ -272,6 +275,8 @@ export async function subscriptionInvoices(workspaceId: string, take = 24): Prom
       currency: r.currency,
       credits: r.tokens,
       hosted_url: r.hosted_url,
+      period_start: r.period_start ? new Date(r.period_start).toISOString() : null,
+      period_end: r.period_end ? new Date(r.period_end).toISOString() : null,
       overage_credits: o?.credits_used ?? 0,
       overage_cents: o?.amount_cents ?? 0,
     }

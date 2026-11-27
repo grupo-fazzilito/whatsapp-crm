@@ -26,7 +26,7 @@
     "w": {
       "tokens": {
         "title": "AI tokens",
-        "desc": "Token balance, when they expire and a top-up button."
+        "desc": "Credit balance, when they expire and a link to your plan."
       },
       "connected_accounts": {
         "title": "Connected accounts",

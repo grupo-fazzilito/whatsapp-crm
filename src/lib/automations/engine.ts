@@ -352,7 +352,7 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       const { generateFollowup, loadFollowupInput } = await import('@/lib/ai/followup')
       const { LlmUnavailableError } = await import('@/lib/ai/llm')
       const { canSpend, spend } = await import('@/lib/billing/credits')
-      if (!(await canSpend(args.automation.workspace_id, 'followup'))) throw new Error('Sin créditos de IA: recarga para enviar seguimientos con IA')
+      if (!(await canSpend(args.automation.workspace_id, 'followup'))) throw new Error('Sin créditos de IA: revisa tu plan para enviar seguimientos con IA')
       let text: string
       try {
         text = await generateFollowup(

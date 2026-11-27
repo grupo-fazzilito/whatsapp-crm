@@ -2,7 +2,7 @@
   "billing": {
     "tab": "Tokens",
     "title": "AI tokens",
-    "subtitle": "Your AI agents spend tokens when they reply. Top up whenever you want — no monthly fee.",
+    "subtitle": "Your AI agents and comment replies spend credits. The monthly plan gives you new credits every month.",
     "balance": "Available tokens",
     "approxReplies": "≈ {n} AI replies",
     "nextExpiry": "{tokens} tokens expire on {date}",
@@ -43,7 +43,7 @@
     },
     "account": {
       "title": "Billing details",
-      "description": "Payment Latam requires them on every payment.",
+      "description": "We use them to charge your card and issue your receipt.",
       "docType": "Document",
       "docNumber": "Number",
       "legalName": "Name or company name",
@@ -118,7 +118,7 @@
       "title": "AI tokens",
       "replies": "≈ {n} AI replies",
       "expires": "{tokens} expire on {date}",
-      "topup": "Top up",
+      "topup": "See plan",
       "depleted": "Out of tokens: AI is paused",
       "low": "Running low"
     },
@@ -303,7 +303,7 @@
       "cancel": "Cancel plan",
       "cancelTitle": "Cancel the plan?",
       "cancelBody": "It stays active until the end of the month. That day only the extra credits you used are charged and you go back to the free plan (1 account per service; extra accounts get 30 days before they disconnect).",
-      "needDetails": "Fill in your billing details (ID, address, city and phone) to subscribe.",
+      "needDetails": "When you subscribe we'll ask for your billing details (ID, address, city and phone).",
       "pastDue": "We couldn't charge the renewal. We retry every day; use \"Pay now\" to keep the plan.",
       "terms": "Card payment through Culqi, in soles. Prices include IGV (Peruvian sales tax). Every month the plan and the previous month's extra credits are charged together. Cancel anytime.",
       "done": {
@@ -316,7 +316,48 @@
       "payNow": "Pay now",
       "verifying": "Your bank wants to verify the payment. Follow the steps in the bank's window.",
       "verifyClosed": "You closed the bank's verification. Nothing was charged.",
-      "verifyFailed": "The bank couldn't verify the payment. Nothing was charged; try again or use another card."
+      "verifyFailed": "The bank couldn't verify the payment. Nothing was charged; try again or use another card.",
+      "detailsTitle": "Your billing details",
+      "detailsBody": "We need them once to charge your card and issue your receipt. The payment opens next.",
+      "detailsContinue": "Save and continue to payment"
     }
+  },
+  "invoicing": {
+    "tab": "Billing",
+    "title": "Your plan and billing",
+    "description": "Which plan you have, when and how much is charged, and every charge made.",
+    "status": {
+      "none": "Free plan",
+      "active": "Active",
+      "canceling": "Cancels at the end of the month",
+      "pastDue": "Payment due",
+      "canceled": "Canceled"
+    },
+    "fields": {
+      "plan": "Plan",
+      "status": "Status",
+      "price": "Price",
+      "balance": "Available credits",
+      "expiry": "Next expiry",
+      "since": "Subscribed since",
+      "nextBilling": "Next billing date",
+      "endsOn": "Plan ends on",
+      "overage": "Extra credits this month",
+      "nextCharge": "Estimated next charge",
+      "card": "Card",
+      "lastError": "Last charge attempt"
+    },
+    "perMonthIgv": "a month (IGV included)",
+    "igv": "(IGV included)",
+    "credits": "{n} credits",
+    "seeUsage": "See usage",
+    "overageValue": "{n} of {limit} · {price}",
+    "receiptTo": "Receipts are issued to {name} ({doc}).",
+    "invoicesHelp": "Each monthly charge: the plan and the extra credits used the month before.",
+    "period": "Month paid",
+    "plan": "Plan",
+    "extra": "Extra",
+    "extraCredits": "+ {n} extra credits from the previous month",
+    "igvNote": "All amounts include IGV."
   }
 }

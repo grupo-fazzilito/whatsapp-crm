@@ -54,7 +54,7 @@
     "pricing": {
       "badge": "Precios",
       "title": "Gratis para siempre.",
-      "subtitle": "Toda la plataforma sin mensualidad. La IA se paga aparte, con tokens prepagados.",
+      "subtitle": "Empieza gratis con una cuenta de cada servicio. Con el plan mensual tienes cuentas ilimitadas y créditos para la IA cada mes.",
       "seeCosts": "Ver cuánto cuesta cada acción de IA →"
     },
     "faq": {
@@ -68,7 +68,7 @@
       "q3": "¿Necesito una cuenta de WhatsApp Business (WABA)?",
       "a3": "Sí. Para activar la automatización necesitas una cuenta de Meta Business verificada y un número de teléfono limpio. El equipo de soporte de Whasalia te acompaña en todo el proceso de verificación de Meta Business para establecer tu estatus oficial.",
       "q4": "¿Cuánto cuesta Whasalia?",
-      "a4": "Whasalia es gratis para siempre: un solo plan, Free Forever, con toda la plataforma. Solo pagas la IA, con tokens prepagados que recargas cuando quieras. Los mensajes de plantilla de WhatsApp los cobra Meta directamente a tu cuenta, sin recargo de Whasalia.",
+      "a4": "Puedes usar Whasalia gratis con una cuenta de cada servicio. El plan mensual (en soles, incluye IGV) te da cuentas ilimitadas y créditos para la IA cada mes; si se acaban, la IA sigue con créditos adicionales hasta el límite que elijas y se cobran en la factura siguiente. Los mensajes de plantilla de WhatsApp los cobra Meta directamente a tu cuenta; Whasalia no cobra comisión por ellos.",
       "q5": "¿Cómo resuelve consultas el asistente de IA?",
       "a5": "Puedes subir tus lineamientos, preguntas frecuentes y archivos de servicios directamente a la plataforma. Nuestra IA interpreta la intención del usuario, responde las consultas de tus clientes con base en tu base de conocimiento y avisa a los agentes humanos cuando se necesita intervenir manualmente."
     },

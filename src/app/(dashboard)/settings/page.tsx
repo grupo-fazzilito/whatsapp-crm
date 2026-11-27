@@ -21,6 +21,7 @@ import { TeamsManager } from '@/components/settings/teams-manager';
 import { useT } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { BillingPanel } from '@/components/billing/billing-panel';
+import { InvoicingPanel } from '@/components/billing/invoicing-panel';
 import { CalendlyCard } from '@/components/integrations/calendly/calendly-card';
 import { GoogleCalendarCard } from '@/components/integrations/google/google-calendar-card';
 import { ApiKeysCard } from '@/components/integrations/api/api-keys-card';
@@ -98,6 +99,12 @@ export default function SettingsPage() {
         {isAdmin && (
           <TabsContent value="billing">
             <BillingPanel />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="invoicing">
+            <InvoicingPanel />
           </TabsContent>
         )}
 

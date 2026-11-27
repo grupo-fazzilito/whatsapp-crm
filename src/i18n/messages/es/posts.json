@@ -143,7 +143,7 @@
     "errors": {
       "generic": "No se pudo completar. Inténtalo de nuevo.",
       "not_connected": "Falta conectar: {targets}.",
-      "no_credits": "No te quedan tokens de IA. Recarga en Facturación.",
+      "no_credits": "No te quedan créditos de IA. Revisa tu plan en Configuración → Tokens.",
       "no_provider": "La IA no está disponible ahora.",
       "upload": "No se pudo subir el archivo.",
       "tooLarge": "El archivo supera los 100 MB.",

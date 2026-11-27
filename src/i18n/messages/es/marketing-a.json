@@ -85,7 +85,7 @@
     "badge": "Precios",
     "titleLine1": "Whasalia es gratis.",
     "titleHighlight": "Pagas solo la IA.",
-    "subtitle": "Usa toda la plataforma sin mensualidad. Si activas agentes de IA, recargas tokens cuando los necesites."
+    "subtitle": "Empieza gratis. Cuando necesites más cuentas o agentes de IA, suscríbete al plan mensual."
   },
   "mktIntegrations": {
     "badge": "sincronización nativa",
@@ -182,13 +182,7 @@
     "tokens": {
       "name": "Tokens de IA",
       "tagline": "Pagas solo la IA que usas.",
-      "unit": "por token",
-      "equivalence": "1 token = 1 respuesta de tu agente de IA.",
-      "welcome": "{n} tokens de regalo al crear tu cuenta",
-      "pack": "{n} tokens",
-      "minimum": "Recarga mínima: {min}. También puedes recargar otro monto.",
-      "expiry": "Los tokens vencen {months} meses después de la compra.",
-      "payment": "Paga con tarjeta, Yape, Plin o transferencia."
+      "welcome": "{n} tokens de regalo al crear tu cuenta"
     },
     "costs": {
       "title": "¿Qué consume tokens?",

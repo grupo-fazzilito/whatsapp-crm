@@ -42,6 +42,8 @@ export interface TokenSubscription {
   card_label: string | null
   /** Why the last renewal failed (Culqi). */
   last_error: string | null
+  /** When the business first subscribed. */
+  started_at: string
 }
 
 /** Grace after the period end, so tokens don't vanish while the renewal invoice is being paid. */
@@ -69,6 +71,7 @@ export async function getTokenSubscription(workspaceId: string): Promise<TokenSu
     provider: row.provider,
     card_label: row.card_label,
     last_error: row.last_error,
+    started_at: new Date(row.created_at).toISOString(),
   }
 }
 
