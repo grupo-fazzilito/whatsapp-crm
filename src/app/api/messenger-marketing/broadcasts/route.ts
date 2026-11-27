@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     if (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() > Date.now() + 30 * 86_400_000) return NextResponse.json({ error: 'invalid_date' }, { status: 400 })
   }
   const r = await createMessengerBroadcast(guard.ctx.workspace.id, guard.ctx.user.id, { name, card, audience: { tagIds }, budget: budget === null ? null : Math.round(budget * 100) / 100, scheduledAt })
+  if (!r.ok && r.error === 'broadcast_limit') return NextResponse.json({ error: r.error, ...r.quota }, { status: 402 })
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.error === 'empty' ? 400 : 409 })
   return NextResponse.json({ id: r.id, recipients: r.recipients }, { status: 201 })
 }

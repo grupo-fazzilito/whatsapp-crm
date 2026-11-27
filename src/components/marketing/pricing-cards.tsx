@@ -43,6 +43,10 @@ export function PricingCards({ pricing }: { pricing: PublicPricing }) {
                   <Check className="size-3.5 text-emerald-400 shrink-0 mt-0.5" />
                   <span>{t("mktPlans.plan.accounts")}</span>
                 </li>
+                <li className="flex items-start gap-2">
+                  <Check className="size-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>{t("mktPlans.plan.broadcasts")}</span>
+                </li>
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <Check className="size-3.5 text-emerald-400 shrink-0 mt-0.5" />
@@ -79,6 +83,7 @@ export function PricingCards({ pricing }: { pricing: PublicPricing }) {
               {[
                 t("mktPlans.sub.credits", { n: pricing.subscription.step_tokens.toLocaleString("en-US") }),
                 t("mktPlans.sub.accounts"),
+                t("mktPlans.sub.broadcasts"),
                 t("mktPlans.sub.extra", { price: formatPlanCents(Math.round(plan.step_price * 100), plan.currency), n: plan.step_tokens.toLocaleString("en-US") }),
                 t("mktPlans.sub.limit"),
               ].map((line) => (

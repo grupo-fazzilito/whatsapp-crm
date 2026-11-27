@@ -15,6 +15,7 @@ import {
 import { Radio, Plus, Loader2 } from 'lucide-react';
 import { broadcastStatusConfig as BC_STATUS, getBroadcastStatus } from '@/lib/broadcast-status';
 import { MessengerPanel } from '@/components/broadcasts/messenger-panel';
+import { BroadcastQuota } from '@/components/broadcasts/broadcast-quota';
 import { useI18n } from '@/i18n/client';
 
 /**
@@ -187,6 +188,8 @@ export default function BroadcastsPage() {
           {t('bc.new')}
         </Button>
       </div>
+
+      <BroadcastQuota />
 
       <Suspense>
         <MessengerPanel />

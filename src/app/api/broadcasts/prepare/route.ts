@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { BroadcastLimitError } from '@/lib/broadcasts/free-limit'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { EmptyAudienceError, parseAudience, prepareBroadcast } from '@/lib/broadcasts/audience'
 
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ broadcast, recipients, custom_values: customValues })
   } catch (err) {
     if (err instanceof EmptyAudienceError) return NextResponse.json({ error: err.message }, { status: 422 })
+    if (err instanceof BroadcastLimitError) return NextResponse.json({ error: 'broadcast_limit', requested: err.requested, ...err.quota }, { status: 402 })
     console.error('[broadcasts] prepare failed:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to create broadcast' }, { status: 500 })
   }
