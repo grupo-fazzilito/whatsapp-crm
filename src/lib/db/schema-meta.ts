@@ -1806,6 +1806,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "impersonation_sessions": {
       "rel": "auth_sessions"
+    },
+    "report_exports": {
+      "rel": "report_exports"
     }
   },
   "webhook_deliveries": {
@@ -2195,6 +2198,9 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     },
     "workspace_slug_redirects": {
       "rel": "workspace_slug_redirects"
+    },
+    "report_exports": {
+      "rel": "report_exports"
     }
   },
   "platform_webhook_endpoints": {
@@ -2372,6 +2378,16 @@ export const SCHEMA_META: Record<string, Record<string, FieldKind>> = {
     "period_end": "timestamp",
     "workspaces": {
       "rel": "workspaces"
+    }
+  },
+  "report_exports": {
+    "created_at": "timestamp",
+    "finished_at": "timestamp",
+    "workspaces": {
+      "rel": "workspaces"
+    },
+    "users": {
+      "rel": "users"
     }
   }
 }

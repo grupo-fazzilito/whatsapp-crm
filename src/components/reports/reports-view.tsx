@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CalendarRange, Loader2, RefreshCw, Settings2 } from 'lucide-react';
+import { AlertTriangle, CalendarRange, FileDown, Loader2, RefreshCw, Settings2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
 import { Button } from '@/components/ui/button';
@@ -75,6 +76,36 @@ export function ReportsView() {
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
+  // PDF: built in the background; a notification brings the download link.
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const requestPdf = async () => {
+    if (query === null || pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      const body: Record<string, string> = { ...Object.fromEntries(new URLSearchParams(query)), lang: locale };
+      const res = await fetch('/api/reports/exports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (res.status === 429) toast.error(t('reports.pdf.tooMany'));
+      else if (!res.ok) toast.error(t('reports.pdf.failedToStart'));
+      else toast.success(t('reports.pdf.queued'));
+    } catch {
+      toast.error(t('reports.pdf.failedToStart'));
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
+  // Back from a notification link whose PDF isn't available.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const state = url.searchParams.get('pdf');
+    if (!state) return;
+    url.searchParams.delete('pdf');
+    window.history.replaceState(null, '', url);
+    if (state === 'pending') toast.info(t('reports.pdf.stillWorking'));
+    else if (state === 'failed') toast.error(t('reports.pdf.failedTitle'));
+    else toast.error(t('reports.pdf.expired'));
+  }, [t]);
+
   const customInvalid = preset === 'custom' && (!customFrom || !customTo || customFrom > customTo);
   const personal = data?.scope === 'personal' || (!wsLoading && !isAdmin);
   const showAi = !personal && !!data?.ai;
@@ -107,6 +138,10 @@ export function ReportsView() {
             <Button type="button" variant="outline" size="sm" onClick={reload} disabled={loading}>
               <RefreshCw className={cn('size-3.5', loading && 'animate-spin')} aria-hidden />
               {t('reports.refresh')}
+            </Button>
+            <Button type="button" size="sm" onClick={() => void requestPdf()} disabled={pdfBusy || query === null}>
+              {pdfBusy ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <FileDown className="size-3.5" aria-hidden />}
+              {t('reports.pdf.button')}
             </Button>
             {isAdmin && (
               <Button type="button" variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>

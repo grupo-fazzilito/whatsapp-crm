@@ -535,5 +535,9 @@ export const resultCompat = Prisma.defineExtension({
       period_start: { needs: { period_start: true }, compute: (r) => r.period_start === null ? null : r.period_start.toISOString() },
       period_end: { needs: { period_end: true }, compute: (r) => r.period_end === null ? null : r.period_end.toISOString() },
     },
+    report_exports: {
+      created_at: { needs: { created_at: true }, compute: (r) => r.created_at.toISOString() },
+      finished_at: { needs: { finished_at: true }, compute: (r) => r.finished_at === null ? null : r.finished_at.toISOString() },
+    },
   },
 })
