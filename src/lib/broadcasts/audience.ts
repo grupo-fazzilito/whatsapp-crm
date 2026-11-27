@@ -1,4 +1,5 @@
 import 'server-only'
+import { assertBroadcastQuota } from './free-limit'
 import type { Prisma } from '@/generated/prisma/client'
 import type { TenantDb } from '@/lib/db/tenant'
 import { isUuid } from '@/lib/workspace/constants'
@@ -167,6 +168,8 @@ export interface PrepareInput {
 export async function prepareBroadcast(db: TenantDb, workspaceId: string, userId: string, input: PrepareInput) {
   const contacts = await resolveAudience(db, workspaceId, userId, input.audience)
   if (contacts.length === 0) throw new EmptyAudienceError()
+  // Free plan: monthly recipient limit.
+  await assertBroadcastQuota(workspaceId, contacts.length)
 
   const broadcast = await db.broadcasts.create({
     data: {

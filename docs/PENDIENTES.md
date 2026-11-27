@@ -101,6 +101,8 @@ Cada cuenta tiene una región (`pe`, `ve`, `us`) con su moneda, precios y pasare
 
 ## 5c. Plan de créditos
 
+- [x] Plan gratis: hasta 1.000 envíos de difusión al mes (WhatsApp + Messenger; los fallidos no cuentan); plan pago sin límite. Barra de uso en Difusiones y aviso al pasarse — 🤖 (2026-11-27, rama `feat/free-broadcast-limit`)
+
 **Whasalia se vende solo en Perú** (2026-11-26; Venezuela saldrá con otra marca y otra web). Plan gratis para siempre: **1 cuenta por servicio** (1 WhatsApp, 1 Instagram, 1 Facebook, 1 TikTok, 1 Telegram, 1 chat web) y los créditos de regalo. Plan con **Culqi, en soles: S/ 39.90 al mes por 1,000 créditos, cuentas ilimitadas**; si se acaban, la IA sigue con **créditos adicionales a S/ 14.90 por 1,000, prorrateados (solo lo usado)**, hasta el límite de consumo extra que elige el cliente (barra de 1,000 a 9,000, por defecto 9,000; puede escribir más). Lo extra se cobra en la factura del mes siguiente. Cada comentario respondido usa 1 crédito, con o sin plan. Los créditos no usados vencen al renovar. Precios editables en Superadmin → Facturación.
 
 - [x] Slider de tokens con el precio mensual en la página de precios y en Configuración → Tokens; suscribirse (Stripe Checkout), cambiar de plan, portal de Stripe para tarjeta, facturas y cancelar — 🤖 2026-11-23, rama `feat/token-subscriptions` (reemplazado por el plan único, abajo)

@@ -1,4 +1,5 @@
 import 'server-only'
+import { broadcastQuota, type BroadcastQuota } from '@/lib/broadcasts/free-limit'
 import { after } from 'next/server'
 import type { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/lib/db/prisma'
@@ -282,7 +283,7 @@ export async function audienceCount(workspaceId: string, a: MessengerAudience): 
   return { ready: r.ready.length, too_soon: r.tooSoon }
 }
 
-export type CreateResult = { ok: true; id: string; recipients: number } | { ok: false; error: 'not_connected' | 'empty' }
+export type CreateResult = { ok: true; id: string; recipients: number } | { ok: false; error: 'not_connected' | 'empty' } | { ok: false; error: 'broadcast_limit'; quota: BroadcastQuota }
 
 export async function createMessengerBroadcast(
   workspaceId: string,
@@ -293,6 +294,9 @@ export async function createMessengerBroadcast(
   if (!conn) return { ok: false, error: 'not_connected' }
   const { ready } = await audienceRows(workspaceId, conn.channel_id, input.audience)
   if (!ready.length) return { ok: false, error: 'empty' }
+  // Free plan: monthly recipient limit.
+  const quota = await broadcastQuota(workspaceId)
+  if (quota.remaining !== null && ready.length > quota.remaining) return { ok: false, error: 'broadcast_limit', quota }
   const db = tenantDb(workspaceId)
   const scheduled = input.scheduledAt && input.scheduledAt.getTime() > Date.now() + 60_000 ? input.scheduledAt : null
   const b = await db.broadcasts.create({

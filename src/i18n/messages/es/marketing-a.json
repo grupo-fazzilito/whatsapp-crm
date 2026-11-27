@@ -165,7 +165,8 @@
       "period": "/mes, para siempre",
       "cta": "Crear cuenta gratis",
       "note": "Sin tarjeta y sin periodo de prueba.",
-      "accounts": "1 cuenta por servicio: 1 WhatsApp, 1 Instagram, 1 Facebook, 1 TikTok, 1 Telegram y 1 chat web"
+      "accounts": "1 cuenta por servicio: 1 WhatsApp, 1 Instagram, 1 Facebook, 1 TikTok, 1 Telegram y 1 chat web",
+      "broadcasts": "Hasta 1.000 envíos de difusión al mes"
     },
     "features": {
       "channels": "Bandeja compartida para WhatsApp, Instagram, Messenger, Telegram y chat web",
@@ -204,7 +205,8 @@
       "extra": "Si se acaban, la IA sigue: {price} por cada {n} créditos adicionales (incluye IGV), solo lo que uses",
       "limit": "Tú eliges el límite de consumo extra; se cobra en la factura del mes siguiente",
       "renews": "Suscripción mensual: cada mes se renuevan tus créditos y los no usados vencen. Cancela cuando quieras.",
-      "payment": "Pago con tarjeta a través de Culqi, en soles. Todos los precios incluyen IGV."
+      "payment": "Pago con tarjeta a través de Culqi, en soles. Todos los precios incluyen IGV.",
+      "broadcasts": "Difusiones ilimitadas (Meta cobra cada mensaje de WhatsApp aparte)"
     }
   }
 }

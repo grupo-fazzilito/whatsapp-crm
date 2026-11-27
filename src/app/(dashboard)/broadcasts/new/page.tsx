@@ -57,7 +57,13 @@ export default function NewBroadcastPage() {
     } catch (err) {
       // Previously swallowed with console.error — the wizard would
       // just no-op, leaving the user confused. Surface the reason.
-      const message = err instanceof Error ? err.message : t('bc.wizard.failed');
+      const data = (err as { data?: { error?: string; remaining?: number; requested?: number; limit?: number } }).data;
+      const message =
+        data?.error === 'broadcast_limit'
+          ? t('bc.limit.blocked', { requested: data.requested ?? 0, remaining: data.remaining ?? 0, limit: data.limit ?? 1000 })
+          : err instanceof Error
+            ? err.message
+            : t('bc.wizard.failed');
       console.error('Broadcast failed:', err);
       toast.error(message);
     }
