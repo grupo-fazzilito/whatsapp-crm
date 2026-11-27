@@ -328,6 +328,148 @@
       "confidence": "Confidence",
       "openConversation": "Open conversation",
       "loadMore": "Load more"
+    },
+    "wizard": {
+      "title": "Set up your business",
+      "subtitle": "Step {n} of {total}",
+      "later": "I'll set it up later",
+      "next": "Next",
+      "back": "Back",
+      "finish": "Finish",
+      "saving": "Saving…",
+      "howAgentUses": "How your AI agent uses it",
+      "optional": "Optional",
+      "continueSetup": "Continue setup",
+      "steps": {
+        "business": {
+          "label": "Your business",
+          "title": "Tell us about your business",
+          "help": "Your agent introduces itself with this name, and the description tells it what you offer. The business type turns on what you need (bookings, orders, catalog) and teaches it how to serve your customers."
+        },
+        "contact": {
+          "label": "Contact",
+          "title": "How do customers find you?",
+          "help": "When a customer asks \"where are you?\", \"do you have a website?\" or \"what number do I call?\", the agent answers with these details and can send the Google Maps link. The time zone tells it your business's real time."
+        },
+        "hours": {
+          "label": "Hours",
+          "title": "When are you open?",
+          "help": "The agent says whether you're open or closed, books appointments only within your hours and, after hours, tells customers when you're back."
+        },
+        "catalog": {
+          "label": "What you sell",
+          "title": "What do you sell?",
+          "help": "The agent gives prices and details only for what you add here, without making things up. With services it can book appointments with their length; with products it can take orders."
+        },
+        "faqs": {
+          "label": "Questions",
+          "title": "Frequently asked questions",
+          "help": "What your customers always ask (payment methods, delivery, warranty, parking…). The agent answers exactly what you write here."
+        },
+        "agent": {
+          "label": "Your agent",
+          "title": "Create your AI agent",
+          "help": "It answers your customers on WhatsApp, Instagram, Facebook and the other channels. Name, tone and greeting are its personality; the instructions are your rules (what to offer, what never to say, when to hand over to a person)."
+        },
+        "done": {
+          "label": "Done",
+          "title": "Your business is ready!",
+          "help": "The last step is connecting WhatsApp (or another channel) so your agent starts answering. You can change all of this anytime in My business and Agents."
+        }
+      },
+      "business": {
+        "name": "Business name",
+        "namePlaceholder": "e.g. Don Lucho Barbershop",
+        "industry": "Business type",
+        "detail": "What exactly do you do?",
+        "detailPlaceholder": "e.g. Men's barbershop and beard care",
+        "description": "Short description",
+        "descriptionPlaceholder": "e.g. Barbershop in Miraflores with over 10 years of experience. Classic and modern cuts, razor shaves and beard products.",
+        "nameRequired": "Enter your business name"
+      },
+      "contact": {
+        "phone": "Phone",
+        "email": "Email",
+        "website": "Website",
+        "address": "Address",
+        "city": "City",
+        "maps": "Google Maps link",
+        "mapsPlaceholder": "https://maps.app.goo.gl/…",
+        "timezone": "Time zone",
+        "invalidTimezone": "The time zone isn't valid"
+      },
+      "hours": {
+        "open": "Open",
+        "closed": "Closed",
+        "from": "From",
+        "to": "To",
+        "copy": "Copy Monday to every weekday",
+        "days": {
+          "Monday": "Monday",
+          "Tuesday": "Tuesday",
+          "Wednesday": "Wednesday",
+          "Thursday": "Thursday",
+          "Friday": "Friday",
+          "Saturday": "Saturday",
+          "Sunday": "Sunday"
+        },
+        "invalid": "Check the hours: closing must be after opening"
+      },
+      "catalog": {
+        "services": "Services",
+        "products": "Products",
+        "name": "Name",
+        "price": "Price ({currency})",
+        "duration": "Minutes",
+        "add": "Add another",
+        "remove": "Remove",
+        "existing": "You already have {n}. The ones you add here are added to them.",
+        "more": "Later you can add more (also from Excel) in {where}.",
+        "whereServices": "My business → Services",
+        "whereProducts": "Catalog",
+        "none": "Your business type doesn't use services or products. You can turn them on later in My business → Business type.",
+        "servicePlaceholder": "e.g. Classic haircut",
+        "productPlaceholder": "e.g. Beard oil 30 ml"
+      },
+      "faqs": {
+        "question": "Question",
+        "answer": "Answer",
+        "add": "Add another",
+        "existing": "You already have {n} questions. The ones you add here are added to them.",
+        "q0": "What payment methods do you accept?",
+        "a0": "Cash, bank transfer and card.",
+        "q1": "Is there parking?",
+        "a1": "Yes, in front of the shop, free of charge.",
+        "q2": "Do you deliver?",
+        "a2": "Yes, citywide. Delivery costs $5."
+      },
+      "agent": {
+        "template": "Agent type",
+        "name": "Agent name",
+        "namePlaceholder": "e.g. Sofia",
+        "tone": "Tone",
+        "greeting": "Welcome message",
+        "greetingPlaceholder": "Hi! I'm Sofia 😊 How can I help?",
+        "instructions": "Instructions",
+        "instructionsPlaceholder": "e.g.:\n- Always offer the haircut + beard package.\n- Never promise discounts.\n- If they ask for a person, hand the chat to the team.",
+        "existing": "You already have the agent \"{name}\". What you change here is saved on it.",
+        "nameRequired": "Give your agent a name"
+      },
+      "done": {
+        "saved": "What you set up",
+        "business": "Business details",
+        "contact": "Contact and location",
+        "hours": "Hours",
+        "catalog": "{n} services or products",
+        "faqs": "{n} frequently asked questions",
+        "agent": "Agent \"{name}\"",
+        "connect": "Connect WhatsApp",
+        "dashboard": "Go to dashboard",
+        "test": "Test my agent"
+      },
+      "errors": {
+        "generic": "Couldn't save. Check the details and try again."
+      }
     }
   }
 }

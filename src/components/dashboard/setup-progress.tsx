@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Wand2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useSetupWizard } from '@/components/onboarding/setup-wizard';
 import { ArrowRight, Check, Rocket } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
@@ -47,6 +50,7 @@ export function SetupProgress({ onState }: { onState?: (showing: boolean) => voi
   const { t } = useI18n();
   const { workspace, can } = useWorkspace();
   const [steps, setSteps] = useState<Steps | null>(null);
+  const wizard = useSetupWizard();
 
   useEffect(() => {
     if (!workspace) return;
@@ -85,7 +89,14 @@ export function SetupProgress({ onState }: { onState?: (showing: boolean) => voi
               <p className="text-sm text-muted-foreground">{t('dash.setup.subtitle')}</p>
             </div>
           </div>
-          <span className="text-sm font-semibold text-primary tabular-nums">{t('dash.setup.progress', { done, total: ORDER.length })}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            {isAdmin && wizard && (
+              <Button size="sm" variant="outline" onClick={wizard.open}>
+                <Wand2 className="size-3.5" aria-hidden /> {t('business.wizard.continueSetup')}
+              </Button>
+            )}
+            <span className="text-sm font-semibold text-primary tabular-nums">{t('dash.setup.progress', { done, total: ORDER.length })}</span>
+          </div>
         </div>
 
         <div className="h-2 w-full overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={ORDER.length} aria-valuenow={done} aria-label={t('dash.setup.progress', { done, total: ORDER.length })}>
