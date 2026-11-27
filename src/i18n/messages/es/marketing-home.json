@@ -8,7 +8,9 @@
       "learnMore": "Ver funciones"
     },
     "integrations": {
-      "title": "Integrado con tus herramientas favoritas"
+      "title": "Conectado con tus canales y tu calendario",
+      "gcal": "Sincroniza tus citas con Google Calendar →",
+      "api": "API y webhooks"
     },
     "how": {
       "title": "Cómo funciona",

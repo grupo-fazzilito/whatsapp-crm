@@ -13,7 +13,6 @@ import { AIChatSimulation } from "@/components/marketing/ai-chat-simulation";
 import { CRMPreviewBoard } from "@/components/marketing/crm-preview-board";
 import { ReferenceDashboard } from "@/components/marketing/reference-dashboard";
 import { SocialProofMetrics } from "@/components/marketing/social-proof-metrics";
-import { InfiniteLogoMarquee } from "@/components/marketing/infinite-logo-marquee";
 import { useI18n, useLocalePath } from "@/i18n/client";
 
 interface FAQItem {
@@ -154,7 +153,17 @@ export function HomeView({ pricing }: { pricing: PublicPricing }) {
           <span className="text-[10px] uppercase font-bold text-[var(--m-text-muted)] tracking-widest">
             {t("mktHome.integrations.title")}
           </span>
-          <InfiniteLogoMarquee />
+          {/* Whasalia's real integrations (no third-party logos it doesn't connect to). */}
+          <ul className="flex flex-wrap items-center justify-center gap-2 px-4">
+            {["WhatsApp Business", "Instagram", "Messenger", "Telegram", "Google Calendar", "Calendly", t("mktHome.integrations.api")].map((name) => (
+              <li key={name} className="rounded-full border border-[var(--m-border-primary)] bg-[var(--m-bg-card)] px-3 py-1 text-xs font-medium text-[var(--m-text-secondary)]">
+                {name}
+              </li>
+            ))}
+          </ul>
+          <Link href={`${lp("/integrations")}#google-calendar`} className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-500 hover:text-emerald-400">
+            {t("mktHome.integrations.gcal")}
+          </Link>
         </div>
       </section>
 
