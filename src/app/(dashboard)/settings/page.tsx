@@ -10,7 +10,6 @@ import { ProfileForm } from '@/components/settings/profile-form';
 import { PasswordForm } from '@/components/settings/password-form';
 import { SessionsCard } from '@/components/settings/sessions-card';
 import { MyGoogleCalendarCard } from '@/components/integrations/google/my-calendar-card';
-import { AppearancePanel } from '@/components/settings/appearance-panel';
 import { TeamManager } from '@/components/settings/team-manager';
 import { QuickRepliesManager } from '@/components/settings/quick-replies-manager';
 import { CustomFieldsManager } from '@/components/settings/custom-fields-manager';
@@ -77,10 +76,6 @@ export default function SettingsPage() {
 
         <TabsContent value="teams">
           <TeamsManager />
-        </TabsContent>
-
-        <TabsContent value="appearance">
-          <AppearancePanel />
         </TabsContent>
 
         {isAdmin && (
