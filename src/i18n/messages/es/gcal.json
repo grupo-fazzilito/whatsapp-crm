@@ -72,10 +72,14 @@
       "setup5": "Mientras la app no esté verificada, agrega a los asesores como usuarios de prueba (sus accesos vencen cada 7 días). calendar.events es un permiso sensible: publica la app y solicita la verificación de Google."
     },
     "integrations": {
-      "description": "Cada persona del equipo conecta su Google Calendar: las {bookings} se crean como eventos y sus horarios ocupados no se ofrecen a los clientes.",
-      "needsBookings": "Google Calendar sincroniza las {bookings} de tu equipo. Para usarlo, activa las reservas y el {staffPlural} en la configuración del negocio.",
+      "description": "Conecta un Google Calendar para todo el negocio o uno por cada persona del equipo: las {bookings} se crean como eventos y los horarios ocupados no se ofrecen a los clientes.",
+      "needsBookings": "Google Calendar sincroniza tus {bookings}. Para usarlo, activa «Citas y reservas» en la configuración del negocio.",
       "openSetup": "Ir a Configuración del negocio",
-      "noStaff": "Todavía no hay {staffPlural}. Agrégalos para conectar su calendario:"
+      "noStaff": "Todavía no hay {staffPlural}. Agrégalos para conectar su calendario:",
+      "businessTitle": "Calendario del negocio",
+      "businessHelp": "Un solo Google Calendar para todo: cada una de tus {bookings} se crea ahí como evento y lo que tengas ocupado en ese calendario no se ofrece a los clientes.",
+      "businessHelpStaff": "Un solo Google Calendar para todo el negocio: ahí van las {bookings} de quien no conecte su propio calendario, y lo ocupado en él no se ofrece a nadie del {staffPlural}.",
+      "staffTitle": "Calendario de cada persona ({staffPlural})"
     }
   }
 }

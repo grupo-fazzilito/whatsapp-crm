@@ -31,6 +31,7 @@ Lista viva: se actualiza con cada avance. Marca `[x]` lo terminado y anota la fe
 - [x] Pasar la app de Meta a modo **Activo** — 🧑
 - [x] Enviar la revisión de la app (**en revisión** desde 2026-11-06); en el texto usar `https://whasalia.com/login` y `https://whasalia.com/en/...` — 🧑
 - [ ] Crear cliente OAuth de Google (callback `https://whasalia.com/api/auth/callback/google`) y pasar Client ID/Secret — 🧑→🤖
+- [ ] Probar Google Calendar en producción: conectar el **calendario del negocio** (Configuración → Integraciones), crear una cita y ver el evento; mover/borrar el evento en Google y ver la cita; un evento personal bloquea ese horario. Luego pasar la app de Google a «En producción» y pedir la verificación (video) — 🧑🤖
 - [ ] Al terminar la revisión de Meta: borrar la cuenta de revisión o cambiarle la contraseña — 🤖
 
 ## 4. Meta: WhatsApp, Instagram y Messenger para clientes reales

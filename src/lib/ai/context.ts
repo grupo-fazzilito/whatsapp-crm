@@ -140,13 +140,12 @@ export async function loadBusinessContext(workspaceId: string, fresh = false): P
       : null
 
   // External calendars: failures are logged inside and never block.
+  // Staff calendars and the business's own one (no connection: nothing is read).
   let busy: Record<string, BusyInterval[]> = {}
-  if (staff.length > 0) {
-    try {
-      busy = await loadStaffBusy(workspaceId, timeZone, today, BOOKING_HORIZON_DAYS, { fresh })
-    } catch (err) {
-      console.warn('[ai-context] calendar busy time unavailable:', err instanceof Error ? err.message : err)
-    }
+  try {
+    busy = await loadStaffBusy(workspaceId, timeZone, today, BOOKING_HORIZON_DAYS, { fresh })
+  } catch (err) {
+    console.warn('[ai-context] calendar busy time unavailable:', err instanceof Error ? err.message : err)
   }
 
   const servicesByStaff = new Map<string, string[]>()

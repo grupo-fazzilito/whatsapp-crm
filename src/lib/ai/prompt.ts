@@ -218,6 +218,7 @@ export function availabilityBlock(input: Pick<PromptInput, 'ctx' | 'draft' | 'ca
     durationMinutes: duration,
     stepMinutes: 30,
     capacity: Number((ctx.workspace.settings as { booking_capacity?: number })?.booking_capacity ?? 1),
+    busy: ctx.busy,
   }
   const dates = draft?.date ? [draft.date] : upcomingDates(now.date, 7)
   const lines: string[] = []

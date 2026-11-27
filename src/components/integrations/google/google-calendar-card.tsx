@@ -18,8 +18,9 @@ interface StaffRow {
 }
 
 /**
- * Settings → Integrations: Google Calendar for each person of the team who
- * takes bookings (bookings become events, busy times block the schedule).
+ * Settings → Integrations: one Google Calendar for the whole business and,
+ * with the team module, one per person (bookings become events in the
+ * person's calendar, else the business's; busy times block the schedule).
  */
 export function GoogleCalendarCard() {
   const t = useT();
@@ -28,10 +29,11 @@ export function GoogleCalendarCard() {
   const isAdmin = can('admin');
   const { status, reload } = useGcalStatus();
   const [staff, setStaff] = useState<StaffRow[] | null>(null);
-  const enabled = modules.staff && modules.bookings;
+  const enabled = modules.bookings;
+  const withStaff = modules.staff;
 
   useEffect(() => {
-    if (!workspace || !enabled) return;
+    if (!workspace || !enabled || !withStaff) return;
     let cancelled = false;
     fetch('/api/business/staff', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : { staff: [] }))
@@ -40,7 +42,7 @@ export function GoogleCalendarCard() {
     return () => {
       cancelled = true;
     };
-  }, [workspace, enabled]);
+  }, [workspace, enabled, withStaff]);
 
   const bookings = label('bookingPlural').toLowerCase();
   const staffPlural = label('staffPlural');
@@ -64,39 +66,69 @@ export function GoogleCalendarCard() {
               </Link>
             )}
           </p>
-        ) : !status || staff === null ? (
+        ) : !status || (withStaff && staff === null) ? (
           <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
             <Loader2 className="size-4 animate-spin" aria-hidden /> {t('gcal.loading')}
           </p>
         ) : !status.configured ? (
           <p className="text-sm text-muted-foreground">{t('gcal.notConfigured')}</p>
-        ) : staff.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t('gcal.integrations.noStaff', { staffPlural: staffPlural.toLowerCase() })}{' '}
-            {isAdmin && (
-              <Link href="/business/staff" className="text-primary underline-offset-2 hover:underline">
-                {staffPlural}
-              </Link>
-            )}
-          </p>
         ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border">
-            {staff.map((s) => (
-              <li key={s.id} className="grid gap-2 p-3">
-                <p className="text-sm font-medium text-foreground">{s.name}</p>
+          <div className="space-y-5">
+            {/* One calendar for the whole business. */}
+            <section aria-labelledby="gcal-business" className="space-y-2">
+              <h3 id="gcal-business" className="text-sm font-semibold text-foreground">{t('gcal.integrations.businessTitle')}</h3>
+              <p className="text-xs text-muted-foreground">
+                {t(withStaff ? 'gcal.integrations.businessHelpStaff' : 'gcal.integrations.businessHelp', { bookings, staffPlural: staffPlural.toLowerCase() })}
+              </p>
+              <div className="rounded-lg border border-border p-3">
                 <CalendarConnection
                   compact
-                  staffId={s.id}
-                  staffName={s.name}
-                  connection={status.connections.find((c) => c.staff_id === s.id) ?? null}
+                  staffId={null}
+                  staffName={workspace?.name ?? ''}
+                  connection={status.connections.find((c) => c.staff_id === null) ?? null}
                   configured={status.configured}
-                  canManage={isAdmin || (!!user && s.member_user_id === user.id)}
+                  canManage={isAdmin}
                   returnTo="integrations"
                   onChanged={reload}
                 />
-              </li>
-            ))}
-          </ul>
+              </div>
+            </section>
+
+            {/* Or one per person of the team. */}
+            {withStaff && (
+              <section aria-labelledby="gcal-staff" className="space-y-2">
+                <h3 id="gcal-staff" className="text-sm font-semibold text-foreground">{t('gcal.integrations.staffTitle', { staffPlural })}</h3>
+                {staff!.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t('gcal.integrations.noStaff', { staffPlural: staffPlural.toLowerCase() })}{' '}
+                    {isAdmin && (
+                      <Link href="/business/staff" className="text-primary underline-offset-2 hover:underline">
+                        {staffPlural}
+                      </Link>
+                    )}
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-border rounded-lg border border-border">
+                    {staff!.map((s) => (
+                      <li key={s.id} className="grid gap-2 p-3">
+                        <p className="text-sm font-medium text-foreground">{s.name}</p>
+                        <CalendarConnection
+                          compact
+                          staffId={s.id}
+                          staffName={s.name}
+                          connection={status.connections.find((c) => c.staff_id === s.id) ?? null}
+                          configured={status.configured}
+                          canManage={isAdmin || (!!user && s.member_user_id === user.id)}
+                          returnTo="integrations"
+                          onChanged={reload}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>

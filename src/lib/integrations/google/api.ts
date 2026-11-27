@@ -12,7 +12,8 @@ import type { GoogleEvent } from './event'
 export interface CalendarConnection {
   id: string
   workspace_id: string
-  staff_id: string
+  /** null: the business's own calendar. */
+  staff_id: string | null
   connected_by: string | null
   google_email: string | null
   calendar_id: string

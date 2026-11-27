@@ -11,14 +11,16 @@ import { queueUpcomingBookings, setupWatch, syncConnectionChanges, syncPendingBo
 import { stateSecret, verifyState } from './state'
 
 /**
- * Who may connect/disconnect a staff member's calendar: workspace admins
- * for anyone; a member only for the staff row linked to them.
+ * Who may connect/disconnect a calendar: workspace admins for anyone and
+ * for the business's own calendar (staffId null); a member only for the
+ * staff row linked to them.
  */
 export async function canManageStaffCalendar(
   workspaceId: string,
-  staffId: string,
+  staffId: string | null,
   user: { id: string; role: WorkspaceRole },
-): Promise<{ ok: true; staff: { id: string; name: string; member_user_id: string | null } } | { ok: false; status: 403 | 404 }> {
+): Promise<{ ok: true; staff: { id: string; name: string; member_user_id: string | null } | null } | { ok: false; status: 403 | 404 }> {
+  if (!staffId) return hasRole(user.role, 'admin') ? { ok: true, staff: null } : { ok: false, status: 403 }
   const staff = await tenantDb(workspaceId)
     .staff.findFirst({ select: { id: true, name: true, member_user_id: true }, where: { id: staffId } })
     .catch(() => null)
@@ -27,7 +29,8 @@ export async function canManageStaffCalendar(
   return { ok: false, status: 403 }
 }
 
-export async function getConnectionForStaff(workspaceId: string, staffId: string): Promise<CalendarConnection | null> {
+/** The staff member's connection, or the business's own one (staffId null). */
+export async function getConnectionForStaff(workspaceId: string, staffId: string | null): Promise<CalendarConnection | null> {
   const data = await tenantDb(workspaceId)
     .calendar_connections.findFirst({ select: CONNECTION_SELECT, where: { staff_id: staffId } })
     .catch(() => null)
@@ -35,7 +38,7 @@ export async function getConnectionForStaff(workspaceId: string, staffId: string
 }
 
 export type CallbackOutcome =
-  | { ok: true; workspaceId: string; staffId: string; email: string | null; back: GcalReturn }
+  | { ok: true; workspaceId: string; staffId: string | null; email: string | null; back: GcalReturn }
   | { ok: false; error: string; back: GcalReturn }
 
 /**
@@ -54,6 +57,8 @@ export async function completeOAuth(params: {
   if (params.error) return { ok: false, error: params.error === 'access_denied' ? 'denied' : 'google', back }
   if (!check.ok) return { ok: false, error: `state_${check.reason}`, back }
   const st = check.state
+  // An empty staff id in the state is the business's own calendar.
+  const staffId = st.s || null
   if (!params.userId || params.userId !== st.u) return { ok: false, error: 'session', back }
   if (!params.code) return { ok: false, error: 'code', back }
 
@@ -63,7 +68,7 @@ export async function completeOAuth(params: {
     .findFirst({ select: { role: true }, where: { workspace_id: st.w, user_id: st.u, status: 'active' } })
     .catch(() => null)
   if (!member) return { ok: false, error: 'forbidden', back }
-  const allowed = await canManageStaffCalendar(st.w, st.s, { id: st.u, role: member.role as WorkspaceRole })
+  const allowed = await canManageStaffCalendar(st.w, staffId, { id: st.u, role: member.role as WorkspaceRole })
   if (!allowed.ok) return { ok: false, error: 'forbidden', back }
 
   const cfg = await getGoogleConfig()
@@ -91,7 +96,7 @@ export async function completeOAuth(params: {
   }
 
   // Replacing an earlier connection of this staff member: close it first.
-  const previous = await getConnectionForStaff(st.w, st.s)
+  const previous = await getConnectionForStaff(st.w, staffId)
   if (previous) {
     const prevSecrets = await loadSecrets(previous)
     if (previous.watch_channel_id && previous.watch_resource_id) {
@@ -106,7 +111,7 @@ export async function completeOAuth(params: {
   const expiresAt = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString()
   const row = {
     workspace_id: st.w,
-    staff_id: st.s,
+    staff_id: staffId,
     connected_by: st.u,
     provider: 'google',
     google_email: email,
@@ -121,7 +126,9 @@ export async function completeOAuth(params: {
   }
   let conn
   try {
-    conn = await db.calendar_connections.upsert({ where: { staff_id: st.s }, create: row, update: row, select: CONNECTION_SELECT })
+    conn = previous
+      ? await db.calendar_connections.update({ where: { id: previous.id }, data: row, select: CONNECTION_SELECT })
+      : await db.calendar_connections.create({ data: row, select: CONNECTION_SELECT })
   } catch {
     return { ok: false, error: 'db', back }
   }
@@ -159,5 +166,5 @@ export async function completeOAuth(params: {
     await syncPendingBookings(st.w, 50)
   })
 
-  return { ok: true, workspaceId: st.w, staffId: st.s, email, back }
+  return { ok: true, workspaceId: st.w, staffId, email, back }
 }
