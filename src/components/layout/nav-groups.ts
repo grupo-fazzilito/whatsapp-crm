@@ -30,11 +30,11 @@ export function settingsTabs(ctx: Pick<NavContext, 't' | 'isAdmin'>): SubTab[] {
   return [
     { key: 'profile', label: ctx.t('settingsPage.tabs.profile'), icon: User },
     { key: 'team', label: ctx.t('team.tab'), icon: Users },
+    { key: 'teams', label: ctx.t('inboxpro.teams.tab'), icon: UsersRound },
     { key: 'templates', label: ctx.t('settingsPage.tabs.templates'), icon: MessageSquare },
     { key: 'tags', label: ctx.t('settingsPage.tabs.tags'), icon: Tag },
     { key: 'custom-fields', label: ctx.t('crm.customFields.tab'), icon: ListPlus },
     { key: 'quick-replies', label: ctx.t('inboxpro.quickReplies.tab'), icon: Zap },
-    { key: 'teams', label: ctx.t('inboxpro.teams.tab'), icon: UsersRound },
     { key: 'appearance', label: ctx.t('settingsPage.tabs.appearance'), icon: Palette },
     ...(ctx.isAdmin
       ? [
