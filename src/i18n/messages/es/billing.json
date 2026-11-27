@@ -263,7 +263,7 @@
     "current": "Tu plan: {n} créditos al mes · {price} / mes",
     "status": {
       "active": "Activa.",
-      "renewsOn": "Se renueva el {date}: ese día vuelves a tener tus créditos del mes.",
+      "renewsOn": "Se renueva el {date}. Ese día vuelves a tener tus créditos del mes.",
       "endsOn": "Cancelada: sigue activa hasta el {date}.",
       "pastDue": "No pudimos cobrar la renovación. Actualiza tu tarjeta en «Administrar pago».",
       "canceled": "Suscripción cancelada."

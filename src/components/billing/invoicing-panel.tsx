@@ -102,12 +102,12 @@ export function InvoicingPanel() {
       value: t('invoicing.paidPlanValue', { price: money(monthlyCents(pricing.step_tokens, pricing)), n: nf.format(pricing.step_tokens) }),
     });
   }
-  if (data.next_expiry) rows.push({ label: t('invoicing.fields.expiry'), value: t(data.next_expiry.renews ? 'billing.nextRenewal' : 'billing.nextExpiry', { credits: nf.format(data.next_expiry.credits), date: date(data.next_expiry.at) }) });
+  if (data.next_expiry) rows.push({ label: t('invoicing.fields.expiry'), value: t(data.next_expiry.renews ? 'billing.nextRenewal' : 'billing.nextExpiry', { credits: nf.format(data.next_expiry.credits), date: date(data.next_expiry.at, true) }) });
   if (sub?.started_at) rows.push({ label: t('invoicing.fields.since'), value: date(sub.started_at) });
   if (active && sub!.current_period_end) {
     rows.push({
       label: sub!.cancel_at_period_end ? t('invoicing.fields.endsOn') : t('invoicing.fields.nextBilling'),
-      value: date(sub!.current_period_end),
+      value: date(sub!.current_period_end, true),
     });
   }
   if (active && data.overage) {

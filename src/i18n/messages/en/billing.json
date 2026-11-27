@@ -263,7 +263,7 @@
     "current": "Your plan: {n} credits a month · {price} / month",
     "status": {
       "active": "Active.",
-      "renewsOn": "Renews on {date}: that day you get your month's credits again.",
+      "renewsOn": "Renews on {date}. That's when you get your month's credits again.",
       "endsOn": "Canceled: stays active until {date}.",
       "pastDue": "We couldn't charge the renewal. Update your card in “Manage payment”.",
       "canceled": "Subscription canceled."

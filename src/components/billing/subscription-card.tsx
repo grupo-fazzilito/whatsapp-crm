@@ -79,7 +79,8 @@ export function SubscriptionCard({
   const culqi = provider === 'culqi';
   const money = (cents: number) => formatPlanCents(cents, pricing.currency);
   const nf = new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-PE');
-  const date = (iso: string) => new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-PE', { dateStyle: 'medium' }).format(new Date(iso));
+  // Date and time: the charge happens at that exact moment.
+  const date = (iso: string) => new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
   const price = money(monthlyCents(pricing.step_tokens, pricing));
 
   const fail = async (res: Response) => {

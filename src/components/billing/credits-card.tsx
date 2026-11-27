@@ -71,7 +71,7 @@ export function CreditsCard({ className }: { className?: string }) {
             <p className="text-xs text-muted-foreground">
               {t(status.next_expiry.renews ? 'billing.dashboard.renews' : 'billing.dashboard.expires', {
                 credits: nf.format(status.next_expiry.credits),
-                date: new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-PE', { dateStyle: 'medium' }).format(new Date(status.next_expiry.at)),
+                date: new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(status.next_expiry.at)),
               })}
             </p>
           )}
