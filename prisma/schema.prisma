@@ -641,7 +641,8 @@ model platform_notifications {
 model calendar_connections {
   id                          String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspace_id                String                       @db.Uuid
-  staff_id                    String                       @unique @db.Uuid
+  /// Null: the business's own calendar (one per workspace).
+  staff_id                    String?                      @unique @db.Uuid
   connected_by                String?                      @db.Uuid
   provider                    String                       @default("google")
   google_email                String?
@@ -658,7 +659,7 @@ model calendar_connections {
   bookings                    bookings[]
   calendar_connection_secrets calendar_connection_secrets?
   users                       users?                       @relation(fields: [connected_by], references: [id], onUpdate: NoAction)
-  staff                       staff                        @relation(fields: [staff_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  staff                       staff?                       @relation(fields: [staff_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   workspaces                  workspaces                   @relation(fields: [workspace_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   calendar_event_deletions    calendar_event_deletions[]
 

@@ -12,7 +12,8 @@ import { relativeTime, type GcalConnection } from './use-gcal';
 import type { GcalReturn } from '@/lib/integrations/google/state';
 
 interface Props {
-  staffId: string;
+  /** null: the business's own calendar (admins only). */
+  staffId: string | null;
   staffName: string;
   connection: GcalConnection | null;
   configured: boolean;
@@ -34,14 +35,15 @@ function GoogleMark() {
   );
 }
 
-/** Connect / status / disconnect control for one staff member's Google Calendar. */
+/** Connect / status / disconnect control for one staff member's (or the business's) Google Calendar. */
 export function CalendarConnection({ staffId, staffName, connection, configured, canManage, returnTo = 'staff', onChanged, compact }: Props) {
   const t = useT();
   const { locale } = useI18n();
   const { label } = useWorkspace();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  const startHref = `/api/integrations/google/start?staff_id=${encodeURIComponent(staffId)}${returnTo !== 'staff' ? `&return=${returnTo}` : ''}`;
+  const target = staffId ? `staff_id=${encodeURIComponent(staffId)}` : 'scope=business';
+  const startHref = `/api/integrations/google/start?${target}${returnTo !== 'staff' ? `&return=${returnTo}` : ''}`;
 
   const disconnect = async () => {
     setBusy(true);
@@ -49,7 +51,7 @@ export function CalendarConnection({ staffId, staffName, connection, configured,
       const res = await fetch('/api/integrations/google/disconnect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ staff_id: staffId }),
+        body: JSON.stringify(staffId ? { staff_id: staffId } : { scope: 'business' }),
       });
       if (!res.ok) {
         toast.error((await res.json().catch(() => ({}))).error ?? t('business.common.error'));
@@ -63,8 +65,9 @@ export function CalendarConnection({ staffId, staffName, connection, configured,
   };
 
   if (!connection) {
-    if (!configured) return compact ? null : <p className="text-xs text-muted-foreground">{t('gcal.notConfigured')}</p>;
-    if (!canManage) return compact ? null : <p className="text-xs text-muted-foreground">{t('gcal.noPermission', { staff: label('staff').toLowerCase() })}</p>;
+    // Always say why there is no button (an empty space looked like a bug).
+    if (!configured) return <p className="text-xs text-muted-foreground">{t('gcal.notConfigured')}</p>;
+    if (!canManage) return <p className="text-xs text-muted-foreground">{t('gcal.noPermission', { staff: label('staff').toLowerCase() })}</p>;
     return (
       <a href={startHref} className={cn(buttonVariants({ variant: 'outline', size: compact ? 'sm' : 'default' }), 'gap-2')}>
         <GoogleMark />
@@ -76,7 +79,7 @@ export function CalendarConnection({ staffId, staffName, connection, configured,
 
   const revoked = connection.status === 'revoked';
   const hasError = connection.status === 'error' || !!connection.last_error || connection.sync_errors > 0;
-  const statusId = `gcal-status-${staffId}`;
+  const statusId = `gcal-status-${staffId ?? 'business'}`;
 
   return (
     <div className="space-y-2" aria-describedby={statusId}>

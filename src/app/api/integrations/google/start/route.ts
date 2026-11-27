@@ -7,7 +7,7 @@ import { buildAuthUrl } from '@/lib/integrations/google/oauth'
 import { signState, stateSecret } from '@/lib/integrations/google/state'
 
 /**
- * GET ?staff_id=…[&return=profile] — starts Google consent for that staff
+ * GET ?staff_id=… or ?scope=business [&return=profile] — starts Google consent for that staff
  * member's calendar. Admins: any staff; members: the staff row linked to
  * them (staff.member_user_id).
  */
@@ -16,8 +16,10 @@ export async function GET(request: Request) {
   if (!guard.ok) return guard.response
   const { user, workspace, role } = guard.ctx
   const url = new URL(request.url)
-  const staffId = url.searchParams.get('staff_id')
-  if (!isUuid(staffId)) return NextResponse.json({ error: 'staff_id is required' }, { status: 400 })
+  // ?scope=business: the business's own calendar (admins), not a staff member's.
+  const business = url.searchParams.get('scope') === 'business'
+  const staffId = business ? null : url.searchParams.get('staff_id')
+  if (!business && !isUuid(staffId)) return NextResponse.json({ error: 'staff_id is required' }, { status: 400 })
 
   const allowed = await canManageStaffCalendar(workspace.id, staffId, { id: user.id, role })
   if (!allowed.ok) return NextResponse.json({ error: allowed.status === 404 ? 'Not found' : 'Forbidden' }, { status: allowed.status })
@@ -26,7 +28,7 @@ export async function GET(request: Request) {
   if (!cfg) return NextResponse.json({ error: 'Google Calendar is not configured on this platform' }, { status: 503 })
 
   const state = signState(
-    { w: workspace.id, s: staffId, u: user.id, r: returnOf(url.searchParams.get('return')) },
+    { w: workspace.id, s: staffId ?? '', u: user.id, r: returnOf(url.searchParams.get('return')) },
     stateSecret(),
   )
   return NextResponse.redirect(buildAuthUrl(cfg, state, user.email), { status: 302 })

@@ -106,12 +106,17 @@ async function connectionById(workspaceId: string, id: string): Promise<Calendar
   return (data as CalendarConnection | null) ?? null
 }
 
+/** The staff member's calendar, else the business's own calendar. */
 async function connectionForStaff(workspaceId: string, staffId: string | null): Promise<CalendarConnection | null> {
-  if (!staffId) return null
-  const data = await tenantDb(workspaceId)
-    .calendar_connections.findFirst({ select: CONNECTION_SELECT, where: { staff_id: staffId, status: { not: 'revoked' } } })
+  const db = tenantDb(workspaceId)
+  const own = staffId
+    ? await db.calendar_connections.findFirst({ select: CONNECTION_SELECT, where: { staff_id: staffId, status: { not: 'revoked' } } }).catch(() => null)
+    : null
+  if (own) return own as CalendarConnection
+  const business = await db.calendar_connections
+    .findFirst({ select: CONNECTION_SELECT, where: { staff_id: null, status: { not: 'revoked' } } })
     .catch(() => null)
-  return (data as CalendarConnection | null) ?? null
+  return (business as CalendarConnection | null) ?? null
 }
 
 function str(v: unknown): string | null {
@@ -535,14 +540,14 @@ export async function disconnectConnection(conn: CalendarConnection): Promise<vo
   invalidateStaffBusy(conn.id)
 }
 
-/** Queues the staff member's upcoming active bookings for a first push. */
+/** Queues the upcoming active bookings of the staff member (or, for the business calendar, all of them) for a first push. */
 export async function queueUpcomingBookings(conn: CalendarConnection, timeZone: string): Promise<number> {
   const db = tenantDb(conn.workspace_id)
   const today = zonedNow(safeTimeZone(timeZone)).date
   const data = await db.bookings
     .findMany({
       select: { id: true, google_sync_version: true },
-      where: { staff_id: conn.staff_id, booking_date: { gte: today }, status: { in: [...ACTIVE] } },
+      where: { ...(conn.staff_id ? { staff_id: conn.staff_id } : {}), booking_date: { gte: today }, status: { in: [...ACTIVE] } },
       take: 200,
     })
     .catch(() => null)

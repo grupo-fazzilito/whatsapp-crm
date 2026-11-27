@@ -163,8 +163,11 @@ export function freeSlotsForStaff(staff: StaffRow, date: string, q: SlotQuery): 
 }
 
 /** Busy windows (minutes) of a staff member on `date`, from both sources. */
+/** Key of the business's own calendar in SlotQuery.busy: its busy time blocks everyone. */
+export const BUSINESS_BUSY = '__business__'
+
 export function busyFor(staff: StaffRow, date: string, q: Pick<SlotQuery, 'busy'>): Window[] {
-  return [...(q.busy?.[staff.id] ?? []), ...(staff.busy ?? [])]
+  return [...(q.busy?.[staff.id] ?? []), ...(staff.busy ?? []), ...(q.busy?.[BUSINESS_BUSY] ?? [])]
     .filter((b) => b.date === date)
     .map((b) => ({ start: toMinutes(b.start) ?? 0, end: toMinutes(b.end) ?? 0 }))
     .filter((w) => w.end > w.start)
@@ -178,10 +181,14 @@ export function freeSlotsForBusiness(date: string, q: SlotQuery): string[] {
   const capacity = Math.max(1, q.capacity ?? 1)
   const nowMin = toMinutes(q.nowTime) ?? 0
   const sameDay = q.bookings.filter((b) => b.booking_date === date && ACTIVE.has(b.status))
+  const blocked = (q.busy?.[BUSINESS_BUSY] ?? [])
+    .filter((b) => b.date === date)
+    .map((b) => ({ start: toMinutes(b.start) ?? 0, end: toMinutes(b.end) ?? 0 }))
   const out: string[] = []
   for (const w of windows) {
     for (let s = w.start; s + q.durationMinutes <= w.end; s += step) {
       if (date === q.today && s <= nowMin) continue
+      if (blocked.some((w) => s < w.end && w.start < s + q.durationMinutes)) continue
       const concurrent = sameDay.filter((b) =>
         overlaps(s, q.durationMinutes, toMinutes(b.booking_time) ?? -1, b.duration_minutes ?? 30),
       ).length

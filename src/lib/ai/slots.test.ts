@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { businessWindows, freeSlotsForBusiness, freeSlotsForStaff, type BusinessHoursRow, type StaffRow, type SlotQuery } from './slots'
+import { BUSINESS_BUSY, businessWindows, freeSlotsForBusiness, freeSlotsForStaff, type BusinessHoursRow, type StaffRow, type SlotQuery } from './slots'
 import { zonedNow } from './time'
 
 // 2026-10-12 is a Monday.
@@ -123,5 +123,16 @@ describe('external busy time (Google Calendar)', () => {
   it('ignores empty or inverted intervals', () => {
     const q: SlotQuery = { ...base, busy: { s1: [{ date: MON, start: '10:00', end: '10:00' }, { date: MON, start: '12:00', end: '11:00' }] } }
     expect(freeSlotsForStaff(barber, MON, q)).toEqual(['09:00', '09:30', '10:00', '12:00', '12:30', '13:00'])
+  })
+})
+
+describe("the business's own Google Calendar", () => {
+  const busy = { [BUSINESS_BUSY]: [{ date: MON, start: '09:15', end: '10:00' }] }
+  it('blocks those times when bookings need no staff', () => {
+    // Without busy: 09:00, 09:30, 10:00, 12:00, 12:30, 13:00.
+    expect(freeSlotsForBusiness(MON, { ...base, busy })).toEqual(['10:00', '12:00', '12:30', '13:00'])
+  })
+  it('blocks those times for every staff member too', () => {
+    expect(freeSlotsForStaff(barber, MON, { ...base, busy })).toEqual(['10:00', '12:00', '12:30', '13:00'])
   })
 })

@@ -24,13 +24,19 @@ export async function GET() {
   const pending = await db.bookings
     .findMany({ select: { staff_id: true }, where: { google_sync_state: 'error' }, take: 200 })
     .catch(() => null)
+  // Bookings of staff without their own calendar go to the business calendar.
+  const own = new Set((conns ?? []).map((c) => c.staff_id).filter(Boolean))
   const errorsByStaff: Record<string, number> = {}
-  for (const r of pending ?? []) if (r.staff_id) errorsByStaff[r.staff_id] = (errorsByStaff[r.staff_id] ?? 0) + 1
+  let businessErrors = 0
+  for (const r of pending ?? []) {
+    if (r.staff_id && own.has(r.staff_id)) errorsByStaff[r.staff_id] = (errorsByStaff[r.staff_id] ?? 0) + 1
+    else businessErrors++
+  }
 
   return NextResponse.json({
     configured: !!cfg,
     can_manage_all: hasRole(role, 'admin'),
     my_staff: mine ?? null,
-    connections: (conns ?? []).map((c) => ({ ...c, sync_errors: errorsByStaff[c.staff_id] ?? 0 })),
+    connections: (conns ?? []).map((c) => ({ ...c, sync_errors: c.staff_id ? (errorsByStaff[c.staff_id] ?? 0) : businessErrors })),
   })
 }

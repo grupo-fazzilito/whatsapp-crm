@@ -8,7 +8,8 @@ import { useWorkspace } from '@/hooks/use-workspace';
 
 export interface GcalConnection {
   id: string;
-  staff_id: string;
+  /** null: the business's own calendar. */
+  staff_id: string | null;
   google_email: string | null;
   status: 'active' | 'error' | 'revoked';
   last_error: string | null;

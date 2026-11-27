@@ -1,4 +1,5 @@
 import 'server-only'
+import { BUSINESS_BUSY } from '@/lib/ai/slots'
 import { tenantDb } from '@/lib/db/tenant'
 import { addDays } from '@/lib/ai/time'
 import { CONNECTION_SELECT, freeBusy, type CalendarConnection } from './api'
@@ -36,7 +37,7 @@ export async function loadStaffBusy(
   try {
     data = (await tenantDb(workspaceId).calendar_connections.findMany({
       select: CONNECTION_SELECT,
-      where: { status: { not: 'revoked' }, ...(opts.staffIds?.length ? { staff_id: { in: opts.staffIds } } : {}) },
+      where: { status: { not: 'revoked' }, ...(opts.staffIds?.length ? { OR: [{ staff_id: { in: opts.staffIds } }, { staff_id: null }] } : {}) },
     })) as CalendarConnection[]
   } catch {
     return {}
@@ -56,11 +57,11 @@ export async function loadStaffBusy(
           busy = await withTimeout(freeBusy(conn, timeMin, timeMax), TIMEOUT_MS)
           cache.set(key, { at: Date.now(), busy })
         } catch (err) {
-          console.warn(`[google] freeBusy failed for staff ${conn.staff_id}:`, err instanceof Error ? err.message : err)
+          console.warn(`[google] freeBusy failed for ${conn.staff_id ? `staff ${conn.staff_id}` : 'the business calendar'}:`, err instanceof Error ? err.message : err)
           return
         }
       }
-      out[conn.staff_id] = busyToLocal(busy, timeZone)
+      out[conn.staff_id ?? BUSINESS_BUSY] = busyToLocal(busy, timeZone)
     }),
   )
   return out

@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   if (outcome.back !== 'staff') target.searchParams.set('tab', outcome.back)
   if (outcome.ok) {
     target.searchParams.set('gcal', 'connected')
-    target.searchParams.set('staff', outcome.staffId)
+    if (outcome.staffId) target.searchParams.set('staff', outcome.staffId)
   } else {
     target.searchParams.set('gcal', 'error')
     target.searchParams.set('reason', outcome.error)

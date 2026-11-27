@@ -4,14 +4,15 @@ import { isUuid } from '@/lib/workspace/constants'
 import { canManageStaffCalendar, getConnectionForStaff } from '@/lib/integrations/google/connect'
 import { disconnectConnection } from '@/lib/integrations/google/sync'
 
-/** POST {staff_id} — stops the push channel, revokes the grant, deletes the connection. */
+/** POST {staff_id} or {scope: 'business'} — stops the push channel, revokes the grant, deletes the connection. */
 export async function POST(request: Request) {
   const guard = await requireWorkspace()
   if (!guard.ok) return guard.response
   const { user, workspace, role } = guard.ctx
   const body = await request.json().catch(() => ({}))
-  const staffId = body.staff_id
-  if (!isUuid(staffId)) return NextResponse.json({ error: 'staff_id is required' }, { status: 400 })
+  const business = body.scope === 'business'
+  const staffId: string | null = business ? null : body.staff_id
+  if (!business && !isUuid(staffId)) return NextResponse.json({ error: 'staff_id is required' }, { status: 400 })
   const allowed = await canManageStaffCalendar(workspace.id, staffId, { id: user.id, role })
   if (!allowed.ok) return NextResponse.json({ error: allowed.status === 404 ? 'Not found' : 'Forbidden' }, { status: allowed.status })
   const conn = await getConnectionForStaff(workspace.id, staffId)
