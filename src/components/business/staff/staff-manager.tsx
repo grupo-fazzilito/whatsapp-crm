@@ -206,7 +206,7 @@ export function StaffManager() {
                       </div>
                     )}
 
-                    {gcal && modules.bookings && (gcal.configured || gcal.connections.some((c) => c.staff_id === s.id)) && (
+                    {gcal && modules.bookings && workspace?.settings?.calendar_mode !== 'business' && (gcal.configured || gcal.connections.some((c) => c.staff_id === s.id)) && (
                       <div className="border-t border-border pt-3">
                         <CalendarConnection
                           compact

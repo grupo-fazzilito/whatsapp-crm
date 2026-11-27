@@ -7,6 +7,8 @@ export interface WorkspaceSettings {
   modules?: Record<string, boolean>
   /** Concurrent bookings per time slot when bookings don't need staff. */
   booking_capacity?: number
+  /** Google Calendar: one general calendar ('business') or each professional's own ('staff'). */
+  calendar_mode?: 'business' | 'staff'
   [key: string]: unknown
 }
 

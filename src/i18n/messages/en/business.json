@@ -90,7 +90,7 @@
         "modulesDescription": "Choosing the business type turns on its recommended modules. You can turn on any other one: for example, a restaurant that also takes appointments. Modules that are off are hidden from the menu and the AI doesn’t offer them.",
         "module": {
           "bookings": "Appointments & bookings",
-          "staff": "Team / professionals",
+          "staff": "Professionals and schedule",
           "services": "Services",
           "products": "Products",
           "orders": "Orders",
@@ -98,7 +98,7 @@
         },
         "moduleHint": {
           "bookings": "Scheduling and bookings over chat.",
-          "staff": "People who serve customers, with their own schedules.",
+          "staff": "People who take bookings, with their own hours. Each can connect their own Google Calendar and manage their schedule individually.",
           "services": "What you offer, with price and duration.",
           "products": "Product catalog.",
           "orders": "Orders over chat (pickup or delivery).",
