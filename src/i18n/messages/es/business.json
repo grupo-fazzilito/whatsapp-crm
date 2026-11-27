@@ -344,7 +344,7 @@
         "business": {
           "label": "Tu negocio",
           "title": "Cuéntanos de tu negocio",
-          "help": "Tu agente se presenta con este nombre y la descripción le dice qué ofreces. El rubro activa lo que tu negocio necesita (citas, pedidos, catálogo) y le enseña cómo atender a tus clientes."
+          "help": "Tu agente se presenta con este nombre y la descripción le dice qué ofreces. El rubro le enseña cómo atender a tus clientes, y lo que actives (citas, servicios, productos, pedidos) es lo que podrá hacer por chat."
         },
         "contact": {
           "label": "Contacto",
@@ -385,7 +385,9 @@
         "detailPlaceholder": "Ej. Barbería y cuidado de barba para hombres",
         "description": "Descripción corta",
         "descriptionPlaceholder": "Ej. Barbería en Miraflores con más de 10 años de experiencia. Cortes clásicos y modernos, afeitado con navaja y productos para barba.",
-        "nameRequired": "Escribe el nombre de tu negocio"
+        "nameRequired": "Escribe el nombre de tu negocio",
+        "modules": "¿Qué vas a usar?",
+        "modulesHelp": "Ya marcamos lo recomendado para tu rubro. Activa o desactiva lo que necesites; puedes cambiarlo cuando quieras."
       },
       "contact": {
         "phone": "Teléfono",

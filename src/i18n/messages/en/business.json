@@ -344,7 +344,7 @@
         "business": {
           "label": "Your business",
           "title": "Tell us about your business",
-          "help": "Your agent introduces itself with this name, and the description tells it what you offer. The business type turns on what you need (bookings, orders, catalog) and teaches it how to serve your customers."
+          "help": "Your agent introduces itself with this name, and the description tells it what you offer. The business type teaches it how to serve your customers, and what you turn on (bookings, services, products, orders) is what it can do in the chat."
         },
         "contact": {
           "label": "Contact",
@@ -385,7 +385,9 @@
         "detailPlaceholder": "e.g. Men's barbershop and beard care",
         "description": "Short description",
         "descriptionPlaceholder": "e.g. Barbershop in Miraflores with over 10 years of experience. Classic and modern cuts, razor shaves and beard products.",
-        "nameRequired": "Enter your business name"
+        "nameRequired": "Enter your business name",
+        "modules": "What will you use?",
+        "modulesHelp": "We turned on what is recommended for your business type. Switch on or off what you need; you can change it anytime."
       },
       "contact": {
         "phone": "Phone",

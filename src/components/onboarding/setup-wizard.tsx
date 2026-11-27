@@ -30,7 +30,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { PRESETS } from '@/lib/industries';
+import { getPreset, PRESETS, type ModuleKey } from '@/lib/industries';
 import { agentFromTemplate, templatesFor, type TemplateKey } from '@/lib/agents/templates';
 import { AGENT_TONES } from '@/components/agents/types';
 import { api } from '@/components/business/api';
@@ -51,6 +51,8 @@ const ICONS: Record<WizardStep, LucideIcon> = {
   agent: Bot,
   done: PartyPopper,
 };
+
+const MODULE_KEYS: ModuleKey[] = ['bookings', 'staff', 'services', 'products', 'orders', 'triage'];
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
 type Day = (typeof DAYS)[number];
@@ -136,6 +138,10 @@ function SetupWizard({ onClose }: { onClose: () => void }) {
     business_type_detail: ws.business_type_detail ?? '',
     description: ws.description ?? '',
   });
+  // Module switches on top of the chosen type's recommended ones (a new type starts from its own).
+  const [moduleOverrides, setModuleOverrides] = useState<Record<string, boolean>>(() => ({ ...((ws.settings?.modules as Record<string, boolean> | undefined) ?? {}) }));
+  const preset = getPreset(biz.industry);
+  const moduleOn = (k: ModuleKey) => (typeof moduleOverrides[k] === 'boolean' ? moduleOverrides[k] : preset.modules[k]);
   const [contact, setContact] = useState({
     phone: ws.phone ?? '',
     email: ws.email ?? '',
@@ -208,14 +214,17 @@ function SetupWizard({ onClose }: { onClose: () => void }) {
           toast.error(w('business.nameRequired'));
           return false;
         }
-        const changed = biz.industry !== ws.industry;
+        // Only the switches that differ from the type's recommendation are stored.
+        const mods: Record<string, boolean> = {};
+        for (const k of MODULE_KEYS) if (moduleOn(k) !== preset.modules[k]) mods[k] = moduleOn(k);
         await api('/api/business/workspace', {
           method: 'PATCH',
           body: {
             name: biz.name.trim(),
             business_type_detail: biz.business_type_detail,
             description: biz.description,
-            ...(changed ? { industry: biz.industry, settings: { modules: {} } } : {}),
+            industry: biz.industry,
+            settings: { modules: mods },
           },
         });
         await refresh();
@@ -426,7 +435,11 @@ function SetupWizard({ onClose }: { onClose: () => void }) {
                     type="button"
                     role="radio"
                     aria-checked={biz.industry === p.id}
-                    onClick={() => setBiz((b) => ({ ...b, industry: p.id }))}
+                    onClick={() => {
+                      if (p.id === biz.industry) return;
+                      setBiz((b) => ({ ...b, industry: p.id }));
+                      setModuleOverrides({});
+                    }}
                     className={cn(
                       'rounded-lg border p-2.5 text-left transition-colors',
                       biz.industry === p.id ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border hover:bg-muted/50',
@@ -435,6 +448,26 @@ function SetupWizard({ onClose }: { onClose: () => void }) {
                     <span className="block text-sm font-medium text-foreground">{p.name[lang]}</span>
                     <span className="block text-xs text-muted-foreground">{p.description[lang]}</span>
                   </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium text-foreground">{w('business.modules')}</p>
+              <p className="text-xs text-muted-foreground">{w('business.modulesHelp')}</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {MODULE_KEYS.map((k) => (
+                  <label key={k} className={cn('flex cursor-pointer items-center justify-between gap-3 rounded-lg border p-2.5 transition-colors', moduleOn(k) ? 'border-primary/40 bg-primary/5' : 'border-border')}>
+                    <span className="min-w-0">
+                      <span className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-foreground">
+                        {t(`business.setup.industry.module.${k}`)}
+                        {preset.modules[k] && (
+                          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{t('business.setup.industry.recommended')}</span>
+                        )}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">{t(`business.setup.industry.moduleHint.${k}`)}</span>
+                    </span>
+                    <Switch checked={moduleOn(k)} aria-label={t(`business.setup.industry.module.${k}`)} onCheckedChange={(v) => setModuleOverrides((m) => ({ ...m, [k]: v }))} />
+                  </label>
                 ))}
               </div>
             </div>
