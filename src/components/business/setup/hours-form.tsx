@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { DAYS, LoadingBlock, trimOrNull } from '../shared';
+import { BookingTimesCard } from './booking-times-card';
 
 interface DayRow {
   day_name: string;
@@ -51,6 +52,7 @@ export function useDayLabel() {
 
 export function HoursForm({ workspace, readOnly }: { workspace: Workspace; readOnly: boolean }) {
   const t = useT();
+  const { modules } = useWorkspace();
   const dayLabel = useDayLabel();
   const [rows, setRows] = useState<DayRow[]>(() => DAYS.map(defaultDay));
   const [loading, setLoading] = useState(true);
@@ -222,6 +224,8 @@ export function HoursForm({ workspace, readOnly }: { workspace: Workspace; readO
           )}
         </CardContent>
       </Card>
+
+      {modules.bookings && <BookingTimesCard workspace={workspace} readOnly={readOnly} />}
 
       <SpecialDates workspace={workspace} readOnly={readOnly} />
     </div>

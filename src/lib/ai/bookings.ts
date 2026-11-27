@@ -1,4 +1,5 @@
 import 'server-only'
+import { bookingDefaults } from '@/lib/bookings/defaults'
 import { tenantDb } from '@/lib/db/tenant'
 import { getPreset, resolveIndustry } from '@/lib/industries'
 import { freeSlotsForBusiness, freeSlotsForStaff } from './slots'
@@ -73,7 +74,8 @@ export async function createBookingFromDraft(
 
   const service = hasServices ? ctx.services.find((s) => s.id === draft.service_id) : undefined
   if (hasServices && !service) return { ok: false, reason: 'invalid', detail: 'service' }
-  const duration = service?.duration_minutes ?? 30
+  const defaults = bookingDefaults(ctx.workspace.settings)
+  const duration = service?.duration_minutes ?? defaults.duration
 
   if (calendly && service) {
     const email = typeof draft.fields?.email === 'string' ? draft.fields.email : null
@@ -95,7 +97,7 @@ export async function createBookingFromDraft(
     today: now.date,
     nowTime: now.time,
     durationMinutes: duration,
-    stepMinutes: 15,
+    stepMinutes: defaults.step,
     capacity: Number(ctx.workspace.settings?.booking_capacity ?? 1),
     // Google Calendar busy time, re-read at confirm time (fresh context).
     busy: ctx.busy,

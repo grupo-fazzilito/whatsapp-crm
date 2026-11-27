@@ -1,5 +1,6 @@
 'use client'
 
+import { bookingDefaults } from '@/lib/bookings/defaults'
 import { useMemo, useState } from 'react'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -42,7 +43,7 @@ interface FormState {
   notify: boolean
 }
 
-function initialState(booking: Booking | null, date: string, contact: ContactLite | null = null): FormState {
+function initialState(booking: Booking | null, date: string, contact: ContactLite | null = null, defaultDuration = 30): FormState {
   if (!booking) {
     return {
       contact,
@@ -52,7 +53,7 @@ function initialState(booking: Booking | null, date: string, contact: ContactLit
       product_id: '',
       date,
       time: '',
-      duration: '30',
+      duration: String(defaultDuration),
       party_size: '',
       custom: {},
       notes: '',
@@ -106,7 +107,8 @@ export function BookingFormDialog(props: BookingFormProps) {
   const { open, onOpenChange, booking, fields, staff, services, products, hours } = props
   const { t, locale } = useI18n()
   const { workspace, label, modules } = useWorkspace()
-  const [form, setForm] = useState<FormState>(() => initialState(booking, props.initialDate, props.initialContact ?? null))
+  // A new booking without a service lasts the business's default duration.
+  const [form, setForm] = useState<FormState>(() => initialState(booking, props.initialDate, props.initialContact ?? null, bookingDefaults(workspace?.settings).duration))
   const [saving, setSaving] = useState(false)
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }))
 

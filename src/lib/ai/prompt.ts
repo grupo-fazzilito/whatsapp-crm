@@ -1,4 +1,5 @@
 import { getPreset, resolveIndustry, industryLabel } from '@/lib/industries'
+import { bookingDefaults } from '@/lib/bookings/defaults'
 import { formatMoney, moneyLocale } from '@/lib/workspace/countries'
 import { formatProductPrice } from '@/lib/catalog/currency'
 import { freeSlotsForBusiness, freeSlotsForStaff, upcomingDates } from './slots'
@@ -208,7 +209,8 @@ export function availabilityBlock(input: Pick<PromptInput, 'ctx' | 'draft' | 'ca
   const preset = getPreset(ctx.workspace.industry)
   const now = zonedNow(ctx.timeZone)
   const service = ctx.services.find((s) => s.id === draft?.service_id)
-  const duration = service?.duration_minutes ?? 30
+  const defaults = bookingDefaults(ctx.workspace.settings)
+  const duration = service?.duration_minutes ?? defaults.duration
   const q = {
     hours: ctx.hours,
     exceptions: ctx.exceptions,
@@ -216,7 +218,7 @@ export function availabilityBlock(input: Pick<PromptInput, 'ctx' | 'draft' | 'ca
     today: now.date,
     nowTime: now.time,
     durationMinutes: duration,
-    stepMinutes: 30,
+    stepMinutes: defaults.step,
     capacity: Number((ctx.workspace.settings as { booking_capacity?: number })?.booking_capacity ?? 1),
     busy: ctx.busy,
   }

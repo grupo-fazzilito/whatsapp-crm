@@ -147,6 +147,35 @@
         "invalidRange": "La hora final debe ser posterior a la inicial.",
         "reason": "Motivo (opcional)",
         "reasonPlaceholder": "Ej. Día festivo"
+      },
+      "bookingTimes": {
+        "title": "Duración y horarios de las citas",
+        "description": "Cuánto dura una cita sin servicio y cada cuánto pueden empezar.",
+        "how": "¿Cómo funciona?",
+        "duration": "Duración de una cita (sin servicio)",
+        "step": "Las citas empiezan",
+        "minutes": "{n} minutos",
+        "every": "Cada {n} min",
+        "help": {
+          "title": "Duración y horarios de las citas",
+          "intro": "Estos dos ajustes deciden qué horarios ofrece tu agente de IA y el selector de citas, y cuánto dura cada evento en Google Calendar.",
+          "durationTitle": "Duración de una cita",
+          "durationBody": "Es lo que dura una cita cuando no tiene un servicio, por ejemplo una reunión o una visita general. Si la cita es de un servicio, se usa la duración de ese servicio (Mi negocio → Servicios).",
+          "durationTip": "¿Tienes reuniones de distinto largo? Crea un servicio para cada una (por ejemplo «Reunión 15 min» y «Reunión 45 min») y pon su duración en cada servicio.",
+          "stepTitle": "Cada cuánto empiezan las citas",
+          "stepBody": "Son las horas de inicio que se ofrecen a los clientes dentro de tu horario:",
+          "grid15": "9:00, 9:15, 9:30, 9:45, 10:00…",
+          "grid30": "9:00, 9:30, 10:00, 10:30…",
+          "grid60": "9:00, 10:00, 11:00…",
+          "exampleTitle": "Ejemplo con reuniones de 45 minutos",
+          "exampleIntro": "Alguien reserva a las 9:00. ¿Cuál es el siguiente horario libre?",
+          "example30": "10:00 (quedan 15 minutos sin usar)",
+          "example15": "9:45 (sin huecos)",
+          "exampleTip": "Regla práctica: elige «cada 15 min» si tus citas duran 15 o 45 minutos; «cada 30 min» para citas de 30, 60 o 90; «cada 60 min» si solo atiendes a la hora en punto.",
+          "calendarTitle": "Y en Google Calendar",
+          "calendarBody": "Cada cita se crea como evento con esa misma duración, y lo que tengas ocupado en tu calendario no se ofrece a los clientes.",
+          "existing": "Los cambios aplican a las citas nuevas. Las que ya están agendadas mantienen su duración."
+        }
       }
     },
     "staff": {
