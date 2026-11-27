@@ -142,6 +142,8 @@ Cada cuenta tiene una región (`pe`, `ve`, `us`) con su moneda, precios y pasare
 ## 7. Registro y configuración asistida
 
 - [x] Todos los botones del sitio dicen "Regístrate gratis" (fuera "Agendar demo" y "Contactar ventas"); dentro de la app, modal y opción en el menú "?" con la configuración asistida de S/ 250 por Google Meet que abre WhatsApp — 🤖 (2026-10-14, rama `feat/signup-and-setup-help`)
+- [x] Asistente de configuración al registrarse (modal por pasos: negocio, contacto, horario, qué vendes, preguntas frecuentes y agente de IA, con «Lo configuraré luego»); solo para cuentas nuevas, se puede reabrir desde «Configura tu cuenta» en el inicio — 🤖 (2026-11-27, rama `feat/setup-wizard`)
+- [ ] Probar el asistente de configuración con una cuenta nueva en producción (registro con correo y con Google) — 🧑
 - [ ] Poner tu número de WhatsApp en Superadmin → Settings → Soporte (sin él no aparecen el modal ni la opción del menú) — 🧑
 
 ## 8. TikTok (comentarios y mensajes directos)
