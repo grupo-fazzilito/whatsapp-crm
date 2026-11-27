@@ -189,11 +189,6 @@
       "newToken": "New access token",
       "newVerifyToken": "New verify token"
     },
-    "settingsCard": {
-      "title": "WhatsApp and other channels",
-      "description": "WhatsApp numbers, Instagram, Messenger and the web chat are now managed in Channels. You can connect several numbers and give each one its own AI agent.",
-      "button": "Go to Channels"
-    },
     "marketing": {
       "title": "Optimized marketing messages",
       "onboarded": "Active: your marketing templates go out through Meta's Marketing Messages API.",
