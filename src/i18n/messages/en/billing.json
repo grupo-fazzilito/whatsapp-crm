@@ -5,7 +5,7 @@
     "subtitle": "Your AI agents and comment replies spend credits. The monthly plan gives you new credits every month.",
     "balance": "Available tokens",
     "approxReplies": "≈ {n} AI replies",
-    "nextExpiry": "{tokens} tokens expire on {date}",
+    "nextExpiry": "{credits} credits expire on {date}",
     "noExpiry": "No tokens about to expire",
     "paused": "Your AI agents are paused because you ran out of tokens. Messages go to your team inbox.",
     "low": "You are running low on tokens.",
@@ -346,7 +346,8 @@
       "overage": "Extra credits this month",
       "nextCharge": "Estimated next charge",
       "card": "Card",
-      "lastError": "Last charge attempt"
+      "lastError": "Last charge attempt",
+      "paidPlan": "If you subscribe"
     },
     "perMonthIgv": "a month (IGV included)",
     "igv": "(IGV included)",
@@ -359,6 +360,8 @@
     "plan": "Plan",
     "extra": "Extra",
     "extraCredits": "+ {n} extra credits from the previous month",
-    "igvNote": "All amounts include IGV."
+    "igvNote": "All amounts include IGV.",
+    "free": "Free (you pay nothing)",
+    "paidPlanValue": "{price} a month for {n} credits (IGV included)"
   }
 }

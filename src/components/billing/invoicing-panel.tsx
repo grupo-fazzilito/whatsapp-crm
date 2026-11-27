@@ -81,7 +81,8 @@ export function InvoicingPanel() {
     },
     {
       label: t('invoicing.fields.price'),
-      value: `${money(active ? sub!.price_cents : monthlyCents(pricing.step_tokens, pricing))} ${t('invoicing.perMonthIgv')}`,
+      // Free plan: nothing is charged; the paid plan's price goes on its own line.
+      value: active ? `${money(sub!.price_cents)} ${t('invoicing.perMonthIgv')}` : t('invoicing.free'),
     },
     {
       label: t('invoicing.fields.balance'),
@@ -95,6 +96,12 @@ export function InvoicingPanel() {
       ),
     },
   ];
+  if (!active) {
+    rows.push({
+      label: t('invoicing.fields.paidPlan'),
+      value: t('invoicing.paidPlanValue', { price: money(monthlyCents(pricing.step_tokens, pricing)), n: nf.format(pricing.step_tokens) }),
+    });
+  }
   if (data.next_expiry) rows.push({ label: t('invoicing.fields.expiry'), value: t('billing.nextExpiry', { credits: nf.format(data.next_expiry.credits), date: date(data.next_expiry.at) }) });
   if (sub?.started_at) rows.push({ label: t('invoicing.fields.since'), value: date(sub.started_at) });
   if (active && sub!.current_period_end) {

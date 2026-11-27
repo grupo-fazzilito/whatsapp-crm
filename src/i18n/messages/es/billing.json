@@ -5,7 +5,7 @@
     "subtitle": "Tus agentes de IA y las respuestas a comentarios gastan créditos. El plan mensual te da créditos nuevos cada mes.",
     "balance": "Tokens disponibles",
     "approxReplies": "≈ {n} respuestas de IA",
-    "nextExpiry": "{credits} tokens vencen el {date}",
+    "nextExpiry": "{credits} créditos vencen el {date}",
     "noExpiry": "Sin tokens por vencer",
     "paused": "Tus agentes de IA están en pausa por falta de tokens. Los mensajes llegan a la bandeja para tu equipo.",
     "low": "Te quedan pocos tokens.",
@@ -346,7 +346,8 @@
       "overage": "Créditos adicionales este mes",
       "nextCharge": "Próximo cobro estimado",
       "card": "Tarjeta",
-      "lastError": "Último intento de cobro"
+      "lastError": "Último intento de cobro",
+      "paidPlan": "Si te suscribes"
     },
     "perMonthIgv": "al mes (incluye IGV)",
     "igv": "(incluye IGV)",
@@ -359,6 +360,8 @@
     "plan": "Plan",
     "extra": "Adicionales",
     "extraCredits": "+ {n} créditos adicionales del mes anterior",
-    "igvNote": "Todos los montos incluyen IGV."
+    "igvNote": "Todos los montos incluyen IGV.",
+    "free": "S/ 0 (no pagas nada)",
+    "paidPlanValue": "{price} al mes por {n} créditos (incluye IGV)"
   }
 }
