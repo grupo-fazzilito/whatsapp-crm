@@ -1,19 +1,15 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
+import { useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { activeSubTab, settingsTabs } from '@/components/layout/nav-groups';
-import Link from 'next/link';
-import { buttonVariants } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TemplateManager } from '@/components/settings/template-manager';
 import { TagManager } from '@/components/settings/tag-manager';
 import { ProfileForm } from '@/components/settings/profile-form';
 import { PasswordForm } from '@/components/settings/password-form';
 import { SessionsCard } from '@/components/settings/sessions-card';
 import { MyGoogleCalendarCard } from '@/components/integrations/google/my-calendar-card';
-import { AppearancePanel } from '@/components/settings/appearance-panel';
 import { TeamManager } from '@/components/settings/team-manager';
 import { QuickRepliesManager } from '@/components/settings/quick-replies-manager';
 import { CustomFieldsManager } from '@/components/settings/custom-fields-manager';
@@ -29,12 +25,19 @@ import { BackupCard } from '@/components/settings/backup-card';
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const t = useT();
   const { can } = useWorkspace();
   const isAdmin = can('admin');
 
   // The URL is the single source of truth: the inner menu on the left links to ?tab=<key>.
   const tab = activeSubTab(settingsTabs({ t, isAdmin }), searchParams.get('tab'));
+
+  // Channels moved to their own page: old /settings?tab=whatsapp links go there.
+  const legacyChannels = searchParams.get('tab') === 'whatsapp';
+  useEffect(() => {
+    if (legacyChannels) router.replace('/channels');
+  }, [legacyChannels, router]);
 
   return (
     <div className="space-y-6">
@@ -55,22 +58,6 @@ export default function SettingsPage() {
           <TeamManager />
         </TabsContent>
 
-        {/* Kept as 'whatsapp' so old /settings?tab=whatsapp links still land here. */}
-        <TabsContent value="whatsapp">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('channels.settingsCard.title')}</CardTitle>
-              <CardDescription>{t('channels.settingsCard.description')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/channels" className={buttonVariants()}>
-                {t('channels.settingsCard.button')}
-                <ArrowRight className="size-4" />
-              </Link>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="templates">
           <TemplateManager />
         </TabsContent>
@@ -89,10 +76,6 @@ export default function SettingsPage() {
 
         <TabsContent value="teams">
           <TeamsManager />
-        </TabsContent>
-
-        <TabsContent value="appearance">
-          <AppearancePanel />
         </TabsContent>
 
         {isAdmin && (
