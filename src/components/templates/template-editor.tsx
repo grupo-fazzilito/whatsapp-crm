@@ -26,6 +26,7 @@ import {
   Upload,
   Video,
   X,
+  Bot,
 } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { useWorkspace } from '@/hooks/use-workspace';
@@ -189,6 +190,9 @@ export function TemplateEditor({ templateId, suggestionId }: { templateId?: stri
   const [loading, setLoading] = useState(!!templateId);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | undefined>(templateId);
+  // What the AI agent does when a customer presses each quick-reply button (button text → rule).
+  const [rules, setRules] = useState<Record<string, string>>({});
+  const [rulesBusy, setRulesBusy] = useState(false);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [channelId, setChannelId] = useState<string>('');
   const [advanced, setAdvanced] = useState(false);
@@ -217,6 +221,7 @@ export function TemplateEditor({ templateId, suggestionId }: { templateId?: stri
         const r = body.template as TemplateRow;
         const d = draftFromRow(r);
         setRow(r);
+        setRules({ ...(((r as unknown as { button_rules?: Record<string, string> }).button_rules) ?? {}) });
         setFields(fieldsFrom(d, titleFromName(r.name)));
         setStore(storeFrom(d.variables));
         if (r.channel_id) setChannelId(r.channel_id);
@@ -381,8 +386,31 @@ export function TemplateEditor({ templateId, suggestionId }: { templateId?: stri
   const canAdd = (type: ButtonType) =>
     fields.buttons.length < LIMITS.buttons && (type === 'url' ? count('url') < 2 : type === 'phone' ? count('phone') < 1 : true);
   const addButton = (type: ButtonType) => update({ buttons: [...fields.buttons, { type, text: '', value: type === 'quick_reply' ? undefined : '' }] }, 'buttons');
-  const setButton = (i: number, patch: Partial<TemplateButton>) =>
+  const setButton = (i: number, patch: Partial<TemplateButton>) => {
+    // A renamed quick reply keeps its AI rule.
+    const old = fields.buttons[i]?.text;
+    if (patch.text !== undefined && old !== undefined && rules[old] !== undefined) {
+      setRules(({ [old]: rule, ...rest }) => ({ ...rest, [patch.text!]: rule }));
+    }
     update({ buttons: fields.buttons.map((b, k) => (k === i ? { ...b, ...patch } : b)) }, 'buttons');
+  };
+  const quickReplies = fields.buttons.filter((b) => b.type === 'quick_reply' && b.text.trim());
+  const saveRules = async (id: string, quiet = false) => {
+    setRulesBusy(true);
+    try {
+      const res = await fetch(`/api/whatsapp/templates/${id}/button-rules`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rules }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!quiet) toast.success(t('templates.editor.aiRules.saved'));
+    } catch {
+      toast.error(t('templates.editor.aiRules.error'));
+    } finally {
+      setRulesBusy(false);
+    }
+  };
   const removeButton = (i: number) => update({ buttons: fields.buttons.filter((_, k) => k !== i) }, 'buttons');
 
   // ── Save / submit ──
@@ -416,6 +444,7 @@ export function TemplateEditor({ templateId, suggestionId }: { templateId?: stri
       if (!res.ok || !body.template) throw new Error(body?.error ?? `HTTP ${res.status}`);
       const id = (body.template as TemplateRow).id;
       setSavedId(id);
+      if (Object.values(rules).some((v) => v.trim()) || savedId) await saveRules(id, true);
       setRow(body.template as TemplateRow);
       if (submit) {
         setResult({ submitted: !!body.submitted, error: body.error as string | undefined, id });
@@ -1037,6 +1066,36 @@ export function TemplateEditor({ templateId, suggestionId }: { templateId?: stri
               </>
             )}
           </fieldset>
+
+          {quickReplies.length > 0 && (
+            <Section id="ai-rules" title={t('templates.editor.aiRules.title')} description={t('templates.editor.aiRules.description')}>
+              <ul className="space-y-3">
+                {quickReplies.map((b, i) => (
+                  <li key={`${i}-${b.text}`} className="space-y-1.5">
+                    <Label htmlFor={`ai-rule-${i}`} className="flex items-center gap-1.5 text-xs text-slate-300">
+                      <Bot className="size-3.5 text-primary" aria-hidden />
+                      {t('templates.editor.aiRules.label', { button: b.text })}
+                    </Label>
+                    <Textarea
+                      id={`ai-rule-${i}`}
+                      rows={2}
+                      maxLength={1000}
+                      value={rules[b.text] ?? ''}
+                      placeholder={t('templates.editor.aiRules.placeholder')}
+                      onChange={(e) => setRules((all) => ({ ...all, [b.text]: e.target.value }))}
+                    />
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-slate-400">{t('templates.editor.aiRules.help')}</p>
+              {savedId && (
+                <Button type="button" variant="outline" size="sm" onClick={() => void saveRules(savedId)} disabled={rulesBusy}>
+                  {rulesBusy && <Loader2 className="size-4 animate-spin" aria-hidden />}
+                  {t('templates.editor.aiRules.save')}
+                </Button>
+              )}
+            </Section>
+          )}
 
           {!readOnly && (
             <div className="sticky bottom-0 z-10 -mx-1 flex flex-col-reverse gap-2 border-t border-slate-800 bg-background/95 px-1 py-3 backdrop-blur sm:flex-row sm:justify-end">

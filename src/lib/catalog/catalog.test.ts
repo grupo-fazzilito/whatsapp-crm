@@ -132,3 +132,15 @@ describe('per-product currency in the agent prompt', () => {
     expect(buildSystemPrompt({ ...base, ctx: c })).toContain('currency="USD"')
   })
 })
+
+describe('template button rule in the agent prompt', () => {
+  it('tells the agent which button was pressed and the rule to follow', () => {
+    const prompt = buildSystemPrompt({ ...base, ctx: ctx(null, 0), pressedButton: { template: 'oferta_noviembre', button: 'Sí, quiero', rule: 'Envía el catálogo de casacas y pregunta la talla.' } })
+    expect(prompt).toContain('BUTTON JUST PRESSED')
+    expect(prompt).toContain('"Sí, quiero"')
+    expect(prompt).toContain('Envía el catálogo de casacas y pregunta la talla.')
+  })
+  it('says nothing about buttons otherwise', () => {
+    expect(buildSystemPrompt({ ...base, ctx: ctx(null, 0) })).not.toContain('BUTTON JUST PRESSED')
+  })
+})

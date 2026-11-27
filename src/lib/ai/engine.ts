@@ -1,4 +1,5 @@
 import 'server-only'
+import { pressedButtonRule } from '@/lib/templates/button-rules-server'
 import { askTelegramPhone } from '@/lib/channels/telegram-phone'
 import { canSpend, spend } from '@/lib/billing/credits'
 import { messageTextForAi } from './assist/core'
@@ -91,6 +92,8 @@ export interface RunAgentInput {
   conversationId: string
   messageText: string
   contextMessageId?: string | null
+  /** Set when the customer pressed a button (a template's quick reply sends its text). */
+  interactiveReplyId?: string | null
   isFirstInboundMessage: boolean
   /** Internal: transfer depth guard. */
   depth?: number
@@ -287,9 +290,12 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     return false
   }
 
-  // 3) Greeting on the first message of a conversation.
+  // A quick-reply button of a template we sent: the business's rule for it guides this turn.
+  const pressed = input.interactiveReplyId && !input.depth ? await pressedButtonRule(input.workspaceId, input.conversationId, text) : null
+
+  // 3) Greeting on the first message of a conversation (not when answering a template button).
   const pureGreeting = /^(hola|buen[oa]s?( d[ií]as| tardes| noches)?|hey|hi|hello|good (morning|afternoon|evening)|qu[eé] tal)[\s!.¡,]*$/i.test(text)
-  if (input.isFirstInboundMessage && agent.greeting_message) {
+  if (input.isFirstInboundMessage && agent.greeting_message && !pressed) {
     await reply(input, agent, agent.greeting_message.replace(/\{business\}/gi, ctx.workspace.name))
     if (pureGreeting) {
       await log(input, agent, agent.greeting_message, 'greeting', 1)
@@ -359,6 +365,7 @@ export async function runAgent(input: RunAgentInput): Promise<boolean> {
     customerName: contactName,
     channelLabel: CHANNEL_LABEL[input.channel.type] ?? input.channel.type,
     calendlySlots: await calendlySlotsFor(ctx, state.booking ?? null),
+    pressedButton: pressed,
   }
 
   const turns = await history(input.workspaceId, input.conversationId, ctx.workspace.locale === 'en' ? 'en' : 'es')

@@ -96,7 +96,8 @@ export function TemplatePreview({ draft, className }: { draft: TemplateDraft; cl
   const { t } = useI18n();
   const { workspace } = useWorkspace();
   const [examples, setExamples] = useState(true);
-  const business = workspace?.name || t('templates.preview.business');
+  // The business name as written in My business → Profile.
+  const business = workspace?.name?.trim() || t('templates.preview.business');
   const isAuth = draft.category === 'Authentication';
   const auth = isAuth ? authenticationText(draft.language, draft.codeExpiration) : null;
 
