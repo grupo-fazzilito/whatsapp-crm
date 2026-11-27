@@ -118,10 +118,11 @@
     "dashboard": {
       "title": "AI tokens",
       "replies": "≈ {n} AI replies",
-      "expires": "{tokens} expire on {date}",
+      "expires": "{credits} expire on {date}",
       "topup": "See plan",
       "depleted": "Out of tokens: AI is paused",
-      "low": "Running low"
+      "low": "Running low",
+      "renews": "{credits} renew on {date}"
     },
     "plan": {
       "label": "Your plan:",
@@ -144,7 +145,8 @@
         "other": "Charge"
       },
       "view": "View invoice"
-    }
+    },
+    "nextRenewal": "{credits} credits renew on {date}"
   },
   "billingAdmin": {
     "title": "Tokens and Payment Latam",

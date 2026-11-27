@@ -14,7 +14,7 @@ interface Status {
   enforce: boolean;
   low: boolean;
   depleted: boolean;
-  next_expiry: { at: string; credits: number } | null;
+  next_expiry: { at: string; credits: number; renews?: boolean } | null;
 }
 
 /** Dashboard card (admins): AI credits left with a "Top up" button right under the amount. */
@@ -69,7 +69,7 @@ export function CreditsCard({ className }: { className?: string }) {
           </p>
           {status.next_expiry && (
             <p className="text-xs text-muted-foreground">
-              {t('billing.dashboard.expires', {
+              {t(status.next_expiry.renews ? 'billing.dashboard.renews' : 'billing.dashboard.expires', {
                 credits: nf.format(status.next_expiry.credits),
                 date: new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-PE', { dateStyle: 'medium' }).format(new Date(status.next_expiry.at)),
               })}

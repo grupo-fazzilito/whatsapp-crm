@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { nextExpiryView } from '@/lib/billing/next-expiry'
 import { requireWorkspace } from '@/lib/workspace/context'
 import { creditBalance } from '@/lib/billing/credits'
 import { getBillingSettings, getPaymentLatamConfig } from '@/lib/billing/settings'
@@ -57,7 +58,7 @@ export async function GET() {
   return NextResponse.json({
     plan: { id: plan.id, name: plan.name, price: plan.price },
     balance,
-    next_expiry: next ? { at: next.expires_at, credits: next.credits_remaining } : null,
+    next_expiry: nextExpiryView(next, subscription),
     lots: lots.data ?? [],
     settings: {
       region,

@@ -121,7 +121,8 @@
       "expires": "{credits} vencen el {date}",
       "topup": "Ver plan",
       "depleted": "Sin tokens: la IA está en pausa",
-      "low": "Quedan pocos tokens"
+      "low": "Quedan pocos tokens",
+      "renews": "{credits} se renuevan el {date}"
     },
     "plan": {
       "label": "Tu plan:",
@@ -144,7 +145,8 @@
         "other": "Cargo"
       },
       "view": "Ver factura"
-    }
+    },
+    "nextRenewal": "{credits} créditos se renuevan el {date}"
   },
   "billingAdmin": {
     "title": "Tokens y Payment Latam",
