@@ -47,7 +47,7 @@ export interface InvoiceRow {
 export interface BillingData {
   plan: { id: string; name: string; price: number };
   balance: number;
-  next_expiry: { at: string; credits: number } | null;
+  next_expiry: { at: string; credits: number; renews?: boolean } | null;
   settings: {
     region: string;
     gateway: string;

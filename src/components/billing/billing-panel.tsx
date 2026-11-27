@@ -84,7 +84,7 @@ export function BillingPanel() {
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-300">
               {data.next_expiry
-                ? t('billing.nextExpiry', { credits: nf.format(data.next_expiry.credits), date: date(data.next_expiry.at) })
+                ? t(data.next_expiry.renews ? 'billing.nextRenewal' : 'billing.nextExpiry', { credits: nf.format(data.next_expiry.credits), date: date(data.next_expiry.at, true) })
                 : t('billing.noExpiry')}
             </p>
           </div>

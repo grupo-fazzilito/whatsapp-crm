@@ -121,7 +121,8 @@
       "expires": "{credits} vencen el {date}",
       "topup": "Ver plan",
       "depleted": "Sin tokens: la IA está en pausa",
-      "low": "Quedan pocos tokens"
+      "low": "Quedan pocos tokens",
+      "renews": "{credits} se renuevan el {date}"
     },
     "plan": {
       "label": "Tu plan:",
@@ -144,7 +145,8 @@
         "other": "Cargo"
       },
       "view": "Ver factura"
-    }
+    },
+    "nextRenewal": "{credits} créditos se renuevan el {date}"
   },
   "billingAdmin": {
     "title": "Tokens y Payment Latam",
@@ -261,7 +263,7 @@
     "current": "Tu plan: {n} créditos al mes · {price} / mes",
     "status": {
       "active": "Activa.",
-      "renewsOn": "Se renueva el {date}: ese día vuelves a tener tus créditos del mes.",
+      "renewsOn": "Se renueva el {date}. Ese día vuelves a tener tus créditos del mes.",
       "endsOn": "Cancelada: sigue activa hasta el {date}.",
       "pastDue": "No pudimos cobrar la renovación. Actualiza tu tarjeta en «Administrar pago».",
       "canceled": "Suscripción cancelada."
