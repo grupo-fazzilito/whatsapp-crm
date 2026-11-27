@@ -8,7 +8,9 @@
       "learnMore": "See features"
     },
     "integrations": {
-      "title": "Integrated With Your Favorite Tools"
+      "title": "Connected to your channels and calendar",
+      "gcal": "Sync your bookings with Google Calendar →",
+      "api": "API and webhooks"
     },
     "how": {
       "title": "How it works",

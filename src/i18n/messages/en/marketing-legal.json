@@ -2,7 +2,7 @@
   "mktPrivacy": {
     "badge": "Legal Document",
     "title": "Privacy Policy",
-    "updated": "Last updated: October 31, 2026",
+    "updated": "Last updated: November 27, 2026",
     "intro": "This Privacy Policy (the \"Policy\") describes how Whasalia (\"we\", \"us\", or \"our\") collects, uses, maintains, and discloses information from users of our Platform. By accessing or using the Whasalia SaaS platform, you consent to the practices described in this Policy. If you do not agree, please do not use the Platform.",
     "s1": {
       "title": "1. User Data Collection",
@@ -29,7 +29,7 @@
     },
     "s6": {
       "title": "6. Security Practices",
-      "body": "Security is central to the Whasalia architecture. All data transfers between the browser and our servers are encrypted using TLS 1.3 (HTTPS). Core databases are isolated, and payment transactions are offloaded entirely to PCI-DSS compliant third-party payment gateways (e.g., Razorpay)."
+      "body": "Security is central to the Whasalia architecture. All data transfers between the browser and our servers are encrypted using TLS 1.3 (HTTPS). Core databases are isolated, and payment transactions are offloaded entirely to PCI-DSS compliant third-party payment gateways (Culqi)."
     },
     "s7": {
       "title": "7. User Rights & Data Portability",
@@ -46,13 +46,25 @@
       "body": "Whasalia integrates with third-party software (such as e-commerce systems, spreadsheet tools, and messaging networks). We are not responsible for the privacy policies of these external platforms. We advise checking their independent terms before configuring webhook endpoints or sync permissions."
     },
     "authorities": {
-      "title": "10. Requests from Public Authorities",
+      "title": "11. Requests from Public Authorities",
       "body": "We only disclose personal data to a public authority when the law requires us to. We review every request to confirm that it is lawful and valid; if we consider it unlawful or excessive, we challenge it through the available legal channels. When we must respond, we disclose only the minimum information needed to comply with the request. We keep a record of each request, our response, the authority that made it and its legal basis. Where the law allows it, we notify the affected business before disclosing its data."
     },
     "s10": {
-      "title": "11. Contact & Regulatory Information",
+      "title": "12. Contact & Regulatory Information",
       "body": "For questions or requests regarding your data, contact Whasalia:",
       "emailLabel": "Email:"
+    },
+    "google": {
+      "title": "10. Google user data (Google Calendar)",
+      "intro": "Whasalia offers an optional Google Calendar integration. Each business decides whether to turn it on in Settings → Integrations, connecting one general business calendar or each professional's own, with their own Google account.",
+      "access": "Data we access: the email address of the connected account (openid and email scopes), the events Whasalia creates in that calendar (calendar.events scope) and the calendar's busy time ranges, start and end only (calendar.freebusy scope). We do not read titles, descriptions or attendees of events Whasalia did not create.",
+      "use": "How we use it: to create one event per appointment booked in Whasalia, update or delete it when the appointment changes or is cancelled, apply to the appointment changes made to those same events in Google Calendar, and avoid offering customers times that are already busy. We use this data for no other purpose.",
+      "storage": "How we store it: Google access tokens are stored encrypted (AES-256) and are used only by Whasalia's server for syncing. We keep the identifier of each event we create so we can update it; busy times are queried on demand and not stored.",
+      "sharing": "Who we share it with: no one. Google data is not sold, not used for advertising, not transferred to third parties and not used to train artificial intelligence models. Only authorized staff may access it when needed for security or legal obligations.",
+      "revoke": "How to disconnect and delete: you can disconnect Google Calendar at any time from Settings → Integrations; we then revoke access with Google and delete the stored tokens. You can also remove access at https://myaccount.google.com/permissions or ask us to delete your data at support@whasalia.com.",
+      "limitedBefore": "Whasalia's use and transfer to any other app of information received from Google APIs will adhere to the ",
+      "limitedLink": "Google API Services User Data Policy",
+      "limitedAfter": ", including the Limited Use requirements."
     }
   },
   "mktRefund": {

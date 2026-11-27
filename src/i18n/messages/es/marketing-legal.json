@@ -2,7 +2,7 @@
   "mktPrivacy": {
     "badge": "Documento legal",
     "title": "Política de privacidad",
-    "updated": "Última actualización: 31 de octubre de 2026",
+    "updated": "Última actualización: 27 de noviembre de 2026",
     "intro": "Esta Política de privacidad (la \"Política\") describe cómo Whasalia (\"nosotros\" o \"nuestro\") recopila, usa, conserva y divulga la información de los usuarios de nuestra Plataforma. Al acceder a la plataforma SaaS de Whasalia o usarla, aceptas las prácticas descritas en esta Política. Si no estás de acuerdo, te pedimos que no uses la Plataforma.",
     "s1": {
       "title": "1. Recopilación de datos de usuario",
@@ -29,7 +29,7 @@
     },
     "s6": {
       "title": "6. Prácticas de seguridad",
-      "body": "La seguridad es fundamental en la arquitectura de Whasalia. Todas las transferencias de datos entre el navegador y nuestros servidores se cifran con TLS 1.3 (HTTPS). Las bases de datos principales están aisladas, y las transacciones de pago se delegan por completo a pasarelas de pago de terceros que cumplen con PCI-DSS (p. ej., Razorpay)."
+      "body": "La seguridad es fundamental en la arquitectura de Whasalia. Todas las transferencias de datos entre el navegador y nuestros servidores se cifran con TLS 1.3 (HTTPS). Las bases de datos principales están aisladas, y las transacciones de pago se delegan por completo a pasarelas de pago de terceros que cumplen con PCI-DSS (Culqi)."
     },
     "s7": {
       "title": "7. Derechos del usuario y portabilidad de datos",
@@ -46,13 +46,25 @@
       "body": "Whasalia se integra con software de terceros (como sistemas de comercio electrónico, herramientas de hojas de cálculo y redes de mensajería). No somos responsables de las políticas de privacidad de estas plataformas externas. Te recomendamos revisar sus propios términos antes de configurar endpoints de webhook o permisos de sincronización."
     },
     "authorities": {
-      "title": "10. Solicitudes de autoridades públicas",
+      "title": "11. Solicitudes de autoridades públicas",
       "body": "Solo entregamos datos personales a una autoridad pública cuando la ley nos obliga a hacerlo. Cada solicitud la revisamos para comprobar que sea legal y válida; si la consideramos ilícita o excesiva, la impugnamos por las vías legales disponibles. Cuando debemos responder, entregamos solo la información mínima necesaria para cumplir con la solicitud. Dejamos constancia de cada solicitud, de nuestra respuesta, de la autoridad que la hizo y de su fundamento legal. Si la ley lo permite, avisamos al negocio afectado antes de entregar sus datos."
     },
     "s10": {
-      "title": "11. Contacto e información regulatoria",
+      "title": "12. Contacto e información regulatoria",
       "body": "Si tienes preguntas o solicitudes sobre tus datos, ponte en contacto con Whasalia:",
       "emailLabel": "Correo electrónico:"
+    },
+    "google": {
+      "title": "10. Datos de usuario de Google (Google Calendar)",
+      "intro": "Whasalia ofrece una integración opcional con Google Calendar. Cada negocio decide si la activa desde Configuración → Integraciones, conectando un calendario general del negocio o el de cada profesional, con su propia cuenta de Google.",
+      "access": "Datos a los que accedemos: la dirección de correo de la cuenta conectada (permisos openid y email), los eventos que Whasalia crea en ese calendario (permiso calendar.events) y los rangos de tiempo ocupado del calendario, solo inicio y fin (permiso calendar.freebusy). No leemos títulos, descripciones ni invitados de los eventos que no creó Whasalia.",
+      "use": "Para qué los usamos: crear un evento por cada cita agendada en Whasalia, actualizarlo o borrarlo cuando la cita cambia o se cancela, aplicar en la cita los cambios hechos a esos mismos eventos en Google Calendar, y no ofrecer a los clientes horarios que ya están ocupados. No usamos estos datos para ningún otro fin.",
+      "storage": "Cómo los guardamos: los tokens de acceso de Google se guardan cifrados (AES-256) y solo los usa el servidor de Whasalia para la sincronización. Guardamos el identificador de cada evento creado para poder actualizarlo; los horarios ocupados se consultan al momento y no se almacenan.",
+      "sharing": "Con quién los compartimos: con nadie. Los datos de Google no se venden, no se usan para publicidad, no se transfieren a terceros y no se usan para entrenar modelos de inteligencia artificial. Solo el personal autorizado puede acceder a ellos cuando sea necesario por seguridad o por obligación legal.",
+      "revoke": "Cómo desconectar y borrar: puedes desconectar Google Calendar en cualquier momento desde Configuración → Integraciones; al hacerlo revocamos el acceso ante Google y borramos los tokens guardados. También puedes quitar el acceso desde https://myaccount.google.com/permissions o pedir la eliminación de tus datos escribiendo a support@whasalia.com.",
+      "limitedBefore": "El uso y la transferencia a cualquier otra aplicación de la información recibida de las API de Google por parte de Whasalia cumplirá con la ",
+      "limitedLink": "Política de datos del usuario de los servicios de las API de Google",
+      "limitedAfter": ", incluidos los requisitos de uso limitado (Limited Use)."
     }
   },
   "mktRefund": {

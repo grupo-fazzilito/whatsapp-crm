@@ -88,43 +88,60 @@
     "subtitle": "Empieza gratis. Cuando necesites más cuentas o agentes de IA, suscríbete al plan mensual."
   },
   "mktIntegrations": {
-    "badge": "sincronización nativa",
-    "titleLine1": "Conectado con las herramientas",
-    "titleHighlight": "que ya usas.",
-    "subtitle": "Sin migraciones complicadas. Conecta tu plataforma de e-commerce, tus webhooks o tu CRM en minutos.",
-    "filters": {
-      "all": "Todas",
-      "ecommerce": "E-commerce",
-      "crm": "CRM y pipelines",
-      "dev": "Herramientas para desarrolladores"
+    "badge": "Integraciones",
+    "titleLine1": "Conectado con los canales",
+    "titleHighlight": "y el calendario que ya usas.",
+    "subtitle": "Atiende WhatsApp, Instagram, Messenger, Telegram y el chat de tu web desde una sola bandeja, y sincroniza tus citas con Google Calendar.",
+    "othersTitle": "Otras integraciones",
+    "categories": {
+      "channels": "Canal de mensajería",
+      "schedule": "Agenda",
+      "dev": "Desarrolladores"
     },
-    "searchPlaceholder": "Buscar integraciones...",
-    "syncTag": "Sync v2.0",
-    "connect": "Configurar conexión",
+    "google": {
+      "tag": "Integración opcional para citas y reservas",
+      "intro": "Conecta Google Calendar para que las citas que agendan tu equipo y tu agente de IA aparezcan en tu calendario, y para que Whasalia nunca ofrezca a tus clientes un horario en el que ya estás ocupado. Puedes usar un calendario general para todo el negocio o uno por cada profesional.",
+      "f1": "Cada cita se crea como evento, con la misma hora y duración.",
+      "f2": "Si mueves o cancelas la cita, el evento se actualiza; si lo mueves en Google, la cita cambia en Whasalia.",
+      "f3": "Tus horarios ocupados en Google no se ofrecen a los clientes.",
+      "f4": "Un calendario general o uno por profesional, como prefieras.",
+      "cta": "Crear cuenta gratis",
+      "privacy": "Cómo usamos tus datos de Google",
+      "howTitle": "Cómo se activa",
+      "h1": "Regístrate en Whasalia y activa «Citas y reservas».",
+      "h2": "Ve a Configuración → Integraciones → Google Calendar.",
+      "h3": "Presiona «Conectar» y elige tu cuenta de Google.",
+      "dataTitle": "Tus datos",
+      "data": "Solo creamos y actualizamos los eventos de tus citas y leemos tus horas ocupadas (inicio y fin). No leemos el contenido de tus otros eventos, no vendemos ni compartimos tus datos y puedes desconectar cuando quieras."
+    },
     "items": {
-      "shopify": {
-        "name": "Shopify",
-        "desc": "Sincroniza carritos abandonados, envía recordatorios de pago por WhatsApp y despacha plantillas de envío automáticamente."
+      "whatsapp": {
+        "name": "WhatsApp Business (API oficial de Meta)",
+        "desc": "Conecta tu número con la API oficial: bandeja compartida, plantillas, difusiones, botones y agente de IA."
       },
-      "hubspot": {
-        "name": "HubSpot",
-        "desc": "Envía automáticamente los chats calificados de WhatsApp, Instagram y Messenger, las etiquetas y las citas agendadas al historial de contactos de HubSpot."
+      "instagram": {
+        "name": "Instagram",
+        "desc": "Mensajes directos y comentarios de tu cuenta profesional en la misma bandeja, con respuestas automáticas."
       },
-      "zapier": {
-        "name": "Zapier",
-        "desc": "Conecta los eventos de Whasalia con más de 5,000 apps. Activa flujos de trabajo con los mensajes que llegan por WhatsApp, Instagram y Messenger."
+      "messenger": {
+        "name": "Facebook Messenger",
+        "desc": "Los mensajes de tu página de Facebook en la bandeja, con el mismo agente de IA."
       },
-      "webhooks": {
-        "name": "Webhooks para desarrolladores",
-        "desc": "Suscríbete a payloads JSON en vivo de mensajes entregados, confirmaciones de lectura de plantillas y conversaciones entrantes."
+      "telegram": {
+        "name": "Telegram",
+        "desc": "Conecta un bot de Telegram y atiende sus chats junto a tus otros canales."
       },
-      "salesforce": {
-        "name": "Salesforce",
-        "desc": "Sincronización de contactos de nivel empresarial. Dirige los leads de alto valor directamente a ejecutivos de cuenta dedicados."
+      "webchat": {
+        "name": "Chat para tu web",
+        "desc": "Un widget de chat para tu página web, conectado a tu bandeja y a tu agente de IA."
       },
-      "slack": {
-        "name": "Notificaciones de Slack",
-        "desc": "Publica avisos en tus canales cuando leads empresariales con alta intención de compra responden o agendan una cita."
+      "calendly": {
+        "name": "Calendly",
+        "desc": "Usa los horarios de tus eventos de Calendly para que la IA agende por chat."
+      },
+      "api": {
+        "name": "API y webhooks",
+        "desc": "Claves de API y webhooks para conectar Whasalia con tus propios sistemas."
       }
     }
   },

@@ -88,43 +88,60 @@
     "subtitle": "Start free. When you need more accounts or AI agents, subscribe to the monthly plan."
   },
   "mktIntegrations": {
-    "badge": "native sync",
-    "titleLine1": "Connected to Your",
-    "titleHighlight": "Existing Stack.",
-    "subtitle": "No complicated migration. Connect your ecommerce platform, developer webhooks, or CRM in minutes.",
-    "filters": {
-      "all": "All Syncs",
-      "ecommerce": "E-Commerce",
-      "crm": "CRMs & Pipelines",
-      "dev": "Developer Tools"
+    "badge": "Integrations",
+    "titleLine1": "Connected to the channels",
+    "titleHighlight": "and calendar you already use.",
+    "subtitle": "Handle WhatsApp, Instagram, Messenger, Telegram and your website chat from one inbox, and sync your bookings with Google Calendar.",
+    "othersTitle": "Other integrations",
+    "categories": {
+      "channels": "Messaging channel",
+      "schedule": "Scheduling",
+      "dev": "Developers"
     },
-    "searchPlaceholder": "Search integrations...",
-    "syncTag": "v2.0 Sync",
-    "connect": "Connect Setup",
+    "google": {
+      "tag": "Optional integration for bookings",
+      "intro": "Connect Google Calendar so the bookings your team and your AI agent make show up in your calendar, and Whasalia never offers customers a time when you're already busy. Use one general calendar for the whole business or one per professional.",
+      "f1": "Each booking becomes an event with the same time and length.",
+      "f2": "Move or cancel the booking and the event updates; move it in Google and the booking changes in Whasalia.",
+      "f3": "Your busy times in Google aren't offered to customers.",
+      "f4": "One general calendar or one per professional, as you prefer.",
+      "cta": "Create a free account",
+      "privacy": "How we use your Google data",
+      "howTitle": "How to turn it on",
+      "h1": "Sign up for Whasalia and turn on «Bookings».",
+      "h2": "Go to Settings → Integrations → Google Calendar.",
+      "h3": "Click «Connect» and choose your Google account.",
+      "dataTitle": "Your data",
+      "data": "We only create and update your booking events and read your busy times (start and end). We don't read the content of your other events, we don't sell or share your data, and you can disconnect anytime."
+    },
     "items": {
-      "shopify": {
-        "name": "Shopify",
-        "desc": "Sync cart dropouts, trigger WhatsApp payment reminders, and dispatch shipment templates automatically."
+      "whatsapp": {
+        "name": "WhatsApp Business (Meta's official API)",
+        "desc": "Connect your number through the official API: shared inbox, templates, broadcasts, buttons and AI agent."
       },
-      "hubspot": {
-        "name": "HubSpot",
-        "desc": "Automatically push qualified WhatsApp, Instagram and Messenger chats, tags and booked meetings into HubSpot contact timelines."
+      "instagram": {
+        "name": "Instagram",
+        "desc": "Direct messages and comments from your professional account in the same inbox, with automatic replies."
       },
-      "zapier": {
-        "name": "Zapier",
-        "desc": "Connect Whasalia events to over 5,000 apps. Trigger workflows from messages arriving on WhatsApp, Instagram and Messenger."
+      "messenger": {
+        "name": "Facebook Messenger",
+        "desc": "Your Facebook page messages in the inbox, with the same AI agent."
       },
-      "webhooks": {
-        "name": "Developer Webhooks",
-        "desc": "Subscribe to live JSON payloads for delivered texts, template read confirmations, and incoming chat threads."
+      "telegram": {
+        "name": "Telegram",
+        "desc": "Connect a Telegram bot and handle its chats next to your other channels."
       },
-      "salesforce": {
-        "name": "Salesforce",
-        "desc": "Enterprise-grade contact synchronizations. Route high-value leads directly to dedicated account executives."
+      "webchat": {
+        "name": "Website chat",
+        "desc": "A chat widget for your website, connected to your inbox and AI agent."
       },
-      "slack": {
-        "name": "Slack Notifications",
-        "desc": "Post channel notifications when high-intent enterprise leads reply or complete calendar schedulers."
+      "calendly": {
+        "name": "Calendly",
+        "desc": "Use your Calendly event times so the AI books in the chat."
+      },
+      "api": {
+        "name": "API and webhooks",
+        "desc": "API keys and webhooks to connect Whasalia with your own systems."
       }
     }
   },

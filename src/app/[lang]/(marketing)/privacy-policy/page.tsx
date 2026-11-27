@@ -93,6 +93,25 @@ export default function PrivacyPolicyPage() {
           </p>
         </section>
 
+        <section id="google-user-data" className="space-y-3">
+          <h3 className="text-lg font-bold text-[var(--m-text-heading)]">{t("mktPrivacy.google.title")}</h3>
+          <p>{t("mktPrivacy.google.intro")}</p>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li>{t("mktPrivacy.google.access")}</li>
+            <li>{t("mktPrivacy.google.use")}</li>
+            <li>{t("mktPrivacy.google.storage")}</li>
+            <li>{t("mktPrivacy.google.sharing")}</li>
+            <li>{t("mktPrivacy.google.revoke")}</li>
+          </ul>
+          <p>
+            {t("mktPrivacy.google.limitedBefore")}
+            <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">
+              {t("mktPrivacy.google.limitedLink")}
+            </a>
+            {t("mktPrivacy.google.limitedAfter")}
+          </p>
+        </section>
+
         <section className="space-y-3">
           <h3 className="text-lg font-bold text-[var(--m-text-heading)]">{t("mktPrivacy.authorities.title")}</h3>
           <p>
