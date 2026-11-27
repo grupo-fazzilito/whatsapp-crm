@@ -1,120 +1,24 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { AlertTriangle, Coins, ExternalLink, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Coins, Loader2 } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { BILLABLE_ACTIONS, type BillableAction } from '@/lib/billing/pricing';
-import { AccountForm, accountComplete, useBillingError, type BillingAccount } from './top-up';
-import { formatMoney } from '@/lib/regions';
-import { SubscriptionCard, type OverageView, type SubscriptionView } from './subscription-card';
-import { formatPlanCents } from '@/lib/billing/subscription-pricing';
-import type { SubscriptionPricing } from '@/lib/billing/subscription-pricing';
+import { BILLABLE_ACTIONS } from '@/lib/billing/pricing';
+import { SubscriptionCard } from './subscription-card';
+import { useBillingData } from './billing-data';
 
-interface Payment {
-  id: string;
-  amount: number;
-  currency: string;
-  credits: number;
-  status: 'creating' | 'pending' | 'paid' | 'expired' | 'reversed' | 'failed';
-  checkout_url: string | null;
-  expires_on: string | null;
-  paid_at: string | null;
-  created_at: string;
-}
-
-interface LedgerRow {
-  id: number;
-  kind: string;
-  credits: number;
-  action: string | null;
-  note: string | null;
-  created_at: string;
-}
-
-/** A paid subscription invoice: the plan, plus the previous month's extra credits when there were any. */
-interface InvoiceRow {
-  id: string;
-  created_at: string;
-  reason: string | null;
-  amount_cents: number;
-  currency: string;
-  credits: number;
-  hosted_url: string | null;
-  overage_credits: number;
-  overage_cents: number;
-}
-
-interface BillingData {
-  plan: { id: string; name: string; price: number };
-  balance: number;
-  next_expiry: { at: string; credits: number } | null;
-  settings: {
-    region: string;
-    /** payment_latam (Peru) asks for DNI/RUC billing details; stripe collects the card itself. */
-    gateway: string;
-    currency: string;
-    credit_price: number;
-    min_topup: number;
-    packs: number[];
-    expiry_months: number;
-    action_costs: Record<BillableAction, number>;
-    low_credit_threshold: number;
-    enforce: boolean;
-  };
-  gateway_ready: boolean;
-  subscription: SubscriptionView | null;
-  overage: OverageView | null;
-  invoices: InvoiceRow[];
-  subscription_pricing: SubscriptionPricing;
-  subscription_ready: boolean;
-  subscription_provider?: string;
-  culqi_public_key?: string | null;
-  account: BillingAccount | null;
-  payments: Payment[];
-  ledger: LedgerRow[];
-  usage_month: Record<string, number>;
-}
-
-const STATUS_CLS: Record<Payment['status'], string> = {
-  creating: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-  pending: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
-  paid: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300',
-  expired: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-  reversed: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
-  failed: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
-};
-
+/** Settings → Tokens: the balance, the plan that gives them, and what each action costs. Invoices live in Settings → Billing. */
 export function BillingPanel() {
   const { t, locale } = useI18n();
-  const [data, setData] = useState<BillingData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [checking, setChecking] = useState<string | null>(null);
+  const { data, loading, load } = useBillingData();
 
   const nf = new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-PE');
   const date = (iso: string, withTime = false) =>
     new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-PE', withTime ? { dateStyle: 'medium', timeStyle: 'short' } : { dateStyle: 'medium' }).format(new Date(iso));
-
-  const errorText = useBillingError();
-
-  const load = useCallback(async () => {
-    const res = await fetch('/api/billing', { cache: 'no-store' });
-    if (!res.ok) {
-      setLoading(false);
-      return;
-    }
-    setData((await res.json()) as BillingData);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch
-    void load();
-  }, [load]);
 
   // Back from Stripe's subscription checkout: the webhook grants the tokens within seconds.
   useEffect(() => {
@@ -152,22 +56,9 @@ export function BillingPanel() {
   if (!data) return <p className="text-sm text-red-600">{t('billing.errors.generic')}</p>;
 
   const s = data.settings;
-  // Peru: the billing details (DNI/RUC, address, phone) for Culqi and the receipt.
-  const latam = s.gateway === 'payment_latam' || data.subscription_provider === 'culqi';
   const replyCost = s.action_costs.reply || 1;
   const depleted = s.enforce && data.balance < replyCost;
   const low = !depleted && data.balance <= s.low_credit_threshold;
-  const check = async (p: Payment) => {
-    setChecking(p.id);
-    const res = await fetch(`/api/billing/payments/${p.id}/sync`, { method: 'POST' });
-    setChecking(null);
-    const body = await res.json().catch(() => ({}));
-    if (res.ok && body.payment?.status === 'paid') toast.success(t('billing.payments.credited', { n: nf.format(p.credits) }));
-    else if (res.ok) toast.info(t('billing.payments.stillPending'));
-    else toast.error(errorText(body.error));
-    await load();
-  };
-
   return (
     <div className="space-y-6">
       {/* Balance */}
@@ -212,151 +103,18 @@ export function BillingPanel() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Monthly token subscription (one-time top-ups are no longer sold) */}
-        <div className={latam ? '' : 'lg:col-span-2'}>
-          <SubscriptionCard
-            pricing={data.subscription_pricing}
-            subscription={data.subscription}
-            overage={data.overage}
-            ready={data.subscription_ready}
-            onChanged={() => void load()}
-            provider={data.subscription_provider}
-            culqiPublicKey={data.culqi_public_key ?? null}
-            accountReady={accountComplete(data.account)}
-            email={data.account?.email ?? null}
-          />
-        </div>
-
-        {/* Billing details (Peru: DNI/RUC for the receipt; Stripe asks for what it needs) */}
-        {latam && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('billing.account.title')}</CardTitle>
-            <CardDescription>{t('billing.account.description')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AccountForm initial={data.account} onSaved={() => void load()} />
-          </CardContent>
-        </Card>
-        )}
-      </div>
-
-      {/* Monthly invoices: plan + extra credits used, with Stripe's invoice */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('billing.invoices.title')}</CardTitle>
-          <CardDescription>{t('billing.invoices.description')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {data.invoices.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">{t('billing.invoices.empty')}</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400">
-                    <th scope="col" className="py-2 pr-4 font-medium">{t('billing.invoices.date')}</th>
-                    <th scope="col" className="py-2 pr-4 font-medium">{t('billing.invoices.detail')}</th>
-                    <th scope="col" className="py-2 pr-4 text-right font-medium">{t('billing.invoices.total')}</th>
-                    <th scope="col" className="py-2 font-medium"><span className="sr-only">{t('common.actions')}</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.invoices.map((inv) => (
-                    <tr key={inv.id} className="border-b border-slate-100 align-top last:border-0 dark:border-slate-800/60">
-                      <td className="py-2.5 pr-4 whitespace-nowrap">{date(inv.created_at)}</td>
-                      <td className="py-2.5 pr-4">
-                        <p className="text-slate-900 dark:text-white">
-                          {inv.credits > 0 ? t('billing.invoices.plan', { n: nf.format(inv.credits) }) : t(`billing.invoices.reason.${inv.reason === 'subscription_update' ? 'update' : 'other'}`)}
-                        </p>
-                        {inv.overage_credits > 0 && (
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {t('billing.invoices.extra', { n: nf.format(inv.overage_credits), price: formatPlanCents(inv.overage_cents, inv.currency) })}
-                          </p>
-                        )}
-                      </td>
-                      <td className="py-2.5 pr-4 text-right tabular-nums">{formatMoney(inv.amount_cents / 100, inv.currency || 'USD')}</td>
-                      <td className="py-2.5 text-right whitespace-nowrap">
-                        {inv.hosted_url && (
-                          <a
-                            href={inv.hosted_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-                          >
-                            {t('billing.invoices.view')} <ExternalLink className="size-3" aria-hidden />
-                          </a>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* One-time top-ups of the old prepaid model, while an account has any */}
-      {data.payments.length > 0 && (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('billing.payments.title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.payments.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">{t('billing.payments.empty')}</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400">
-                    <th scope="col" className="py-2 pr-4 font-medium">{t('billing.payments.date')}</th>
-                    <th scope="col" className="py-2 pr-4 font-medium">{t('billing.payments.amount')}</th>
-                    <th scope="col" className="py-2 pr-4 font-medium">{t('billing.payments.credits')}</th>
-                    <th scope="col" className="py-2 pr-4 font-medium">{t('billing.payments.status')}</th>
-                    <th scope="col" className="py-2 font-medium"><span className="sr-only">{t('common.actions')}</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.payments.map((p) => (
-                    <tr key={p.id} className="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
-                      <td className="py-2.5 pr-4 whitespace-nowrap">{date(p.created_at, true)}</td>
-                      <td className="py-2.5 pr-4 tabular-nums">{formatMoney(Number(p.amount), p.currency || 'PEN')}</td>
-                      <td className="py-2.5 pr-4 tabular-nums">{nf.format(p.credits)}</td>
-                      <td className="py-2.5 pr-4">
-                        <Badge variant="secondary" className={STATUS_CLS[p.status]}>{t(`billing.status.${p.status}`)}</Badge>
-                      </td>
-                      <td className="py-2.5 text-right whitespace-nowrap">
-                        {p.status === 'pending' && (
-                          <div className="flex justify-end gap-2">
-                            {p.checkout_url && (
-                              <a
-                                href={p.checkout_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-                              >
-                                {t('billing.payments.pay')} <ExternalLink className="size-3" aria-hidden />
-                              </a>
-                            )}
-                            <Button size="sm" variant="outline" onClick={() => check(p)} disabled={checking === p.id}>
-                              {checking === p.id ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <RefreshCw className="size-3.5" aria-hidden />}
-                              {checking === p.id ? t('billing.payments.checking') : t('billing.payments.check')}
-                            </Button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      )}
+      {/* Monthly plan: also in Settings → Billing, with its invoices and billing details */}
+      <SubscriptionCard
+        pricing={data.subscription_pricing}
+        subscription={data.subscription}
+        overage={data.overage}
+        ready={data.subscription_ready}
+        onChanged={() => void load()}
+        provider={data.subscription_provider}
+        culqiPublicKey={data.culqi_public_key ?? null}
+        account={data.account}
+        onAccountSaved={() => void load()}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Costs + month usage */}

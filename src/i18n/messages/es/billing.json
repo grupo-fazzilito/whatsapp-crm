@@ -2,7 +2,7 @@
   "billing": {
     "tab": "Tokens",
     "title": "Tokens de IA",
-    "subtitle": "Tus agentes de IA gastan tokens al responder. Recarga cuando quieras; no hay mensualidad.",
+    "subtitle": "Tus agentes de IA y las respuestas a comentarios gastan créditos. El plan mensual te da créditos nuevos cada mes.",
     "balance": "Tokens disponibles",
     "approxReplies": "≈ {n} respuestas de IA",
     "nextExpiry": "{credits} tokens vencen el {date}",
@@ -43,7 +43,7 @@
     },
     "account": {
       "title": "Datos de facturación",
-      "description": "Payment Latam los pide en cada pago.",
+      "description": "Los usamos para cobrarte con tarjeta y emitir tu comprobante.",
       "docType": "Documento",
       "docNumber": "Número",
       "legalName": "Nombre o razón social",
@@ -118,7 +118,7 @@
       "title": "Tokens de IA",
       "replies": "≈ {n} respuestas de IA",
       "expires": "{credits} vencen el {date}",
-      "topup": "Recargar",
+      "topup": "Ver plan",
       "depleted": "Sin tokens: la IA está en pausa",
       "low": "Quedan pocos tokens"
     },
@@ -303,7 +303,7 @@
       "cancel": "Cancelar plan",
       "cancelTitle": "¿Cancelar el plan?",
       "cancelBody": "Sigue activo hasta el fin del mes. Ese día se cobran solo los créditos adicionales que hayas usado y vuelves al plan gratis (1 cuenta por servicio; las cuentas adicionales tendrán 30 días antes de desconectarse).",
-      "needDetails": "Completa tus datos de facturación (documento, dirección, ciudad y teléfono) para suscribirte.",
+      "needDetails": "Al suscribirte te pediremos tus datos de facturación (documento, dirección, ciudad y teléfono).",
       "pastDue": "No pudimos cobrar la renovación. Lo intentamos de nuevo cada día; usa «Pagar ahora» para no perder el plan.",
       "terms": "Pago con tarjeta a través de Culqi, en soles. Los precios incluyen IGV. Cada mes se cobra el plan y los créditos adicionales del mes anterior en un solo cargo. Cancela cuando quieras.",
       "done": {
@@ -316,7 +316,48 @@
       "payNow": "Pagar ahora",
       "verifying": "Tu banco pide verificar el pago. Sigue los pasos en la ventana del banco.",
       "verifyClosed": "Cerraste la verificación del banco. No se cobró nada.",
-      "verifyFailed": "El banco no pudo verificar el pago. No se cobró nada; prueba de nuevo o usa otra tarjeta."
+      "verifyFailed": "El banco no pudo verificar el pago. No se cobró nada; prueba de nuevo o usa otra tarjeta.",
+      "detailsTitle": "Tus datos de facturación",
+      "detailsBody": "Los necesitamos una sola vez para cobrar con tarjeta y emitir tu comprobante. Luego se abre el pago.",
+      "detailsContinue": "Guardar y continuar al pago"
     }
+  },
+  "invoicing": {
+    "tab": "Facturación",
+    "title": "Tu plan y facturación",
+    "description": "Qué plan tienes, cuándo se cobra y cuánto, y todos los cobros hechos.",
+    "status": {
+      "none": "Plan gratis",
+      "active": "Activo",
+      "canceling": "Se cancela al fin del mes",
+      "pastDue": "Pago pendiente",
+      "canceled": "Cancelado"
+    },
+    "fields": {
+      "plan": "Plan",
+      "status": "Estado",
+      "price": "Precio",
+      "balance": "Créditos disponibles",
+      "expiry": "Próximo vencimiento",
+      "since": "Suscrito desde",
+      "nextBilling": "Próxima facturación",
+      "endsOn": "El plan termina el",
+      "overage": "Créditos adicionales este mes",
+      "nextCharge": "Próximo cobro estimado",
+      "card": "Tarjeta",
+      "lastError": "Último intento de cobro"
+    },
+    "perMonthIgv": "al mes (incluye IGV)",
+    "igv": "(incluye IGV)",
+    "credits": "{n} créditos",
+    "seeUsage": "Ver consumo",
+    "overageValue": "{n} de {limit} · {price}",
+    "receiptTo": "Los comprobantes salen a nombre de {name} ({doc}).",
+    "invoicesHelp": "Cada cobro mensual: el plan y los créditos adicionales usados el mes anterior.",
+    "period": "Mes que paga",
+    "plan": "Plan",
+    "extra": "Adicionales",
+    "extraCredits": "+ {n} créditos adicionales del mes anterior",
+    "igvNote": "Todos los montos incluyen IGV."
   }
 }

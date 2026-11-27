@@ -54,7 +54,7 @@
     "pricing": {
       "badge": "Pricing",
       "title": "Free forever.",
-      "subtitle": "The whole platform with no monthly fee. AI is paid separately, with prepaid tokens.",
+      "subtitle": "Start free with one account of each service. The monthly plan gives you unlimited accounts and AI credits every month.",
       "seeCosts": "See what each AI action costs →"
     },
     "faq": {
@@ -68,7 +68,7 @@
       "q3": "Do I need a WhatsApp Business Account (WABA)?",
       "a3": "Yes. To run active automation, you need a verified Meta Business Account and a clean phone number. Whasalia's support team guides you through the entire Meta Business Verification process to establish your official partner status.",
       "q4": "How much does Whasalia cost?",
-      "a4": "Whasalia is free forever: one plan, Free Forever, with the whole platform. You only pay for AI, with prepaid tokens you top up whenever you want. WhatsApp template messages are charged by Meta directly to your account, with no Whasalia markup.",
+      "a4": "You can use Whasalia for free with one account of each service. The monthly plan (in soles, IGV included) gives you unlimited accounts and AI credits every month; if they run out, the AI keeps going with extra credits up to the limit you choose, billed on the next invoice. WhatsApp template messages are charged by Meta directly to your account; Whasalia takes no commission on them.",
       "q5": "How does the AI Assistant resolve queries?",
       "a5": "You can upload your database guidelines, FAQs, and service files directly to the platform. Our AI parses user intent, answers client inquiries using your knowledge base guidelines, and flags human agents when a manual takeover is required."
     },

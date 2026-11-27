@@ -145,7 +145,18 @@ export function BuyForm({
 }
 
 /** Document, legal name and email Payment Latam asks for on every payment. */
-export function AccountForm({ initial, onSaved }: { initial: BillingAccount | null; onSaved: () => void }) {
+export function AccountForm({
+  initial,
+  onSaved,
+  submitLabel,
+  idPrefix = 'billing',
+}: {
+  initial: BillingAccount | null;
+  onSaved: (account: BillingAccount) => void;
+  submitLabel?: string;
+  /** Unique ids when the form is on the page twice (settings + the subscribe dialog). */
+  idPrefix?: string;
+}) {
   const { t } = useI18n();
   const errorText = useBillingError();
   const [account, setAccount] = useState({
@@ -173,16 +184,16 @@ export function AccountForm({ initial, onSaved }: { initial: BillingAccount | nu
       return;
     }
     toast.success(t('billing.account.saved'));
-    onSaved();
+    onSaved(body.account as BillingAccount);
   };
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="billing-doc-type">{t('billing.account.docType')}</Label>
+          <Label htmlFor={`${idPrefix}-doc-type`}>{t('billing.account.docType')}</Label>
           <Select value={account.doc_type} onValueChange={(v) => setAccount((a) => ({ ...a, doc_type: v ?? '1' }))}>
-            <SelectTrigger id="billing-doc-type" className="w-full">
+            <SelectTrigger id={`${idPrefix}-doc-type`} className="w-full">
               <SelectValue>{DOC_TYPES[Number(account.doc_type) as keyof typeof DOC_TYPES]?.label}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -195,35 +206,35 @@ export function AccountForm({ initial, onSaved }: { initial: BillingAccount | nu
           </Select>
         </div>
         <div className="col-span-2 space-y-1.5">
-          <Label htmlFor="billing-doc-number">{t('billing.account.docNumber')}</Label>
-          <Input id="billing-doc-number" value={account.doc_number} onChange={(e) => setAccount((a) => ({ ...a, doc_number: e.target.value.trim() }))} maxLength={20} />
+          <Label htmlFor={`${idPrefix}-doc-number`}>{t('billing.account.docNumber')}</Label>
+          <Input id={`${idPrefix}-doc-number`} value={account.doc_number} onChange={(e) => setAccount((a) => ({ ...a, doc_number: e.target.value.trim() }))} maxLength={20} />
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="billing-name">{t('billing.account.legalName')}</Label>
-        <Input id="billing-name" value={account.legal_name} onChange={(e) => setAccount((a) => ({ ...a, legal_name: e.target.value }))} maxLength={200} autoComplete="organization" />
+        <Label htmlFor={`${idPrefix}-name`}>{t('billing.account.legalName')}</Label>
+        <Input id={`${idPrefix}-name`} value={account.legal_name} onChange={(e) => setAccount((a) => ({ ...a, legal_name: e.target.value }))} maxLength={200} autoComplete="organization" />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="billing-email">{t('billing.account.email')}</Label>
-        <Input id="billing-email" type="email" value={account.email} onChange={(e) => setAccount((a) => ({ ...a, email: e.target.value }))} maxLength={60} autoComplete="email" />
+        <Label htmlFor={`${idPrefix}-email`}>{t('billing.account.email')}</Label>
+        <Input id={`${idPrefix}-email`} type="email" value={account.email} onChange={(e) => setAccount((a) => ({ ...a, email: e.target.value }))} maxLength={60} autoComplete="email" />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="billing-address">{t('billing.account.address')}</Label>
-        <Input id="billing-address" value={account.address} onChange={(e) => setAccount((a) => ({ ...a, address: e.target.value }))} maxLength={100} autoComplete="street-address" />
+        <Label htmlFor={`${idPrefix}-address`}>{t('billing.account.address')}</Label>
+        <Input id={`${idPrefix}-address`} value={account.address} onChange={(e) => setAccount((a) => ({ ...a, address: e.target.value }))} maxLength={100} autoComplete="street-address" />
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="billing-city">{t('billing.account.city')}</Label>
-          <Input id="billing-city" value={account.city} onChange={(e) => setAccount((a) => ({ ...a, city: e.target.value }))} maxLength={30} autoComplete="address-level2" />
+          <Label htmlFor={`${idPrefix}-city`}>{t('billing.account.city')}</Label>
+          <Input id={`${idPrefix}-city`} value={account.city} onChange={(e) => setAccount((a) => ({ ...a, city: e.target.value }))} maxLength={30} autoComplete="address-level2" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="billing-phone">{t('billing.account.phone')}</Label>
-          <Input id="billing-phone" type="tel" inputMode="tel" value={account.phone} onChange={(e) => setAccount((a) => ({ ...a, phone: e.target.value }))} maxLength={20} autoComplete="tel" />
+          <Label htmlFor={`${idPrefix}-phone`}>{t('billing.account.phone')}</Label>
+          <Input id={`${idPrefix}-phone`} type="tel" inputMode="tel" value={account.phone} onChange={(e) => setAccount((a) => ({ ...a, phone: e.target.value }))} maxLength={20} autoComplete="tel" />
         </div>
       </div>
-      <Button variant="outline" onClick={save} disabled={saving}>
+      <Button variant={submitLabel ? 'default' : 'outline'} onClick={save} disabled={saving}>
         {saving && <Loader2 className="size-4 animate-spin" aria-hidden />}
-        {t('billing.account.save')}
+        {submitLabel ?? t('billing.account.save')}
       </Button>
     </div>
   );

@@ -85,7 +85,7 @@
     "badge": "Pricing",
     "titleLine1": "Whasalia is free.",
     "titleHighlight": "You only pay for AI.",
-    "subtitle": "Use the whole platform with no monthly fee. If you turn on AI agents, top up tokens when you need them."
+    "subtitle": "Start free. When you need more accounts or AI agents, subscribe to the monthly plan."
   },
   "mktIntegrations": {
     "badge": "native sync",
@@ -182,13 +182,7 @@
     "tokens": {
       "name": "AI tokens",
       "tagline": "You only pay for the AI you use.",
-      "unit": "per token",
-      "equivalence": "1 token = 1 reply from your AI agent.",
-      "welcome": "{n} free tokens when you create your account",
-      "pack": "{n} tokens",
-      "minimum": "Minimum top-up: {min}. You can also top up another amount.",
-      "expiry": "Tokens expire {months} months after purchase.",
-      "payment": "Pay by card, Yape, Plin or bank transfer."
+      "welcome": "{n} free tokens when you create your account"
     },
     "costs": {
       "title": "What uses tokens?",

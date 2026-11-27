@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { defaultOverageLimit, formatPlanCents, monthlyCents, type SubscriptionPricing } from '@/lib/billing/subscription-pricing';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { culqi3DS, culqiCardToken, culqiDeviceId, type Culqi3DSResult } from './culqi-checkout';
 import { OverageLimit } from './overage-limit';
+import { AccountForm, accountComplete, type BillingAccount } from './top-up';
 
 export interface SubscriptionView {
   tokens: number;
@@ -22,6 +24,7 @@ export interface SubscriptionView {
   provider?: string;
   card_label?: string | null;
   last_error?: string | null;
+  started_at?: string | null;
 }
 
 export interface OverageView {
@@ -46,8 +49,8 @@ export function SubscriptionCard({
   onChanged,
   provider = 'stripe',
   culqiPublicKey = null,
-  accountReady = true,
-  email = null,
+  account = null,
+  onAccountSaved,
 }: {
   pricing: SubscriptionPricing;
   subscription: SubscriptionView | null;
@@ -58,9 +61,9 @@ export function SubscriptionCard({
   /** Who charges: 'culqi' (Peru, soles) or 'stripe'. */
   provider?: string;
   culqiPublicKey?: string | null;
-  /** Culqi needs the billing details (address, city, phone) before saving a card. */
-  accountReady?: boolean;
-  email?: string | null;
+  /** Culqi needs the billing details (document, address, city, phone): asked in a dialog on «Subscribe» when missing. */
+  account?: BillingAccount | null;
+  onAccountSaved?: () => void;
 }) {
   const { t, locale } = useI18n();
   const active = !!subscription && ACTIVE.has(subscription.status);
@@ -68,6 +71,11 @@ export function SubscriptionCard({
   const [limit, setLimit] = useState<number>(savedLimit);
   const [busy, setBusy] = useState<'subscribe' | 'portal' | 'limit' | 'card' | 'cancel' | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  // Details saved in the dialog, used until the parent reloads its own copy.
+  const [savedAccount, setSavedAccount] = useState<BillingAccount | null>(null);
+  const [askDetails, setAskDetails] = useState<'subscribe' | 'card' | null>(null);
+  const payer = savedAccount ?? account;
+  const accountReady = accountComplete(payer);
   const culqi = provider === 'culqi';
   const money = (cents: number) => formatPlanCents(cents, pricing.currency);
   const nf = new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-PE');
@@ -86,12 +94,13 @@ export function SubscriptionCard({
    * When the bank asks for 3D Secure, its verification opens here and the
    * same request goes again with the result.
    */
-  const culqiAction = async (action: 'subscribe' | 'card' | 'cancel' | 'resume') => {
+  const culqiAction = async (action: 'subscribe' | 'card' | 'cancel' | 'resume', who: BillingAccount | null = payer) => {
     let token: string | null = null;
     let deviceId: string | null = null;
+    const email = who?.email ?? null;
     if (action === 'subscribe' || action === 'card') {
-      if (!accountReady) {
-        toast.error(t('subscription.culqi.needDetails'));
+      if (!accountComplete(who)) {
+        setAskDetails(action);
         return;
       }
       if (!culqiPublicKey) {
@@ -287,6 +296,27 @@ export function SubscriptionCard({
           await culqiAction('cancel');
         }}
       />
+      <Dialog open={!!askDetails} onOpenChange={(open) => !open && setAskDetails(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('subscription.culqi.detailsTitle')}</DialogTitle>
+            <DialogDescription>{t('subscription.culqi.detailsBody')}</DialogDescription>
+          </DialogHeader>
+          <AccountForm
+            initial={payer}
+            idPrefix="subscribe-billing"
+            submitLabel={t('subscription.culqi.detailsContinue')}
+            onSaved={(saved) => {
+              const next = askDetails;
+              setSavedAccount(saved);
+              setAskDetails(null);
+              onAccountSaved?.();
+              // Straight on to Culqi's card window with the details just saved.
+              if (next && accountComplete(saved)) void culqiAction(next, saved);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

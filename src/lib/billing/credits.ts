@@ -124,13 +124,13 @@ const TEXTS = {
     low: (n: number) => ({ title: 'Te quedan pocos créditos', body: `Quedan ${n} créditos. Con el plan, al acabarse sigue con créditos adicionales hasta tu límite de consumo extra; sin plan, la IA y las respuestas a comentarios se pausan.` }),
     depleted: () => ({ title: 'Se acabaron tus créditos', body: 'Tus agentes de IA y las respuestas a comentarios están en pausa, y los mensajes llegan a la bandeja para tu equipo. Suscríbete al plan o sube tu límite de consumo extra en Configuración → Tokens para reactivarlos.' }),
     overage: () => ({ title: 'Estás usando créditos adicionales', body: 'Se acabaron los créditos del mes y la IA sigue con créditos adicionales, hasta tu límite de consumo extra. Solo se cobra lo que uses, en tu próxima factura.' }),
-    paid: (n: number) => ({ title: 'Recarga acreditada', body: `Se sumaron ${n} tokens a tu cuenta.` }),
+    paid: (n: number) => ({ title: 'Pago acreditado', body: `Se sumaron ${n} tokens a tu cuenta.` }),
   },
   en: {
     low: (n: number) => ({ title: 'Your credits are running low', body: `${n} credits left. With the plan, it keeps going with extra credits up to your extra usage limit; without it, the AI and comment replies pause.` }),
     depleted: () => ({ title: 'You are out of credits', body: 'Your AI agents and comment replies are paused, and messages go to your team inbox. Subscribe to the plan or raise your extra usage limit in Settings → Tokens to turn them back on.' }),
     overage: () => ({ title: 'You are using extra credits', body: "The month's credits ran out and the AI keeps going with extra credits, up to your extra usage limit. Only what you use is billed, on your next invoice." }),
-    paid: (n: number) => ({ title: 'Top-up credited', body: `${n} tokens were added to your account.` }),
+    paid: (n: number) => ({ title: 'Payment credited', body: `${n} tokens were added to your account.` }),
   },
 }
 

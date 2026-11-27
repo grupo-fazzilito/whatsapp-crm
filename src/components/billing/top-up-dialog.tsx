@@ -6,7 +6,7 @@ import { useI18n } from '@/i18n/client';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { SubscriptionPricing } from '@/lib/billing/subscription-pricing';
 import { SubscriptionCard, type OverageView, type SubscriptionView } from './subscription-card';
-import { accountComplete, type BillingAccount } from './top-up';
+import type { BillingAccount } from './top-up';
 
 interface Data {
   balance: number;
@@ -61,8 +61,8 @@ export function TopUpDialog({ open, onOpenChange, onPaid }: { open: boolean; onO
             ready={data.subscription_ready}
             provider={data.subscription_provider}
             culqiPublicKey={data.culqi_public_key ?? null}
-            accountReady={accountComplete(data.account ?? null)}
-            email={data.account?.email ?? null}
+            account={data.account ?? null}
+            onAccountSaved={() => void load()}
             onChanged={() => {
               onPaid();
               onOpenChange(false);

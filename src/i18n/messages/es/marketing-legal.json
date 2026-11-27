@@ -83,13 +83,13 @@
     },
     "s5": {
       "title": "5. Cobros duplicados o errores",
-      "body": "Si detectas un cobro duplicado o un error en una recarga de tokens, escríbenos dentro de los 14 días siguientes al pago.",
+      "body": "Si detectas un cobro duplicado o un error en un cobro de tu plan, escríbenos dentro de los 14 días siguientes al pago.",
       "i1": "Revisamos cada caso y, si el error se confirma, te devolvemos el importe o acreditamos los tokens que correspondan.",
       "i2": "Antes de iniciar un contracargo con tu banco, contáctanos: así lo resolvemos más rápido."
     },
     "s6": {
       "title": "6. Contacto",
-      "body": "Para consultas sobre recargas, comprobantes o reembolsos, escríbenos:",
+      "body": "Para consultas sobre cobros, comprobantes o reembolsos, escríbenos:",
       "emailLabel": "Correo electrónico:"
     }
   },
@@ -100,7 +100,7 @@
     "intro": "Te damos la bienvenida a Whasalia. Estos Términos y condiciones (los \"Términos\") rigen tu acceso y uso del sitio web, el panel SaaS, los motores de automatización, las API y las interfaces de gestión de relaciones con clientes que ofrece Whasalia (\"nosotros\" o \"nuestro\"). Al suscribirte a nuestra Plataforma o utilizarla, aceptas cumplir estos Términos y quedar obligado por ellos.",
     "s1": {
       "title": "1. Plan, tokens de IA y pagos",
-      "body": "Crear una cuenta en Whasalia otorga a tu negocio una licencia no exclusiva, intransferible y revocable para usar la plataforma con el plan Free Forever, sin mensualidad.",
+      "body": "Crear una cuenta en Whasalia otorga a tu negocio una licencia no exclusiva, intransferible y revocable para usar la plataforma con el plan gratuito o con el plan mensual que contrate.",
       "i1": "Las acciones de IA se pagan con tokens prepagados, que se compran antes de usarlos y vencen en el plazo indicado al comprarlos.",
       "i2": "Los servicios a medida (configuración asistida, desarrollos o consultoría) se cotizan y pagan aparte, antes de empezar.",
       "i3": "Si en el futuro ofrecemos planes de pago, serán opcionales y te avisaremos antes de cualquier cobro."

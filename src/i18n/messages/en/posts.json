@@ -143,7 +143,7 @@
     "errors": {
       "generic": "Couldn't complete it. Try again.",
       "not_connected": "Not connected yet: {targets}.",
-      "no_credits": "You're out of AI tokens. Top up in Billing.",
+      "no_credits": "You're out of AI credits. Check your plan in Settings → Tokens.",
       "no_provider": "The AI isn't available right now.",
       "upload": "Couldn't upload the file.",
       "tooLarge": "The file is over 100 MB.",

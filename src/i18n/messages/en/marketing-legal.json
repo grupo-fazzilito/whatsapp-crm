@@ -83,13 +83,13 @@
     },
     "s5": {
       "title": "5. Duplicate charges or errors",
-      "body": "If you find a duplicate charge or an error in a token top-up, write to us within 14 days of the payment.",
+      "body": "If you find a duplicate charge or an error in a charge of your plan, write to us within 14 days of the payment.",
       "i1": "We review every case and, if the error is confirmed, we refund the amount or credit the corresponding tokens.",
       "i2": "Before starting a chargeback with your bank, contact us: we can solve it faster."
     },
     "s6": {
       "title": "6. Contact",
-      "body": "For questions about top-ups, receipts or refunds, write to us:",
+      "body": "For questions about charges, receipts or refunds, write to us:",
       "emailLabel": "Email:"
     }
   },
@@ -100,7 +100,7 @@
     "intro": "Welcome to Whasalia. These Terms & Conditions (\"Terms\") govern your access to and use of the website, SaaS dashboard, automation engines, APIs, and customer relationship interfaces provided by Whasalia (\"we\", \"us\", or \"our\"). By subscribing to or utilizing our Platform, you agree to comply with and be bound by these Terms.",
     "s1": {
       "title": "1. Plan, AI tokens and payments",
-      "body": "Creating a Whasalia account grants your business a non-exclusive, non-transferable, revocable license to use the platform on the Free Forever plan, with no monthly fee.",
+      "body": "Creating a Whasalia account grants your business a non-exclusive, non-transferable, revocable license to use the platform on the free plan or on the monthly plan it subscribes to.",
       "i1": "AI actions are paid with prepaid tokens, bought before use and expiring within the period shown at purchase.",
       "i2": "Custom services (assisted setup, development or consulting) are quoted and paid separately, before work starts.",
       "i3": "If we offer paid plans in the future, they will be optional and we will tell you before any charge."
