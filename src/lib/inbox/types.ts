@@ -56,7 +56,7 @@ export interface QuickReply {
   updated_at: string
 }
 
-export type NotificationType = 'mention' | 'assigned' | 'transferred' | 'system' | 'billing' | 'handover' | 'order'
+export type NotificationType = 'mention' | 'assigned' | 'transferred' | 'system' | 'billing' | 'handover' | 'order' | 'report'
 
 export interface AppNotification {
   id: string

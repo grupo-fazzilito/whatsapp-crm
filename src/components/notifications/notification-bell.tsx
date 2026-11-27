@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { es as esLocale, enUS } from "date-fns/locale";
-import { AtSign, ArrowRightLeft, Bell, BellRing, CheckCheck, Hand, UserCheck, Info, Coins, ShoppingBag, Volume2, VolumeX } from "lucide-react";
+import { AtSign, ArrowRightLeft, Bell, BellRing, CheckCheck, Hand, UserCheck, Info, Coins, ShoppingBag, FileText, Volume2, VolumeX } from "lucide-react";
 import { useRealtimeChanges } from "@/lib/realtime/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -32,6 +32,7 @@ const TYPE_ICON = {
   billing: Coins,
   handover: Hand,
   order: ShoppingBag,
+  report: FileText,
 } as const;
 
 /** Header bell: unread count, live updates, mark read, jump to the conversation. */
@@ -139,6 +140,11 @@ export function NotificationBell() {
     if (!n.read_at) void markRead({ ids: [n.id] });
     setOpen(false);
     if (!n.link) return;
+    // A file to download (PDF report): a real request, not a page change.
+    if (n.link.startsWith('/api/')) {
+      window.location.assign(n.link);
+      return;
+    }
     if (pathname === "/inbox" && n.conversation_id) {
       window.dispatchEvent(new CustomEvent(OPEN_CONVERSATION_EVENT, { detail: { conversationId: n.conversation_id } }));
       return;

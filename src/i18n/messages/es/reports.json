@@ -202,6 +202,71 @@
       "missedSub": "{rejected} rechazadas",
       "talk": "Tiempo en llamada",
       "talkSub": "Mediana {value} por llamada"
+    },
+    "pdf": {
+      "generatedBy": "Generado por Whasalia CRM",
+      "page": "Página {n} de {total}",
+      "title": "Reporte de atención y ventas",
+      "titlePersonal": "Mi reporte de desempeño",
+      "period": "Del {from} al {to}",
+      "contents": "Contenido",
+      "generatedAt": "Generado el {date} ({tz}).",
+      "filters": "Filtros: {list}",
+      "highlights": "Lo más importante",
+      "howToRead": "Cómo leerlo",
+      "whoAnswered": "Quién respondió las sesiones",
+      "whoAnsweredDesc": "Sesiones de atención del periodo según quién dio la primera respuesta.",
+      "channelsActive": "canales con mensajes",
+      "conversations": "conversaciones",
+      "handedOver": "Derivadas de la IA a personas",
+      "aiDetail": "Detalle por agente de IA",
+      "metaMonth": "Mes de {month}. Meta te cobra directamente; esta es una estimación.",
+      "freeUsed": "Gratis usadas",
+      "freeLeft": "Gratis disponibles",
+      "billable": "Cobradas",
+      "type": "Tipo",
+      "button": "Descargar PDF",
+      "queued": "Estamos preparando tu PDF. Te avisaremos en las notificaciones cuando esté listo.",
+      "failedToStart": "No se pudo iniciar el PDF. Intenta de nuevo.",
+      "readyTitle": "Tu reporte PDF está listo",
+      "readyBody": "{name}: toca para descargarlo.",
+      "failedTitle": "No se pudo generar tu reporte PDF",
+      "failedBody": "Intenta de nuevo desde Reportes.",
+      "expired": "Este reporte ya no está disponible. Genera uno nuevo desde Reportes.",
+      "sections": {
+        "attention": {
+          "short": "Qué tan rápido y qué tan bien respondes a tus clientes.",
+          "intro": "Esta sección mide la experiencia de tus clientes cuando escriben: cuántas conversaciones nuevas llegaron, cuánto tardaron en recibir la primera respuesta (de la IA o de una persona), cuántas se respondieron dentro de tu meta de tiempo y cuánto tomó resolverlas.",
+          "how": "Fíjate primero en la primera respuesta y en el porcentaje dentro de la meta: son lo que más siente el cliente. «Esperando respuesta ahora» son clientes que te escribieron y nadie les ha contestado todavía."
+        },
+        "volume": {
+          "short": "Cuántos mensajes recibes y envías, por día, canal y hora.",
+          "intro": "Esta sección muestra la carga de trabajo: cuántos mensajes llegaron de tus clientes, cuántos envió tu equipo y cuántos la IA, en qué días y por qué canales, y en qué horas se concentra la demanda.",
+          "how": "Usa el mapa de horas pico para decidir cuándo reforzar al equipo. Si un canal crece mucho, quizá convenga asignarle un agente de IA o un grupo de atención propio."
+        },
+        "team": {
+          "short": "Quién atendió: personas, IA o ambos, y el desempeño de cada agente.",
+          "intro": "Esta sección compara el trabajo de tu equipo con el de la IA: cuántas respuestas dio cada uno, qué conversaciones resolvió solo la IA, cuáles pasaron a una persona y cómo rindió cada miembro del equipo.",
+          "how": "Una buena señal es que la IA resuelva sola la mayoría de las consultas simples y que las derivadas lleguen rápido a una persona. Revisa la primera respuesta mediana de cada agente para detectar demoras."
+        },
+        "ai": {
+          "short": "Lo que hizo la IA, cuántas veces pasó a una persona y su costo.",
+          "intro": "Esta sección resume el trabajo de tus agentes de IA: cuántas respuestas enviaron, en cuántas conversaciones participaron, qué porcentaje derivaron a una persona y el costo interno del modelo de IA.",
+          "how": "Una tasa de derivación alta puede indicar que a la IA le falta información: completa las preguntas frecuentes, el catálogo o las instrucciones del agente. El costo interno es referencial; tú pagas con créditos."
+        },
+        "sales": {
+          "short": "Pedidos, ventas, reservas y cuántas conversaciones terminan en compra.",
+          "intro": "Esta sección muestra los resultados comerciales del periodo: pedidos creados y su estado, el total vendido, las reservas y la conversión, es decir, cuántas conversaciones terminaron en un pedido.",
+          "how": "La conversión te dice qué tan bien convierten tus chats en ventas. Si muchos pedidos quedan pendientes o cancelados, revisa el seguimiento y los medios de pago."
+        },
+        "meta": {
+          "short": "Mensajes de WhatsApp que Meta cobra y su costo estimado.",
+          "intro": "Desde el 1 de octubre de 2026 Meta cobra cada respuesta enviada por WhatsApp. Cada número tiene 1.000 respuestas gratis al mes y las plantillas se cobran siempre. Esta sección estima cuánto te cobrará Meta en el mes, por número y por tipo de mensaje.",
+          "how": "Si un número se acerca al límite gratis, revisa que tu cuenta de WhatsApp Business tenga un medio de pago: sin él, Meta deja de entregar las respuestas pasado el límite. La factura real está en tu WhatsApp Manager."
+        }
+      },
+      "tooMany": "Ya tienes reportes en preparación. Espera a que terminen.",
+      "stillWorking": "Tu PDF aún se está preparando. Te avisaremos cuando esté listo."
     }
   }
 }
