@@ -75,7 +75,7 @@
       "description": "Conecta un Google Calendar para todo el negocio o uno por cada persona del equipo: las {bookings} se crean como eventos y los horarios ocupados no se ofrecen a los clientes.",
       "needsBookings": "Google Calendar sincroniza tus {bookings}. Para usarlo, activa «Citas y reservas» en la configuración del negocio.",
       "openSetup": "Ir a Configuración del negocio",
-      "noStaff": "Todavía no hay {staffPlural}. Agrégalos para conectar su calendario:",
+      "noStaff": "Aún no hay {staffPlural} en Mi negocio. Aquí aparecen las personas que atienden citas (Mi negocio → {staffPlural}), no los miembros de Configuración → Miembros. Agrégalas y enlázalas a su usuario para que cada una conecte su calendario:",
       "businessTitle": "Calendario del negocio",
       "businessHelp": "Un solo Google Calendar para todo: cada una de tus {bookings} se crea ahí como evento y lo que tengas ocupado en ese calendario no se ofrece a los clientes.",
       "businessHelpStaff": "Un solo Google Calendar para todo el negocio: ahí van las {bookings} de quien no conecte su propio calendario, y lo ocupado en él no se ofrece a nadie del {staffPlural}.",

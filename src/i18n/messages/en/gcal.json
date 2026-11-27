@@ -75,7 +75,7 @@
       "description": "Connect one Google Calendar for the whole business or one per team member: {bookings} become events and busy times aren't offered to customers.",
       "needsBookings": "Google Calendar syncs your {bookings}. To use it, turn on «Bookings» in the business setup.",
       "openSetup": "Go to business settings",
-      "noStaff": "No {staffPlural} yet. Add them to connect their calendar:",
+      "noStaff": "There are no {staffPlural} in My business yet. This lists the people who take bookings (My business → {staffPlural}), not the members in Settings → Members. Add them and link each to their user so they can connect their calendar:",
       "businessTitle": "Business calendar",
       "businessHelp": "One Google Calendar for everything: each of your {bookings} is created there as an event, and busy times in that calendar aren't offered to customers.",
       "businessHelpStaff": "One Google Calendar for the whole business: {bookings} of anyone without their own calendar go there, and its busy times aren't offered for anyone on the {staffPlural}.",

@@ -65,8 +65,9 @@ export function CalendarConnection({ staffId, staffName, connection, configured,
   };
 
   if (!connection) {
-    if (!configured) return compact ? null : <p className="text-xs text-muted-foreground">{t('gcal.notConfigured')}</p>;
-    if (!canManage) return compact ? null : <p className="text-xs text-muted-foreground">{t('gcal.noPermission', { staff: label('staff').toLowerCase() })}</p>;
+    // Always say why there is no button (an empty space looked like a bug).
+    if (!configured) return <p className="text-xs text-muted-foreground">{t('gcal.notConfigured')}</p>;
+    if (!canManage) return <p className="text-xs text-muted-foreground">{t('gcal.noPermission', { staff: label('staff').toLowerCase() })}</p>;
     return (
       <a href={startHref} className={cn(buttonVariants({ variant: 'outline', size: compact ? 'sm' : 'default' }), 'gap-2')}>
         <GoogleMark />
