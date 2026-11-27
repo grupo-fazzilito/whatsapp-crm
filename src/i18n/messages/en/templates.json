@@ -192,6 +192,16 @@
         "errorBody": "We saved it as a draft. This is Meta's message:",
         "keepEditing": "Keep editing",
         "back": "Back to templates"
+      },
+      "aiRules": {
+        "title": "What the AI does when each button is pressed",
+        "description": "One rule for your AI agent per quick-reply button. When the customer presses the button, the agent answers on WhatsApp following your rule.",
+        "label": "When \"{button}\" is pressed",
+        "placeholder": "e.g. Send them the jackets catalog, ask what size they need and offer this week's free delivery.",
+        "help": "Optional and not reviewed by Meta: you can change it even after the template is approved. Works in conversations handled by an AI agent.",
+        "save": "Save AI rules",
+        "saved": "AI rules saved",
+        "error": "Couldn't save the AI rules"
       }
     },
     "preview": {

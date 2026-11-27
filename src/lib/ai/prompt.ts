@@ -180,6 +180,8 @@ export interface PromptInput {
   calendlySlots?: Record<string, string[]> | null
   /** The agent registers in the CRM: what is on file and what it may write. */
   crm?: CrmContext | null
+  /** The customer just pressed this quick-reply button of a template we sent; the business's rule for it. */
+  pressedButton?: { template: string; button: string; rule: string } | null
 }
 
 function money(ctx: BusinessContext, amount: number | null | undefined): string {
@@ -362,6 +364,12 @@ export function buildSystemPrompt(input: PromptInput): string {
   )
 
   if (agent.instructions?.trim()) sections.push(`OWNER INSTRUCTIONS (follow them):\n${agent.instructions.trim()}`)
+  if (input.pressedButton) {
+    const b = input.pressedButton
+    sections.push(
+      `BUTTON JUST PRESSED (top priority for this reply): the customer's last message is the button "${b.button}" of the WhatsApp template "${b.template}" we sent them. The business's rule for this button — follow it now:\n${b.rule}`,
+    )
+  }
   if (agent.training_context?.trim()) {
     sections.push(
       `BUSINESS KNOWLEDGE FROM THE OWNER (your main source: answer from it, never contradict it, never invent beyond it):\n${agent.training_context.trim()}`,

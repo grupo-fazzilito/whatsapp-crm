@@ -192,6 +192,16 @@
         "errorBody": "La guardamos como borrador. Este es el mensaje de Meta:",
         "keepEditing": "Seguir editando",
         "back": "Volver a plantillas"
+      },
+      "aiRules": {
+        "title": "Qué hace la IA cuando presionan cada botón",
+        "description": "Una regla para tu agente de IA por cada botón de respuesta rápida. Cuando el cliente presione el botón, el agente le responde por WhatsApp siguiendo tu regla.",
+        "label": "Al presionar «{button}»",
+        "placeholder": "Ej.: Envíale el catálogo de casacas, pregúntale qué talla busca y ofrécele el envío gratis de esta semana.",
+        "help": "Es opcional y no lo revisa Meta: puedes cambiarlo aunque la plantilla ya esté aprobada. Funciona en las conversaciones atendidas por un agente de IA.",
+        "save": "Guardar reglas de la IA",
+        "saved": "Reglas de la IA guardadas",
+        "error": "No se pudieron guardar las reglas de la IA"
       }
     },
     "preview": {

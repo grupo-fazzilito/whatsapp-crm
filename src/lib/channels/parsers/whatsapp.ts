@@ -228,7 +228,8 @@ export function waMessageContent(m: WaMessage): MessageContent {
       return {
         contentType: 'interactive',
         text: m.button?.text ?? m.button?.payload ?? '',
-        interactiveReplyId: m.button?.payload ?? null,
+        // Meta sends the button's text as payload when none was set; either marks a pressed button.
+        interactiveReplyId: m.button?.payload || m.button?.text || null,
       }
     case 'order': {
       // Cart from the WhatsApp catalog: the order itself travels in `order`.

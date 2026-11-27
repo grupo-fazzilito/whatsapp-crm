@@ -80,6 +80,7 @@ export async function routeInbound(input: RouteInput): Promise<boolean> {
     conversationId: input.conversationId,
     messageText: input.messageText,
     contextMessageId: input.contextMessageId,
+    interactiveReplyId: input.interactiveReplyId ?? null,
     isFirstInboundMessage: input.isFirstInboundMessage,
   }
 
