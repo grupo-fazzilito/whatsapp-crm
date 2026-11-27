@@ -11,6 +11,7 @@ import { Header } from "@/components/layout/header";
 import { CreditsBanner } from "@/components/billing/credits-banner";
 import { TourProvider } from "@/components/tour/guided-tour";
 import { SetupHelpOffer } from "@/components/support/setup-help-dialog";
+import { SetupWizardProvider } from "@/components/onboarding/setup-wizard";
 import { CallCenter } from "@/components/calls/call-center";
 import { ImpersonationBar } from "@/components/admin/impersonation-bar";
 
@@ -98,7 +99,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <AuthProvider>
       <WorkspaceProvider>
         <TourProvider>
-          <DashboardShellInner>{children}</DashboardShellInner>
+          <SetupWizardProvider>
+            <DashboardShellInner>{children}</DashboardShellInner>
+          </SetupWizardProvider>
         </TourProvider>
       </WorkspaceProvider>
     </AuthProvider>

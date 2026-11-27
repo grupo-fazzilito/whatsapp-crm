@@ -6,6 +6,8 @@ import { driver, type DriveStep } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import './tour.css';
 import { useAuth } from '@/hooks/use-auth';
+import { useWorkspace } from '@/hooks/use-workspace';
+import { wizardDue } from '@/lib/workspace/onboarding';
 import { useI18n } from '@/i18n/client';
 
 // Guided tour of the app. Starts by itself the first time a user signs in
@@ -83,14 +85,16 @@ export function TourProvider({ children }: { children: ReactNode }) {
     d.drive();
   }, [t, markDone]);
 
-  // First sign-in: start once the dashboard has rendered.
+  // First sign-in: start once the dashboard has rendered, after the setup wizard.
+  const { workspace, role } = useWorkspace();
+  const wizardPending = !workspace || wizardDue(workspace.settings, role);
   useEffect(() => {
-    if (autoStarted.current || profileLoading || !profile || profile.tour_completed_at || impersonating) return;
+    if (autoStarted.current || profileLoading || !profile || profile.tour_completed_at || impersonating || wizardPending) return;
     if (pathname !== '/dashboard') return;
     autoStarted.current = true;
     const timer = setTimeout(start, 900);
     return () => clearTimeout(timer);
-  }, [profile, profileLoading, pathname, start, impersonating]);
+  }, [profile, profileLoading, pathname, start, impersonating, wizardPending]);
 
   const value = useMemo(() => ({ start }), [start]);
   return <TourContext.Provider value={value}>{children}</TourContext.Provider>;

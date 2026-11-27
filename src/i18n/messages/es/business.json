@@ -328,6 +328,150 @@
       "confidence": "Confianza",
       "openConversation": "Abrir conversación",
       "loadMore": "Cargar más"
+    },
+    "wizard": {
+      "title": "Configura tu negocio",
+      "subtitle": "Paso {n} de {total}",
+      "later": "Lo configuraré luego",
+      "next": "Siguiente",
+      "back": "Atrás",
+      "finish": "Terminar",
+      "saving": "Guardando…",
+      "howAgentUses": "Cómo lo usa tu agente de IA",
+      "optional": "Opcional",
+      "continueSetup": "Continuar configuración",
+      "steps": {
+        "business": {
+          "label": "Tu negocio",
+          "title": "Cuéntanos de tu negocio",
+          "help": "Tu agente se presenta con este nombre y la descripción le dice qué ofreces. El rubro le enseña cómo atender a tus clientes, y lo que actives (citas, servicios, productos, pedidos) es lo que podrá hacer por chat."
+        },
+        "contact": {
+          "label": "Contacto",
+          "title": "¿Cómo te encuentran tus clientes?",
+          "help": "Cuando un cliente pregunta «¿dónde están?», «¿tienen web?» o «¿a qué número llamo?», el agente responde con estos datos y puede mandar el enlace de Google Maps. La zona horaria le sirve para saber la hora real de tu negocio."
+        },
+        "hours": {
+          "label": "Horario",
+          "title": "¿Cuándo atiendes?",
+          "help": "El agente dice si estás abierto o cerrado, agenda citas solo dentro de tu horario y, fuera de hora, avisa cuándo vuelves a atender."
+        },
+        "catalog": {
+          "label": "Qué vendes",
+          "title": "¿Qué vendes?",
+          "help": "El agente da precios y detalles solo de lo que pongas aquí, sin inventar. Con servicios puede agendar citas con su duración; con productos puede tomar pedidos."
+        },
+        "faqs": {
+          "label": "Preguntas",
+          "title": "Preguntas frecuentes",
+          "help": "Lo que tus clientes preguntan siempre (formas de pago, envíos, garantías, estacionamiento…). El agente responde exactamente lo que tú escribas aquí."
+        },
+        "agent": {
+          "label": "Tu agente",
+          "title": "Crea tu agente de IA",
+          "help": "Es quien responde a tus clientes por WhatsApp, Instagram, Facebook y los demás canales. El nombre, el tono y el saludo son su personalidad; las instrucciones son tus reglas (qué ofrecer, qué nunca decir, cuándo pasar con una persona)."
+        },
+        "done": {
+          "label": "Listo",
+          "title": "¡Tu negocio está listo!",
+          "help": "Lo último es conectar WhatsApp (u otro canal) para que tu agente empiece a responder. Puedes cambiar todo esto cuando quieras desde Mi negocio y Agentes."
+        }
+      },
+      "business": {
+        "name": "Nombre del negocio",
+        "namePlaceholder": "Ej. Barbería Don Lucho",
+        "industry": "Rubro",
+        "detail": "¿Qué haces exactamente?",
+        "detailPlaceholder": "Ej. Barbería y cuidado de barba para hombres",
+        "description": "Descripción corta",
+        "descriptionPlaceholder": "Ej. Barbería en Miraflores con más de 10 años de experiencia. Cortes clásicos y modernos, afeitado con navaja y productos para barba.",
+        "nameRequired": "Escribe el nombre de tu negocio",
+        "modules": "¿Qué vas a usar?",
+        "modulesHelp": "Ya marcamos lo recomendado para tu rubro. Activa o desactiva lo que necesites; puedes cambiarlo cuando quieras."
+      },
+      "contact": {
+        "phone": "Teléfono",
+        "email": "Correo",
+        "website": "Página web",
+        "address": "Dirección",
+        "city": "Ciudad",
+        "maps": "Enlace de Google Maps",
+        "mapsPlaceholder": "https://maps.app.goo.gl/…",
+        "timezone": "Zona horaria",
+        "invalidTimezone": "La zona horaria no es válida"
+      },
+      "hours": {
+        "open": "Abierto",
+        "closed": "Cerrado",
+        "from": "Desde",
+        "to": "Hasta",
+        "copy": "Copiar el lunes a todos los días hábiles",
+        "days": {
+          "Monday": "Lunes",
+          "Tuesday": "Martes",
+          "Wednesday": "Miércoles",
+          "Thursday": "Jueves",
+          "Friday": "Viernes",
+          "Saturday": "Sábado",
+          "Sunday": "Domingo"
+        },
+        "invalid": "Revisa las horas: el cierre debe ser después de la apertura"
+      },
+      "catalog": {
+        "services": "Servicios",
+        "products": "Productos",
+        "name": "Nombre",
+        "price": "Precio ({currency})",
+        "duration": "Minutos",
+        "add": "Agregar otro",
+        "remove": "Quitar",
+        "existing": "Ya tienes {n} registrados. Los que agregues aquí se suman.",
+        "more": "Después puedes cargar más (también desde Excel) en {where}.",
+        "whereServices": "Mi negocio → Servicios",
+        "whereProducts": "Catálogo",
+        "none": "Tu rubro no usa servicios ni productos. Puedes activarlos después en Mi negocio → Rubro.",
+        "servicePlaceholder": "Ej. Corte clásico",
+        "productPlaceholder": "Ej. Aceite para barba 30 ml"
+      },
+      "faqs": {
+        "question": "Pregunta",
+        "answer": "Respuesta",
+        "add": "Agregar otra",
+        "existing": "Ya tienes {n} preguntas. Las que agregues aquí se suman.",
+        "q0": "¿Qué formas de pago aceptan?",
+        "a0": "Efectivo, Yape, Plin y tarjeta.",
+        "q1": "¿Tienen estacionamiento?",
+        "a1": "Sí, frente al local y es gratis.",
+        "q2": "¿Hacen envíos?",
+        "a2": "Sí, a todo Lima. El envío cuesta S/ 10."
+      },
+      "agent": {
+        "template": "Tipo de agente",
+        "name": "Nombre del agente",
+        "namePlaceholder": "Ej. Sofía",
+        "tone": "Tono",
+        "greeting": "Mensaje de bienvenida",
+        "greetingPlaceholder": "¡Hola! Soy Sofía 😊 ¿En qué te ayudo?",
+        "instructions": "Instrucciones",
+        "instructionsPlaceholder": "Ej.:\n- Ofrece siempre el paquete de corte + barba.\n- Nunca prometas descuentos.\n- Si piden hablar con una persona, pasa la conversación al equipo.",
+        "existing": "Ya tienes el agente «{name}». Lo que cambies aquí se guarda en él.",
+        "nameRequired": "Ponle un nombre a tu agente"
+      },
+      "done": {
+        "saved": "Lo que configuraste",
+        "business": "Datos del negocio",
+        "contact": "Contacto y ubicación",
+        "hours": "Horario",
+        "catalog": "{n} servicios o productos",
+        "faqs": "{n} preguntas frecuentes",
+        "agent": "Agente «{name}»",
+        "connect": "Conectar WhatsApp",
+        "dashboard": "Ir al inicio",
+        "test": "Probar mi agente"
+      },
+      "errors": {
+        "generic": "No se pudo guardar. Revisa los datos e intenta de nuevo."
+      }
     }
   }
 }
