@@ -130,8 +130,8 @@ export function BillingPanel() {
                   <dd className="flex items-center gap-3 tabular-nums">
                     <span className="text-slate-900 dark:text-white">{t('billing.costs.unit', { n: s.action_costs[a] })}</span>
                     {data.usage_month[a] ? (
-                      <span className="text-xs text-slate-500 dark:text-slate-400" title={t('billing.usage.month')}>
-                        −{nf.format(data.usage_month[a])}
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {t('billing.costs.usedThisMonth', { n: nf.format(data.usage_month[a]) })}
                       </span>
                     ) : null}
                   </dd>

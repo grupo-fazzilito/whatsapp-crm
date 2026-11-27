@@ -34,12 +34,13 @@
       "transcription": "Transcripción de audio",
       "vision": "Lectura de imagen o PDF",
       "comment_reply": "Comentario respondido automáticamente",
-      "unit": "{n} token(s)",
+      "unit": "{n} crédito(s)",
       "playground": "Mensaje de prueba de un agente",
       "reminder": "Recordatorio de cita enviado",
       "social_caption": "Texto de publicación escrito con IA",
       "crm_action": "Acción de la IA en el CRM (dato guardado, negocio, etiqueta, tarea o nota)",
-      "call_minute": "Minuto de llamada atendida por la IA"
+      "call_minute": "Minuto de llamada atendida por la IA",
+      "usedThisMonth": "{n} usados este mes"
     },
     "account": {
       "title": "Datos de facturación",

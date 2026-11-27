@@ -34,12 +34,13 @@
       "transcription": "Audio transcription",
       "vision": "Image or PDF reading",
       "comment_reply": "Automatically answered comment",
-      "unit": "{n} token(s)",
+      "unit": "{n} credit(s)",
       "playground": "Agent test message",
       "reminder": "Appointment reminder sent",
       "social_caption": "Post caption written by AI",
       "crm_action": "AI action in the CRM (saved data, deal, tag, task or note)",
-      "call_minute": "Minute of a call answered by the AI"
+      "call_minute": "Minute of a call answered by the AI",
+      "usedThisMonth": "{n} used this month"
     },
     "account": {
       "title": "Billing details",
