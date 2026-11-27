@@ -72,14 +72,23 @@
       "setup5": "While the app is unverified, add your agents as test users (their access expires every 7 days). calendar.events is a sensitive scope: publish the app and request Google verification."
     },
     "integrations": {
-      "description": "Connect one Google Calendar for the whole business or one per team member: {bookings} become events and busy times aren't offered to customers.",
+      "description": "Connect one general Google Calendar for the business, or one per professional: {bookings} become events and busy times aren't offered to customers.",
       "needsBookings": "Google Calendar syncs your {bookings}. To use it, turn on «Bookings» in the business setup.",
       "openSetup": "Go to business settings",
       "noStaff": "There are no {staffPlural} in My business yet. This lists the people who take bookings (My business → {staffPlural}), not the members in Settings → Members. Add them and link each to their user so they can connect their calendar:",
       "businessTitle": "Business calendar",
-      "businessHelp": "One Google Calendar for everything: each of your {bookings} is created there as an event, and busy times in that calendar aren't offered to customers.",
-      "businessHelpStaff": "One Google Calendar for the whole business: {bookings} of anyone without their own calendar go there, and its busy times aren't offered for anyone on the {staffPlural}.",
-      "staffTitle": "Each person's calendar ({staffPlural})"
+      "businessHelp": "Each of your {bookings} is created there as an event, and busy times in that calendar aren't offered to customers.",
+      "staffTitle": "Each professional's calendar ({staffPlural})",
+      "modeTitle": "How do you want to use Google Calendar?",
+      "mode": {
+        "business": "One general calendar",
+        "staff": "One per professional"
+      },
+      "modeHelp": {
+        "business": "All {bookings} go to one business Google Calendar, and busy times there aren't offered to customers.",
+        "staff": "Each of your {staffPlural} connects their own Google Calendar and manages their schedule individually."
+      },
+      "modeSaved": "Done: upcoming bookings move to the chosen calendar."
     }
   }
 }

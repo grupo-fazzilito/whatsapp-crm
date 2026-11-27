@@ -49,7 +49,7 @@
       "description": "Qué atiende",
       "handoverTo": "Al pasar a una persona, asignar a…",
       "handoverAuto": "Reparto automático (o avisar a todos los disponibles)",
-      "handoverTeams": "Equipos",
+      "handoverTeams": "Grupos de atención",
       "handoverMembers": "Personas",
       "handoverHelp": "Quien quede asignado recibe una notificación. Si no hay nadie asignado, se avisa a todos los disponibles y el chat aparece en «Atención requerida».",
       "crmActions": "Registrar en el CRM",

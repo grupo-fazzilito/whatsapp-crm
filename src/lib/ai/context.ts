@@ -1,4 +1,7 @@
 import 'server-only'
+import { calendarMode } from '@/lib/integrations/google/mode'
+import type { WorkspaceSettings } from '@/lib/workspace/types'
+import { BUSINESS_BUSY } from './slots'
 import { tenantDb } from '@/lib/db/tenant'
 import { addDays, safeTimeZone, zonedNow } from './time'
 import type { Workspace } from '@/lib/workspace/types'
@@ -147,6 +150,9 @@ export async function loadBusinessContext(workspaceId: string, fresh = false): P
   } catch (err) {
     console.warn('[ai-context] calendar busy time unavailable:', err instanceof Error ? err.message : err)
   }
+  // Only the calendars the business chose to use count (general or each professional's).
+  const general = calendarMode(workspace.industry, workspace.settings as WorkspaceSettings | null) === 'business'
+  busy = Object.fromEntries(Object.entries(busy).filter(([k]) => (k === BUSINESS_BUSY) === general))
 
   const servicesByStaff = new Map<string, string[]>()
   for (const l of links) {

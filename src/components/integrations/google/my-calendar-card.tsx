@@ -12,10 +12,11 @@ import { useGcalStatus } from './use-gcal';
 /** Settings → Profile: the signed-in member's own Google Calendar (via their linked staff row). */
 export function MyGoogleCalendarCard() {
   const t = useT();
-  const { label, modules } = useWorkspace();
+  const { label, modules, workspace } = useWorkspace();
   const { status, reload } = useGcalStatus();
 
-  if (!modules.staff) return null;
+  // Only when each professional uses their own calendar (not the general one).
+  if (!modules.staff || workspace?.settings?.calendar_mode === 'business') return null;
   const bookings = label('bookingPlural').toLowerCase();
   const staff = label('staff').toLowerCase();
 

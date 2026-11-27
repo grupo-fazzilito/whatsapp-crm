@@ -90,7 +90,7 @@
         "modulesDescription": "Al elegir el tipo de negocio se activan sus módulos recomendados. Puedes activar cualquier otro: por ejemplo, un restaurante que también da citas. Los módulos apagados se ocultan del menú y la IA no los ofrece.",
         "module": {
           "bookings": "Citas y reservas",
-          "staff": "Equipo / profesionales",
+          "staff": "Profesionales y agenda",
           "services": "Servicios",
           "products": "Productos",
           "orders": "Pedidos",
@@ -98,7 +98,7 @@
         },
         "moduleHint": {
           "bookings": "Agenda y reservaciones por chat.",
-          "staff": "Personas que atienden, con horarios propios.",
+          "staff": "Personas que atienden citas, con su horario. Cada una puede conectar su propio Google Calendar y atender su agenda de forma individual.",
           "services": "Lo que ofreces, con precio y duración.",
           "products": "Catálogo de productos.",
           "orders": "Pedidos por chat (recoger o envío).",

@@ -1,4 +1,5 @@
 import 'server-only'
+import { calendarMode, pickConnection, type CalendarMode } from './mode'
 import crypto from 'crypto'
 import { after } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
@@ -106,17 +107,12 @@ async function connectionById(workspaceId: string, id: string): Promise<Calendar
   return (data as CalendarConnection | null) ?? null
 }
 
-/** The staff member's calendar, else the business's own calendar. */
-async function connectionForStaff(workspaceId: string, staffId: string | null): Promise<CalendarConnection | null> {
-  const db = tenantDb(workspaceId)
-  const own = staffId
-    ? await db.calendar_connections.findFirst({ select: CONNECTION_SELECT, where: { staff_id: staffId, status: { not: 'revoked' } } }).catch(() => null)
-    : null
-  if (own) return own as CalendarConnection
-  const business = await db.calendar_connections
-    .findFirst({ select: CONNECTION_SELECT, where: { staff_id: null, status: { not: 'revoked' } } })
-    .catch(() => null)
-  return (business as CalendarConnection | null) ?? null
+/** The calendar a booking goes to, per the business's choice: one general calendar or each professional's own. */
+async function connectionForStaff(workspaceId: string, staffId: string | null, mode: CalendarMode): Promise<CalendarConnection | null> {
+  const conns = await tenantDb(workspaceId)
+    .calendar_connections.findMany({ select: CONNECTION_SELECT, where: { status: { not: 'revoked' }, OR: [{ staff_id: null }, ...(staffId ? [{ staff_id: staffId }] : [])] } })
+    .catch(() => [])
+  return pickConnection(mode, conns as CalendarConnection[], staffId)
 }
 
 function str(v: unknown): string | null {
@@ -208,7 +204,8 @@ export async function syncBooking(bookingId: string, workspaceId?: string): Prom
   const version = b.google_sync_version
 
   try {
-    const target = DROP_EVENT.has(b.status) ? null : await connectionForStaff(b.workspace_id, b.staff_id)
+    const mode = calendarMode(b.workspace.industry, b.workspace.settings)
+    const target = DROP_EVENT.has(b.status) ? null : await connectionForStaff(b.workspace_id, b.staff_id, mode)
     let eventId = b.google_event_id
     let connId = b.google_calendar_connection_id
 
