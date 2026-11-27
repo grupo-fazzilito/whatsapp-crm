@@ -1,4 +1,5 @@
 import 'server-only'
+import { bookingDefaults } from '@/lib/bookings/defaults'
 import { askTelegramPhone } from '@/lib/channels/telegram-phone'
 import { Prisma } from '@/generated/prisma/client'
 import { tenantDb } from '@/lib/db/tenant'
@@ -382,8 +383,8 @@ async function timesByDate(env: Env, d: PickerDraft, date: string | null): Promi
     bookings: ctx.bookings,
     today: now.date,
     nowTime: now.time,
-    durationMinutes: service?.duration_minutes ?? 30,
-    stepMinutes: 30,
+    durationMinutes: service?.duration_minutes ?? bookingDefaults(ctx.workspace.settings).duration,
+    stepMinutes: bookingDefaults(ctx.workspace.settings).step,
     capacity: Number((ctx.workspace.settings as { booking_capacity?: number } | null)?.booking_capacity ?? 1),
     busy: ctx.busy,
   }

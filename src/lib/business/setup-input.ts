@@ -2,6 +2,7 @@
 // browser used to write these tables directly). Pure: each parser keeps
 // only known columns with the expected types and throws InputError on
 // invalid values. `partial` parsers only include keys present in the body.
+import { DURATION_OPTIONS, STEP_OPTIONS } from '@/lib/bookings/defaults'
 import { INDUSTRY_IDS } from '@/lib/industries'
 import { parseReminderSettings } from '@/lib/bookings/reminder-settings'
 
@@ -288,7 +289,7 @@ export function parseWorkspacePatch(body: Body): Row {
 }
 
 /** Top-level settings keys the setup screens may write. */
-export const SETTINGS_KEYS = ['modules', 'labels', 'booking_capacity', 'orders', 'product_attributes', 'booking_reminders'] as const
+export const SETTINGS_KEYS = ['modules', 'labels', 'booking_capacity', 'orders', 'product_attributes', 'booking_reminders', 'booking_default_duration', 'booking_step'] as const
 
 /** Merges a settings patch (top-level keys) into the latest stored settings. */
 export function mergeSettings(current: unknown, patch: unknown): Row {
@@ -297,6 +298,13 @@ export function mergeSettings(current: unknown, patch: unknown): Row {
   for (const [k, v] of Object.entries(patch)) {
     if (!(SETTINGS_KEYS as readonly string[]).includes(k)) throw new InputError(`settings.${k} cannot be changed here`)
     if (k === 'booking_capacity') base[k] = int(v, 1, 500, 'booking_capacity')
+    else if (k === 'booking_default_duration') {
+      if (!(DURATION_OPTIONS as readonly unknown[]).includes(v)) throw new InputError('Invalid booking_default_duration')
+      base[k] = v
+    } else if (k === 'booking_step') {
+      if (!(STEP_OPTIONS as readonly unknown[]).includes(v)) throw new InputError('Invalid booking_step')
+      base[k] = v
+    }
     else if (k === 'booking_reminders') {
       try {
         base[k] = parseReminderSettings(v)

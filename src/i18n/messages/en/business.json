@@ -147,6 +147,35 @@
         "invalidRange": "End time must be after start time.",
         "reason": "Reason (optional)",
         "reasonPlaceholder": "e.g. Public holiday"
+      },
+      "bookingTimes": {
+        "title": "Booking length and start times",
+        "description": "How long a booking without a service lasts and how often bookings can start.",
+        "how": "How does it work?",
+        "duration": "Booking length (no service)",
+        "step": "Bookings start",
+        "minutes": "{n} minutes",
+        "every": "Every {n} min",
+        "help": {
+          "title": "Booking length and start times",
+          "intro": "These two settings decide which times your AI agent and the booking picker offer, and how long each Google Calendar event lasts.",
+          "durationTitle": "Booking length",
+          "durationBody": "How long a booking lasts when it has no service, e.g. a meeting or a general visit. A booking for a service uses that service's length (My business → Services).",
+          "durationTip": "Meetings of different lengths? Create one service for each (e.g. «Meeting 15 min» and «Meeting 45 min») and set the length on each service.",
+          "stepTitle": "How often bookings start",
+          "stepBody": "The start times offered to customers within your hours:",
+          "grid15": "9:00, 9:15, 9:30, 9:45, 10:00…",
+          "grid30": "9:00, 9:30, 10:00, 10:30…",
+          "grid60": "9:00, 10:00, 11:00…",
+          "exampleTitle": "Example with 45-minute meetings",
+          "exampleIntro": "Someone books at 9:00. What's the next free time?",
+          "example30": "10:00 (15 minutes left unused)",
+          "example15": "9:45 (no gaps)",
+          "exampleTip": "Rule of thumb: pick «every 15 min» for 15 or 45-minute bookings; «every 30 min» for 30, 60 or 90; «every 60 min» if you only start on the hour.",
+          "calendarTitle": "And in Google Calendar",
+          "calendarBody": "Each booking becomes an event of that same length, and busy times in your calendar aren't offered to customers.",
+          "existing": "Changes apply to new bookings. Existing ones keep their length."
+        }
       }
     },
     "staff": {

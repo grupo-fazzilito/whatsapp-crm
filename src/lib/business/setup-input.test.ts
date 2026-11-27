@@ -83,3 +83,11 @@ describe('setup input parsers', () => {
     expect(parseBooking({ party_size: '', custom_fields: null, booking_time: '09:30:00' }, true)).toEqual({ party_size: null, custom_fields: {}, booking_time: '09:30' })
   })
 })
+
+describe('booking length and start times settings', () => {
+  it('accepts only the offered values', () => {
+    expect(mergeSettings({}, { booking_default_duration: 45, booking_step: 15 })).toEqual({ booking_default_duration: 45, booking_step: 15 })
+    expect(() => mergeSettings({}, { booking_default_duration: 7 })).toThrow(/booking_default_duration/)
+    expect(() => mergeSettings({}, { booking_step: '30' })).toThrow(/booking_step/)
+  })
+})
